@@ -41,7 +41,7 @@ export const CreateOrder = () => {
   const [partySearch, setPartySearch] = useState('');
 
   // Payment & Settlement State
-  const [paymentMode, setPaymentMode] = useState('Cash'); // 'Cash' | 'Debit Card'
+  const [paymentMode, setPaymentMode] = useState('Cash'); // 'Cash' | 'Card'
   const [amountReceived, setAmountReceived] = useState('');
   const [saleNote, setSaleNote] = useState('');
 
@@ -857,10 +857,14 @@ export const CreateOrder = () => {
           {/* CARD A: SUMMARY */}
           <div className={`border rounded-3xl p-4 card-shadow space-y-3 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
             }`}>
-            <h3 className="text-xs font-black uppercase tracking-wider pb-2 border-b border-slate-100 dark:border-slate-700 text-slate-400 flex items-center justify-between">
-              <span>{t('orderSummaryTitle')}</span>
-              <span className="font-mono text-brand-500 font-black">{totalItemsCount} {t('items')} • {totalQuantityUnits} {t('qty')}</span>
-            </h3>
+            <div className="flex items-center justify-between gap-1.5 pb-2 border-b border-slate-100 dark:border-slate-700">
+              <span className="text-[11px] font-black uppercase tracking-wide text-slate-400 whitespace-nowrap">
+                {t('orderSummaryTitle')}
+              </span>
+              <span className="font-mono text-brand-500 font-black text-[11px] whitespace-nowrap shrink-0">
+                {totalItemsCount} {t('items')} • {totalQuantityUnits} {t('qty')}
+              </span>
+            </div>
 
             <div className="space-y-2 text-xs">
               <div className="flex justify-between text-slate-400 font-bold">
@@ -882,9 +886,11 @@ export const CreateOrder = () => {
                 </div>
               )}
 
-              <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
-                <span className="text-xs font-black uppercase text-slate-400">{t('netPayableTotal')}</span>
-                <span className="text-2xl font-black text-brand-500">
+              <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between gap-2">
+                <span className="text-[11px] font-black uppercase text-slate-400 whitespace-nowrap shrink-0">
+                  {t('netPayableTotal')}
+                </span>
+                <span className="text-xl font-black text-brand-500 whitespace-nowrap shrink-0">
                   Rs. {netGrandTotal.toLocaleString()}
                 </span>
               </div>
@@ -943,7 +949,7 @@ export const CreateOrder = () => {
             <div className={`grid ${customerType === 'Regular Party' && selectedParty ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
               {[
                 { key: 'Cash', label: t('Cash'), icon: DollarSign },
-                { key: 'Debit Card', label: t('Debit Card'), icon: CreditCard },
+                { key: 'Card', label: t('Card'), icon: CreditCard },
                 ...(customerType === 'Regular Party' && selectedParty
                   ? [{ key: 'Khata (Udhaar)', label: t('khataCredit') || 'Khata (Udhaar)', icon: Wallet }]
                   : [])
