@@ -9,6 +9,7 @@ const connectionString = process.env.DATABASE_URL;
 
 let pool = null;
 let isInitialized = false;
+let initPromise = null;
 
 export const getPool = () => {
   if (!pool) {
@@ -33,21 +34,25 @@ export const getPool = () => {
 };
 
 export const initDatabase = async () => {
-  if (isInitialized) return pool;
-  const p = getPool();
+  if (isInitialized) return getPool();
 
-  try {
-    const client = await p.connect();
-    console.log('[Postgres Connected]: Neon / Cloud database connection established.');
-    client.release();
-
-    await createTables();
-    isInitialized = true;
-    return p;
-  } catch (err) {
-    console.error('[Postgres Connection/Init Error]:', err.message);
-    throw err;
+  if (!initPromise) {
+    initPromise = (async () => {
+      const p = getPool();
+      try {
+        await createTables();
+        isInitialized = true;
+        console.log('[Postgres Connected & Initialized]: All ERP tables verified.');
+        return p;
+      } catch (err) {
+        initPromise = null;
+        console.error('[Postgres Init Error]:', err.message);
+        throw err;
+      }
+    })();
   }
+
+  return initPromise;
 };
 
 const createTables = async () => {
@@ -193,23 +198,25 @@ const createTables = async () => {
 
   const p = getPool();
   await p.query(schema);
-  console.log('[Postgres Tables Initialized]: All ERP tables ready.');
 };
 
-// Async Query Helper Functions
+// Async Query Helper Functions (Auto-ensures tables exist)
 export const query = async (sql, params = []) => {
+  await initDatabase();
   const p = getPool();
   const res = await p.query(sql, params);
   return res.rows;
 };
 
 export const get = async (sql, params = []) => {
+  await initDatabase();
   const p = getPool();
   const res = await p.query(sql, params);
   return res.rows[0] || null;
 };
 
 export const run = async (sql, params = []) => {
+  await initDatabase();
   const p = getPool();
   const res = await p.query(sql, params);
   return { rowCount: res.rowCount, rows: res.rows };
