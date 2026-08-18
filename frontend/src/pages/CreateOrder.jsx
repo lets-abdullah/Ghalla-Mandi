@@ -850,9 +850,9 @@ export const CreateOrder = () => {
         </div>
 
         {/* ======================================================================= */}
-        {/* 4. RIGHT PANEL — CHECKOUT & SETTLEMENT (3.5 Cols) */}
+        {/* 4. RIGHT PANEL — CHECKOUT & SETTLEMENT (Responsive Column Sizing) */}
         {/* ======================================================================= */}
-        <div className="lg:col-span-3 space-y-3.5">
+        <div className="lg:col-span-4 xl:col-span-3 space-y-3.5">
 
           {/* CARD A: SUMMARY */}
           <div className={`border rounded-3xl p-4 card-shadow space-y-3 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
@@ -940,7 +940,7 @@ export const CreateOrder = () => {
             </h3>
 
             {/* Payment Mode Pills */}
-            <div className={`grid ${customerType === 'Regular Party' && selectedParty ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5`}>
+            <div className={`grid ${customerType === 'Regular Party' && selectedParty ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
               {[
                 { key: 'Cash', label: t('Cash'), icon: DollarSign },
                 { key: 'Debit Card', label: t('Debit Card'), icon: CreditCard },
@@ -959,15 +959,15 @@ export const CreateOrder = () => {
                       setAmountReceived('');
                     }
                   }}
-                  className={`p-2.5 rounded-2xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${paymentMode === mode.key
+                  className={`py-2.5 px-2 rounded-2xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap ${paymentMode === mode.key
                     ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/20'
                     : theme === 'dark'
                       ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
                       : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}
                 >
-                  <mode.icon className="w-3.5 h-3.5" />
-                  <span>{mode.label}</span>
+                  <mode.icon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{mode.label}</span>
                 </button>
               ))}
             </div>
@@ -1050,10 +1050,10 @@ export const CreateOrder = () => {
           <button
             onClick={handlePlaceOrder}
             disabled={cart.length === 0}
-            className="w-full py-4 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-black text-sm rounded-3xl transition shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+            className="w-full py-3.5 px-4 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-black text-sm rounded-2xl transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center"
           >
-            <CheckCircle2 className="w-5 h-5" />
-            <span>{t('completeAndPrintReceipt')}</span>
+            <CheckCircle2 className="w-5 h-5 shrink-0" />
+            <span className="leading-snug">{t('completeAndPrintReceipt')}</span>
           </button>
           <div className="text-[10px] text-center text-slate-400 font-bold">
             {t('shortcutHint')}
