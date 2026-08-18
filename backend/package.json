@@ -2,7 +2,7 @@
   "name": "ghalla-mandi-api",
   "version": "1.0.0",
   "description": "Production-Grade Multi-Tenant ERP API for Product Traders",
-  "main": "src/server.js",
+  "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
