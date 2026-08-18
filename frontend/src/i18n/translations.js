@@ -2,7 +2,7 @@ export const translations = {
   en: {
     // Brand & App
     appName: "GHALLA MANDI",
-    appSub: "Smart Mandi. Strong Business.",
+    appSub: "Smart & Strong Business.",
     productionTag: "Production Multi-Tenant SaaS v1.0.0",
     allRightsReserved: "All rights reserved.",
     copyrightNotice: "© 2026 Ghalla Mandi. All rights reserved.",
@@ -240,7 +240,7 @@ export const translations = {
     selectedCustomerProfile: "Customer Khata Profile",
     previousKhataBalance: "Previous Due Khata",
     newKhataBalanceAfterSale: "New Total Khata Balance",
-    completeAndPrintReceipt: "Complete Sale & Print Receipt",
+    completeAndPrintReceipt: "Complete Sale",
     shortcutHint: "Press F9 or Ctrl+Enter to Checkout",
     counterSale: "Counter Sale",
     mandiDelivery: "Mandi Delivery",

@@ -3,7 +3,7 @@ import { LogOut, Store, Wheat, Menu, PanelLeftClose, PanelLeftOpen } from 'lucid
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const Header = () => {
   const { t } = useLocale();
@@ -49,14 +49,14 @@ export const Header = () => {
           {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
         </button>
 
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-2xs shrink-0">
+        <Link to="/dashboard" className="flex items-center gap-2 cursor-pointer group" title={t('dashboard')}>
+          <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-2xs shrink-0 group-hover:bg-emerald-100 group-hover:scale-105 transition-all">
             <Wheat className="w-5 h-5 stroke-[2.5]" />
           </div>
-          <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+          <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight group-hover:text-brand-600 transition-colors">
             {t('dashboard')}
           </h1>
-        </div>
+        </Link>
       </div>
 
       {/* Right Controls */}

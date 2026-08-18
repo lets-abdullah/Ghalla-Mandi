@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Warehouse, ShoppingCart,
   Receipt, Users, UserCheck, BookOpen, FileText,
@@ -47,13 +47,17 @@ export const Sidebar = () => {
         {/* Brand Header */}
         <div>
           <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} mb-6 pt-1`}>
-            <div className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? 'justify-center' : ''}`}>
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-xs shrink-0">
+            <Link
+              to="/dashboard"
+              className={`flex items-center gap-3 overflow-hidden cursor-pointer group ${isCollapsed ? 'justify-center' : ''}`}
+              title={t('dashboard')}
+            >
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-xs shrink-0 group-hover:scale-105 group-hover:bg-emerald-100 group-hover:border-emerald-300 transition-all">
                 <Wheat className="w-6 h-6 stroke-[2.5]" />
               </div>
               {!isCollapsed && (
                 <div className="overflow-hidden">
-                  <h1 className="font-black text-slate-900 text-sm tracking-tight leading-none uppercase truncate">
+                  <h1 className="font-black text-slate-900 text-sm tracking-tight leading-none uppercase truncate group-hover:text-brand-600 transition-colors">
                     {t('appName')}
                   </h1>
                   <p className="text-[11px] text-slate-500 font-medium mt-1 truncate">
@@ -61,7 +65,7 @@ export const Sidebar = () => {
                   </p>
                 </div>
               )}
-            </div>
+            </Link>
 
             {/* Collapse Toggle Button */}
             {!isCollapsed && (
