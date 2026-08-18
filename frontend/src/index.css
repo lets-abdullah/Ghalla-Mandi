@@ -1,0 +1,405 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.8);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
+}
+
+/* Hide Scrollbar Utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Hide Number Input Spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinners {
+  -moz-appearance: textfield;
+}
+
+/* Component & Custom Styles */
+@layer components {
+
+  /* Card Depth & Hover Effects */
+  .card-shadow {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  }
+
+  .dark .card-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  }
+
+  .dark .card-hover:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Glassmorphism Panel */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .dark .glass-panel {
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Status Badges */
+  .badge-emerald {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .badge-amber {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .badge-rose {
+    background-color: rgba(244, 63, 94, 0.1);
+    color: #f43f5e;
+    border: 1px solid rgba(244, 63, 94, 0.3);
+  }
+
+  .badge-blue {
+    background-color: rgba(27, 99, 251, 0.1);
+    color: #1b63fb;
+    border: 1px solid rgba(27, 99, 251, 0.3);
+  }
+}
+
+/* POS Specific Layout Styles */
+.pos-container {
+  height: calc(100vh - 120px);
+  min-height: 600px;
+}
+
+@media (max-width: 1024px) {
+  .pos-container {
+    height: auto;
+    min-height: auto;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Shimmer Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.shimmer-bg {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Print Specific Rules */
+@media print {
+  @page {
+    size: auto;
+    margin: 8mm 10mm;
+  }
+
+  *, *::before, *::after {
+    background: transparent !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10.5pt !important;
+    line-height: 1.35 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Reset App wrapper heights & overflow for multi-page printing */
+  #root,
+  .h-screen,
+  .h-full,
+  .overflow-hidden,
+  .overflow-y-auto,
+  .overflow-x-auto,
+  main,
+  div {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  /* Hide sidebar, top navbar, all interactive buttons, inputs, tabs, search boxes, footer */
+  header,
+  aside,
+  nav,
+  button,
+  input,
+  select,
+  footer,
+  .print\:hidden,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure main content container expands to full width */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: #ffffff !important;
+  }
+
+  /* Cards & summary boxes */
+  .border,
+  .card-shadow {
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+    margin-bottom: 12px !important;
+    background: #ffffff !important;
+  }
+
+  /* Tables layout in print */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 10px 0 !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tbody {
+    display: table-row-group !important;
+  }
+
+  tr {
+    display: table-row !important;
+    page-break-inside: avoid !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+  }
+
+  th {
+    display: table-cell !important;
+    padding: 6px 8px !important;
+    font-weight: 800 !important;
+    font-size: 9pt !important;
+    text-transform: uppercase !important;
+    border-bottom: 2px solid #000000 !important;
+    background: #f1f5f9 !important;
+    color: #000000 !important;
+  }
+
+  td {
+    display: table-cell !important;
+    padding: 6px 8px !important;
+    font-size: 9.5pt !important;
+    color: #000000 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+
+  /* Summary Grid cards (Total Sales, Cash Received, Profit, etc.) */
+  .grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .grid > div {
+    flex: 1 1 calc(33.333% - 10px) !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 10px !important;
+    border-radius: 8px !important;
+    background: #f8fafc !important;
+  }
+
+  /* Status badges in print */
+  span {
+    color: inherit !important;
+  }
+
+  /* When printing InvoiceDrawer or modals */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .fixed.inset-0 > div {
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+}
+
+/* WebKit / Chrome Autofill Fix for Dark Inputs, Login & Register Pages */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0px 1000px #181b39 inset !important;
+  box-shadow: 0 0 0px 1000px #181b39 inset !important;
+  transition: background-color 500000s ease-in-out 0s;
+  caret-color: #ffffff !important;
+}
+
+/* Dark mode inputs autofill text fix */
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active,
+.dark textarea:-webkit-autofill,
+.dark textarea:-webkit-autofill:hover,
+.dark textarea:-webkit-autofill:focus,
+.dark textarea:-webkit-autofill:active,
+.dark select:-webkit-autofill,
+.dark select:-webkit-autofill:hover,
+.dark select:-webkit-autofill:focus,
+.dark select:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0px 1000px #0f172a inset !important;
+  box-shadow: 0 0 0px 1000px #0f172a inset !important;
+  caret-color: #ffffff !important;
+}
+
+/* Light mode inputs autofill text fix */
+:root:not(.dark) input:-webkit-autofill:not(.bg-\[\#181b39\]),
+:root:not(.dark) input:-webkit-autofill:not(.bg-\[\#181b39\]):hover,
+:root:not(.dark) input:-webkit-autofill:not(.bg-\[\#181b39\]):focus,
+:root:not(.dark) input:-webkit-autofill:not(.bg-\[\#181b39\]):active {
+  -webkit-text-fill-color: #0f172a !important;
+  color: #0f172a !important;
+  -webkit-box-shadow: 0 0 0px 1000px #f8fafc inset !important;
+  box-shadow: 0 0 0px 1000px #f8fafc inset !important;
+  caret-color: #0f172a !important;
+}

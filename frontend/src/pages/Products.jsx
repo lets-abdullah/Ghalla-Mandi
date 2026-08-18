@@ -1,0 +1,834 @@
+import React, { useState, useEffect } from 'react';
+import { Package, Search, Plus, Filter, Barcode, Edit3, Trash2, AlertTriangle, FolderPlus, X, Image as ImageIcon, Upload } from 'lucide-react';
+import { useERP } from '../context/ERPContext';
+import { useTheme } from '../context/ThemeContext';
+import { useLocale } from '../context/LocaleContext';
+
+export const Products = () => {
+  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory } = useERP();
+  const { theme } = useTheme();
+  const { t } = useLocale();
+
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Keyboard Esc Listener for closing active modals
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (showAddCategoryModal) setShowAddCategoryModal(false);
+        else if (showAddModal) setShowAddModal(false);
+        else if (editingProduct) setEditingProduct(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAddCategoryModal, showAddModal, editingProduct]);
+
+  // New Category Form State
+  const [newCatData, setNewCatData] = useState({
+    name: '',
+    description: ''
+  });
+
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    category: categories[0]?.name || '',
+    code: '',
+    unit: 'KG',
+    stockQty: 0,
+    minStock: 0,
+    purchasePrice: 0,
+    sellingPrice: 0,
+    image: ''
+  });
+
+  // Handle Quick Category Creation from Products Page
+  const handleCreateCategorySubmit = (e) => {
+    e.preventDefault();
+    const catName = newCatData.name.trim();
+
+    if (!catName) {
+      alert(t('categoryName') + ' ' + t('required'));
+      return;
+    }
+
+    const exists = categories.some(c => c.name.toLowerCase() === catName.toLowerCase());
+    if (exists) {
+      alert(`Category "${catName}" already exists.`);
+      return;
+    }
+
+    const createdCat = addCategory({
+      name: catName,
+      description: newCatData.description.trim() || 'Custom commodity category'
+    });
+
+    if (showAddModal) {
+      setNewProduct(prev => ({ ...prev, category: createdCat.name }));
+    }
+    if (editingProduct) {
+      setEditingProduct(prev => ({ ...prev, category: createdCat.name }));
+    }
+
+    setNewCatData({ name: '', description: '' });
+    setShowAddCategoryModal(false);
+  };
+
+  const handleCreateProduct = (e) => {
+    e.preventDefault();
+    if (!newProduct.name.trim()) {
+      alert(t('productName') + ' ' + t('required'));
+      return;
+    }
+    if (!newProduct.category) {
+      alert(t('selectCategory'));
+      return;
+    }
+    if (Number(newProduct.purchasePrice) < 0) {
+      alert(t('purchasePrice') + ' ' + t('sellingRateNegativeAlert'));
+      return;
+    }
+    if (Number(newProduct.sellingPrice) < 0) {
+      alert(t('sellingRateNegativeAlert'));
+      return;
+    }
+
+    addProduct({
+      ...newProduct,
+      purchasePrice: Math.max(0, Number(newProduct.purchasePrice) || 0),
+      sellingPrice: Math.max(0, Number(newProduct.sellingPrice) || 0),
+      stockQty: Math.max(0, Math.floor(Number(newProduct.stockQty) || 0)),
+      minStock: Math.max(0, Math.floor(Number(newProduct.minStock) || 0))
+    });
+    setShowAddModal(false);
+    setNewProduct({
+      name: '',
+      category: categories[0]?.name || '',
+      code: '',
+      unit: 'KG',
+      stockQty: 0,
+      minStock: 0,
+      purchasePrice: 0,
+      sellingPrice: 0,
+      image: ''
+    });
+  };
+
+  const handleUpdateProductSubmit = (e) => {
+    e.preventDefault();
+    if (!editingProduct || !editingProduct.name.trim()) {
+      alert(t('productName') + ' ' + t('required'));
+      return;
+    }
+    if (!editingProduct.category) {
+      alert(t('selectCategory'));
+      return;
+    }
+
+    updateProduct(editingProduct.id, {
+      ...editingProduct,
+      purchasePrice: Math.max(0, Number(editingProduct.purchasePrice) || 0),
+      sellingPrice: Math.max(0, Number(editingProduct.sellingPrice) || 0),
+      stockQty: Math.max(0, Math.floor(Number(editingProduct.stockQty) || 0)),
+      minStock: Math.max(0, Math.floor(Number(editingProduct.minStock) || 0))
+    });
+    setEditingProduct(null);
+  };
+
+  const filtered = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase());
+    const matchesCat = categoryFilter === 'All' || p.category === categoryFilter;
+    return matchesSearch && matchesCat;
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
+            <Package className="w-6 h-6 text-brand-500" />
+            {t('productsCatalog')}
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">{t('productsCatalogSub')}</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowAddCategoryModal(true)}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+              }`}
+          >
+            <FolderPlus className="w-4 h-4 text-emerald-500" />
+            <span>{t('addCategory')}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (categories.length > 0 && !newProduct.category) {
+                setNewProduct(prev => ({ ...prev, category: categories[0].name }));
+              }
+              setShowAddModal(true);
+            }}
+            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t('addProduct')}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Filters Bar */}
+      <div className={`border rounded-2xl p-4 card-shadow flex flex-col md:flex-row gap-4 justify-between items-center transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        }`}>
+        <div className="relative w-full md:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder={t('searchCommoditiesPlaceholder')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={`w-full border rounded-xl pl-9 pr-4 py-2 text-xs font-medium outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <Filter className="w-4 h-4 text-slate-400" />
+          <span className="text-xs text-slate-400 font-semibold">{t('category')}:</span>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}
+          >
+            <option value="All">{t('allCategories')}</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Product Table */}
+      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        }`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                }`}>
+                <th className="py-3 px-4">{t('optional')}</th>
+                <th className="py-3 px-4">{t('productName')}</th>
+                <th className="py-3 px-4">{t('category')}</th>
+                <th className="py-3 px-4">{t('productCode')}</th>
+                <th className="py-3 px-4 text-center">{t('currentStock')}</th>
+                <th className="py-3 px-4 text-right">{t('purchasePrice')}</th>
+                <th className="py-3 px-4 text-right">{t('sellingPrice')}</th>
+                <th className="py-3 px-4 text-center">{t('actions')}</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+              }`}>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
+                    {t('noProductsMatch')}
+                  </td>
+                </tr>
+              ) : (
+                filtered.map(product => {
+                  const isLowStock = product.stockQty <= (product.minStock || 1000);
+                  return (
+                    <tr key={product.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
+                      }`}>
+                      <td className="py-3 px-4">
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-2xs"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400">
+                            <Package className="w-5 h-5" />
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 font-bold">{product.name}</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold ${theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'
+                          }`}>
+                          {product.category}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-slate-400">
+                        <div>{product.code}</div>
+                        <div className="text-[10px] flex items-center gap-1">
+                          <Barcode className="w-3 h-3 text-slate-400" /> {product.barcode || product.code}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold ${isLowStock ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'
+                          }`}>
+                          {isLowStock && <AlertTriangle className="w-3.5 h-3.5" />}
+                          {product.stockQty} {product.unit || t('kg')}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right text-slate-400 font-semibold">Rs. {product.purchasePrice} / {product.unit || t('kg')}</td>
+                      <td className="py-3 px-4 text-right text-brand-500 font-extrabold">Rs. {product.sellingPrice} / {product.unit || t('kg')}</td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => setEditingProduct(product)}
+                            className={`p-1.5 rounded-lg transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700 text-slate-300 hover:text-brand-400' : 'hover:bg-slate-100 text-slate-600 hover:text-brand-600'
+                              }`}
+                            title={t('editProduct')}
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(t('confirmDeleteProduct'))) {
+                                deleteProduct(product.id);
+                              }
+                            }}
+                            className="p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition cursor-pointer"
+                            title={t('delete')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add Product Modal */}
+      {showAddModal && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddModal(false); }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-extrabold">{t('addProduct')}</h3>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                title={t('close')}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProduct} className="space-y-3">
+              {/* Image Upload Input & Preview */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">{t('productImage')}</label>
+                <div className="flex items-center gap-3">
+                  {newProduct.image ? (
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-300 shrink-0 bg-slate-100">
+                      <img src={newProduct.image} alt="Preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setNewProduct({ ...newProduct, image: '' })}
+                        className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-0.5 hover:bg-rose-700 transition cursor-pointer"
+                        title={t('delete')}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-700 border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400 shrink-0">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                  )}
+
+                  <label className={`flex-1 cursor-pointer border rounded-xl py-2.5 px-3 text-center text-xs font-bold transition flex items-center justify-center gap-2 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  }`}>
+                    <Upload className="w-4 h-4 text-emerald-600" />
+                    <span>{newProduct.image ? t('edit') : t('optional')}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setNewProduct(prev => ({ ...prev, image: reader.result }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">{t('productName')} *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Super Kernel Basmati"
+                  value={newProduct.name}
+                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-400">{t('category')} *</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCategoryModal(true)}
+                      className="text-[11px] font-extrabold text-brand-500 hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" /> {t('add')}
+                    </button>
+                  </div>
+                  <select
+                    value={newProduct.category}
+                    onChange={(e) => {
+                      if (e.target.value === '__ADD_NEW_CATEGORY__') {
+                        setShowAddCategoryModal(true);
+                      } else {
+                        setNewProduct({ ...newProduct, category: e.target.value });
+                      }
+                    }}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'
+                      }`}
+                  >
+                    {categories.length === 0 ? (
+                      <option value="">-- {t('selectCategory')} --</option>
+                    ) : (
+                      categories.map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))
+                    )}
+                    <option value="__ADD_NEW_CATEGORY__" className="font-bold text-brand-500">
+                      + {t('addCategory')}...
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('unit')}</label>
+                  <select
+                    value={newProduct.unit}
+                    onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'
+                      }`}
+                  >
+                    <option value="KG">{t('kg')}</option>
+                    <option value="Gram">{t('gram')}</option>
+                    <option value="Mann">{t('mann')}</option>
+                    <option value="Bag">{t('bori')}</option>
+                    <option value="Litre">{t('litre')}</option>
+                    <option value="ML">{t('ml')}</option>
+                    <option value="Dozen">{t('dozen')}</option>
+                    <option value="Pack">{t('pack')}</option>
+                    <option value="Carton">{t('carton')}</option>
+                    <option value="PCS">{t('item')}</option>
+                    <option value="Ton">{t('ton')}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('initialStock')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    onWheel={(e) => e.target.blur()}
+                    onFocus={(e) => e.target.select()}
+                    value={newProduct.stockQty}
+                    onChange={(e) => setNewProduct({ ...newProduct, stockQty: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('minStockThreshold')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    onWheel={(e) => e.target.blur()}
+                    onFocus={(e) => e.target.select()}
+                    value={newProduct.minStock}
+                    onChange={(e) => setNewProduct({ ...newProduct, minStock: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('purchasePrice')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    onWheel={(e) => e.target.blur()}
+                    onFocus={(e) => e.target.select()}
+                    value={newProduct.purchasePrice}
+                    onChange={(e) => setNewProduct({ ...newProduct, purchasePrice: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('sellingPrice')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    onWheel={(e) => e.target.blur()}
+                    onFocus={(e) => e.target.select()}
+                    value={newProduct.sellingPrice}
+                    onChange={(e) => setNewProduct({ ...newProduct, sellingPrice: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isSubmitting ? t('processing') : t('save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Product Modal */}
+      {editingProduct && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setEditingProduct(null); }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-extrabold">{t('editProduct')} — {editingProduct.name}</h3>
+              <button
+                type="button"
+                onClick={() => setEditingProduct(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                title={t('close')}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateProductSubmit} className="space-y-3">
+              {/* Image Upload Input & Preview for Editing */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">{t('productImage')}</label>
+                <div className="flex items-center gap-3">
+                  {editingProduct.image ? (
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-300 shrink-0 bg-slate-100">
+                      <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setEditingProduct({ ...editingProduct, image: '' })}
+                        className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-0.5 hover:bg-rose-700 transition cursor-pointer"
+                        title={t('delete')}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-700 border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400 shrink-0">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                  )}
+
+                  <label className={`flex-1 cursor-pointer border rounded-xl py-2.5 px-3 text-center text-xs font-bold transition flex items-center justify-center gap-2 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  }`}>
+                    <Upload className="w-4 h-4 text-emerald-600" />
+                    <span>{editingProduct.image ? t('edit') : t('optional')}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setEditingProduct(prev => ({ ...prev, image: reader.result }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">{t('productName')}</label>
+                <input
+                  type="text"
+                  required
+                  value={editingProduct.name}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-400">{t('category')}</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCategoryModal(true)}
+                      className="text-[11px] font-extrabold text-brand-500 hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" /> {t('add')}
+                    </button>
+                  </div>
+                  <select
+                    value={editingProduct.category}
+                    onChange={(e) => {
+                      if (e.target.value === '__ADD_NEW_CATEGORY__') {
+                        setShowAddCategoryModal(true);
+                      } else {
+                        setEditingProduct({ ...editingProduct, category: e.target.value });
+                      }
+                    }}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'
+                      }`}
+                  >
+                    {categories.map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
+                    <option value="__ADD_NEW_CATEGORY__" className="font-bold text-brand-500">
+                      + {t('addCategory')}...
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('unit')}</label>
+                  <select
+                    value={editingProduct.unit || 'KG'}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, unit: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'
+                      }`}
+                  >
+                    <option value="KG">{t('kg')}</option>
+                    <option value="Gram">{t('gram')}</option>
+                    <option value="Mann">{t('mann')}</option>
+                    <option value="Bag">{t('bori')}</option>
+                    <option value="Litre">{t('litre')}</option>
+                    <option value="ML">{t('ml')}</option>
+                    <option value="Dozen">{t('dozen')}</option>
+                    <option value="Pack">{t('pack')}</option>
+                    <option value="Carton">{t('carton')}</option>
+                    <option value="PCS">{t('item')}</option>
+                    <option value="Ton">{t('ton')}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('purchasePrice')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    onWheel={(e) => e.target.blur()}
+                    onFocus={(e) => e.target.select()}
+                    value={editingProduct.purchasePrice || 0}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, purchasePrice: Number(e.target.value) })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('sellingPrice')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    onWheel={(e) => e.target.blur()}
+                    onFocus={(e) => e.target.select()}
+                    value={editingProduct.sellingPrice || 0}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, sellingPrice: Number(e.target.value) })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('currentStock')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    onWheel={(e) => e.target.blur()}
+                    onFocus={(e) => e.target.select()}
+                    value={editingProduct.stockQty || 0}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, stockQty: Number(e.target.value) })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('minStockThreshold')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    onWheel={(e) => e.target.blur()}
+                    onFocus={(e) => e.target.select()}
+                    value={editingProduct.minStock || 0}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, minStock: Number(e.target.value) })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingProduct(null)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
+                >
+                  {t('saveChanges')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Category Modal (Quick Drawer/Modal on Products Page) */}
+      {showAddCategoryModal && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddCategoryModal(false); }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className={`rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow border animate-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <FolderPlus className="w-5 h-5 text-emerald-500" />
+                <h3 className="text-base font-extrabold">{t('addCategory')}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddCategoryModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                title={t('close')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCategorySubmit} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  {t('categoryName')} *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Pulses, Grains"
+                  value={newCatData.name}
+                  onChange={(e) => setNewCatData({ ...newCatData, name: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  {t('categoryDescription')} ({t('optional')})
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Description..."
+                  value={newCatData.description}
+                  onChange={(e) => setNewCatData({ ...newCatData, description: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer"
+                >
+                  {t('save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Products;
