@@ -95,6 +95,77 @@ const normalizeProduct = (p) => {
   };
 };
 
+const normalizeCustomer = (c) => {
+  if (!c) return null;
+  const openingBalance = Number(c.openingBalance !== undefined ? c.openingBalance : (c.openingbalance !== undefined ? c.openingbalance : 0));
+  const balance = Number(c.balance !== undefined ? c.balance : openingBalance);
+  const customerType = c.customerType || c.customertype || 'Regular Party';
+
+  return {
+    ...c,
+    id: c.id,
+    shop_id: c.shop_id,
+    name: c.name || '',
+    phone: c.phone || '',
+    city: c.city || '',
+    customerType,
+    customertype: customerType,
+    openingBalance,
+    openingbalance: openingBalance,
+    balance
+  };
+};
+
+const normalizeSupplier = (s) => {
+  if (!s) return null;
+  const openingBalance = Number(s.openingBalance !== undefined ? s.openingBalance : (s.openingbalance !== undefined ? s.openingbalance : 0));
+  const balance = Number(s.balance !== undefined ? s.balance : openingBalance);
+  const suppliedProducts = s.suppliedProducts || s.suppliedproductsjson || [];
+
+  return {
+    ...s,
+    id: s.id,
+    shop_id: s.shop_id,
+    name: s.name || '',
+    phone: s.phone || '',
+    city: s.city || '',
+    openingBalance,
+    openingbalance: openingBalance,
+    balance,
+    suppliedProducts
+  };
+};
+
+const normalizePaymentLog = (p) => {
+  if (!p) return null;
+  const partyId = p.partyId || p.partyid || null;
+  const partyType = p.partyType || p.partytype || 'Customer';
+  const partyName = p.partyName || p.partyname || 'Party';
+  const amount = Number(p.amount !== undefined ? p.amount : 0);
+  const mode = p.mode || p.paymentMode || 'Cash';
+  const date = p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
+  const ref = p.ref || '';
+  const note = p.note || '';
+
+  return {
+    ...p,
+    id: p.id,
+    shop_id: p.shop_id,
+    partyId,
+    partyid: partyId,
+    partyType,
+    partytype: partyType,
+    partyName,
+    partyname: partyName,
+    amount,
+    mode,
+    paymentMode: mode,
+    date,
+    ref,
+    note
+  };
+};
+
 export const ERPProvider = ({ children }) => {
   const { user, token } = useAuth();
 
@@ -149,11 +220,11 @@ export const ERPProvider = ({ children }) => {
 
       if (catRes.success) setCategories(catRes.categories || []);
       if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
-      if (custRes.success) setCustomers(custRes.customers || []);
-      if (supRes.success) setSuppliers(supRes.suppliers || []);
+      if (custRes.success) setCustomers((custRes.customers || []).map(normalizeCustomer));
+      if (supRes.success) setSuppliers((supRes.suppliers || []).map(normalizeSupplier));
       if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
       if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
-      if (ledgerRes.success) setPaymentLogs(ledgerRes.entries || []);
+      if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
       if (movRes.success) setStockMovements(movRes.movements || []);
     } catch (err) {
       console.error('Failed to load ERP dataset from server:', err);

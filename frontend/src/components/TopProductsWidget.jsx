@@ -54,8 +54,8 @@ export const TopProductsWidget = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-extrabold text-emerald-500">Rs. {item.sellingPrice}/{item.unit || t('kg')}</div>
-                  <div className="text-[10px] text-slate-400 font-semibold">{item.stockQty} {item.unit || t('kg')} {t('availableStock')}</div>
+                  <div className="text-xs font-extrabold text-emerald-500">Rs. {(Number(item.sellingPrice ?? item.sellingprice) || 0).toLocaleString()}/{item.unit || item.baseUnit || t('kg')}</div>
+                  <div className="text-[10px] text-slate-400 font-semibold">{(Number(item.stockQty ?? item.stockqty) || 0).toLocaleString()} {item.unit || item.baseUnit || t('kg')} {t('availableStock')}</div>
                 </div>
               </div>
             ))}

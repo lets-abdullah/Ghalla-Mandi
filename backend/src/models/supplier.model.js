@@ -1,15 +1,33 @@
 import { query, get, run } from '../services/db.service.js';
 
+const mapSupplierRow = (r) => {
+  if (!r) return null;
+  const openingBalance = Number(r.openingbalance !== undefined ? r.openingbalance : (r.openingBalance !== undefined ? r.openingBalance : 0));
+  const balance = Number(r.balance !== undefined ? r.balance : openingBalance);
+  const suppliedProducts = r.suppliedproductsjson ? (typeof r.suppliedproductsjson === 'string' ? JSON.parse(r.suppliedproductsjson) : r.suppliedproductsjson) : (r.suppliedProductsJson ? (typeof r.suppliedProductsJson === 'string' ? JSON.parse(r.suppliedProductsJson) : r.suppliedProductsJson) : []);
+
+  return {
+    ...r,
+    id: r.id,
+    shop_id: r.shop_id,
+    name: r.name,
+    phone: r.phone || '',
+    city: r.city || '',
+    openingBalance,
+    openingbalance: openingBalance,
+    balance,
+    suppliedProducts,
+    suppliedproductsjson: suppliedProducts
+  };
+};
+
 export const Supplier = {
   async find(filter = {}) {
     const rows = filter.shop_id
       ? await query('SELECT * FROM suppliers WHERE shop_id = $1 ORDER BY name ASC', [filter.shop_id])
       : await query('SELECT * FROM suppliers ORDER BY name ASC');
 
-    return rows.map(r => ({
-      ...r,
-      suppliedProducts: r.suppliedproductsjson ? JSON.parse(r.suppliedproductsjson) : (r.suppliedProductsJson ? JSON.parse(r.suppliedProductsJson) : [])
-    }));
+    return rows.map(mapSupplierRow);
   },
 
   async findOne(filter = {}) {
@@ -20,15 +38,12 @@ export const Supplier = {
       row = await get('SELECT * FROM suppliers WHERE shop_id = $1 AND LOWER(name) = LOWER($2)', [filter.shop_id, filter.name]);
     }
 
-    if (!row) return null;
-    return {
-      ...row,
-      suppliedProducts: row.suppliedproductsjson ? JSON.parse(row.suppliedproductsjson) : (row.suppliedProductsJson ? JSON.parse(row.suppliedProductsJson) : [])
-    };
+    return mapSupplierRow(row);
   },
 
   async findById(id) {
-    return await this.findOne({ id });
+    const row = await get('SELECT * FROM suppliers WHERE id = $1', [id]);
+    return mapSupplierRow(row);
   },
 
   async create(supData) {

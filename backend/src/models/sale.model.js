@@ -1,36 +1,65 @@
 import { query, get, run } from '../services/db.service.js';
 
+const mapSaleRow = (r) => {
+  if (!r) return null;
+  const cart = r.cartjson ? (typeof r.cartjson === 'string' ? JSON.parse(r.cartjson) : r.cartjson) : (r.cartJson ? (typeof r.cartJson === 'string' ? JSON.parse(r.cartJson) : r.cartJson) : []);
+  const invoiceNo = r.invoiceno || r.invoiceNo || '';
+  const partyName = r.partyname || r.partyName || r.customerName || 'Walk-in Customer';
+  const customerId = r.customerid || r.customerId || null;
+  const customerType = r.customertype || r.customerType || 'Regular Party';
+  const amount = Number(r.amount !== undefined ? r.amount : (r.grandtotal !== undefined ? r.grandtotal : (r.grandTotal !== undefined ? r.grandTotal : 0)));
+  const paidAmount = Number(r.paidamount !== undefined ? r.paidamount : (r.paidAmount !== undefined ? r.paidAmount : 0));
+  const profit = Number(r.profit !== undefined ? r.profit : (r.profitmargin !== undefined ? r.profitmargin : (r.profitMargin !== undefined ? r.profitMargin : 0)));
+  const status = r.status || r.paymentstatus || r.paymentStatus || (paidAmount >= amount ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+  const itemsCount = Number(r.itemscount !== undefined ? r.itemscount : (r.itemsCount !== undefined ? r.itemsCount : cart.length));
+  const date = r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
+
+  return {
+    ...r,
+    id: r.id,
+    shop_id: r.shop_id,
+    invoiceNo,
+    invoiceno: invoiceNo,
+    partyName,
+    partyname: partyName,
+    customerName: partyName,
+    customerId,
+    customerid: customerId,
+    customerType,
+    customertype: customerType,
+    date,
+    amount,
+    grandTotal: amount,
+    paidAmount,
+    paidamount: paidAmount,
+    profit,
+    status,
+    paymentStatus: status,
+    cart,
+    items: cart,
+    itemsCount,
+    itemscount: itemsCount
+  };
+};
+
 export const Sale = {
   async find(filter = {}) {
     const rows = filter.shop_id
       ? await query('SELECT * FROM sales WHERE shop_id = $1 ORDER BY created_at DESC', [filter.shop_id])
       : await query('SELECT * FROM sales ORDER BY created_at DESC');
 
-    return rows.map(r => {
-      const cart = r.cartjson ? (typeof r.cartjson === 'string' ? JSON.parse(r.cartjson) : r.cartjson) : (r.cartJson ? JSON.parse(r.cartJson) : []);
-      return {
-        ...r,
-        cart,
-        items: cart
-      };
-    });
+    return rows.map(mapSaleRow);
   },
 
   async findOne(filter = {}) {
     let row = null;
     if (filter.id) {
       row = await get('SELECT * FROM sales WHERE id = $1', [filter.id]);
-    } else if (filter.shop_id && filter.invoiceNo) {
-      row = await get('SELECT * FROM sales WHERE shop_id = $1 AND invoiceNo = $2', [filter.shop_id, filter.invoiceNo]);
+    } else if (filter.shop_id && (filter.invoiceNo || filter.invoiceno)) {
+      row = await get('SELECT * FROM sales WHERE shop_id = $1 AND invoiceno = $2', [filter.shop_id, filter.invoiceNo || filter.invoiceno]);
     }
 
-    if (!row) return null;
-    const cart = row.cartjson ? (typeof row.cartjson === 'string' ? JSON.parse(row.cartjson) : row.cartjson) : (row.cartJson ? JSON.parse(row.cartJson) : []);
-    return {
-      ...row,
-      cart,
-      items: cart
-    };
+    return mapSaleRow(row);
   },
 
   async findById(id) {

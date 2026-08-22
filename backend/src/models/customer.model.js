@@ -1,25 +1,47 @@
 import { query, get, run } from '../services/db.service.js';
 
+const mapCustomerRow = (r) => {
+  if (!r) return null;
+  const openingBalance = Number(r.openingbalance !== undefined ? r.openingbalance : (r.openingBalance !== undefined ? r.openingBalance : 0));
+  const balance = Number(r.balance !== undefined ? r.balance : openingBalance);
+  const customerType = r.customertype || r.customerType || 'Regular Party';
+
+  return {
+    ...r,
+    id: r.id,
+    shop_id: r.shop_id,
+    name: r.name,
+    phone: r.phone || '',
+    city: r.city || '',
+    customerType,
+    customertype: customerType,
+    openingBalance,
+    openingbalance: openingBalance,
+    balance
+  };
+};
+
 export const Customer = {
   async find(filter = {}) {
-    if (filter.shop_id) {
-      return await query('SELECT * FROM customers WHERE shop_id = $1 ORDER BY name ASC', [filter.shop_id]);
-    }
-    return await query('SELECT * FROM customers ORDER BY name ASC');
+    const rows = filter.shop_id
+      ? await query('SELECT * FROM customers WHERE shop_id = $1 ORDER BY name ASC', [filter.shop_id])
+      : await query('SELECT * FROM customers ORDER BY name ASC');
+    return rows.map(mapCustomerRow);
   },
 
   async findOne(filter = {}) {
+    let row = null;
     if (filter.id) {
-      return await get('SELECT * FROM customers WHERE id = $1', [filter.id]);
+      row = await get('SELECT * FROM customers WHERE id = $1', [filter.id]);
+    } else if (filter.shop_id && filter.name) {
+      row = await get('SELECT * FROM customers WHERE shop_id = $1 AND LOWER(name) = LOWER($2)', [filter.shop_id, filter.name]);
     }
-    if (filter.shop_id && filter.name) {
-      return await get('SELECT * FROM customers WHERE shop_id = $1 AND LOWER(name) = LOWER($2)', [filter.shop_id, filter.name]);
-    }
-    return null;
+    return mapCustomerRow(row);
   },
 
   async findById(id) {
-    return await get('SELECT * FROM customers WHERE id = $1', [id]);
+    const row = await get('SELECT * FROM customers WHERE id = $1', [id]);
+    return mapCustomerRow(row);
   },
 
   async create(custData) {

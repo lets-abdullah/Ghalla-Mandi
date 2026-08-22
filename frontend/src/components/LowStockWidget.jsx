@@ -10,7 +10,11 @@ export const LowStockWidget = () => {
   const { theme } = useTheme();
   const { t } = useLocale();
 
-  const lowStockItems = products.filter(p => p.stockQty <= (p.minStock || 1000));
+  const lowStockItems = (products || []).filter(p => {
+    const stock = Number(p.stockQty !== undefined ? p.stockQty : (p.stockqty !== undefined ? p.stockqty : 0));
+    const min = Number(p.minStock !== undefined ? p.minStock : (p.minstock !== undefined ? p.minstock : 10));
+    return stock <= min;
+  });
 
   return (
     <div className={`h-full border rounded-2xl p-5 card-shadow flex flex-col justify-between transition-colors ${
@@ -47,17 +51,17 @@ export const LowStockWidget = () => {
                   <div className={`w-10 h-10 rounded-xl border flex items-center justify-center font-extrabold text-xs ${
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-700'
                   }`}>
-                    {item.name.charAt(0)}
+                    {(item.name || 'P').charAt(0)}
                   </div>
                   <div>
                     <div className="text-xs font-bold">{item.name}</div>
                     <div className="text-[11px] text-slate-400 font-medium">
-                      {t('currentStock')}: <span className="font-semibold">{item.stockQty} {item.unit || t('kg')}</span>
+                      {t('currentStock')}: <span className="font-semibold">{Number(item.stockQty ?? item.stockqty ?? 0).toLocaleString()} {item.unit || item.baseUnit || t('kg')}</span>
                     </div>
                   </div>
                 </div>
                 <span className="px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-500 text-[10px] font-bold border border-rose-500/30">
-                  {t('minStockLabel')}: {item.minStock} {item.unit || t('kg')}
+                  {t('minStockLabel')}: {Number(item.minStock ?? item.minstock ?? 10).toLocaleString()} {item.unit || item.baseUnit || t('kg')}
                 </span>
               </div>
             ))}

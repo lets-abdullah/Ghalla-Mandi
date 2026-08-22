@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Warehouse, ArrowUpRight, ArrowDownLeft, RefreshCw, X } from 'lucide-react';
+import { Warehouse, ArrowUpRight, ArrowDownLeft, RefreshCw, X, Package, AlertTriangle, DollarSign } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
@@ -9,6 +9,7 @@ export const Inventory = () => {
   const { theme } = useTheme();
   const { t } = useLocale();
   const [showAdjModal, setShowAdjModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [adjForm, setAdjForm] = useState({
     productId: products[0]?.id || '',
@@ -29,19 +30,44 @@ export const Inventory = () => {
 
   const selectedProd = products.find(p => p.id === (adjForm.productId || products[0]?.id)) || products[0];
 
-  const handleAdjSubmit = (e) => {
+  const totalStockQty = (products || []).reduce((acc, p) => acc + (Number(p.stockQty ?? p.stockqty) || 0), 0);
+  const totalInventoryValue = (products || []).reduce((acc, p) => acc + ((Number(p.stockQty ?? p.stockqty) || 0) * (Number(p.purchasePrice ?? p.purchaseprice) || 0)), 0);
+  const lowStockCount = (products || []).filter(p => {
+    const stock = Number(p.stockQty !== undefined ? p.stockQty : (p.stockqty !== undefined ? p.stockqty : 0));
+    const min = Number(p.minStock !== undefined ? p.minStock : (p.minstock !== undefined ? p.minstock : 10));
+    return stock <= min;
+  }).length;
+
+  const handleAdjSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const qtyVal = Math.max(1, Math.floor(Number(adjForm.qtyKg) || 1));
     if (!selectedProd) return;
 
-    if (adjForm.type === 'OUT' && selectedProd.stockQty < qtyVal) {
-      alert(t('cannotDeductStock', { qty: qtyVal, unit: selectedProd.unit || t('kg'), stock: selectedProd.stockQty }));
+    const currentStock = Number(selectedProd.stockQty ?? selectedProd.stockqty ?? 0);
+    if (adjForm.type === 'OUT' && currentStock < qtyVal) {
+      alert(t('cannotDeductStock', { qty: qtyVal, unit: selectedProd.unit || selectedProd.baseUnit || t('kg'), stock: currentStock }));
       return;
     }
 
-    const finalQty = adjForm.type === 'IN' ? qtyVal : -qtyVal;
-    adjustStock(selectedProd.id, finalQty, adjForm.type, adjForm.reason);
-    setShowAdjModal(false);
+    setIsSubmitting(true);
+    try {
+      const finalQty = adjForm.type === 'IN' ? qtyVal : -qtyVal;
+      await adjustStock(selectedProd.id, finalQty, adjForm.type, adjForm.reason);
+      setShowAdjModal(false);
+      setAdjForm({
+        productId: products[0]?.id || '',
+        qtyKg: 1,
+        type: 'IN',
+        reason: 'Manual Warehouse Count Audit'
+      });
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Failed to adjust stock');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -61,6 +87,51 @@ export const Inventory = () => {
         >
           <RefreshCw className="w-4 h-4" /> {t('adjustStock')}
         </button>
+      </div>
+
+      {/* Inventory KPI Summary Header */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+          <div className="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
+            <Package className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-400">{t('totalProducts')}</div>
+            <div className="text-lg font-black">{products.length} {t('items')}</div>
+          </div>
+        </div>
+
+        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
+            <Warehouse className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-400">{t('currentStock')}</div>
+            <div className="text-lg font-black">{totalStockQty.toLocaleString()} {t('itemsInStock') || 'Units'}</div>
+          </div>
+        </div>
+
+        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold">
+            <DollarSign className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-400">{t('stockAndInventory')}</div>
+            <div className="text-lg font-black">Rs. {totalInventoryValue.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${lowStockCount > 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-400">{t('lowStockAlerts')}</div>
+            <div className={`text-lg font-black ${lowStockCount > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+              {lowStockCount} {t('items')}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
@@ -91,10 +162,10 @@ export const Inventory = () => {
                   <td className="py-3 px-4 text-slate-400">{m.date}</td>
                   <td className="py-3 px-4 font-bold">{m.product}</td>
                   <td className="py-3 px-4">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${m.type.includes('IN') ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${m.type && m.type.includes('IN') ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
                       }`}>
-                      {m.type.includes('IN') ? <ArrowDownLeft className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
-                      {m.type.includes('IN') ? t('stockIn') : t('stockOut')}
+                      {m.type && m.type.includes('IN') ? <ArrowDownLeft className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                      {m.type && m.type.includes('IN') ? t('stockIn') : t('stockOut')}
                     </span>
                   </td>
                   <td className="py-3 px-4 font-mono font-bold text-brand-500">{m.ref}</td>
@@ -136,7 +207,7 @@ export const Inventory = () => {
                     }`}
                 >
                   {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} ({t('currentStock')}: {p.stockQty} {p.unit || t('kg')})</option>
+                    <option key={p.id} value={p.id}>{p.name} ({t('currentStock')}: {Number(p.stockQty ?? p.stockqty ?? 0).toLocaleString()} {p.unit || p.baseUnit || t('kg')})</option>
                   ))}
                 </select>
               </div>
@@ -155,7 +226,7 @@ export const Inventory = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('quantity')} ({selectedProd?.unit || t('kg')})</label>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('quantity')} ({selectedProd?.unit || selectedProd?.baseUnit || t('kg')})</label>
                   <input
                     type="number"
                     required
@@ -193,9 +264,10 @@ export const Inventory = () => {
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
                 >
-                  {t('confirmAdjustment')}
+                  {isSubmitting ? 'Saving...' : t('confirmAdjustment')}
                 </button>
               </div>
             </form>

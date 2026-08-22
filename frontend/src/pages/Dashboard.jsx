@@ -18,7 +18,7 @@ import { useNavigate } from 'react-router-dom';
 export const Dashboard = () => {
   const { t } = useLocale();
   const { user } = useAuth();
-  const { sales, purchases, customers, suppliers } = useERP();
+  const { sales, purchases, customers, suppliers, products } = useERP();
   const navigate = useNavigate();
   const [activeInvoice, setActiveInvoice] = useState(null);
   const [showQuickSaleModal, setShowQuickSaleModal] = useState(false);
@@ -28,6 +28,8 @@ export const Dashboard = () => {
   const totalProfit = (sales || []).reduce((acc, s) => acc + (Number(s.profit) || 0), 0);
   const totalReceivables = (customers || []).reduce((acc, c) => acc + Math.max(0, Number(c.balance) || 0), 0);
   const totalPayables = (suppliers || []).reduce((acc, s) => acc + Math.max(0, Number(s.balance) || 0), 0);
+  const totalStockQty = (products || []).reduce((acc, p) => acc + (Number(p.stockQty ?? p.stockqty) || 0), 0);
+  const totalInventoryValue = (products || []).reduce((acc, p) => acc + ((Number(p.stockQty ?? p.stockqty) || 0) * (Number(p.purchasePrice ?? p.purchaseprice) || 0)), 0);
 
   return (
     <div className="space-y-6">
@@ -64,14 +66,14 @@ export const Dashboard = () => {
           onClick={() => navigate('/reports')}
         />
         <KPICard
-          title={t('monthlyRevenue')}
-          amount={`Rs. ${totalSales.toLocaleString()}`}
-          subtext={t('totalSalesVolume')}
+          title={t('stockAndInventory')}
+          amount={`Rs. ${totalInventoryValue.toLocaleString()}`}
+          subtext={`${totalStockQty.toLocaleString()} ${t('itemsInStock') || 'units in stock'}`}
           icon={TrendingUp}
-          bgClass="bg-brand-50"
-          iconClass="text-brand-600"
+          bgClass="bg-indigo-50"
+          iconClass="text-indigo-600"
           isPositive={true}
-          onClick={() => navigate('/reports')}
+          onClick={() => navigate('/inventory')}
         />
         <KPICard
           title={t('outstandingReceivables')}
@@ -148,9 +150,9 @@ export const Dashboard = () => {
                 <div className="text-base font-extrabold text-slate-900 mt-0.5">Rs. {totalProfit.toLocaleString()}</div>
               </div>
 
-              <div className="bg-amber-50/60 border border-amber-100 p-3 rounded-xl">
-                <div className="text-[11px] font-semibold text-slate-500">{t('netOperatingProfit')}</div>
-                <div className="text-base font-extrabold text-slate-900 mt-0.5">Rs. {totalProfit.toLocaleString()}</div>
+              <div className="bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl">
+                <div className="text-[11px] font-semibold text-slate-500">{t('stockAndInventory')}</div>
+                <div className="text-base font-extrabold text-slate-900 mt-0.5">Rs. {totalInventoryValue.toLocaleString()}</div>
               </div>
             </div>
           </div>
