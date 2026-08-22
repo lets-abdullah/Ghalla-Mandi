@@ -1,18 +1,43 @@
 import { query, get, run } from '../services/db.service.js';
 
+const mapPurchaseRow = (r) => {
+  if (!r) return null;
+  const items = r.itemsjson ? (typeof r.itemsjson === 'string' ? JSON.parse(r.itemsjson) : r.itemsjson) : (r.itemsJson ? (typeof r.itemsJson === 'string' ? JSON.parse(r.itemsJson) : r.itemsJson) : []);
+  const grandTotal = Number(r.grandtotal !== undefined ? r.grandtotal : (r.grandTotal !== undefined ? r.grandTotal : (r.amount !== undefined ? r.amount : 0)));
+  const paidAmount = Number(r.paidamount !== undefined ? r.paidamount : (r.paidAmount !== undefined ? r.paidAmount : 0));
+  const supplierName = r.suppliername || r.supplierName || r.supplier || 'Supplier';
+  const purchaseNo = r.purchaseno || r.purchaseNo || '';
+  const paymentStatus = r.paymentstatus || r.paymentStatus || r.status || (paidAmount >= grandTotal ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+  const date = r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
+
+  return {
+    ...r,
+    id: r.id,
+    purchaseNo,
+    purchaseno: purchaseNo,
+    supplierName,
+    supplier: supplierName,
+    suppliername: supplierName,
+    grandTotal,
+    grandtotal: grandTotal,
+    amount: grandTotal,
+    paidAmount,
+    paidamount: paidAmount,
+    paymentStatus,
+    paymentstatus: paymentStatus,
+    status: paymentStatus,
+    date,
+    items
+  };
+};
+
 export const Purchase = {
   async find(filter = {}) {
     const rows = filter.shop_id
       ? await query('SELECT * FROM purchases WHERE shop_id = $1 ORDER BY created_at DESC', [filter.shop_id])
       : await query('SELECT * FROM purchases ORDER BY created_at DESC');
 
-    return rows.map(r => {
-      const items = r.itemsjson ? (typeof r.itemsjson === 'string' ? JSON.parse(r.itemsjson) : r.itemsjson) : (r.itemsJson ? JSON.parse(r.itemsJson) : []);
-      return {
-        ...r,
-        items
-      };
-    });
+    return rows.map(mapPurchaseRow);
   },
 
   async findOne(filter = {}) {
@@ -23,12 +48,7 @@ export const Purchase = {
       row = await get('SELECT * FROM purchases WHERE shop_id = $1 AND purchaseNo = $2', [filter.shop_id, filter.purchaseNo]);
     }
 
-    if (!row) return null;
-    const items = row.itemsjson ? (typeof row.itemsjson === 'string' ? JSON.parse(row.itemsjson) : row.itemsjson) : (row.itemsJson ? JSON.parse(row.itemsJson) : []);
-    return {
-      ...row,
-      items
-    };
+    return mapPurchaseRow(row);
   },
 
   async findById(id) {

@@ -23,11 +23,11 @@ export const Dashboard = () => {
   const [activeInvoice, setActiveInvoice] = useState(null);
   const [showQuickSaleModal, setShowQuickSaleModal] = useState(false);
 
-  const totalSales = sales.reduce((acc, s) => acc + s.amount, 0);
-  const totalPurchases = purchases.reduce((acc, p) => acc + p.amount, 0);
-  const totalProfit = sales.reduce((acc, s) => acc + (s.profit || 0), 0);
-  const totalReceivables = customers.reduce((acc, c) => acc + Math.max(0, c.balance), 0);
-  const totalPayables = suppliers.reduce((acc, s) => acc + Math.max(0, s.balance), 0);
+  const totalSales = (sales || []).reduce((acc, s) => acc + (Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0), 0);
+  const totalPurchases = (purchases || []).reduce((acc, p) => acc + (Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0), 0);
+  const totalProfit = (sales || []).reduce((acc, s) => acc + (Number(s.profit) || 0), 0);
+  const totalReceivables = (customers || []).reduce((acc, c) => acc + Math.max(0, Number(c.balance) || 0), 0);
+  const totalPayables = (suppliers || []).reduce((acc, s) => acc + Math.max(0, Number(s.balance) || 0), 0);
 
   return (
     <div className="space-y-6">

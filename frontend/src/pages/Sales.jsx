@@ -58,7 +58,7 @@ export const Sales = () => {
     }
 
     if (amt > due) {
-      if (!confirm(`Amount exceeds remaining due of Rs. ${due.toLocaleString()}. Continue?`)) {
+      if (!confirm(`Amount exceeds remaining due of Rs. ${(Number(due) || 0).toLocaleString()}. Continue?`)) {
         return;
       }
     }
@@ -77,17 +77,17 @@ export const Sales = () => {
     setPaymentNote('');
   };
 
-  const totalGrossSales = sales.reduce((acc, s) => acc + (s.amount || 0), 0);
-  const totalPaidCollected = sales.reduce((acc, s) => acc + (s.paidAmount || 0), 0);
+  const totalGrossSales = (sales || []).reduce((acc, s) => acc + (Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0), 0);
+  const totalPaidCollected = (sales || []).reduce((acc, s) => acc + (Number(s.paidAmount ?? s.paidamount) || 0), 0);
   const totalOutstandingReceivable = Math.max(0, totalGrossSales - totalPaidCollected);
 
-  const filteredSales = sales.filter(s => {
-    const matchesSearch = (s.invoiceNo || '').toLowerCase().includes(search.toLowerCase()) ||
-      (s.partyName || '').toLowerCase().includes(search.toLowerCase());
+  const filteredSales = (sales || []).filter(s => {
+    const matchesSearch = (s.invoiceNo || s.invoiceno || '').toLowerCase().includes(search.toLowerCase()) ||
+      (s.partyName || s.partyname || s.customerName || '').toLowerCase().includes(search.toLowerCase());
 
-    const paid = Number(s.paidAmount || 0);
-    const total = Number(s.amount || 0);
-    const status = paid >= total ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+    const paid = Number(s.paidAmount ?? s.paidamount ?? 0);
+    const total = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? 0);
+    const status = paid >= total && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
 
     if (filterType === 'Paid') return matchesSearch && status === 'Paid';
     if (filterType === 'Partial') return matchesSearch && status === 'Partial';

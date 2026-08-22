@@ -16,48 +16,48 @@ export const Invoices = () => {
   const [selectedSaleReceipt, setSelectedSaleReceipt] = useState(null);
   const [selectedPurchaseReceipt, setSelectedPurchaseReceipt] = useState(null);
 
-  const salesInvoices = sales.map(s => {
-    const rawAmt = typeof s.amount === 'number' ? s.amount : Number(String(s.amount || 0).replace(/,/g, '')) || 0;
-    const paidAmt = Number(s.paidAmount !== undefined ? s.paidAmount : (s.status === 'Paid' ? rawAmt : 0));
+  const salesInvoices = (sales || []).map(s => {
+    const rawAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.grandtotal !== undefined ? s.grandtotal : 0)));
+    const paidAmt = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : (s.status === 'Paid' ? rawAmt : 0)));
     return {
       id: s.id,
-      invoiceNo: s.invoiceNo,
-      partyName: s.partyName,
-      date: s.date,
+      invoiceNo: s.invoiceNo || s.invoiceno || '',
+      partyName: s.partyName || s.partyname || s.customerName || 'Customer',
+      date: s.date || 'N/A',
       amountNum: rawAmt,
       amount: rawAmt,
       paidAmount: paidAmt,
       paymentMode: s.paymentMode || (paidAmt >= rawAmt ? 'Cash' : paidAmt > 0 ? 'Partial Cash' : 'Khata (Udhaar)'),
-      status: s.status,
+      status: s.status || (paidAmt >= rawAmt && rawAmt > 0 ? 'Paid' : paidAmt > 0 ? 'Partial' : 'Pending'),
       itemsCount: s.itemsCount || (s.cart ? s.cart.length : 1),
       cart: s.cart,
       type: 'Sale'
     };
   });
 
-  const purchaseInvoices = purchases.map(p => {
-    const rawAmt = typeof p.amount === 'number' ? p.amount : Number(String(p.amount || 0).replace(/,/g, '')) || 0;
-    const paidAmt = Number(p.paidAmount !== undefined ? p.paidAmount : (p.status === 'Paid' ? rawAmt : 0));
-    const supObj = suppliers.find(s => s.name === p.supplier || s.id === p.supplierId);
+  const purchaseInvoices = (purchases || []).map(p => {
+    const rawAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
+    const paidAmt = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : ((p.status || p.paymentStatus) === 'Paid' ? rawAmt : 0)));
+    const supObj = suppliers.find(s => s.name === (p.supplier || p.supplierName) || s.id === p.supplierId);
     return {
       id: p.id,
-      invoiceNo: p.purchaseNo,
-      partyName: p.supplier,
+      invoiceNo: p.purchaseNo || p.purchaseno || '',
+      partyName: p.supplier || p.supplierName || p.suppliername || 'Supplier',
       supplierPhone: supObj?.phone || '',
       supplierCity: supObj?.city || '',
-      supplierBalance: supObj?.balance || 0,
-      productName: p.productName || p.items || t('products'),
+      supplierBalance: Number(supObj?.balance || 0),
+      productName: typeof p.items === 'string' ? p.items : (Array.isArray(p.items) && p.items[0] ? (p.items[0].name || p.items[0].productName) : (p.productName || t('products'))),
       qty: p.qty || 1,
       unit: p.unit || t('kg'),
       rate: p.rate || p.purchasePrice || (p.qty ? Math.round(rawAmt / p.qty) : rawAmt),
-      date: p.date,
+      date: p.date || 'N/A',
       amountNum: rawAmt,
       amount: rawAmt,
       paidAmount: paidAmt,
       paymentMode: p.paymentMode || (paidAmt >= rawAmt ? 'Cash' : paidAmt > 0 ? 'Partial Cash' : 'Supplier Credit (Khata)'),
-      status: p.status,
-      itemsCount: 1,
-      cart: null,
+      status: p.status || p.paymentStatus || (paidAmt >= rawAmt && rawAmt > 0 ? 'Paid' : paidAmt > 0 ? 'Partial' : 'Pending'),
+      itemsCount: Array.isArray(p.cart) ? p.cart.length : (Array.isArray(p.items) ? p.items.length : 1),
+      cart: Array.isArray(p.cart) ? p.cart : (Array.isArray(p.items) ? p.items : null),
       type: 'Purchase'
     };
   });

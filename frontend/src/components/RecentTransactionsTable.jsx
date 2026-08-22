@@ -11,28 +11,36 @@ export const RecentTransactionsTable = ({ onViewInvoice }) => {
   const { t } = useLocale();
 
   const combined = [
-    ...sales.map(s => ({
-      id: s.id,
-      type: t('sales'),
-      rawType: 'Sale',
-      invoiceNo: s.invoiceNo,
-      partyName: s.partyName,
-      date: s.date,
-      amount: s.amount.toLocaleString(),
-      status: s.status === 'Paid' ? t('paid') : s.status === 'Partial' ? t('partial') : t('pending'),
-      rawStatus: s.status
-    })),
-    ...purchases.map(p => ({
-      id: p.id,
-      type: t('purchases'),
-      rawType: 'Purchase',
-      invoiceNo: p.purchaseNo,
-      partyName: p.supplier,
-      date: p.date,
-      amount: p.amount.toLocaleString(),
-      status: p.status === 'Paid' ? t('paid') : p.status === 'Partial' ? t('partial') : t('pending'),
-      rawStatus: p.status
-    }))
+    ...(sales || []).map(s => {
+      const amt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.grandtotal !== undefined ? s.grandtotal : 0)));
+      return {
+        id: s.id,
+        type: t('sales'),
+        rawType: 'Sale',
+        invoiceNo: s.invoiceNo || s.invoiceno || '',
+        partyName: s.partyName || s.partyname || s.customerName || 'Customer',
+        date: s.date || 'N/A',
+        amount: amt.toLocaleString(),
+        status: s.status === 'Paid' ? t('paid') : s.status === 'Partial' ? t('partial') : t('pending'),
+        rawStatus: s.status || 'Pending'
+      };
+    }),
+    ...(purchases || []).map(p => {
+      const amt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
+      const isPaid = (p.status || p.paymentStatus) === 'Paid';
+      const isPartial = (p.status || p.paymentStatus) === 'Partial';
+      return {
+        id: p.id,
+        type: t('purchases'),
+        rawType: 'Purchase',
+        invoiceNo: p.purchaseNo || p.purchaseno || '',
+        partyName: p.supplier || p.supplierName || p.suppliername || 'Supplier',
+        date: p.date || 'N/A',
+        amount: amt.toLocaleString(),
+        status: isPaid ? t('paid') : isPartial ? t('partial') : t('pending'),
+        rawStatus: p.status || p.paymentStatus || 'Pending'
+      };
+    })
   ].slice(0, 5);
 
   return (

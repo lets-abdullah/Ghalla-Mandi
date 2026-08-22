@@ -9,8 +9,8 @@ export const Reports = () => {
   const { theme } = useTheme();
   const { t } = useLocale();
 
-  const grossSales = sales.reduce((acc, s) => acc + s.amount, 0);
-  const grossProfit = sales.reduce((acc, s) => acc + (s.profit || 0), 0);
+  const grossSales = (sales || []).reduce((acc, s) => acc + (Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0), 0);
+  const grossProfit = (sales || []).reduce((acc, s) => acc + (Number(s.profit) || 0), 0);
   const cogs = Math.max(0, grossSales - grossProfit);
   const netProfit = grossProfit;
 

@@ -241,7 +241,7 @@ export const Ledger = () => {
                 }`}
             >
               {regularCustomers.map(c => (
-                <option key={c.id} value={c.id}>{c.name} ({c.city}) — Rs. {c.balance.toLocaleString()}</option>
+                <option key={c.id} value={c.id}>{c.name} ({c.city}) — Rs. {(Number(c.balance) || 0).toLocaleString()}</option>
               ))}
             </select>
           ) : (
@@ -252,7 +252,7 @@ export const Ledger = () => {
                 }`}
             >
               {suppliers.map(s => (
-                <option key={s.id} value={s.id}>{s.name} ({s.city}) — Rs. {s.balance.toLocaleString()}</option>
+                <option key={s.id} value={s.id}>{s.name} ({s.city}) — Rs. {(Number(s.balance) || 0).toLocaleString()}</option>
               ))}
             </select>
           )}
@@ -279,7 +279,7 @@ export const Ledger = () => {
               <DollarSign className="w-4 h-4 text-emerald-500" /> {t('totalReceivedPayment')}
             </div>
             <div className="text-2xl font-extrabold mt-1 text-emerald-500">
-              Rs. {customerStatement.reduce((sum, e) => sum + e.credit, 0).toLocaleString()}
+              Rs. {customerStatement.reduce((sum, e) => sum + (Number(e.credit) || 0), 0).toLocaleString()}
             </div>
             <div className="text-xs text-slate-400 font-medium mt-1">{t('paid')}</div>
           </div>
@@ -290,7 +290,7 @@ export const Ledger = () => {
               <BookOpen className="w-4 h-4 text-amber-500" /> {t('amountToReceive')}
             </div>
             <div className="text-2xl font-extrabold mt-1 text-amber-500">
-              Rs. {activeCustomer.balance.toLocaleString()}
+              Rs. {(Number(activeCustomer.balance) || 0).toLocaleString()}
             </div>
             <div className="text-xs text-amber-500 font-bold mt-1">{t('pending')}</div>
           </div>
@@ -316,7 +316,7 @@ export const Ledger = () => {
               <DollarSign className="w-4 h-4 text-emerald-500" /> {t('totalPaymentsPaid')}
             </div>
             <div className="text-2xl font-extrabold mt-1 text-emerald-500">
-              Rs. {supplierStatement.reduce((sum, e) => sum + e.debit, 0).toLocaleString()}
+              Rs. {supplierStatement.reduce((sum, e) => sum + (Number(e.debit) || 0), 0).toLocaleString()}
             </div>
             <div className="text-xs text-slate-400 font-medium mt-1">{t('paid')}</div>
           </div>
@@ -327,7 +327,7 @@ export const Ledger = () => {
               <BookOpen className="w-4 h-4 text-rose-500" /> {t('amountToPay')}
             </div>
             <div className="text-2xl font-extrabold mt-1 text-rose-500">
-              Rs. {activeSupplier.balance.toLocaleString()}
+              Rs. {(Number(activeSupplier.balance) || 0).toLocaleString()}
             </div>
             <div className="text-xs text-rose-500 font-bold mt-1">{t('pending')}</div>
           </div>
@@ -368,13 +368,13 @@ export const Ledger = () => {
                     <td className="py-3 px-4 font-bold">{entry.type}</td>
                     <td className="py-3 px-4 text-slate-400">{entry.desc}</td>
                     <td className="py-3 px-4 text-right font-bold text-rose-500">
-                      {entry.debit > 0 ? `Rs. ${entry.debit.toLocaleString()}` : '-'}
+                      {Number(entry.debit || 0) > 0 ? `Rs. ${(Number(entry.debit) || 0).toLocaleString()}` : '-'}
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-emerald-500">
-                      {entry.credit > 0 ? `Rs. ${entry.credit.toLocaleString()}` : '-'}
+                      {Number(entry.credit || 0) > 0 ? `Rs. ${(Number(entry.credit) || 0).toLocaleString()}` : '-'}
                     </td>
                     <td className="py-3 px-4 text-right font-extrabold text-brand-500">
-                      Rs. {entry.balance.toLocaleString()}
+                      Rs. {(Number(entry.balance) || 0).toLocaleString()}
                     </td>
                   </tr>
                 ))

@@ -52,7 +52,7 @@ export const Purchases = () => {
   // Calculate live totals for the new purchase form
   const calculatedTotal = Math.max(0, (Number(form.enteredQty) || 0) * (Number(form.rate) || 0));
 
-  const handleRecordSubmit = (e) => {
+  const handleRecordSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
 
@@ -72,7 +72,7 @@ export const Purchases = () => {
 
     setIsSubmitting(true);
     try {
-      const created = createPurchase({
+      const created = await createPurchase({
         supplierId: supplierObj.id,
         supplier: supplierObj.name,
         supplierName: supplierObj.name,
@@ -132,7 +132,9 @@ export const Purchases = () => {
   };
 
   const openPayModal = (purchase) => {
-    const remainingDue = Math.max(0, purchase.amount - (purchase.paidAmount || 0));
+    const totalAmt = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : 0));
+    const paidAmt = Number(purchase.paidAmount || 0);
+    const remainingDue = Math.max(0, totalAmt - paidAmt);
     setPayModalPurchase(purchase);
     setPayForm({
       amount: remainingDue,
@@ -140,11 +142,13 @@ export const Purchases = () => {
     });
   };
 
-  const handlePaySubmit = (e) => {
+  const handlePaySubmit = async (e) => {
     e.preventDefault();
     if (!payModalPurchase) return;
 
-    const remainingDue = Math.max(0, payModalPurchase.amount - (payModalPurchase.paidAmount || 0));
+    const totalAmt = Number(payModalPurchase.amount !== undefined ? payModalPurchase.amount : (payModalPurchase.grandTotal !== undefined ? payModalPurchase.grandTotal : 0));
+    const paidAmt = Number(payModalPurchase.paidAmount || 0);
+    const remainingDue = Math.max(0, totalAmt - paidAmt);
     const payVal = Math.max(1, Number(payForm.amount) || 0);
 
     if (payVal > remainingDue) {
@@ -152,32 +156,41 @@ export const Purchases = () => {
       return;
     }
 
-    const supplierObj = suppliers.find(s => s.name === payModalPurchase.supplier) || suppliers[0];
+    const supplierObj = suppliers.find(s => s.name === payModalPurchase.supplier || s.id === payModalPurchase.supplierId) || suppliers[0];
 
-    recordPayment({
-      partyId: supplierObj ? supplierObj.id : payModalPurchase.supplierId,
-      partyType: 'Supplier',
-      amount: payVal,
-      paymentMode: payForm.paymentMode,
-      note: `Payment for purchase ${payModalPurchase.purchaseNo}`
-    });
+    try {
+      await recordPayment({
+        partyId: supplierObj ? supplierObj.id : payModalPurchase.supplierId,
+        partyType: 'Supplier',
+        amount: payVal,
+        paymentMode: payForm.paymentMode,
+        note: `Payment for purchase ${payModalPurchase.purchaseNo}`,
+        purchaseId: payModalPurchase.id
+      });
+    } catch (err) {
+      console.error('Payment record error:', err);
+    }
 
     setPayModalPurchase(null);
   };
 
   // Calculations for KPI Header Cards
-  const totalPurchaseVolume = purchases.reduce((acc, p) => acc + (p.amount || 0), 0);
-  const totalPaidOut = purchases.reduce((acc, p) => acc + (p.paidAmount || 0), 0);
-  const totalOutstandingPayable = purchases.reduce((acc, p) => acc + Math.max(0, p.amount - (p.paidAmount || 0)), 0);
+  const totalPurchaseVolume = purchases.reduce((acc, p) => acc + (Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0), 0);
+  const totalPaidOut = purchases.reduce((acc, p) => acc + (Number(p.paidAmount ?? p.paidamount) || 0), 0);
+  const totalOutstandingPayable = purchases.reduce((acc, p) => {
+    const amt = Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0;
+    const paid = Number(p.paidAmount ?? p.paidamount) || 0;
+    return acc + Math.max(0, amt - paid);
+  }, 0);
 
   const filteredPurchases = purchases.filter(p => {
-    const matchesSearch = (p.purchaseNo || '').toLowerCase().includes(search.toLowerCase()) ||
-      (p.supplier || '').toLowerCase().includes(search.toLowerCase()) ||
-      (p.items || '').toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (p.purchaseNo || p.purchaseno || '').toLowerCase().includes(search.toLowerCase()) ||
+      (p.supplier || p.supplierName || p.suppliername || '').toLowerCase().includes(search.toLowerCase()) ||
+      (typeof p.items === 'string' ? p.items.toLowerCase() : '').includes(search.toLowerCase());
 
-    const paid = Number(p.paidAmount || 0);
-    const total = Number(p.amount || 0);
-    const status = paid >= total ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
+    const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
+    const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
+    const status = paid >= total && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
 
     if (filterType === 'All') return matchesSearch;
     if (filterType === 'Paid') return matchesSearch && status === 'Paid';
@@ -324,17 +337,18 @@ export const Purchases = () => {
                 </tr>
               ) : (
                 filteredPurchases.map(p => {
-                  const paid = p.paidAmount || 0;
-                  const due = Math.max(0, p.amount - paid);
-                  const status = due === 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
+                  const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
+                  const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
+                  const due = Math.max(0, total - paid);
+                  const status = due === 0 && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
 
                   return (
                     <tr key={p.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
                       }`}>
-                      <td className="py-3 px-4 font-mono font-bold text-brand-500">{p.purchaseNo}</td>
-                      <td className="py-3 px-4 font-bold">{p.supplier}</td>
-                      <td className="py-3 px-4 text-slate-400">{p.items}</td>
-                      <td className="py-3 px-4 text-right font-extrabold">Rs. {p.amount.toLocaleString()}</td>
+                      <td className="py-3 px-4 font-mono font-bold text-brand-500">{p.purchaseNo || p.purchaseno}</td>
+                      <td className="py-3 px-4 font-bold">{p.supplier || p.supplierName || p.suppliername}</td>
+                      <td className="py-3 px-4 text-slate-400">{typeof p.items === 'string' ? p.items : (Array.isArray(p.items) ? p.items.map(i => i.name || i.productName).join(', ') : 'Commodity Items')}</td>
+                      <td className="py-3 px-4 text-right font-extrabold">Rs. {total.toLocaleString()}</td>
                       <td className="py-3 px-4 text-right font-bold text-emerald-500">Rs. {paid.toLocaleString()}</td>
                       <td className="py-3 px-4 text-right font-bold text-rose-500">Rs. {due.toLocaleString()}</td>
                       <td className="py-3 px-4 text-center">

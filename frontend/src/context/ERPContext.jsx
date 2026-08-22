@@ -4,6 +4,67 @@ import { authFetch } from '../services/api';
 
 const ERPContext = createContext();
 
+const normalizePurchase = (p) => {
+  if (!p) return null;
+  const grandTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
+  const paidAmount = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
+  const supplierName = p.supplier || p.supplierName || p.suppliername || 'Supplier';
+  const purchaseNo = p.purchaseNo || p.purchaseno || '';
+  const status = p.status || p.paymentStatus || p.paymentstatus || (paidAmount >= grandTotal && grandTotal > 0 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+  const date = p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
+  const items = Array.isArray(p.items) ? p.items : (Array.isArray(p.cart) ? p.cart : []);
+
+  return {
+    ...p,
+    id: p.id,
+    purchaseNo,
+    purchaseno: purchaseNo,
+    supplier: supplierName,
+    supplierName,
+    suppliername: supplierName,
+    amount: grandTotal,
+    grandTotal,
+    grandtotal: grandTotal,
+    paidAmount,
+    paidamount: paidAmount,
+    status,
+    paymentStatus: status,
+    date,
+    items,
+    cart: p.cart || items
+  };
+};
+
+const normalizeSale = (s) => {
+  if (!s) return null;
+  const amount = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.grandtotal !== undefined ? s.grandtotal : 0)));
+  const paidAmount = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
+  const partyName = s.partyName || s.partyname || s.customerName || s.customername || 'Walk-in Customer';
+  const invoiceNo = s.invoiceNo || s.invoiceno || '';
+  const status = s.status || s.paymentStatus || s.paymentstatus || (paidAmount >= amount && amount > 0 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+  const date = s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
+  const profit = Number(s.profit !== undefined ? s.profit : 0);
+  const cart = Array.isArray(s.cart) ? s.cart : (Array.isArray(s.items) ? s.items : []);
+
+  return {
+    ...s,
+    id: s.id,
+    invoiceNo,
+    invoiceno: invoiceNo,
+    partyName,
+    customerName: partyName,
+    amount,
+    grandTotal: amount,
+    paidAmount,
+    status,
+    paymentStatus: status,
+    profit,
+    date,
+    cart,
+    items: s.items || cart
+  };
+};
+
 export const ERPProvider = ({ children }) => {
   const { user, token } = useAuth();
 
@@ -60,8 +121,8 @@ export const ERPProvider = ({ children }) => {
       if (prodRes.success) setProducts(prodRes.products || []);
       if (custRes.success) setCustomers(custRes.customers || []);
       if (supRes.success) setSuppliers(supRes.suppliers || []);
-      if (saleRes.success) setSales(saleRes.sales || []);
-      if (purRes.success) setPurchases(purRes.purchases || []);
+      if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
+      if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
       if (ledgerRes.success) setPaymentLogs(ledgerRes.entries || []);
       if (movRes.success) setStockMovements(movRes.movements || []);
     } catch (err) {
@@ -344,12 +405,12 @@ export const ERPProvider = ({ children }) => {
           const custRes = await authFetch('/api/customers');
           if (custRes.success) setCustomers(custRes.customers || []);
           const saleRes = await authFetch('/api/sales');
-          if (saleRes.success) setSales(saleRes.sales || []);
+          if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
         } else {
           const supRes = await authFetch('/api/suppliers');
           if (supRes.success) setSuppliers(supRes.suppliers || []);
           const purRes = await authFetch('/api/purchases');
-          if (purRes.success) setPurchases(purRes.purchases || []);
+          if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
         }
 
         return res.entry;
@@ -385,7 +446,8 @@ export const ERPProvider = ({ children }) => {
       });
 
       if (res.success && res.purchase) {
-        setPurchases(prev => [res.purchase, ...prev]);
+        const norm = normalizePurchase(res.purchase);
+        setPurchases(prev => [norm, ...prev]);
 
         // Refetch products and suppliers to ensure latest stock & balances
         const [prodRes, supRes, movRes] = await Promise.all([
@@ -397,7 +459,7 @@ export const ERPProvider = ({ children }) => {
         if (supRes.success) setSuppliers(supRes.suppliers || []);
         if (movRes.success) setStockMovements(movRes.movements || []);
 
-        return res.purchase;
+        return norm;
       }
       throw new Error(res.message || 'Failed to record purchase');
     } catch (err) {
@@ -432,7 +494,8 @@ export const ERPProvider = ({ children }) => {
       });
 
       if (res.success && res.sale) {
-        setSales(prev => [res.sale, ...prev]);
+        const norm = normalizeSale(res.sale);
+        setSales(prev => [norm, ...prev]);
 
         // Refetch products, customers, movements to ensure synchronized state
         const [prodRes, custRes, movRes] = await Promise.all([
@@ -444,7 +507,7 @@ export const ERPProvider = ({ children }) => {
         if (custRes.success) setCustomers(custRes.customers || []);
         if (movRes.success) setStockMovements(movRes.movements || []);
 
-        return res.sale;
+        return norm;
       }
       throw new Error(res.message || 'Failed to create sale');
     } catch (err) {

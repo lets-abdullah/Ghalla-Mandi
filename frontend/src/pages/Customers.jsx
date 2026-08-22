@@ -146,7 +146,7 @@ export const Customers = () => {
           <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
             <DollarSign className="w-4 h-4 text-emerald-500" /> {t('amountToReceive')}
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-emerald-500">Rs. {totalReceivablesAmount.toLocaleString()}</div>
+          <div className="text-2xl font-extrabold mt-1 text-emerald-500">Rs. {(Number(totalReceivablesAmount) || 0).toLocaleString()}</div>
           <div className="text-xs text-emerald-500 font-bold mt-1">{t('pending')}</div>
         </div>
 
@@ -157,7 +157,7 @@ export const Customers = () => {
             <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {t('settledAccounts')}
           </div>
           <div className="text-2xl font-extrabold mt-1 text-emerald-500">
-            {regularCustomers.filter(c => c.balance === 0).length}
+            {regularCustomers.filter(c => (Number(c.balance) || 0) === 0).length}
           </div>
           <div className="text-xs text-emerald-500 font-bold mt-1">{t('zeroBalance')}</div>
         </div>
@@ -260,9 +260,9 @@ export const Customers = () => {
                 <div>
                   <div className="text-[10px] font-bold text-slate-400 uppercase">{t('receivableBalance')}</div>
                   <div className={`text-base font-extrabold ${
-                    customer.balance > 0 ? 'text-amber-500' : 'text-emerald-500'
+                    Number(customer.balance || 0) > 0 ? 'text-amber-500' : 'text-emerald-500'
                   }`}>
-                    Rs. {customer.balance.toLocaleString()}
+                    Rs. {(Number(customer.balance) || 0).toLocaleString()}
                   </div>
                 </div>
 

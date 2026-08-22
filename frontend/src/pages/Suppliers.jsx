@@ -162,7 +162,7 @@ export const Suppliers = () => {
           <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
             <DollarSign className="w-4 h-4 text-rose-500" /> {t('Amount To Pay')}
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-rose-500">Rs. {totalPayablesAmount.toLocaleString()}</div>
+          <div className="text-2xl font-extrabold mt-1 text-rose-500">Rs. {(Number(totalPayablesAmount) || 0).toLocaleString()}</div>
           <div className="text-xs text-rose-500 font-bold mt-1">{t('pending')}</div>
         </div>
 
@@ -172,7 +172,7 @@ export const Suppliers = () => {
             <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {t('settledAccounts')}
           </div>
           <div className="text-2xl font-extrabold mt-1 text-emerald-500">
-            {suppliers.filter(s => s.balance === 0).length}
+            {suppliers.filter(s => (Number(s.balance) || 0) === 0).length}
           </div>
           <div className="text-xs text-emerald-500 font-bold mt-1">{t('zeroBalance')}</div>
         </div>
@@ -271,9 +271,9 @@ export const Suppliers = () => {
               <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
                 <div>
                   <div className="text-[10px] font-bold text-slate-400 uppercase">{t('payableBalance')}</div>
-                  <div className={`text-base font-extrabold ${supplier.balance > 0 ? 'text-rose-500' : 'text-emerald-500'
+                  <div className={`text-base font-extrabold ${Number(supplier.balance || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'
                     }`}>
-                    Rs. {supplier.balance.toLocaleString()}
+                    Rs. {(Number(supplier.balance) || 0).toLocaleString()}
                   </div>
                 </div>
 
