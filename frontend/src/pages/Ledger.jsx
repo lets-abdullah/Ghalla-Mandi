@@ -63,6 +63,12 @@ export const Ledger = () => {
     }
 
     customerSales.forEach(s => {
+      const itemsDesc = typeof s.items === 'string'
+        ? s.items
+        : (Array.isArray(s.cart) && s.cart.length > 0
+          ? s.cart.map(i => `${i.qty || 1} ${i.unitName || i.unit || 'KG'} ${i.name || 'Product'}`).join(', ')
+          : `${t('sales')} (${s.itemsCount || 1} ${t('items')})`);
+
       entries.push({
         id: `sale-${s.id}`,
         date: s.date,
@@ -70,7 +76,7 @@ export const Ledger = () => {
         type: t('sales'),
         debit: Number(s.amount) || 0,
         credit: 0,
-        desc: `${t('sales')} (${s.itemsCount || (s.cart ? s.cart.length : 1)} ${t('items')})`
+        desc: itemsDesc
       });
     });
 
@@ -113,6 +119,14 @@ export const Ledger = () => {
     }
 
     supplierPurchases.forEach(p => {
+      const itemsDesc = typeof p.items === 'string'
+        ? p.items
+        : (Array.isArray(p.items) && p.items.length > 0
+          ? p.items.map(i => `${i.qty || i.enteredQty || 1} ${i.unit || i.unitName || i.enteredUnit || 'KG'} ${i.name || i.productName || 'Product'}`).join(', ')
+          : (Array.isArray(p.cart) && p.cart.length > 0
+            ? p.cart.map(i => `${i.qty || 1} ${i.unit || i.unitName || 'KG'} ${i.name || 'Product'}`).join(', ')
+            : (p.productName || t('products'))));
+
       entries.push({
         id: `pur-${p.id}`,
         date: p.date,
@@ -120,7 +134,7 @@ export const Ledger = () => {
         type: t('purchases'),
         debit: 0,
         credit: Number(p.amount) || 0,
-        desc: p.items || t('products')
+        desc: itemsDesc
       });
     });
 

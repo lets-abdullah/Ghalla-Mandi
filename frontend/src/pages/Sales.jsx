@@ -228,7 +228,7 @@ export const Sales = () => {
                             ))}
                           </div>
                         ) : (
-                          <span className="text-slate-400 font-semibold">{s.items || t('products')}</span>
+                          <span className="text-slate-400 font-semibold">{typeof s.items === 'string' ? s.items : (Array.isArray(s.items) ? s.items.map(i => i.name || i.productName).join(', ') : t('products'))}</span>
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-right font-black text-xs">Rs. {total.toLocaleString()}</td>

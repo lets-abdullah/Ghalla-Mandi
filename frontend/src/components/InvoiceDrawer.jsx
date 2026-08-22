@@ -101,7 +101,7 @@ export const InvoiceDrawer = ({ invoice, onClose }) => {
                 })
               ) : (
                 <tr>
-                  <td className="py-3 font-bold">{invoice.items || t('products')}</td>
+                  <td className="py-3 font-bold">{typeof invoice.items === 'string' ? invoice.items : (Array.isArray(invoice.items) ? invoice.items.map(i => i.name || i.productName).join(', ') : t('products'))}</td>
                   <td className="py-3 text-center">{invoice.itemsCount || 1} {t('item')}</td>
                   <td className="py-3 text-right font-mono">Rs. {formatAmount(invoice.amount)}</td>
                   <td className="py-3 text-right font-extrabold font-mono">Rs. {formatAmount(invoice.amount)}</td>

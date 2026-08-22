@@ -281,7 +281,7 @@ export const Invoices = () => {
                             ))}
                           </div>
                         ) : (
-                          <span className="text-slate-400 font-semibold">{inv.productName || inv.items || t('products')}</span>
+                          <span className="text-slate-400 font-semibold">{inv.productName || (typeof inv.items === 'string' ? inv.items : (Array.isArray(inv.items) ? inv.items.map(i => i.name || i.productName).join(', ') : t('products')))}</span>
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">{inv.date}</td>
