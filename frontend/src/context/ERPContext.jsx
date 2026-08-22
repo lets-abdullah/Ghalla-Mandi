@@ -458,12 +458,30 @@ export const ERPProvider = ({ children }) => {
   // 10. Record Purchase
   const recordPurchase = async (purchaseData) => {
     try {
-      const items = purchaseData.cart || (purchaseData.productId ? [{
+      const rawItems = purchaseData.cart || (purchaseData.productId ? [{
         productId: purchaseData.productId,
-        productName: purchaseData.productName,
+        name: purchaseData.productName || purchaseData.name,
+        productName: purchaseData.productName || purchaseData.name,
+        unit: purchaseData.unit || purchaseData.unitName || 'KG',
+        unitName: purchaseData.unitName || purchaseData.unit || 'KG',
         qty: Number(purchaseData.qtyKg || purchaseData.qty) || 1,
-        rate: Number(purchaseData.rate) || 0
+        rate: Number(purchaseData.rate) || 0,
+        total: (Number(purchaseData.qtyKg || purchaseData.qty) || 1) * (Number(purchaseData.rate) || 0)
       }] : []);
+
+      const items = rawItems.map(item => ({
+        productId: item.productId || item.id,
+        name: item.name || item.productName || 'Product',
+        productName: item.productName || item.name || 'Product',
+        unit: item.unit || item.unitName || item.enteredUnit || 'KG',
+        unitName: item.unitName || item.unit || item.enteredUnit || 'KG',
+        qty: Number(item.qty || item.enteredQty) || 1,
+        enteredQty: Number(item.qty || item.enteredQty) || 1,
+        rate: Number(item.rate || item.price || item.ratePerEnteredUnit) || 0,
+        ratePerEnteredUnit: Number(item.rate || item.price || item.ratePerEnteredUnit) || 0,
+        total: Number(item.total || item.totalAmount) || ((Number(item.qty || 1)) * (Number(item.rate || 0))),
+        totalAmount: Number(item.total || item.totalAmount) || ((Number(item.qty || 1)) * (Number(item.rate || 0)))
+      }));
 
       const payload = {
         supplierName: purchaseData.supplierName || purchaseData.supplier || '',

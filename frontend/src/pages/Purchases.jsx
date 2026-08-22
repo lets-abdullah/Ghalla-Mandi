@@ -385,15 +385,23 @@ export const Purchases = () => {
                               let purchaseItems = [];
                               if (p.cart && Array.isArray(p.cart) && p.cart.length > 0) {
                                 purchaseItems = p.cart.map(item => ({
-                                  name: item.name || 'Commodity Product',
-                                  qty: Number(item.qty || 1),
-                                  unit: item.unitName || item.unit || t('kg'),
-                                  price: Number(item.rate || item.price || (totalAmt / (item.qty || 1))),
-                                  total: Number(item.total) || (Number(item.rate || item.price || 0) * Number(item.qty || 1)) || totalAmt
+                                  name: item.name || item.productName || 'Commodity Product',
+                                  qty: Number(item.qty || item.enteredQty || 1),
+                                  unit: item.unit || item.unitName || item.enteredUnit || t('kg'),
+                                  price: Number(item.rate || item.price || item.ratePerEnteredUnit || (totalAmt / (item.qty || 1))),
+                                  total: Number(item.total || item.totalAmount) || (Number(item.rate || item.price || 0) * Number(item.qty || 1)) || totalAmt
+                                }));
+                              } else if (p.items && Array.isArray(p.items) && p.items.length > 0) {
+                                purchaseItems = p.items.map(item => ({
+                                  name: item.name || item.productName || 'Commodity Product',
+                                  qty: Number(item.qty || item.enteredQty || 1),
+                                  unit: item.unit || item.unitName || item.enteredUnit || t('kg'),
+                                  price: Number(item.rate || item.price || item.ratePerEnteredUnit || (totalAmt / (item.qty || item.enteredQty || 1))),
+                                  total: Number(item.total || item.totalAmount) || totalAmt
                                 }));
                               } else {
                                 purchaseItems = [{
-                                  name: p.productName || p.items || t('products'),
+                                  name: p.productName || (typeof p.items === 'string' ? p.items : t('products')),
                                   qty: Number(p.qty || p.qtyKg || 1),
                                   unit: p.unit || p.unitName || t('kg'),
                                   price: Number(p.rate || p.purchasePrice || (p.qty ? Math.round(totalAmt / p.qty) : totalAmt)),

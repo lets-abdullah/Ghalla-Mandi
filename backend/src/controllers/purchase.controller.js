@@ -33,22 +33,31 @@ export const createPurchase = async (req, res) => {
         purchasePrice: rate > 0 ? rate : product.purchasePrice
       });
 
+      const itemUnit = item.unit || item.unitName || item.enteredUnit || product.unit || product.baseUnit || 'KG';
+
       // Audit Log
       await AuditLog.create({
         shop_id: req.shop_id,
         product: product.name,
         type: 'IN (Purchase)',
-        qty: `${qty} ${product.unit || 'KG'}`,
+        qty: `${qty} ${itemUnit}`,
         ref: `Purchase Bill`,
         date: new Date().toLocaleDateString('en-GB')
       });
 
       processedItems.push({
         productId: product.id,
+        name: product.name,
         productName: product.name,
-        enteredUnit: product.unit || 'KG',
+        unit: itemUnit,
+        unitName: itemUnit,
+        enteredUnit: itemUnit,
+        qty: qty,
         enteredQty: qty,
+        rate: rate,
         ratePerEnteredUnit: rate,
+        price: rate,
+        total: itemTotal,
         totalAmount: itemTotal
       });
     }

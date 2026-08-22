@@ -39,6 +39,14 @@ export const Invoices = () => {
     const rawAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
     const paidAmt = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : ((p.status || p.paymentStatus) === 'Paid' ? rawAmt : 0)));
     const supObj = suppliers.find(s => s.name === (p.supplier || p.supplierName) || s.id === p.supplierId);
+    
+    const itemsList = Array.isArray(p.cart) && p.cart.length > 0 ? p.cart : (Array.isArray(p.items) && p.items.length > 0 ? p.items : []);
+    const firstItem = itemsList[0] || {};
+    const itemUnit = firstItem.unit || firstItem.unitName || firstItem.enteredUnit || p.unit || p.unitName || t('kg');
+    const productName = firstItem.name || firstItem.productName || (typeof p.items === 'string' ? p.items : (p.productName || t('products')));
+    const qty = Number(firstItem.qty || firstItem.enteredQty || p.qty || 1);
+    const rate = Number(firstItem.rate || firstItem.price || firstItem.ratePerEnteredUnit || p.rate || p.purchasePrice || (qty ? Math.round(rawAmt / qty) : rawAmt));
+
     return {
       id: p.id,
       invoiceNo: p.purchaseNo || p.purchaseno || '',
@@ -46,18 +54,26 @@ export const Invoices = () => {
       supplierPhone: supObj?.phone || '',
       supplierCity: supObj?.city || '',
       supplierBalance: Number(supObj?.balance || 0),
-      productName: typeof p.items === 'string' ? p.items : (Array.isArray(p.items) && p.items[0] ? (p.items[0].name || p.items[0].productName) : (p.productName || t('products'))),
-      qty: p.qty || 1,
-      unit: p.unit || t('kg'),
-      rate: p.rate || p.purchasePrice || (p.qty ? Math.round(rawAmt / p.qty) : rawAmt),
+      productName,
+      qty,
+      unit: itemUnit,
+      rate,
       date: p.date || 'N/A',
       amountNum: rawAmt,
       amount: rawAmt,
       paidAmount: paidAmt,
       paymentMode: p.paymentMode || (paidAmt >= rawAmt ? 'Cash' : paidAmt > 0 ? 'Partial Cash' : 'Supplier Credit (Khata)'),
       status: p.status || p.paymentStatus || (paidAmt >= rawAmt && rawAmt > 0 ? 'Paid' : paidAmt > 0 ? 'Partial' : 'Pending'),
-      itemsCount: Array.isArray(p.cart) ? p.cart.length : (Array.isArray(p.items) ? p.items.length : 1),
-      cart: Array.isArray(p.cart) ? p.cart : (Array.isArray(p.items) ? p.items : null),
+      itemsCount: itemsList.length || 1,
+      cart: itemsList.length > 0 ? itemsList.map(it => ({
+        name: it.name || it.productName || 'Commodity Item',
+        qty: Number(it.qty || it.enteredQty || 1),
+        unit: it.unit || it.unitName || it.enteredUnit || itemUnit,
+        unitName: it.unitName || it.unit || it.enteredUnit || itemUnit,
+        rate: Number(it.rate || it.price || it.ratePerEnteredUnit || 0),
+        price: Number(it.price || it.rate || it.ratePerEnteredUnit || 0),
+        total: Number(it.total || it.totalAmount || 0)
+      })) : null,
       type: 'Purchase'
     };
   });
@@ -98,19 +114,27 @@ export const Invoices = () => {
         saleNote: 'Sales Tax Invoice'
       });
     } else {
+      const purchaseReceiptItems = inv.cart && Array.isArray(inv.cart) && inv.cart.length > 0 ? inv.cart.map(item => ({
+        name: item.name || item.productName || inv.productName || t('products'),
+        qty: Number(item.qty || item.enteredQty || 1),
+        unit: item.unit || item.unitName || item.enteredUnit || inv.unit || t('kg'),
+        price: Number(item.rate || item.price || item.ratePerEnteredUnit || inv.rate || 0),
+        total: Number(item.total || item.totalAmount || (Number(item.rate || inv.rate || 0) * Number(item.qty || 1)) || inv.amount || 0)
+      })) : [{
+        name: inv.productName || t('products'),
+        qty: inv.qty || 1,
+        unit: inv.unit || t('kg'),
+        price: Number(inv.rate || inv.amount || 0),
+        total: Number(inv.amount || 0)
+      }];
+
       setSelectedPurchaseReceipt({
         purchaseNo: inv.invoiceNo,
         date: inv.date,
         supplierName: inv.partyName,
         supplierPhone: inv.supplierPhone,
         supplierCity: inv.supplierCity,
-        items: [{
-          name: inv.productName || t('products'),
-          qty: inv.qty || 1,
-          unit: inv.unit || t('kg'),
-          price: Number(inv.rate || inv.amount || 0),
-          total: Number(inv.amount || 0)
-        }],
+        items: purchaseReceiptItems,
         totalAmount: Number(inv.amount || 0),
         paidAmount: Number(inv.paidAmount || 0),
         paymentMode: inv.paymentMode || 'Supplier Credit (Khata)',
