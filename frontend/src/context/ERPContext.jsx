@@ -65,6 +65,36 @@ const normalizeSale = (s) => {
   };
 };
 
+const normalizeProduct = (p) => {
+  if (!p) return null;
+  const purchasePrice = Number(p.purchasePrice !== undefined ? p.purchasePrice : (p.purchaseprice !== undefined ? p.purchaseprice : 0));
+  const sellingPrice = Number(p.sellingPrice !== undefined ? p.sellingPrice : (p.sellingprice !== undefined ? p.sellingprice : 0));
+  const stockQty = Number(p.stockQty !== undefined ? p.stockQty : (p.stockqty !== undefined ? p.stockqty : 0));
+  const minStock = Number(p.minStock !== undefined ? p.minStock : (p.minstock !== undefined ? p.minstock : (p.minStockThreshold !== undefined ? p.minStockThreshold : 10)));
+  const unit = p.unit || p.baseUnit || 'KG';
+
+  return {
+    ...p,
+    id: p.id,
+    shop_id: p.shop_id,
+    code: p.code || '',
+    name: p.name || '',
+    category: p.category || 'General',
+    purchasePrice,
+    purchaseprice: purchasePrice,
+    sellingPrice,
+    sellingprice: sellingPrice,
+    stockQty,
+    stockqty: stockQty,
+    minStock,
+    minstock: minStock,
+    minStockThreshold: minStock,
+    unit,
+    baseUnit: unit,
+    image: p.image || ''
+  };
+};
+
 export const ERPProvider = ({ children }) => {
   const { user, token } = useAuth();
 
@@ -118,7 +148,7 @@ export const ERPProvider = ({ children }) => {
       ]);
 
       if (catRes.success) setCategories(catRes.categories || []);
-      if (prodRes.success) setProducts(prodRes.products || []);
+      if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
       if (custRes.success) setCustomers(custRes.customers || []);
       if (supRes.success) setSuppliers(supRes.suppliers || []);
       if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
@@ -196,8 +226,9 @@ export const ERPProvider = ({ children }) => {
       });
 
       if (res.success && res.product) {
-        setProducts(prev => [...prev, res.product]);
-        return res.product;
+        const norm = normalizeProduct(res.product);
+        setProducts(prev => [...prev, norm]);
+        return norm;
       }
       throw new Error(res.message || 'Failed to create product');
     } catch (err) {
@@ -215,8 +246,9 @@ export const ERPProvider = ({ children }) => {
       });
 
       if (res.success && res.product) {
-        setProducts(prev => prev.map(p => p.id === id ? res.product : p));
-        return res.product;
+        const norm = normalizeProduct(res.product);
+        setProducts(prev => prev.map(p => p.id === id ? norm : p));
+        return norm;
       }
       throw new Error(res.message || 'Failed to update product');
     } catch (err) {
@@ -252,11 +284,12 @@ export const ERPProvider = ({ children }) => {
       });
 
       if (res.success && res.product) {
-        setProducts(prev => prev.map(p => p.id === productId ? res.product : p));
+        const norm = normalizeProduct(res.product);
+        setProducts(prev => prev.map(p => p.id === productId ? norm : p));
         // Refresh stock movements
         const movRes = await authFetch('/api/inventory/movements');
         if (movRes.success) setStockMovements(movRes.movements || []);
-        return res.product;
+        return norm;
       }
       throw new Error(res.message || 'Failed to adjust stock');
     } catch (err) {

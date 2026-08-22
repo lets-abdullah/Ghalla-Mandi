@@ -277,11 +277,15 @@ export const Products = () => {
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold ${isLowStock ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'
                           }`}>
                           {isLowStock && <AlertTriangle className="w-3.5 h-3.5" />}
-                          {product.stockQty} {product.unit || t('kg')}
+                          {(Number(product.stockQty ?? product.stockqty) || 0).toLocaleString()} {product.unit || product.baseUnit || t('kg')}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right text-slate-400 font-semibold">Rs. {product.purchasePrice} / {product.unit || t('kg')}</td>
-                      <td className="py-3 px-4 text-right text-brand-500 font-extrabold">Rs. {product.sellingPrice} / {product.unit || t('kg')}</td>
+                      <td className="py-3 px-4 text-right text-slate-400 font-semibold">
+                        Rs. {(Number(product.purchasePrice ?? product.purchaseprice) || 0).toLocaleString()} / {product.unit || product.baseUnit || t('kg')}
+                      </td>
+                      <td className="py-3 px-4 text-right text-brand-500 font-extrabold">
+                        Rs. {(Number(product.sellingPrice ?? product.sellingprice) || 0).toLocaleString()} / {product.unit || product.baseUnit || t('kg')}
+                      </td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button
@@ -680,7 +684,7 @@ export const Products = () => {
                     step="any"
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
-                    value={editingProduct.purchasePrice || 0}
+                    value={editingProduct.purchasePrice ?? editingProduct.purchaseprice ?? 0}
                     onChange={(e) => setEditingProduct({ ...editingProduct, purchasePrice: Number(e.target.value) })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
@@ -694,7 +698,7 @@ export const Products = () => {
                     step="any"
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
-                    value={editingProduct.sellingPrice || 0}
+                    value={editingProduct.sellingPrice ?? editingProduct.sellingprice ?? 0}
                     onChange={(e) => setEditingProduct({ ...editingProduct, sellingPrice: Number(e.target.value) })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
@@ -711,7 +715,7 @@ export const Products = () => {
                     step="1"
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
-                    value={editingProduct.stockQty || 0}
+                    value={editingProduct.stockQty ?? editingProduct.stockqty ?? 0}
                     onChange={(e) => setEditingProduct({ ...editingProduct, stockQty: Number(e.target.value) })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
@@ -725,7 +729,7 @@ export const Products = () => {
                     step="1"
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
-                    value={editingProduct.minStock || 0}
+                    value={editingProduct.minStock ?? editingProduct.minstock ?? 0}
                     onChange={(e) => setEditingProduct({ ...editingProduct, minStock: Number(e.target.value) })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
