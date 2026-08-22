@@ -144,7 +144,7 @@ export const Purchases = () => {
 
   const handlePaySubmit = async (e) => {
     e.preventDefault();
-    if (!payModalPurchase) return;
+    if (!payModalPurchase || isSubmitting) return;
 
     const totalAmt = Number(payModalPurchase.amount !== undefined ? payModalPurchase.amount : (payModalPurchase.grandTotal !== undefined ? payModalPurchase.grandTotal : 0));
     const paidAmt = Number(payModalPurchase.paidAmount || 0);
@@ -158,6 +158,7 @@ export const Purchases = () => {
 
     const supplierObj = suppliers.find(s => s.name === payModalPurchase.supplier || s.id === payModalPurchase.supplierId) || suppliers[0];
 
+    setIsSubmitting(true);
     try {
       await recordPayment({
         partyId: supplierObj ? supplierObj.id : payModalPurchase.supplierId,
@@ -167,11 +168,13 @@ export const Purchases = () => {
         note: `Payment for purchase ${payModalPurchase.purchaseNo}`,
         purchaseId: payModalPurchase.id
       });
+      setPayModalPurchase(null);
     } catch (err) {
       console.error('Payment record error:', err);
+      alert(err.message || 'Error recording payment');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setPayModalPurchase(null);
   };
 
   // Calculations for KPI Header Cards
@@ -648,9 +651,10 @@ export const Purchases = () => {
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
                 >
-                  {t('savePayment')}
+                  {isSubmitting ? 'Saving...' : t('savePayment')}
                 </button>
               </div>
             </form>

@@ -4,12 +4,30 @@ import { Customer } from '../models/customer.model.js';
 import { Ledger } from '../models/ledger.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
 
+// Anti-duplicate rapid submission cache
+const recentSales = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of recentSales.entries()) {
+    if (now - v.timestamp > 10000) {
+      recentSales.delete(k);
+    }
+  }
+}, 60000);
+
 export const createSale = async (req, res) => {
   try {
     const { customerName, customerId, items, paidAmount = 0, discount = 0, tax = 0 } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, message: 'At least one sale item is required' });
+    }
+
+    // Deduplication key based on shop, customer, first item & count
+    const dedupKey = `${req.shop_id}:${customerId || customerName || ''}:${items.length}:${items[0]?.productId}:${items[0]?.qty}:${paidAmount}`;
+    const existing = recentSales.get(dedupKey);
+    if (existing && Date.now() - existing.timestamp < 3000) {
+      return res.status(200).json({ success: true, sale: existing.sale, deduplicated: true });
     }
 
     let subtotal = 0;
@@ -103,6 +121,7 @@ export const createSale = async (req, res) => {
       cart: processedCart
     });
 
+    recentSales.set(dedupKey, { timestamp: Date.now(), sale });
     return res.status(201).json({ success: true, sale });
   } catch (err) {
     console.error('Sale Creation Error:', err);

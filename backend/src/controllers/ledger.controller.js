@@ -4,6 +4,17 @@ import { Supplier } from '../models/supplier.model.js';
 import { Sale } from '../models/sale.model.js';
 import { Purchase } from '../models/purchase.model.js';
 
+// Anti-duplicate rapid submission cache (3.5s window)
+const recentPayments = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of recentPayments.entries()) {
+    if (now - v.timestamp > 10000) {
+      recentPayments.delete(k);
+    }
+  }
+}, 60000);
+
 export const getLedgerEntries = async (req, res) => {
   try {
     const { partyId, partyType } = req.query;
@@ -24,6 +35,13 @@ export const recordPayment = async (req, res) => {
 
     if (!amtNum || amtNum <= 0) {
       return res.status(400).json({ success: false, message: 'Valid payment amount is required' });
+    }
+
+    // Double-click / panic rapid click deduplication protection
+    const dedupKey = `${req.shop_id}:${partyId || ''}:${partyType}:${amtNum}:${saleId || ''}:${purchaseId || ''}`;
+    const existing = recentPayments.get(dedupKey);
+    if (existing && Date.now() - existing.timestamp < 3500) {
+      return res.status(200).json({ success: true, entry: existing.entry, deduplicated: true });
     }
 
     const dateStr = new Date().toLocaleDateString('en-GB');
@@ -68,6 +86,7 @@ export const recordPayment = async (req, res) => {
         saleId: saleId || null
       });
 
+      recentPayments.set(dedupKey, { timestamp: Date.now(), entry });
       return res.status(201).json({ success: true, entry });
     } else {
       // Supplier payment
@@ -100,6 +119,7 @@ export const recordPayment = async (req, res) => {
         purchaseId: purchaseId || null
       });
 
+      recentPayments.set(dedupKey, { timestamp: Date.now(), entry });
       return res.status(201).json({ success: true, entry });
     }
   } catch (err) {

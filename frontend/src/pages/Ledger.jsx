@@ -13,6 +13,7 @@ export const Ledger = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState(customers[0]?.id || '');
   const [selectedSupplierId, setSelectedSupplierId] = useState(suppliers[0]?.id || '');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [paymentForm, setPaymentForm] = useState({
     amount: 0,
@@ -163,6 +164,8 @@ export const Ledger = () => {
 
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const amtVal = Math.max(1, Number(paymentForm.amount) || 0);
     if (amtVal <= 0) {
       alert(t('paidAmountNegativeAlert'));
@@ -176,6 +179,7 @@ export const Ledger = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await recordPayment({
         partyId,
@@ -189,6 +193,8 @@ export const Ledger = () => {
       setPaymentForm({ amount: 0, paymentMode: 'Cash', note: 'Account settlement entry' });
     } catch (err) {
       alert(err.message || 'Payment recording failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -487,9 +493,10 @@ export const Ledger = () => {
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
                 >
-                  {t('savePayment')}
+                  {isSubmitting ? 'Saving...' : t('savePayment')}
                 </button>
               </div>
             </form>

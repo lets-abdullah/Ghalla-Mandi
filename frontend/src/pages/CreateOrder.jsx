@@ -38,6 +38,7 @@ export const CreateOrder = () => {
   const [customerType, setCustomerType] = useState('Walk-in Customer'); // 'Walk-in Customer' | 'Regular Party'
   const [walkinName, setWalkinName] = useState('');
   const [selectedParty, setSelectedParty] = useState(null);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [partySearch, setPartySearch] = useState('');
 
   // Payment & Settlement State
@@ -337,8 +338,8 @@ export const CreateOrder = () => {
 
   // Submit and Place Order
   const handlePlaceOrder = async () => {
-    if (cart.length === 0) {
-      alert(t('cartIsEmpty'));
+    if (cart.length === 0 || isPlacingOrder) {
+      if (cart.length === 0) alert(t('cartIsEmpty'));
       return;
     }
 
@@ -396,6 +397,7 @@ export const CreateOrder = () => {
       saleNote
     };
 
+    setIsPlacingOrder(true);
     try {
       await createSale({
         customerType,
@@ -412,14 +414,15 @@ export const CreateOrder = () => {
           unitName: item.unit
         }))
       });
+
+      setCompletedOrderData(orderPayload);
+      setIsReceiptOpen(true);
+      clearCart(true);
     } catch (err) {
       alert(err.message || 'Order creation failed.');
-      return;
+    } finally {
+      setIsPlacingOrder(false);
     }
-
-    setCompletedOrderData(orderPayload);
-    setIsReceiptOpen(true);
-    clearCart(true);
   };
 
   const isRTL = locale === 'ur';
@@ -1059,11 +1062,11 @@ export const CreateOrder = () => {
           {/* PRIMARY ACTION: COMPLETE SALE & PRINT RECEIPT */}
           <button
             onClick={handlePlaceOrder}
-            disabled={cart.length === 0}
-            className="w-full py-3.5 px-4 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-black text-sm rounded-2xl transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center"
+            disabled={cart.length === 0 || isPlacingOrder}
+            className="w-full py-3.5 px-4 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-2xl transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center"
           >
             <CheckCircle2 className="w-5 h-5 shrink-0" />
-            <span className="leading-snug">{t('completeAndPrintReceipt')}</span>
+            <span className="leading-snug">{isPlacingOrder ? 'Processing...' : t('completeAndPrintReceipt')}</span>
           </button>
           <div className="text-[10px] text-center text-slate-400 font-bold">
             {t('shortcutHint')}

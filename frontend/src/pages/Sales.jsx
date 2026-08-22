@@ -19,6 +19,7 @@ export const Sales = () => {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState('Cash');
   const [paymentNote, setPaymentNote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Keyboard Escape listener
   useEffect(() => {
@@ -45,7 +46,7 @@ export const Sales = () => {
 
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
-    if (!paymentModalSale) return;
+    if (!paymentModalSale || isSubmitting) return;
 
     const amt = Math.max(1, Number(paymentAmount) || 0);
     const paid = Number(paymentModalSale.paidAmount || 0);
@@ -63,6 +64,7 @@ export const Sales = () => {
       }
     }
 
+    setIsSubmitting(true);
     try {
       await recordPayment({
         partyId: paymentModalSale.customerId || null,
@@ -78,6 +80,8 @@ export const Sales = () => {
       setPaymentNote('');
     } catch (err) {
       alert(err.message || 'Payment recording failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -427,9 +431,10 @@ export const Sales = () => {
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="w-1/2 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> {t('savePayment')}
+                  <CheckCircle2 className="w-4 h-4" /> {isSubmitting ? 'Saving...' : t('savePayment')}
                 </button>
               </div>
             </form>

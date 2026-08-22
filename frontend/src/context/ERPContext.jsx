@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { authFetch } from '../services/api';
 
@@ -493,149 +493,200 @@ export const ERPProvider = ({ children }) => {
     }
   };
 
-  // 9. Record Payment
+  const inFlightLocks = useRef(new Map());
+
+  // 9. Record Payment with anti-duplicate lock
   const recordPayment = async ({ partyId, partyType, amount, paymentMode = 'Cash', note = '', saleId = null, purchaseId = null }) => {
-    try {
-      const res = await authFetch('/api/ledger/payment', {
-        method: 'POST',
-        body: { partyId, partyType, amount, paymentMode, note, saleId, purchaseId }
-      });
+    const lockKey = `pay:${partyId || ''}:${partyType}:${amount}:${saleId || ''}:${purchaseId || ''}`;
+    if (inFlightLocks.current.has(lockKey)) {
+      return inFlightLocks.current.get(lockKey);
+    }
 
-      if (res.success && res.entry) {
-        setPaymentLogs(prev => [res.entry, ...prev]);
+    const promise = (async () => {
+      try {
+        const res = await authFetch('/api/ledger/payment', {
+          method: 'POST',
+          body: { partyId, partyType, amount, paymentMode, note, saleId, purchaseId }
+        });
 
-        // Refetch customers or suppliers to reflect updated balances
-        if (partyType === 'Customer') {
-          const custRes = await authFetch('/api/customers');
-          if (custRes.success) setCustomers(custRes.customers || []);
-          const saleRes = await authFetch('/api/sales');
-          if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
-        } else {
-          const supRes = await authFetch('/api/suppliers');
-          if (supRes.success) setSuppliers(supRes.suppliers || []);
-          const purRes = await authFetch('/api/purchases');
-          if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
+        if (res.success && res.entry) {
+          if (!res.deduplicated) {
+            setPaymentLogs(prev => [res.entry, ...prev]);
+
+            if (partyType === 'Customer') {
+              const [custRes, saleRes] = await Promise.all([
+                authFetch('/api/customers'),
+                authFetch('/api/sales')
+              ]);
+              if (custRes.success) setCustomers(custRes.customers || []);
+              if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
+            } else {
+              const [supRes, purRes] = await Promise.all([
+                authFetch('/api/suppliers'),
+                authFetch('/api/purchases')
+              ]);
+              if (supRes.success) setSuppliers(supRes.suppliers || []);
+              if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
+            }
+          }
+
+          return res.entry;
         }
-
-        return res.entry;
+        throw new Error(res.message || 'Failed to record payment');
+      } catch (err) {
+        console.error('recordPayment error:', err);
+        throw err;
+      } finally {
+        setTimeout(() => {
+          inFlightLocks.current.delete(lockKey);
+        }, 2000);
       }
-      throw new Error(res.message || 'Failed to record payment');
-    } catch (err) {
-      console.error('recordPayment error:', err);
-      throw err;
-    }
+    })();
+
+    inFlightLocks.current.set(lockKey, promise);
+    return promise;
   };
 
-  // 10. Record Purchase
+  // 10. Record Purchase with anti-duplicate lock
   const recordPurchase = async (purchaseData) => {
-    try {
-      const rawItems = purchaseData.cart || (purchaseData.productId ? [{
-        productId: purchaseData.productId,
-        name: purchaseData.productName || purchaseData.name,
-        productName: purchaseData.productName || purchaseData.name,
-        unit: purchaseData.unit || purchaseData.unitName || 'KG',
-        unitName: purchaseData.unitName || purchaseData.unit || 'KG',
-        qty: Number(purchaseData.qtyKg || purchaseData.qty) || 1,
-        rate: Number(purchaseData.rate) || 0,
-        total: (Number(purchaseData.qtyKg || purchaseData.qty) || 1) * (Number(purchaseData.rate) || 0)
-      }] : []);
+    const rawItems = purchaseData.cart || (purchaseData.productId ? [{
+      productId: purchaseData.productId,
+      name: purchaseData.productName || purchaseData.name,
+      productName: purchaseData.productName || purchaseData.name,
+      unit: purchaseData.unit || purchaseData.unitName || 'KG',
+      unitName: purchaseData.unitName || purchaseData.unit || 'KG',
+      qty: Number(purchaseData.qtyKg || purchaseData.qty) || 1,
+      rate: Number(purchaseData.rate) || 0,
+      total: (Number(purchaseData.qtyKg || purchaseData.qty) || 1) * (Number(purchaseData.rate) || 0)
+    }] : []);
 
-      const items = rawItems.map(item => ({
-        productId: item.productId || item.id,
-        name: item.name || item.productName || 'Product',
-        productName: item.productName || item.name || 'Product',
-        unit: item.unit || item.unitName || item.enteredUnit || 'KG',
-        unitName: item.unitName || item.unit || item.enteredUnit || 'KG',
-        qty: Number(item.qty || item.enteredQty) || 1,
-        enteredQty: Number(item.qty || item.enteredQty) || 1,
-        rate: Number(item.rate || item.price || item.ratePerEnteredUnit) || 0,
-        ratePerEnteredUnit: Number(item.rate || item.price || item.ratePerEnteredUnit) || 0,
-        total: Number(item.total || item.totalAmount) || ((Number(item.qty || 1)) * (Number(item.rate || 0))),
-        totalAmount: Number(item.total || item.totalAmount) || ((Number(item.qty || 1)) * (Number(item.rate || 0)))
-      }));
+    const items = rawItems.map(item => ({
+      productId: item.productId || item.id,
+      name: item.name || item.productName || 'Product',
+      productName: item.productName || item.name || 'Product',
+      unit: item.unit || item.unitName || item.enteredUnit || 'KG',
+      unitName: item.unitName || item.unit || item.enteredUnit || 'KG',
+      qty: Number(item.qty || item.enteredQty) || 1,
+      enteredQty: Number(item.qty || item.enteredQty) || 1,
+      rate: Number(item.rate || item.price || item.ratePerEnteredUnit) || 0,
+      ratePerEnteredUnit: Number(item.rate || item.price || item.ratePerEnteredUnit) || 0,
+      total: Number(item.total || item.totalAmount) || ((Number(item.qty || 1)) * (Number(item.rate || 0))),
+      totalAmount: Number(item.total || item.totalAmount) || ((Number(item.qty || 1)) * (Number(item.rate || 0)))
+    }));
 
-      const payload = {
-        supplierName: purchaseData.supplierName || purchaseData.supplier || '',
-        supplierId: purchaseData.supplierId || null,
-        paidAmount: Number(purchaseData.paidAmount) || 0,
-        notes: purchaseData.notes || '',
-        items
-      };
+    const payload = {
+      supplierName: purchaseData.supplierName || purchaseData.supplier || '',
+      supplierId: purchaseData.supplierId || null,
+      paidAmount: Number(purchaseData.paidAmount) || 0,
+      notes: purchaseData.notes || '',
+      items
+    };
 
-      const res = await authFetch('/api/purchases', {
-        method: 'POST',
-        body: payload
-      });
-
-      if (res.success && res.purchase) {
-        const norm = normalizePurchase(res.purchase);
-        setPurchases(prev => [norm, ...prev]);
-
-        // Refetch products and suppliers to ensure latest stock & balances
-        const [prodRes, supRes, movRes] = await Promise.all([
-          authFetch('/api/products'),
-          authFetch('/api/suppliers'),
-          authFetch('/api/inventory/movements')
-        ]);
-        if (prodRes.success) setProducts(prodRes.products || []);
-        if (supRes.success) setSuppliers(supRes.suppliers || []);
-        if (movRes.success) setStockMovements(movRes.movements || []);
-
-        return norm;
-      }
-      throw new Error(res.message || 'Failed to record purchase');
-    } catch (err) {
-      console.error('recordPurchase error:', err);
-      throw err;
+    const lockKey = `pur:${payload.supplierId || payload.supplierName}:${items.length}:${items[0]?.productId}:${items[0]?.qty}:${payload.paidAmount}`;
+    if (inFlightLocks.current.has(lockKey)) {
+      return inFlightLocks.current.get(lockKey);
     }
+
+    const promise = (async () => {
+      try {
+        const res = await authFetch('/api/purchases', {
+          method: 'POST',
+          body: payload
+        });
+
+        if (res.success && res.purchase) {
+          const norm = normalizePurchase(res.purchase);
+          if (!res.deduplicated) {
+            setPurchases(prev => [norm, ...prev]);
+
+            const [prodRes, supRes, movRes] = await Promise.all([
+              authFetch('/api/products'),
+              authFetch('/api/suppliers'),
+              authFetch('/api/inventory/movements')
+            ]);
+            if (prodRes.success) setProducts(prodRes.products || []);
+            if (supRes.success) setSuppliers(supRes.suppliers || []);
+            if (movRes.success) setStockMovements(movRes.movements || []);
+          }
+
+          return norm;
+        }
+        throw new Error(res.message || 'Failed to record purchase');
+      } catch (err) {
+        console.error('recordPurchase error:', err);
+        throw err;
+      } finally {
+        setTimeout(() => {
+          inFlightLocks.current.delete(lockKey);
+        }, 2000);
+      }
+    })();
+
+    inFlightLocks.current.set(lockKey, promise);
+    return promise;
   };
 
-  // 11. Create Sale POS Invoice
+  // 11. Create Sale POS Invoice with anti-duplicate lock
   const createSale = async (saleData) => {
-    try {
-      const items = (saleData.cart || []).map(item => ({
-        productId: item.productId || item.id,
-        name: item.name,
-        qty: Number(item.qty) || 1,
-        rate: Number(item.rate) || 0,
-        unitName: item.unitName || item.unit || 'KG'
-      }));
+    const items = (saleData.cart || []).map(item => ({
+      productId: item.productId || item.id,
+      name: item.name,
+      qty: Number(item.qty) || 1,
+      rate: Number(item.rate) || 0,
+      unitName: item.unitName || item.unit || 'KG'
+    }));
 
-      const payload = {
-        customerName: saleData.customerName || 'Walk-in Customer',
-        customerId: saleData.customerId || null,
-        items,
-        paidAmount: Number(saleData.paidAmount) || 0,
-        discount: Number(saleData.discount) || 0,
-        tax: Number(saleData.tax) || 0
-      };
+    const payload = {
+      customerName: saleData.customerName || 'Walk-in Customer',
+      customerId: saleData.customerId || null,
+      items,
+      paidAmount: Number(saleData.paidAmount) || 0,
+      discount: Number(saleData.discount) || 0,
+      tax: Number(saleData.tax) || 0
+    };
 
-      const res = await authFetch('/api/sales', {
-        method: 'POST',
-        body: payload
-      });
-
-      if (res.success && res.sale) {
-        const norm = normalizeSale(res.sale);
-        setSales(prev => [norm, ...prev]);
-
-        // Refetch products, customers, movements to ensure synchronized state
-        const [prodRes, custRes, movRes] = await Promise.all([
-          authFetch('/api/products'),
-          authFetch('/api/customers'),
-          authFetch('/api/inventory/movements')
-        ]);
-        if (prodRes.success) setProducts(prodRes.products || []);
-        if (custRes.success) setCustomers(custRes.customers || []);
-        if (movRes.success) setStockMovements(movRes.movements || []);
-
-        return norm;
-      }
-      throw new Error(res.message || 'Failed to create sale');
-    } catch (err) {
-      console.error('createSale error:', err);
-      throw err;
+    const lockKey = `sale:${payload.customerId || payload.customerName}:${items.length}:${items[0]?.productId}:${items[0]?.qty}:${payload.paidAmount}`;
+    if (inFlightLocks.current.has(lockKey)) {
+      return inFlightLocks.current.get(lockKey);
     }
+
+    const promise = (async () => {
+      try {
+        const res = await authFetch('/api/sales', {
+          method: 'POST',
+          body: payload
+        });
+
+        if (res.success && res.sale) {
+          const norm = normalizeSale(res.sale);
+          if (!res.deduplicated) {
+            setSales(prev => [norm, ...prev]);
+
+            const [prodRes, custRes, movRes] = await Promise.all([
+              authFetch('/api/products'),
+              authFetch('/api/customers'),
+              authFetch('/api/inventory/movements')
+            ]);
+            if (prodRes.success) setProducts(prodRes.products || []);
+            if (custRes.success) setCustomers(custRes.customers || []);
+            if (movRes.success) setStockMovements(movRes.movements || []);
+          }
+
+          return norm;
+        }
+        throw new Error(res.message || 'Failed to create sale');
+      } catch (err) {
+        console.error('createSale error:', err);
+        throw err;
+      } finally {
+        setTimeout(() => {
+          inFlightLocks.current.delete(lockKey);
+        }, 2000);
+      }
+    })();
+
+    inFlightLocks.current.set(lockKey, promise);
+    return promise;
   };
 
   return (

@@ -4,12 +4,30 @@ import { Supplier } from '../models/supplier.model.js';
 import { Ledger } from '../models/ledger.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
 
+// Anti-duplicate rapid submission cache
+const recentPurchases = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of recentPurchases.entries()) {
+    if (now - v.timestamp > 10000) {
+      recentPurchases.delete(k);
+    }
+  }
+}, 60000);
+
 export const createPurchase = async (req, res) => {
   try {
     const { supplierName, supplierId, items, paidAmount = 0, notes = '' } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, message: 'At least one purchase item is required' });
+    }
+
+    // Deduplication key based on shop, supplier, items length and first item
+    const dedupKey = `${req.shop_id}:${supplierId || supplierName || ''}:${items.length}:${items[0]?.productId}:${items[0]?.enteredQty || items[0]?.qty}:${paidAmount}`;
+    const existing = recentPurchases.get(dedupKey);
+    if (existing && Date.now() - existing.timestamp < 3000) {
+      return res.status(200).json({ success: true, purchase: existing.purchase, deduplicated: true });
     }
 
     let totalGrand = 0;
@@ -107,6 +125,7 @@ export const createPurchase = async (req, res) => {
       items: processedItems
     });
 
+    recentPurchases.set(dedupKey, { timestamp: Date.now(), purchase });
     return res.status(201).json({ success: true, purchase });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
