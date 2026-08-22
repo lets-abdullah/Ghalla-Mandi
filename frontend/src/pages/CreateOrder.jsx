@@ -312,27 +312,31 @@ export const CreateOrder = () => {
   );
 
   // Handle Quick Add Customer
-  const handleCreateCustomerSubmit = (e) => {
+  const handleCreateCustomerSubmit = async (e) => {
     e.preventDefault();
     if (!newCustomerForm.name.trim()) return;
 
-    const created = addCustomer({
-      name: newCustomerForm.name.trim(),
-      phone: newCustomerForm.phone.trim() || 'N/A',
-      city: newCustomerForm.city.trim() || 'Local Mandi',
-      customerType: 'Regular Party',
-      openingBalance: Number(newCustomerForm.openingBalance) || 0
-    });
+    try {
+      const created = await addCustomer({
+        name: newCustomerForm.name.trim(),
+        phone: newCustomerForm.phone.trim() || 'N/A',
+        city: newCustomerForm.city.trim() || 'Local Mandi',
+        customerType: 'Regular Party',
+        openingBalance: Number(newCustomerForm.openingBalance) || 0
+      });
 
-    setSelectedParty(created);
-    setCustomerType('Regular Party');
-    setShowNewCustomerForm(false);
-    setShowCustomerModal(false);
-    setNewCustomerForm({ name: '', phone: '', city: 'Faisalabad', openingBalance: 0 });
+      setSelectedParty(created);
+      setCustomerType('Regular Party');
+      setShowNewCustomerForm(false);
+      setShowCustomerModal(false);
+      setNewCustomerForm({ name: '', phone: '', city: 'Faisalabad', openingBalance: 0 });
+    } catch (err) {
+      alert(err.message || 'Failed to create customer');
+    }
   };
 
   // Submit and Place Order
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (cart.length === 0) {
       alert(t('cartIsEmpty'));
       return;
@@ -351,9 +355,9 @@ export const CreateOrder = () => {
     // Stock validation check
     for (const item of cart) {
       const liveProd = products.find(p => p.id === item.productId);
-      const availableQty = liveProd ? liveProd.stockQty : item.stockQty;
+      const availableQty = liveProd ? Number(liveProd.stockQty ?? liveProd.stockqty ?? 0) : Number(item.stockQty ?? 0);
       if (item.qty > availableQty) {
-        alert(t('saleStockExceeded', { qty: item.qty, unit: item.unit, stock: availableQty }));
+        alert(t('saleStockExceeded', { qty: item.qty, unit: item.unit || t('kg'), stock: availableQty }));
         return;
       }
     }
@@ -393,7 +397,7 @@ export const CreateOrder = () => {
     };
 
     try {
-      createSale({
+      await createSale({
         customerType,
         customerId: orderPayload.customerId,
         customerName: finalCustomerName,

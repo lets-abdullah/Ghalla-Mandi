@@ -37,7 +37,7 @@ export const Customers = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showModal, editingCustomer]);
 
-  const handleCreateSubmit = (e) => {
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) {
       alert(t('customerPartyName') + ' ' + t('required'));
@@ -52,25 +52,29 @@ export const Customers = () => {
       }
     }
 
-    addCustomer({
-      name: form.name.trim(),
-      phone: form.phone.trim() || 'N/A',
-      city: form.city.trim() || 'Local Mandi',
-      customerType: form.customerType,
-      openingBalance: Math.max(0, Number(form.openingBalance) || 0)
-    });
+    try {
+      await addCustomer({
+        name: form.name.trim(),
+        phone: form.phone.trim() || 'N/A',
+        city: form.city.trim() || 'Local Mandi',
+        customerType: form.customerType,
+        openingBalance: Math.max(0, Number(form.openingBalance) || 0)
+      });
 
-    setShowModal(false);
-    setForm({
-      name: '',
-      phone: '',
-      city: '',
-      customerType: 'Regular Party',
-      openingBalance: 0
-    });
+      setShowModal(false);
+      setForm({
+        name: '',
+        phone: '',
+        city: '',
+        customerType: 'Regular Party',
+        openingBalance: 0
+      });
+    } catch (err) {
+      alert(err.message || 'Failed to create customer');
+    }
   };
 
-  const handleUpdateSubmit = (e) => {
+  const handleUpdateSubmit = async (e) => {
     e.preventDefault();
     if (!editingCustomer || !editingCustomer.name.trim()) return;
 
@@ -82,15 +86,19 @@ export const Customers = () => {
       }
     }
 
-    updateCustomer(editingCustomer.id, {
-      name: editingCustomer.name.trim(),
-      phone: editingCustomer.phone.trim() || 'N/A',
-      city: editingCustomer.city.trim() || 'Local Mandi',
-      customerType: editingCustomer.customerType || 'Regular Party',
-      balance: Math.max(0, Number(editingCustomer.balance) || 0)
-    });
+    try {
+      await updateCustomer(editingCustomer.id, {
+        name: editingCustomer.name.trim(),
+        phone: editingCustomer.phone.trim() || 'N/A',
+        city: editingCustomer.city.trim() || 'Local Mandi',
+        customerType: editingCustomer.customerType || 'Regular Party',
+        balance: Math.max(0, Number(editingCustomer.balance) || 0)
+      });
 
-    setEditingCustomer(null);
+      setEditingCustomer(null);
+    } catch (err) {
+      alert(err.message || 'Failed to update customer');
+    }
   };
 
   const regularCustomers = customers.filter(c => (c.customerType || 'Regular Party') === 'Regular Party');

@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const Products = () => {
-  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory } = useERP();
+  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, adjustStock } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
@@ -14,6 +14,8 @@ export const Products = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [adjustingProduct, setAdjustingProduct] = useState(null);
+  const [adjForm, setAdjForm] = useState({ qty: 1, type: 'IN', reason: 'Stock Audit' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Keyboard Esc Listener for closing active modals
@@ -23,11 +25,12 @@ export const Products = () => {
         if (showAddCategoryModal) setShowAddCategoryModal(false);
         else if (showAddModal) setShowAddModal(false);
         else if (editingProduct) setEditingProduct(null);
+        else if (adjustingProduct) setAdjustingProduct(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAddCategoryModal, showAddModal, editingProduct]);
+  }, [showAddCategoryModal, showAddModal, editingProduct, adjustingProduct]);
 
   // New Category Form State
   const [newCatData, setNewCatData] = useState({
@@ -48,7 +51,7 @@ export const Products = () => {
   });
 
   // Handle Quick Category Creation from Products Page
-  const handleCreateCategorySubmit = (e) => {
+  const handleCreateCategorySubmit = async (e) => {
     e.preventDefault();
     const catName = newCatData.name.trim();
 
@@ -63,23 +66,30 @@ export const Products = () => {
       return;
     }
 
-    const createdCat = addCategory({
-      name: catName,
-      description: newCatData.description.trim() || 'Custom commodity category'
-    });
+    setIsSubmitting(true);
+    try {
+      const createdCat = await addCategory({
+        name: catName,
+        description: newCatData.description.trim() || 'Custom commodity category'
+      });
 
-    if (showAddModal) {
-      setNewProduct(prev => ({ ...prev, category: createdCat.name }));
-    }
-    if (editingProduct) {
-      setEditingProduct(prev => ({ ...prev, category: createdCat.name }));
-    }
+      if (showAddModal) {
+        setNewProduct(prev => ({ ...prev, category: createdCat?.name || catName }));
+      }
+      if (editingProduct) {
+        setEditingProduct(prev => ({ ...prev, category: createdCat?.name || catName }));
+      }
 
-    setNewCatData({ name: '', description: '' });
-    setShowAddCategoryModal(false);
+      setNewCatData({ name: '', description: '' });
+      setShowAddCategoryModal(false);
+    } catch (err) {
+      alert(err.message || 'Failed to create category');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleCreateProduct = (e) => {
+  const handleCreateProduct = async (e) => {
     e.preventDefault();
     if (!newProduct.name.trim()) {
       alert(t('productName') + ' ' + t('required'));
@@ -98,28 +108,35 @@ export const Products = () => {
       return;
     }
 
-    addProduct({
-      ...newProduct,
-      purchasePrice: Math.max(0, Number(newProduct.purchasePrice) || 0),
-      sellingPrice: Math.max(0, Number(newProduct.sellingPrice) || 0),
-      stockQty: Math.max(0, Math.floor(Number(newProduct.stockQty) || 0)),
-      minStock: Math.max(0, Math.floor(Number(newProduct.minStock) || 0))
-    });
-    setShowAddModal(false);
-    setNewProduct({
-      name: '',
-      category: categories[0]?.name || '',
-      code: '',
-      unit: 'KG',
-      stockQty: 0,
-      minStock: 0,
-      purchasePrice: 0,
-      sellingPrice: 0,
-      image: ''
-    });
+    setIsSubmitting(true);
+    try {
+      await addProduct({
+        ...newProduct,
+        purchasePrice: Math.max(0, Number(newProduct.purchasePrice) || 0),
+        sellingPrice: Math.max(0, Number(newProduct.sellingPrice) || 0),
+        stockQty: Math.max(0, Number(newProduct.stockQty) || 0),
+        minStock: Math.max(0, Number(newProduct.minStock) || 0)
+      });
+      setShowAddModal(false);
+      setNewProduct({
+        name: '',
+        category: categories[0]?.name || '',
+        code: '',
+        unit: 'KG',
+        stockQty: 0,
+        minStock: 0,
+        purchasePrice: 0,
+        sellingPrice: 0,
+        image: ''
+      });
+    } catch (err) {
+      alert(err.message || 'Failed to create product');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleUpdateProductSubmit = (e) => {
+  const handleUpdateProductSubmit = async (e) => {
     e.preventDefault();
     if (!editingProduct || !editingProduct.name.trim()) {
       alert(t('productName') + ' ' + t('required'));
@@ -130,14 +147,49 @@ export const Products = () => {
       return;
     }
 
-    updateProduct(editingProduct.id, {
-      ...editingProduct,
-      purchasePrice: Math.max(0, Number(editingProduct.purchasePrice) || 0),
-      sellingPrice: Math.max(0, Number(editingProduct.sellingPrice) || 0),
-      stockQty: Math.max(0, Math.floor(Number(editingProduct.stockQty) || 0)),
-      minStock: Math.max(0, Math.floor(Number(editingProduct.minStock) || 0))
-    });
-    setEditingProduct(null);
+    setIsSubmitting(true);
+    try {
+      await updateProduct(editingProduct.id, {
+        name: editingProduct.name.trim(),
+        category: editingProduct.category,
+        code: editingProduct.code,
+        unit: editingProduct.unit || editingProduct.baseUnit || 'KG',
+        purchasePrice: Math.max(0, Number(editingProduct.purchasePrice ?? editingProduct.purchaseprice) || 0),
+        sellingPrice: Math.max(0, Number(editingProduct.sellingPrice ?? editingProduct.sellingprice) || 0),
+        stockQty: Math.max(0, Number(editingProduct.stockQty ?? editingProduct.stockqty) || 0),
+        minStock: Math.max(0, Number(editingProduct.minStock ?? editingProduct.minstock) || 0),
+        image: editingProduct.image || ''
+      });
+      setEditingProduct(null);
+    } catch (err) {
+      alert(err.message || 'Failed to update product');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleQuickAdjustStock = async (e) => {
+    e.preventDefault();
+    if (!adjustingProduct) return;
+    const qtyVal = Math.max(1, Number(adjForm.qty) || 1);
+    const currentStock = Number(adjustingProduct.stockQty ?? adjustingProduct.stockqty ?? 0);
+
+    if (adjForm.type === 'OUT' && currentStock < qtyVal) {
+      alert(t('cannotDeductStock', { qty: qtyVal, unit: adjustingProduct.unit || t('kg'), stock: currentStock }));
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const finalQty = adjForm.type === 'IN' ? qtyVal : -qtyVal;
+      await adjustStock(adjustingProduct.id, finalQty, adjForm.type, adjForm.reason);
+      setAdjustingProduct(null);
+      setAdjForm({ qty: 1, type: 'IN', reason: 'Stock Audit' });
+    } catch (err) {
+      alert(err.message || 'Failed to adjust stock');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filtered = products.filter(p => {
@@ -289,6 +341,17 @@ export const Products = () => {
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button
+                            onClick={() => {
+                              setAdjustingProduct(product);
+                              setAdjForm({ qty: 1, type: 'IN', reason: 'Stock Audit' });
+                            }}
+                            className={`p-1.5 rounded-lg transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700 text-slate-300 hover:text-emerald-400' : 'hover:bg-slate-100 text-slate-600 hover:text-emerald-600'
+                              }`}
+                            title={t('adjustStock')}
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => setEditingProduct(product)}
                             className={`p-1.5 rounded-lg transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700 text-slate-300 hover:text-brand-400' : 'hover:bg-slate-100 text-slate-600 hover:text-brand-600'
                               }`}
@@ -297,9 +360,13 @@ export const Products = () => {
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => {
+                            onClick={async () => {
                               if (window.confirm(t('confirmDeleteProduct'))) {
-                                deleteProduct(product.id);
+                                try {
+                                  await deleteProduct(product.id);
+                                } catch (err) {
+                                  alert(err.message || 'Error deleting product');
+                                }
                               }
                             }}
                             className="p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition cursor-pointer"
@@ -825,6 +892,102 @@ export const Products = () => {
                   className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer"
                 >
                   {t('save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Quick Stock Adjustment Modal */}
+      {adjustingProduct && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setAdjustingProduct(null); }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className={`rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow border animate-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-emerald-500" />
+                <div>
+                  <h3 className="text-base font-extrabold">{t('adjustStock')}</h3>
+                  <p className="text-[11px] text-slate-400 font-semibold">{adjustingProduct.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdjustingProduct(null)}
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                title={t('close')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickAdjustStock} className="space-y-3">
+              <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 flex justify-between items-center text-xs">
+                <span className="text-slate-400 font-semibold">{t('currentStock')}:</span>
+                <span className="font-extrabold text-brand-500">
+                  {Number(adjustingProduct.stockQty ?? adjustingProduct.stockqty ?? 0).toLocaleString()} {adjustingProduct.unit || adjustingProduct.baseUnit || t('kg')}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('adjustmentType')}</label>
+                  <select
+                    value={adjForm.type}
+                    onChange={(e) => setAdjForm({ ...adjForm, type: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  >
+                    <option value="IN">{t('stockAddition')}</option>
+                    <option value="OUT">{t('stockDeduction')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('quantity')} ({adjustingProduct.unit || adjustingProduct.baseUnit || t('kg')})</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    step="1"
+                    onWheel={(e) => e.target.blur()}
+                    onFocus={(e) => e.target.select()}
+                    value={adjForm.qty}
+                    onChange={(e) => setAdjForm({ ...adjForm, qty: Number(e.target.value) })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">{t('auditReason')}</label>
+                <input
+                  type="text"
+                  value={adjForm.reason}
+                  onChange={(e) => setAdjForm({ ...adjForm, reason: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAdjustingProduct(null)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer"
+                >
+                  {isSubmitting ? 'Saving...' : t('confirmAdjustment')}
                 </button>
               </div>
             </form>

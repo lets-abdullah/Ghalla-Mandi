@@ -39,7 +39,7 @@ export const Suppliers = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showAddModal, editingSupplier]);
 
-  const handleCreateSubmit = (e) => {
+  const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) {
       alert(t('supplierFirmName') + ' ' + t('required'));
@@ -54,25 +54,29 @@ export const Suppliers = () => {
       }
     }
 
-    addSupplier({
-      name: form.name.trim(),
-      phone: form.phone.trim() || 'N/A',
-      city: form.city.trim() || 'Local Mandi',
-      openingBalance: Math.max(0, Number(form.openingBalance) || 0),
-      suppliedProducts: form.suppliedProducts
-    });
+    try {
+      await addSupplier({
+        name: form.name.trim(),
+        phone: form.phone.trim() || 'N/A',
+        city: form.city.trim() || 'Local Mandi',
+        openingBalance: Math.max(0, Number(form.openingBalance) || 0),
+        suppliedProducts: form.suppliedProducts
+      });
 
-    setShowAddModal(false);
-    setForm({
-      name: '',
-      phone: '',
-      city: '',
-      openingBalance: 0,
-      suppliedProducts: []
-    });
+      setShowAddModal(false);
+      setForm({
+        name: '',
+        phone: '',
+        city: '',
+        openingBalance: 0,
+        suppliedProducts: []
+      });
+    } catch (err) {
+      alert(err.message || 'Failed to create supplier');
+    }
   };
 
-  const handleUpdateSubmit = (e) => {
+  const handleUpdateSubmit = async (e) => {
     e.preventDefault();
     if (!editingSupplier || !editingSupplier.name.trim()) return;
 
@@ -84,15 +88,19 @@ export const Suppliers = () => {
       }
     }
 
-    updateSupplier(editingSupplier.id, {
-      name: editingSupplier.name.trim(),
-      phone: editingSupplier.phone.trim() || 'N/A',
-      city: editingSupplier.city.trim() || 'Local Mandi',
-      balance: Math.max(0, Number(editingSupplier.balance) || 0),
-      suppliedProducts: editingSupplier.suppliedProducts || []
-    });
+    try {
+      await updateSupplier(editingSupplier.id, {
+        name: editingSupplier.name.trim(),
+        phone: editingSupplier.phone.trim() || 'N/A',
+        city: editingSupplier.city.trim() || 'Local Mandi',
+        balance: Math.max(0, Number(editingSupplier.balance) || 0),
+        suppliedProducts: editingSupplier.suppliedProducts || []
+      });
 
-    setEditingSupplier(null);
+      setEditingSupplier(null);
+    } catch (err) {
+      alert(err.message || 'Failed to update supplier');
+    }
   };
 
   const toggleProductSelection = (prodName, isEdit = false) => {
