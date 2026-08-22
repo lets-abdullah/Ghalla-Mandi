@@ -51,7 +51,7 @@ export const QuickSaleModal = ({ onClose }) => {
 
   const calculatedSubtotal = Math.max(0, (Number(qty) || 0) * (Number(rate) || 0));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
 
@@ -71,8 +71,9 @@ export const QuickSaleModal = ({ onClose }) => {
       return;
     }
 
-    if (qtyNum > selectedProduct.stockQty) {
-      alert(t('saleStockExceeded', { qty: qtyNum, unit: unitName, stock: selectedProduct.stockQty }));
+    const availableStock = Number(selectedProduct.stockQty ?? selectedProduct.stockqty ?? 0);
+    if (qtyNum > availableStock) {
+      alert(t('saleStockExceeded', { qty: qtyNum, unit: unitName, stock: availableStock }));
       return;
     }
 
@@ -126,7 +127,7 @@ export const QuickSaleModal = ({ onClose }) => {
         total: calculatedSubtotal
       };
 
-      const generatedSale = createSale({
+      const generatedSale = await createSale({
         customerId: finalCustomerId,
         customerName: finalCustomerName,
         customerType: finalCustomerType,
@@ -136,17 +137,19 @@ export const QuickSaleModal = ({ onClose }) => {
       });
 
       const invoiceObj = {
-        id: generatedSale.id,
-        invoiceNo: generatedSale.invoiceNo,
+        id: generatedSale?.id || `sal-${Date.now()}`,
+        invoiceNo: generatedSale?.invoiceNo || `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
         partyName: finalCustomerName,
-        date: generatedSale.date,
+        date: generatedSale?.date || new Date().toLocaleDateString('en-GB'),
         amount: calculatedSubtotal,
         paidAmount: paidNum,
-        status: generatedSale.status,
+        status: generatedSale?.status || (paidNum >= calculatedSubtotal ? 'Paid' : paidNum > 0 ? 'Partial' : 'Pending'),
         cart: [cartItem]
       };
 
       setCompletedInvoice(invoiceObj);
+    } catch (err) {
+      alert(err.message || 'Quick sale creation failed');
     } finally {
       setIsSubmitting(false);
     }

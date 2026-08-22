@@ -161,7 +161,7 @@ export const Ledger = () => {
   const supplierStatement = generateSupplierStatement();
   const statement = ledgerType === 'Customer' ? customerStatement : supplierStatement;
 
-  const handlePaymentSubmit = (e) => {
+  const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     const amtVal = Math.max(1, Number(paymentForm.amount) || 0);
     if (amtVal <= 0) {
@@ -176,16 +176,20 @@ export const Ledger = () => {
       return;
     }
 
-    recordPayment({
-      partyId,
-      partyType: ledgerType,
-      amount: amtVal,
-      paymentMode: paymentForm.paymentMode,
-      note: paymentForm.note
-    });
+    try {
+      await recordPayment({
+        partyId,
+        partyType: ledgerType,
+        amount: amtVal,
+        paymentMode: paymentForm.paymentMode,
+        note: paymentForm.note
+      });
 
-    setShowPaymentModal(false);
-    setPaymentForm({ amount: 0, paymentMode: 'Cash', note: 'Account settlement entry' });
+      setShowPaymentModal(false);
+      setPaymentForm({ amount: 0, paymentMode: 'Cash', note: 'Account settlement entry' });
+    } catch (err) {
+      alert(err.message || 'Payment recording failed');
+    }
   };
 
   return (

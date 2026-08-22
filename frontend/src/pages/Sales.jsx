@@ -43,7 +43,7 @@ export const Sales = () => {
     setPaymentNote(`Payment for ${sale.invoiceNo}`);
   };
 
-  const handlePaymentSubmit = (e) => {
+  const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     if (!paymentModalSale) return;
 
@@ -63,18 +63,22 @@ export const Sales = () => {
       }
     }
 
-    recordPayment({
-      partyId: paymentModalSale.customerId || null,
-      partyType: 'Customer',
-      amount: amt,
-      paymentMode: paymentMode,
-      note: paymentNote,
-      saleId: paymentModalSale.id
-    });
+    try {
+      await recordPayment({
+        partyId: paymentModalSale.customerId || null,
+        partyType: 'Customer',
+        amount: amt,
+        paymentMode: paymentMode,
+        note: paymentNote,
+        saleId: paymentModalSale.id
+      });
 
-    setPaymentModalSale(null);
-    setPaymentAmount('');
-    setPaymentNote('');
+      setPaymentModalSale(null);
+      setPaymentAmount('');
+      setPaymentNote('');
+    } catch (err) {
+      alert(err.message || 'Payment recording failed');
+    }
   };
 
   const totalGrossSales = (sales || []).reduce((acc, s) => acc + (Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0), 0);
