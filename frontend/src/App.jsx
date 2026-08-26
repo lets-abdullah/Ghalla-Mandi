@@ -21,6 +21,8 @@ import { Customers } from './pages/Customers';
 import { Invoices } from './pages/Invoices';
 import { Ledger } from './pages/Ledger';
 import { Reports } from './pages/Reports';
+import { SaleReturns } from './pages/SaleReturns';
+import { PurchaseReturns } from './pages/PurchaseReturns';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -76,7 +78,9 @@ export const App = () => {
                   <Route path="/inventory" element={<MainLayout><Inventory /></MainLayout>} />
                   <Route path="/sales/new" element={<MainLayout><Sales /></MainLayout>} />
                   <Route path="/sales" element={<MainLayout><Sales /></MainLayout>} />
+                  <Route path="/sale-returns" element={<MainLayout><SaleReturns /></MainLayout>} />
                   <Route path="/purchases" element={<MainLayout><Purchases /></MainLayout>} />
+                  <Route path="/purchase-returns" element={<MainLayout><PurchaseReturns /></MainLayout>} />
                   <Route path="/suppliers/new" element={<MainLayout><AddSupplier /></MainLayout>} />
                   <Route path="/suppliers" element={<MainLayout><Suppliers /></MainLayout>} />
                   <Route path="/customers" element={<MainLayout><Customers /></MainLayout>} />

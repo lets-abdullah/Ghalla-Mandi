@@ -239,6 +239,17 @@ export const Sidebar = () => {
                       <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
                       <span>{t('customerLedger')}</span>
                     </Link>
+
+                    <Link
+                      to="/sale-returns"
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/sale-returns')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>Sale Returns</span>
+                    </Link>
                   </div>
                 )}
               </div>
@@ -323,6 +334,17 @@ export const Sidebar = () => {
                     >
                       <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
                       <span>{t('supplierLedger')}</span>
+                    </Link>
+
+                    <Link
+                      to="/purchase-returns"
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchase-returns')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>Purchase Returns</span>
                     </Link>
                   </div>
                 )}
