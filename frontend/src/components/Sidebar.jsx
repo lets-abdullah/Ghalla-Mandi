@@ -407,30 +407,8 @@ export const Sidebar = () => {
                 {reportsOpen && (
                   <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
                     <Link
-                      to="/reports?type=Sales"
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Sales') || (location.pathname === '/reports' && !location.search)
-                        ? 'bg-brand-500 text-white shadow-xs font-black'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                    >
-                      <TrendingUp className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                      <span>{t('salesReport') || 'Sales Report'}</span>
-                    </Link>
-
-                    <Link
-                      to="/reports?type=Purchases"
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Purchases')
-                        ? 'bg-brand-500 text-white shadow-xs font-black'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                    >
-                      <TrendingDown className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                      <span>{t('purchaseReport') || 'Purchase Report'}</span>
-                    </Link>
-
-                    <Link
                       to="/reports?type=Stock"
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Stock')
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Stock') || (location.pathname === '/reports' && (!location.search || location.search === '?type=Stock'))
                         ? 'bg-brand-500 text-white shadow-xs font-black'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                       }`}
@@ -440,25 +418,14 @@ export const Sidebar = () => {
                     </Link>
 
                     <Link
-                      to="/reports?type=Customers"
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Customers')
+                      to="/reports?type=Sales"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Sales')
                         ? 'bg-brand-500 text-white shadow-xs font-black'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                     >
-                      <Users className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                      <span>{t('customerReport') || 'Customer Report'}</span>
-                    </Link>
-
-                    <Link
-                      to="/reports?type=Suppliers"
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Suppliers')
-                        ? 'bg-brand-500 text-white shadow-xs font-black'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                    >
-                      <UserCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                      <span>{t('supplierReport') || 'Supplier Report'}</span>
+                      <TrendingUp className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('salesReport') || 'Sales & Profit Report'}</span>
                     </Link>
 
                     <Link
@@ -470,28 +437,6 @@ export const Sidebar = () => {
                     >
                       <DollarSign className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
                       <span>{t('expenseReport') || 'Expense Report'}</span>
-                    </Link>
-
-                    <Link
-                      to="/reports?type=Returns"
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Returns')
-                        ? 'bg-brand-500 text-white shadow-xs font-black'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                    >
-                      <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                      <span>{t('returnHistory') || 'Return History'}</span>
-                    </Link>
-
-                    <Link
-                      to="/reports?type=TrialBalance"
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'TrialBalance')
-                        ? 'bg-brand-500 text-white shadow-xs font-black'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                    >
-                      <Scale className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                      <span>{t('trialBalance') || 'Trial Balance'}</span>
                     </Link>
 
                     <Link
