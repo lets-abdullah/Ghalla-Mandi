@@ -248,11 +248,6 @@ export const Ledger = () => {
             )}
             {isSupplier ? (t('supplierLedger') || 'Supplier Ledger') : (t('customerLedger') || 'Customer Ledger')}
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {isSupplier
-              ? (t('supplierLedgerSubtitle') || 'Supplier firm and commission agent credit khata ledger statements')
-              : (t('customerLedgerSubtitle') || 'Customer regular party debit khata and balance receivable statements')}
-          </p>
         </div>
 
         <div className="flex items-center gap-3">

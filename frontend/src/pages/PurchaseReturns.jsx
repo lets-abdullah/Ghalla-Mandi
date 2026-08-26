@@ -35,9 +35,6 @@ export const PurchaseReturns = () => {
             <RotateCcw className="w-6 h-6 text-rose-500" />
             <span>Purchase Returns (Debit Notes)</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
-            Supplier rejections history, stock deduction records, and debit vouchers
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">

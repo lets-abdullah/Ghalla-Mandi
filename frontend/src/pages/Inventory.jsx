@@ -78,7 +78,6 @@ export const Inventory = () => {
             <Warehouse className="w-6 h-6 text-brand-500" />
             {t('Inventory Page')}
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">{t('All stock are displayed here')}</p>
         </div>
 
         <button
@@ -91,33 +90,33 @@ export const Inventory = () => {
 
       {/* Inventory KPI Summary Header */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
-          <div className="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
+        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80 text-slate-800'}`}>
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold">
             <Package className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-slate-400">{t('totalProducts')}</div>
-            <div className="text-lg font-black">{products.length} {t('items')}</div>
+            <div className="text-xs font-semibold text-slate-500">{t('totalProducts')}</div>
+            <div className="text-lg font-black font-mono text-blue-600 dark:text-blue-400">{products.length} {t('items')}</div>
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
+        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80 text-slate-800'}`}>
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
             <Warehouse className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-slate-400">{t('currentStock')}</div>
-            <div className="text-lg font-black">{totalStockQty.toLocaleString()} {t('itemsInStock') || 'Units'}</div>
+            <div className="text-xs font-semibold text-slate-500">{t('currentStock')}</div>
+            <div className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400">{totalStockQty.toLocaleString()} {t('itemsInStock') || 'Units'}</div>
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold">
+        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80 text-slate-800'}`}>
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
             <DollarSign className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-slate-400">{t('stockAndInventory')}</div>
-            <div className="text-lg font-black">Rs. {totalInventoryValue.toLocaleString()}</div>
+            <div className="text-xs font-semibold text-slate-500">{t('stockAndInventory')}</div>
+            <div className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalInventoryValue.toLocaleString()}</div>
           </div>
         </div>
 
@@ -126,8 +125,8 @@ export const Inventory = () => {
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-slate-400">{t('lowStockAlerts')}</div>
-            <div className={`text-lg font-black ${lowStockCount > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+            <div className="text-xs font-semibold text-slate-500">{t('lowStockAlerts')}</div>
+            <div className={`text-lg font-black font-mono ${lowStockCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
               {lowStockCount} {t('items')}
             </div>
           </div>

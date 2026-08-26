@@ -72,7 +72,6 @@ export const AddSupplier = () => {
               <Truck className="w-6 h-6 text-brand-500" />
               {t('addNewSupplier')}
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">{t('addNewSupplierAccountSub')}</p>
           </div>
         </div>
       </div>

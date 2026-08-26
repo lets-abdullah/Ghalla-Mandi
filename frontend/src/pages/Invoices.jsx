@@ -164,11 +164,6 @@ export const Invoices = () => {
             )}
             {isPurchases ? (t('purchaseInvoices') || 'Purchase Invoices') : (t('saleInvoices') || 'Sale Invoices')}
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {isPurchases
-              ? (t('purchasesInvoicesSubtitle') || 'View, search and print procurement invoices and supplier inward receipts')
-              : (t('salesInvoicesSubtitle') || 'View, search and print customer sales tax invoices and counter receipts')}
-          </p>
         </div>
 
         <button

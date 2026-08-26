@@ -50,7 +50,6 @@ export const RecentTransactionsTable = ({ onViewInvoice }) => {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-bold text-sm">{t('recentTransactions')}</h3>
-          <p className="text-xs text-slate-400">{t('recentTransactionsSub')}</p>
         </div>
         <Link to="/invoices" className="text-xs font-semibold text-brand-500 hover:underline">
           {t('viewAll')}

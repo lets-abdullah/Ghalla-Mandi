@@ -276,13 +276,13 @@ export const Products = () => {
               <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
                 <th className="py-3 px-4">Image</th>
-                <th className="py-3 px-4">{t('productName')}</th>
-                <th className="py-3 px-4">{t('category')}</th>
-                <th className="py-3 px-4">{t('productCode')}</th>
-                <th className="py-3 px-4 text-center">{t('currentStock')}</th>
-                <th className="py-3 px-4 text-right">{t('purchasePrice')}</th>
-                <th className="py-3 px-4 text-right">{t('sellingPrice')}</th>
-                <th className="py-3 px-4 text-center">{t('actions')}</th>
+                <th className="py-3 px-4">Product</th>
+                <th className="py-3 px-4">Category</th>
+                <th className="py-3 px-4">Code</th>
+                <th className="py-3 px-4 text-center">Stock</th>
+                <th className="py-3 px-4 text-right">Purchase Rate</th>
+                <th className="py-3 px-4 text-right">Selling Rate</th>
+                <th className="py-3 px-4 text-center">Action</th>
               </tr>
             </thead>
             <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'

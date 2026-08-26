@@ -33,7 +33,6 @@ export const Employees = () => {
             <UserCog className="w-6 h-6 text-brand-500" />
             {t('employeeManagementTitle')}
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">{t('employeeManagementSubtitle')}</p>
         </div>
 
         <button className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer">
@@ -51,11 +50,11 @@ export const Employees = () => {
             <tr className={`border-b text-[11px] font-bold text-slate-500 uppercase tracking-wider ${
               theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
             }`}>
-              <th className="py-3 px-4">{t('employeeName')}</th>
-              <th className="py-3 px-4">{t('contactEmailPhone')}</th>
-              <th className="py-3 px-4">{t('role')}</th>
-              <th className="py-3 px-4">{t('grantedPermissions')}</th>
-              <th className="py-3 px-4 text-center">{t('status')}</th>
+              <th className="py-3 px-4">Employee</th>
+              <th className="py-3 px-4">Contact</th>
+              <th className="py-3 px-4">Role</th>
+              <th className="py-3 px-4">Permissions</th>
+              <th className="py-3 px-4 text-center">Status</th>
             </tr>
           </thead>
           <tbody className={`divide-y text-xs font-medium ${
@@ -96,7 +95,7 @@ export const Employees = () => {
                     </div>
                   </td>
                   <td className="py-3 px-4 text-center">
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-extrabold border border-emerald-500/30">{t('paid')}</span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold border border-emerald-500/30">Active</span>
                   </td>
                 </tr>
               ))

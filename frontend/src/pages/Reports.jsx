@@ -325,13 +325,6 @@ export const Reports = () => {
               {reportType === 'BalanceSheet' && 'Balance Sheet Statement'}
             </span>
           </h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
-            {reportType === 'Stock' && 'Live stock inventory quantities, unit measurements, and godown valuations'}
-            {reportType === 'Sales' && 'Gross revenue turnover, cash counter collections, and customer khata breakdown'}
-            {reportType === 'Expenses' && 'Operating overheads, labour, transport, and Mandi expenses'}
-            {reportType === 'ProfitLoss' && 'Financial performance summary: Revenue minus Cost of Goods and Expenses'}
-            {reportType === 'BalanceSheet' && 'Financial position: Total Godown Assets vs. Supplier Liabilities'}
-          </p>
         </div>
 
         {/* Print & CSV Export Buttons */}

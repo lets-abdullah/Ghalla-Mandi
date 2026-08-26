@@ -35,7 +35,6 @@ export const SalesChart = () => {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-bold text-base">{t('salesPurchasesTrend')}</h3>
-          <p className="text-xs text-slate-400">{t('salesTrendSub')}</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3 text-xs font-semibold">

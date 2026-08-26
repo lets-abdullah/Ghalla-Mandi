@@ -35,9 +35,6 @@ export const SaleReturns = () => {
             <RotateCcw className="w-6 h-6 text-orange-500" />
             <span>Sale Returns</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
-            Customer returns history, restocked inventory quantities, and refund vouchers
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">

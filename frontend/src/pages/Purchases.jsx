@@ -217,7 +217,6 @@ export const Purchases = () => {
             <ShoppingCart className="w-6 h-6 text-brand-500" />
             {t('purchasesTitle')}
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">{t('All Purchase History')}</p>
         </div>
 
         <div className="flex items-center gap-2.5">

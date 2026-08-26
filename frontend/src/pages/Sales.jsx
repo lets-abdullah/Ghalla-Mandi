@@ -124,7 +124,6 @@ export const Sales = () => {
             <Receipt className="w-6 h-6 text-brand-500" />
             {t('Sales History')}
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">{t('All sales are displayed here')}</p>
         </div>
 
         <div className="flex items-center gap-2.5">

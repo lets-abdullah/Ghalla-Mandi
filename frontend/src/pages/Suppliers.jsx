@@ -142,7 +142,6 @@ export const Suppliers = () => {
             <UserCheck className="w-6 h-6 text-brand-500" />
             {t('Suppliers List')}
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">{t('All Suppliers List is Here')}</p>
         </div>
 
         <button
@@ -156,33 +155,36 @@ export const Suppliers = () => {
 
       {/* Summary KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <UserCheck className="w-4 h-4 text-brand-500" /> {t('Total Suppliers')}
+        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${
+          theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80 text-slate-800'
+        }`}>
+          <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+            <UserCheck className="w-4 h-4 text-blue-600" /> {t('Total Suppliers')}
           </div>
-          <div className="text-2xl font-extrabold mt-1">{totalSuppliersCount}</div>
-          <div className="text-xs text-slate-400 font-medium mt-1">{t('suppliers')}</div>
+          <div className="text-2xl font-extrabold mt-1 font-mono text-blue-600 dark:text-blue-400">{totalSuppliersCount}</div>
+          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-1">{t('suppliers')}</div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-rose-500" /> {t('Amount To Pay')}
+        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${
+          theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80 text-slate-800'
+        }`}>
+          <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+            <DollarSign className="w-4 h-4 text-rose-600" /> {t('Amount To Pay')}
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-rose-500">Rs. {(Number(totalPayablesAmount) || 0).toLocaleString()}</div>
-          <div className="text-xs text-rose-500 font-bold mt-1">{t('pending')}</div>
+          <div className="text-2xl font-extrabold mt-1 text-rose-600 dark:text-rose-400 font-mono">Rs. {(Number(totalPayablesAmount) || 0).toLocaleString()}</div>
+          <div className="text-xs text-rose-700 dark:text-rose-400 font-bold mt-1">{t('pending')}</div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {t('settledAccounts')}
+        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${
+          theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80 text-slate-800'
+        }`}>
+          <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {t('settledAccounts')}
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-emerald-500">
+          <div className="text-2xl font-extrabold mt-1 text-emerald-600 dark:text-emerald-400 font-mono">
             {suppliers.filter(s => (Number(s.balance) || 0) === 0).length}
           </div>
-          <div className="text-xs text-emerald-500 font-bold mt-1">{t('zeroBalance')}</div>
+          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">{t('zeroBalance')}</div>
         </div>
       </div>
 
