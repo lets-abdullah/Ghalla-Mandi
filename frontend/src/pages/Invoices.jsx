@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FileText, Search, Printer, ArrowUpRight, ArrowDownLeft, DollarSign, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { FileText, Search, Printer, ArrowUpRight, ArrowDownLeft, DollarSign, ShoppingBag, ShoppingCart, Clock } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
