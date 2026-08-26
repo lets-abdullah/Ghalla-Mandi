@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Package, Warehouse, ShoppingCart,
+  LayoutDashboard, Package, Warehouse, ShoppingCart, ShoppingBag,
   Receipt, Users, UserCheck, BookOpen, FileText,
   BarChart3, Settings, Wheat, LogOut, Headphones, MessageSquare, Phone, X, PlusCircle,
-  ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen
+  ChevronLeft, ChevronRight, ChevronDown, Circle
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
@@ -15,28 +15,45 @@ export const Sidebar = () => {
   const { logout } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showSupportModal, setShowSupportModal] = useState(false);
 
   const isRTL = locale === 'ur';
 
-  const navItems = [
-    { path: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-    { path: '/create-order', label: t('createOrder'), icon: PlusCircle },
-    { path: '/products', label: t('products'), icon: Package },
-    { path: '/inventory', label: t('inventory'), icon: Warehouse },
-    { path: '/purchases', label: t('purchases'), icon: ShoppingCart },
-    { path: '/suppliers', label: t('suppliers'), icon: UserCheck },
-    { path: '/sales', label: t('sales'), icon: Receipt },
-    { path: '/customers', label: t('customers'), icon: Users },
-    { path: '/invoices', label: t('invoices'), icon: FileText },
-    { path: '/ledger', label: t('ledger'), icon: BookOpen },
-    { path: '/reports', label: t('reports'), icon: BarChart3 },
-    { path: '/settings', label: t('settings'), icon: Settings }
-  ];
+  // Check which sub-menus should be highlighted / active
+  const isSalesActive =
+    ['/sales', '/customers'].includes(location.pathname) ||
+    (location.pathname === '/invoices' && (location.search.includes('Sales') || location.search.includes('sales') || !location.search)) ||
+    (location.pathname === '/ledger' && (location.search.includes('Customer') || location.search.includes('customer') || !location.search));
+
+  const isPurchasesActive =
+    ['/purchases', '/suppliers'].includes(location.pathname) ||
+    (location.pathname === '/invoices' && (location.search.includes('Purchases') || location.search.includes('purchases'))) ||
+    (location.pathname === '/ledger' && (location.search.includes('Supplier') || location.search.includes('supplier')));
+
+  // Collapsible dropdown states (open by default or when active)
+  const [salesOpen, setSalesOpen] = useState(true);
+  const [purchasesOpen, setPurchasesOpen] = useState(true);
+
+  useEffect(() => {
+    if (isSalesActive) setSalesOpen(true);
+  }, [location.pathname, location.search, isSalesActive]);
+
+  useEffect(() => {
+    if (isPurchasesActive) setPurchasesOpen(true);
+  }, [location.pathname, location.search, isPurchasesActive]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  // Helper to check exact active match for sub-items with search params
+  const isSubActive = (path, searchParam = null) => {
+    if (searchParam) {
+      return location.pathname === path && location.search.toLowerCase().includes(searchParam.toLowerCase());
+    }
+    return location.pathname === path;
   };
 
   return (
@@ -94,32 +111,295 @@ export const Sidebar = () => {
 
           {/* Navigation Items */}
           <nav className="space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  title={isCollapsed ? item.label : undefined}
-                  className={({ isActive }) =>
-                    `flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    }`
-                  }
-                >
-                  <Icon className="w-4 h-4 shrink-0 stroke-[2.2]" />
-                  {!isCollapsed && <span className="truncate">{item.label}</span>}
+            {/* 1. Dashboard */}
+            <NavLink
+              to="/dashboard"
+              title={isCollapsed ? t('dashboard') : undefined}
+              className={({ isActive }) =>
+                `flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`
+              }
+            >
+              <LayoutDashboard className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              {!isCollapsed && <span className="truncate">{t('dashboard')}</span>}
+              {isCollapsed && (
+                <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
+                  {t('dashboard')}
+                </div>
+              )}
+            </NavLink>
 
-                  {/* Floating tooltip when collapsed */}
-                  {isCollapsed && (
-                    <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-                      {item.label}
-                    </div>
-                  )}
-                </NavLink>
-              );
-            })}
+            {/* 2. Create Order (POS) */}
+            <NavLink
+              to="/create-order"
+              title={isCollapsed ? t('createOrder') : undefined}
+              className={({ isActive }) =>
+                `flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`
+              }
+            >
+              <PlusCircle className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              {!isCollapsed && <span className="truncate">{t('createOrder')}</span>}
+              {isCollapsed && (
+                <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
+                  {t('createOrder')}
+                </div>
+              )}
+            </NavLink>
+
+            {/* 3. Sales ▾ (Collapsible Dropdown Group) */}
+            {isCollapsed ? (
+              <NavLink
+                to="/sales"
+                title={t('sales')}
+                className={({ isActive }) =>
+                  `flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all relative group ${isSalesActive
+                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`
+                }
+              >
+                <Receipt className="w-4 h-4 shrink-0 stroke-[2.2]" />
+                <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
+                  {t('sales')}
+                </div>
+              </NavLink>
+            ) : (
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setSalesOpen(!salesOpen)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isSalesActive
+                    ? 'bg-brand-500/10 text-brand-600 font-black'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Receipt className={`w-4 h-4 shrink-0 stroke-[2.2] ${isSalesActive ? 'text-brand-500' : ''}`} />
+                    <span>{t('sales')}</span>
+                  </div>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${salesOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
+                </button>
+
+                {/* Submenu Items for Sales */}
+                {salesOpen && (
+                  <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
+                    <Link
+                      to="/sales"
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/sales')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <Receipt className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('sales')}</span>
+                    </Link>
+
+                    <Link
+                      to="/customers"
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/customers')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <Users className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('customers')}</span>
+                    </Link>
+
+                    <Link
+                      to="/invoices?type=Sales"
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/invoices', 'Sales')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('saleInvoices')}</span>
+                    </Link>
+
+                    <Link
+                      to="/ledger?type=Customer"
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Customer')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('customerLedger')}</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 4. Purchases ▾ (Collapsible Dropdown Group) */}
+            {isCollapsed ? (
+              <NavLink
+                to="/purchases"
+                title={t('purchases')}
+                className={({ isActive }) =>
+                  `flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all relative group ${isPurchasesActive
+                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`
+                }
+              >
+                <ShoppingCart className="w-4 h-4 shrink-0 stroke-[2.2]" />
+                <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
+                  {t('purchases')}
+                </div>
+              </NavLink>
+            ) : (
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setPurchasesOpen(!purchasesOpen)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isPurchasesActive
+                    ? 'bg-brand-500/10 text-brand-600 font-black'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ShoppingCart className={`w-4 h-4 shrink-0 stroke-[2.2] ${isPurchasesActive ? 'text-brand-500' : ''}`} />
+                    <span>{t('purchases')}</span>
+                  </div>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${purchasesOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
+                </button>
+
+                {/* Submenu Items for Purchases */}
+                {purchasesOpen && (
+                  <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
+                    <Link
+                      to="/purchases"
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchases')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <ShoppingCart className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('purchases')}</span>
+                    </Link>
+
+                    <Link
+                      to="/suppliers"
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/suppliers')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <UserCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('suppliers')}</span>
+                    </Link>
+
+                    <Link
+                      to="/invoices?type=Purchases"
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/invoices', 'Purchases')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('purchaseInvoices')}</span>
+                    </Link>
+
+                    <Link
+                      to="/ledger?type=Supplier"
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Supplier')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('supplierLedger')}</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 5. Products */}
+            <NavLink
+              to="/products"
+              title={isCollapsed ? t('products') : undefined}
+              className={({ isActive }) =>
+                `flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`
+              }
+            >
+              <Package className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              {!isCollapsed && <span className="truncate">{t('products')}</span>}
+              {isCollapsed && (
+                <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
+                  {t('products')}
+                </div>
+              )}
+            </NavLink>
+
+            {/* 6. Inventory */}
+            <NavLink
+              to="/inventory"
+              title={isCollapsed ? t('inventory') : undefined}
+              className={({ isActive }) =>
+                `flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`
+              }
+            >
+              <Warehouse className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              {!isCollapsed && <span className="truncate">{t('inventory')}</span>}
+              {isCollapsed && (
+                <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
+                  {t('inventory')}
+                </div>
+              )}
+            </NavLink>
+
+            {/* 7. Reports */}
+            <NavLink
+              to="/reports"
+              title={isCollapsed ? t('reports') : undefined}
+              className={({ isActive }) =>
+                `flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`
+              }
+            >
+              <BarChart3 className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              {!isCollapsed && <span className="truncate">{t('reports')}</span>}
+              {isCollapsed && (
+                <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
+                  {t('reports')}
+                </div>
+              )}
+            </NavLink>
+
+            {/* 8. Settings */}
+            <NavLink
+              to="/settings"
+              title={isCollapsed ? t('settings') : undefined}
+              className={({ isActive }) =>
+                `flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`
+              }
+            >
+              <Settings className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              {!isCollapsed && <span className="truncate">{t('settings')}</span>}
+              {isCollapsed && (
+                <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
+                  {t('settings')}
+                </div>
+              )}
+            </NavLink>
           </nav>
         </div>
 

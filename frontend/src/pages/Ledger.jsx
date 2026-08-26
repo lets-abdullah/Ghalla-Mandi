@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { BookOpen, Printer, Users, UserCheck, MapPin, Phone, DollarSign, Plus, X } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -8,8 +9,25 @@ export const Ledger = () => {
   const { customers, suppliers, sales, purchases, paymentLogs, recordPayment } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [ledgerType, setLedgerType] = useState('Customer'); // 'Customer' | 'Supplier'
+  const typeParam = searchParams.get('type');
+  const [ledgerType, setLedgerType] = useState(
+    typeParam && (typeParam.toLowerCase() === 'supplier' || typeParam.toLowerCase() === 'suppliers')
+      ? 'Supplier'
+      : 'Customer'
+  );
+
+  useEffect(() => {
+    if (typeParam) {
+      if (typeParam.toLowerCase() === 'supplier' || typeParam.toLowerCase() === 'suppliers') {
+        setLedgerType('Supplier');
+      } else if (typeParam.toLowerCase() === 'customer' || typeParam.toLowerCase() === 'customers') {
+        setLedgerType('Customer');
+      }
+    }
+  }, [typeParam]);
+
   const [selectedCustomerId, setSelectedCustomerId] = useState(customers[0]?.id || '');
   const [selectedSupplierId, setSelectedSupplierId] = useState(suppliers[0]?.id || '');
   const [showPaymentModal, setShowPaymentModal] = useState(false);

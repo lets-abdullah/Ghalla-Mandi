@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FileText, Search, Printer, ArrowUpRight, ArrowDownLeft, DollarSign, ShoppingBag, ShoppingCart } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -10,8 +11,23 @@ export const Invoices = () => {
   const { sales, purchases, suppliers } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('Sales'); // 'Sales' | 'Purchases'
+  const typeParam = searchParams.get('type');
+  const [activeTab, setActiveTab] = useState(
+    typeParam && typeParam.toLowerCase() === 'purchases' ? 'Purchases' : 'Sales'
+  );
+
+  useEffect(() => {
+    if (typeParam) {
+      if (typeParam.toLowerCase() === 'purchases') {
+        setActiveTab('Purchases');
+      } else if (typeParam.toLowerCase() === 'sales') {
+        setActiveTab('Sales');
+      }
+    }
+  }, [typeParam]);
+
   const [search, setSearch] = useState('');
   const [selectedSaleReceipt, setSelectedSaleReceipt] = useState(null);
   const [selectedPurchaseReceipt, setSelectedPurchaseReceipt] = useState(null);
