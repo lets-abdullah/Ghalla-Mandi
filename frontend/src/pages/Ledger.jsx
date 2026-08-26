@@ -283,74 +283,74 @@ export const Ledger = () => {
       {/* Selected Account Summary Card */}
       {ledgerType === 'Customer' && activeCustomer && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-br from-blue-50/40 to-white border-blue-200/60 text-slate-900'
             }`}>
-            <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-brand-500" /> {t('customerParty')}
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-blue-600" /> {t('customerParty')}
             </div>
-            <div className="text-xl font-extrabold mt-1">{activeCustomer.name}</div>
+            <div className="text-xl font-black mt-1 text-slate-900 dark:text-white truncate">{activeCustomer.name}</div>
             <div className="text-xs text-slate-400 font-medium mt-1 flex items-center gap-1">
               <MapPin className="w-3 h-3" /> {activeCustomer.city} | <Phone className="w-3 h-3" /> {activeCustomer.phone}
             </div>
           </div>
 
-          <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
             }`}>
-            <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-emerald-500" /> {t('totalReceivedPayment')}
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4 text-emerald-600" /> {t('totalReceivedPayment')}
             </div>
-            <div className="text-2xl font-extrabold mt-1 text-emerald-500">
+            <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">
               Rs. {customerStatement.reduce((sum, e) => sum + (Number(e.credit) || 0), 0).toLocaleString()}
             </div>
-            <div className="text-xs text-slate-400 font-medium mt-1">{t('paid')}</div>
+            <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">{t('paid')}</div>
           </div>
 
-          <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200/60'
             }`}>
-            <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4 text-amber-500" /> {t('amountToReceive')}
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4 text-amber-600" /> {t('amountToReceive')}
             </div>
-            <div className="text-2xl font-extrabold mt-1 text-amber-500">
+            <div className="text-2xl font-black mt-1.5 font-mono text-amber-600 dark:text-amber-400">
               Rs. {(Number(activeCustomer.balance) || 0).toLocaleString()}
             </div>
-            <div className="text-xs text-amber-500 font-bold mt-1">{t('pending')}</div>
+            <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">{t('pending')}</div>
           </div>
         </div>
       )}
 
       {ledgerType === 'Supplier' && activeSupplier && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-br from-blue-50/40 to-white border-blue-200/60 text-slate-900'
             }`}>
-            <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-              <UserCheck className="w-4 h-4 text-brand-500" /> {t('supplierFirmName')}
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <UserCheck className="w-4 h-4 text-blue-600" /> {t('supplierFirmName')}
             </div>
-            <div className="text-xl font-extrabold mt-1">{activeSupplier.name}</div>
+            <div className="text-xl font-black mt-1 text-slate-900 dark:text-white truncate">{activeSupplier.name}</div>
             <div className="text-xs text-slate-400 font-medium mt-1 flex items-center gap-1">
               <MapPin className="w-3 h-3" /> {activeSupplier.city} | <Phone className="w-3 h-3" /> {activeSupplier.phone}
             </div>
           </div>
 
-          <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
             }`}>
-            <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-emerald-500" /> {t('totalPaymentsPaid')}
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4 text-emerald-600" /> {t('totalPaymentsPaid')}
             </div>
-            <div className="text-2xl font-extrabold mt-1 text-emerald-500">
+            <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">
               Rs. {supplierStatement.reduce((sum, e) => sum + (Number(e.debit) || 0), 0).toLocaleString()}
             </div>
-            <div className="text-xs text-slate-400 font-medium mt-1">{t('paid')}</div>
+            <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">{t('paid')}</div>
           </div>
 
-          <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
             }`}>
-            <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4 text-rose-500" /> {t('amountToPay')}
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4 text-rose-600" /> {t('amountToPay')}
             </div>
-            <div className="text-2xl font-extrabold mt-1 text-rose-500">
+            <div className="text-2xl font-black mt-1.5 font-mono text-rose-600 dark:text-rose-400">
               Rs. {(Number(activeSupplier.balance) || 0).toLocaleString()}
             </div>
-            <div className="text-xs text-rose-500 font-bold mt-1">{t('pending')}</div>
+            <div className="text-xs text-rose-700 dark:text-rose-400 font-bold mt-1">{t('pending')}</div>
           </div>
         </div>
       )}

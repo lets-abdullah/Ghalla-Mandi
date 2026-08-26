@@ -353,7 +353,7 @@ export const Reports = () => {
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
             }`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Stock Valuation</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalStockValuation.toLocaleString()}</div>
@@ -361,15 +361,15 @@ export const Reports = () => {
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
             }`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">In-Stock Products</div>
-              <div className="text-2xl font-black mt-1.5 text-blue-600 dark:text-blue-400 font-mono">{inStockCount} Items</div>
+              <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">{inStockCount} Items</div>
               <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">Available for Sale</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+              theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200/60'
             }`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Low Stock Warnings</div>
               <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">{lowStockCount} Items</div>
@@ -377,7 +377,7 @@ export const Reports = () => {
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+              theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
             }`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Out of Stock</div>
               <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">{outOfStockCount} Items</div>
@@ -712,15 +712,15 @@ export const Reports = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
             }`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Gross Revenue</div>
-              <div className="text-2xl font-black mt-1.5 text-blue-600 dark:text-blue-400 font-mono">Rs. {totalSalesGross.toLocaleString()}</div>
+              <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalSalesGross.toLocaleString()}</div>
               <div className="text-xs text-slate-500 font-medium mt-1">Total Sales Turnover</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+              theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
             }`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Cost of Goods Sold (COGS)</div>
               <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {cogs.toLocaleString()}</div>
@@ -728,7 +728,7 @@ export const Reports = () => {
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
             }`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Net Operating Profit</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">
@@ -741,17 +741,17 @@ export const Reports = () => {
           {/* Income Statement Table */}
           <div className={`border rounded-2xl p-6 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
             <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-brand-500" />
+              <PieChart className="w-4 h-4 text-emerald-600" />
               <span>Profit & Loss Financial Statement</span>
             </h3>
 
             <div className="space-y-3.5 text-xs font-bold">
-              <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-slate-900/60 border border-blue-200/60 dark:border-slate-700 flex justify-between items-center">
+              <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-slate-900/60 border border-emerald-200/60 dark:border-slate-700 flex justify-between items-center">
                 <div>
                   <span className="text-slate-900 dark:text-white font-bold block text-sm">1. Gross Sales Revenue</span>
                   <span className="text-[11px] text-slate-500 font-medium">Total sales value billed from commodity orders</span>
                 </div>
-                <span className="font-mono text-base font-bold text-blue-600 dark:text-blue-400">Rs. {totalSalesGross.toLocaleString()}</span>
+                <span className="font-mono text-base font-bold text-emerald-600 dark:text-emerald-400">Rs. {totalSalesGross.toLocaleString()}</span>
               </div>
 
               <div className="p-4 rounded-xl bg-rose-50/60 dark:bg-slate-900/60 border border-rose-200/60 dark:border-slate-700 flex justify-between items-center">
@@ -762,12 +762,12 @@ export const Reports = () => {
                 <span className="font-mono text-base font-bold text-rose-600 dark:text-rose-400">- Rs. {cogs.toLocaleString()}</span>
               </div>
 
-              <div className="p-4 rounded-xl bg-amber-50/60 dark:bg-slate-900/60 border border-amber-200/60 dark:border-slate-700 flex justify-between items-center">
+              <div className="p-4 rounded-xl bg-rose-50/60 dark:bg-slate-900/60 border border-rose-200/60 dark:border-slate-700 flex justify-between items-center">
                 <div>
                   <span className="text-slate-900 dark:text-white font-bold block text-sm">3. Less: Operating Expenses</span>
                   <span className="text-[11px] text-slate-500 font-medium">Labour loading, transport, bardana bags, and shop utilities</span>
                 </div>
-                <span className="font-mono text-base font-bold text-amber-600 dark:text-amber-400">- Rs. {totalExpensesAmount.toLocaleString()}</span>
+                <span className="font-mono text-base font-bold text-rose-600 dark:text-rose-400">- Rs. {totalExpensesAmount.toLocaleString()}</span>
               </div>
 
               <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:bg-slate-900 border border-emerald-300 dark:border-slate-700 flex items-center justify-between font-bold text-base text-slate-900 dark:text-white shadow-2xs">
@@ -789,7 +789,7 @@ export const Reports = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
             }`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Total Assets</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalAssets.toLocaleString()}</div>
@@ -797,7 +797,7 @@ export const Reports = () => {
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+              theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
             }`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Total Liabilities</div>
               <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalLiabilities.toLocaleString()}</div>
@@ -805,10 +805,10 @@ export const Reports = () => {
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-indigo-500/30' : 'bg-gradient-to-b from-indigo-50/50 to-white border-indigo-200/80'
+              theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-gradient-to-br from-slate-50/50 to-white border-slate-200'
             }`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Net Business Worth</div>
-              <div className="text-2xl font-black mt-1.5 text-indigo-600 dark:text-indigo-400 font-mono">Rs. {totalEquity.toLocaleString()}</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalEquity.toLocaleString()}</div>
               <div className="text-xs text-slate-500 font-medium mt-1">Total Assets Less Liabilities</div>
             </div>
           </div>

@@ -64,7 +64,7 @@ export const Dashboard = () => {
           amount={`Rs. ${totalInventoryValue.toLocaleString()}`}
           subtext={`${totalStockQty.toLocaleString()} ${t('itemsInStock') || 'units in stock'}`}
           icon={TrendingUp}
-          color="indigo"
+          color="emerald"
           onClick={() => navigate('/reports?type=Stock')}
         />
         <KPICard
