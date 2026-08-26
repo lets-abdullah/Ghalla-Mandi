@@ -177,8 +177,36 @@ export const ERPProvider = ({ children }) => {
   const [purchases, setPurchases] = useState([]);
   const [paymentLogs, setPaymentLogs] = useState([]);
   const [stockMovements, setStockMovements] = useState([]);
+  const [saleReturns, setSaleReturns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ghalla_mandi_sale_returns');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [purchaseReturns, setPurchaseReturns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ghalla_mandi_purchase_returns');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ghalla_mandi_sale_returns', JSON.stringify(saleReturns));
+    } catch (e) {}
+  }, [saleReturns]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ghalla_mandi_purchase_returns', JSON.stringify(purchaseReturns));
+    } catch (e) {}
+  }, [purchaseReturns]);
 
   // Fetch all ERP data from backend API for authenticated shop
   const fetchAllData = useCallback(async () => {
@@ -689,6 +717,104 @@ export const ERPProvider = ({ children }) => {
     return promise;
   };
 
+  // 12. Record Sale Return (Restocks inventory, adjusts customer khata, logs return)
+  const recordSaleReturn = async (returnData) => {
+    const returnNo = `SR-2026-${String(saleReturns.length + 1).padStart(4, '0')}`;
+    const dateStr = returnData.date || new Date().toLocaleDateString('en-GB');
+
+    const newReturn = {
+      id: Date.now(),
+      returnNo,
+      saleId: returnData.saleId || null,
+      invoiceNo: returnData.invoiceNo || 'Direct Sale Return',
+      customerId: returnData.customerId || null,
+      customerName: returnData.customerName || 'Customer Party',
+      items: returnData.items || [],
+      refundAmount: Number(returnData.refundAmount) || 0,
+      refundMode: returnData.refundMode || 'Cash',
+      reason: returnData.reason || 'Customer Return',
+      date: dateStr
+    };
+
+    // Restock products in inventory
+    for (const item of returnData.items || []) {
+      const pId = item.productId || item.id;
+      const rQty = Number(item.qty || item.enteredQty) || 0;
+      if (pId && rQty > 0) {
+        try {
+          await adjustStock(pId, rQty, 'IN (Sale Return)', `Sale Return #${returnNo}`);
+        } catch {
+          setProducts(prev => prev.map(p => p.id === pId ? { ...p, stockQty: Number(p.stockQty || 0) + rQty } : p));
+        }
+      }
+    }
+
+    // Adjust customer ledger if refund mode is Ledger
+    if (returnData.refundMode === 'Ledger' && returnData.customerId) {
+      const cust = customers.find(c => c.id === returnData.customerId);
+      if (cust) {
+        const newBal = Math.max(0, Number(cust.balance || 0) - Number(returnData.refundAmount || 0));
+        try {
+          await updateCustomer(cust.id, { balance: newBal });
+        } catch {
+          setCustomers(prev => prev.map(c => c.id === cust.id ? { ...c, balance: newBal } : c));
+        }
+      }
+    }
+
+    setSaleReturns(prev => [newReturn, ...prev]);
+    return newReturn;
+  };
+
+  // 13. Record Purchase Return (Deducts stock, adjusts supplier khata, logs return)
+  const recordPurchaseReturn = async (returnData) => {
+    const returnNo = `PR-2026-${String(purchaseReturns.length + 1).padStart(4, '0')}`;
+    const dateStr = returnData.date || new Date().toLocaleDateString('en-GB');
+
+    const newReturn = {
+      id: Date.now(),
+      returnNo,
+      purchaseId: returnData.purchaseId || null,
+      purchaseNo: returnData.purchaseNo || 'Direct Purchase Return',
+      supplierId: returnData.supplierId || null,
+      supplierName: returnData.supplierName || 'Supplier Firm',
+      items: returnData.items || [],
+      refundAmount: Number(returnData.refundAmount) || 0,
+      refundMode: returnData.refundMode || 'Cash',
+      reason: returnData.reason || 'Supplier Rejection',
+      date: dateStr
+    };
+
+    // Deduct products from inventory
+    for (const item of returnData.items || []) {
+      const pId = item.productId || item.id;
+      const rQty = Number(item.qty || item.enteredQty) || 0;
+      if (pId && rQty > 0) {
+        try {
+          await adjustStock(pId, -rQty, 'OUT (Purchase Return)', `Purchase Return #${returnNo}`);
+        } catch {
+          setProducts(prev => prev.map(p => p.id === pId ? { ...p, stockQty: Math.max(0, Number(p.stockQty || 0) - rQty) } : p));
+        }
+      }
+    }
+
+    // Adjust supplier ledger if refund mode is Ledger
+    if (returnData.refundMode === 'Ledger' && returnData.supplierId) {
+      const sup = suppliers.find(s => s.id === returnData.supplierId);
+      if (sup) {
+        const newBal = Math.max(0, Number(sup.balance || 0) - Number(returnData.refundAmount || 0));
+        try {
+          await updateSupplier(sup.id, { balance: newBal });
+        } catch {
+          setSuppliers(prev => prev.map(s => s.id === sup.id ? { ...s, balance: newBal } : s));
+        }
+      }
+    }
+
+    setPurchaseReturns(prev => [newReturn, ...prev]);
+    return newReturn;
+  };
+
   return (
     <ERPContext.Provider value={{
       categories,
@@ -699,6 +825,8 @@ export const ERPProvider = ({ children }) => {
       purchases,
       paymentLogs,
       stockMovements,
+      saleReturns,
+      purchaseReturns,
       loading,
       error,
       refreshData: fetchAllData,
@@ -717,7 +845,9 @@ export const ERPProvider = ({ children }) => {
       recordPayment,
       recordPurchase,
       createPurchase: recordPurchase,
-      createSale
+      createSale,
+      recordSaleReturn,
+      recordPurchaseReturn
     }}>
       {children}
     </ERPContext.Provider>

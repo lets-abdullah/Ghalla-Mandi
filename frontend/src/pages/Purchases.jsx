@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Search, Plus, Printer, CheckCircle2, Clock, DollarSign, X } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Printer, CheckCircle2, Clock, DollarSign, X, RotateCcw } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
+import { PurchaseReturnModal } from '../components/PurchaseReturnModal';
 
 export const Purchases = () => {
-  const { suppliers, products, purchases, createPurchase, recordPayment } = useERP();
+  const { suppliers, products, purchases, purchaseReturns = [], createPurchase, recordPayment } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
-  const [filterType, setFilterType] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Due'
+  const [filterType, setFilterType] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Due' | 'Returns'
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [selectedReturnPurchase, setSelectedReturnPurchase] = useState(null);
   const [payModalPurchase, setPayModalPurchase] = useState(null);
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -214,7 +217,18 @@ export const Purchases = () => {
           <p className="text-xs text-slate-400 mt-0.5">{t('All Purchase History')}</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => {
+              setSelectedReturnPurchase(null);
+              setShowReturnModal(true);
+            }}
+            className="flex items-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white font-black text-xs px-3.5 py-2.5 rounded-xl shadow-md transition cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>Process Purchase Return</span>
+          </button>
+
           <button
             onClick={() => window.print()}
             className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -285,7 +299,7 @@ export const Purchases = () => {
       <div className={`border rounded-2xl p-4 card-shadow flex flex-col md:flex-row items-center justify-between gap-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
         <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-          {['All', 'Paid', 'Partial', 'Due'].map(type => (
+          {['All', 'Paid', 'Partial', 'Due', 'Returns'].map(type => (
             <button
               key={type}
               onClick={() => setFilterType(type)}
@@ -294,7 +308,7 @@ export const Purchases = () => {
                 : theme === 'dark' ? 'bg-slate-900 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
             >
-              {type === 'All' ? t('All') : type === 'Due' ? t('pending') : t(type.toLowerCase())}
+              {type === 'All' ? t('All') : type === 'Returns' ? `Purchase Returns (${purchaseReturns.length})` : type === 'Due' ? t('pending') : t(type.toLowerCase())}
             </button>
           ))}
         </div>
@@ -312,140 +326,205 @@ export const Purchases = () => {
         </div>
       </div>
 
-      {/* Purchase Table */}
-      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                }`}>
-                <th className="py-3 px-4">{t('purchaseNo')}</th>
-                <th className="py-3 px-4">{t('supplierFirmName')}</th>
-                <th className="py-3 px-4">{t('itemsSold')}</th>
-                <th className="py-3 px-4 text-right">{t('totalAmount')}</th>
-                <th className="py-3 px-4 text-right">{t('paid')}</th>
-                <th className="py-3 px-4 text-right">{t('remainingDue')}</th>
-                <th className="py-3 px-4 text-center">{t('status')}</th>
-                <th className="py-3 px-4 text-center">{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
-              }`}>
-              {filteredPurchases.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
-                    {t('noPurchasesFound')}
-                  </td>
+      {/* Purchase Returns History Table if Filtered */}
+      {filterType === 'Returns' ? (
+        <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+          <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <h3 className="font-black text-sm flex items-center gap-2">
+              <RotateCcw className="w-4 h-4 text-rose-500" />
+              <span>Processed Supplier Purchase Returns (Debit Notes)</span>
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+              <thead>
+                <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                  <th className="py-3 px-4">Debit Note #</th>
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Supplier Firm</th>
+                  <th className="py-3 px-4">Associated Purchase</th>
+                  <th className="py-3 px-4">Returned Commodity</th>
+                  <th className="py-3 px-4">Settlement Mode</th>
+                  <th className="py-3 px-4 text-right">Debit Valuation</th>
                 </tr>
-              ) : (
-                filteredPurchases.map(p => {
-                  const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
-                  const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
-                  const due = Math.max(0, total - paid);
-                  const status = due === 0 && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
-
-                  return (
-                    <tr key={p.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
-                      }`}>
-                      <td className="py-3 px-4 font-mono font-bold text-brand-500">{p.purchaseNo || p.purchaseno}</td>
-                      <td className="py-3 px-4 font-bold">{p.supplier || p.supplierName || p.suppliername}</td>
-                      <td className="py-3 px-4 text-slate-400">{typeof p.items === 'string' ? p.items : (Array.isArray(p.items) ? p.items.map(i => i.name || i.productName).join(', ') : 'Commodity Items')}</td>
-                      <td className="py-3 px-4 text-right font-extrabold">Rs. {total.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-right font-bold text-emerald-500">Rs. {paid.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-right font-bold text-rose-500">Rs. {due.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-center">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${status === 'Paid'
-                          ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30'
-                          : status === 'Partial'
-                            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30'
-                            : 'bg-rose-500/10 text-rose-500 border border-rose-500/30'
-                          }`}>
-                          {status === 'Paid' ? t('paid') : status === 'Partial' ? t('partial') : t('pending')}
+              </thead>
+              <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                {purchaseReturns.length === 0 ? (
+                  <tr><td colSpan={7} className="py-8 text-center text-slate-400">No purchase returns recorded yet.</td></tr>
+                ) : (
+                  purchaseReturns.map(ret => (
+                    <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
+                      <td className="py-3.5 px-4 font-mono font-black text-rose-500">{ret.returnNo}</td>
+                      <td className="py-3.5 px-4 text-slate-400">{ret.date}</td>
+                      <td className="py-3.5 px-4 font-bold">{ret.supplierName}</td>
+                      <td className="py-3.5 px-4 font-mono text-brand-500 font-bold">{ret.purchaseNo}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
+                        {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Commodity Item'}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${ret.refundMode === 'Cash' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
+                          {ret.refundMode === 'Cash' ? 'Cash Received' : 'Supplier Ledger Dues Deducted'}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          {due > 0 ? (
-                            <button
-                              onClick={() => openPayModal(p)}
-                              className="px-3 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-bold transition shadow-xs active:scale-98 flex items-center gap-1 cursor-pointer"
-                            >
-                              {t('payBalance')}
-                            </button>
-                          ) : (
-                            <span className="text-[11px] font-bold text-emerald-500 inline-flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> {t('fullyPaid')}
-                            </span>
-                          )}
-
-                          <button
-                            onClick={() => {
-                              const totalAmt = Number(p.amount || 0);
-                              const paidAmt = Number(p.paidAmount || 0);
-                              const supplierObj = suppliers.find(s => s.name === p.supplier || s.id === p.supplierId);
-
-                              let purchaseItems = [];
-                              if (p.cart && Array.isArray(p.cart) && p.cart.length > 0) {
-                                purchaseItems = p.cart.map(item => ({
-                                  name: item.name || item.productName || 'Commodity Product',
-                                  qty: Number(item.qty || item.enteredQty || 1),
-                                  unit: item.unit || item.unitName || item.enteredUnit || t('kg'),
-                                  price: Number(item.rate || item.price || item.ratePerEnteredUnit || (totalAmt / (item.qty || 1))),
-                                  total: Number(item.total || item.totalAmount) || (Number(item.rate || item.price || 0) * Number(item.qty || 1)) || totalAmt
-                                }));
-                              } else if (p.items && Array.isArray(p.items) && p.items.length > 0) {
-                                purchaseItems = p.items.map(item => ({
-                                  name: item.name || item.productName || 'Commodity Product',
-                                  qty: Number(item.qty || item.enteredQty || 1),
-                                  unit: item.unit || item.unitName || item.enteredUnit || t('kg'),
-                                  price: Number(item.rate || item.price || item.ratePerEnteredUnit || (totalAmt / (item.qty || item.enteredQty || 1))),
-                                  total: Number(item.total || item.totalAmount) || totalAmt
-                                }));
-                              } else {
-                                purchaseItems = [{
-                                  name: p.productName || (typeof p.items === 'string' ? p.items : t('products')),
-                                  qty: Number(p.qty || p.qtyKg || 1),
-                                  unit: p.unit || p.unitName || t('kg'),
-                                  price: Number(p.rate || p.purchasePrice || (p.qty ? Math.round(totalAmt / p.qty) : totalAmt)),
-                                  total: totalAmt
-                                }];
-                              }
-
-                              const receiptData = {
-                                purchaseNo: p.purchaseNo,
-                                date: p.date,
-                                supplierName: p.supplier,
-                                supplierPhone: supplierObj?.phone || '',
-                                supplierCity: supplierObj?.city || '',
-                                items: purchaseItems,
-                                totalAmount: totalAmt,
-                                paidAmount: paidAmt,
-                                paymentMode: paidAmt >= totalAmt ? 'Cash' : paidAmt > 0 ? 'Partial Cash' : 'Supplier Credit (Khata)',
-                                supplierBalance: supplierObj ? supplierObj.balance : 0,
-                                note: 'Official Purchase Arrival Voucher'
-                              };
-                              setSelectedReceipt(receiptData);
-                            }}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-bold transition cursor-pointer shadow-2xs ${theme === 'dark'
-                              ? 'bg-slate-700 hover:bg-slate-600 text-emerald-400 border-slate-600'
-                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
-                              }`}
-                            title={t('Print Receipt')}
-                          >
-                            <Printer className="w-3.5 h-3.5" />
-                            <span>{t('Print Receipt')}</span>
-                          </button>
-                        </div>
+                      <td className="py-3.5 px-4 text-right font-black font-mono text-rose-600 dark:text-rose-400">
+                        Rs. {Number(ret.refundAmount || 0).toLocaleString()}
                       </td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Purchase Table */
+        <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                  }`}>
+                  <th className="py-3 px-4">{t('purchaseNo')}</th>
+                  <th className="py-3 px-4">{t('supplierFirmName')}</th>
+                  <th className="py-3 px-4">{t('itemsSold')}</th>
+                  <th className="py-3 px-4 text-right">{t('totalAmount')}</th>
+                  <th className="py-3 px-4 text-right">{t('paid')}</th>
+                  <th className="py-3 px-4 text-right">{t('remainingDue')}</th>
+                  <th className="py-3 px-4 text-center">{t('status')}</th>
+                  <th className="py-3 px-4 text-center">{t('actions')}</th>
+                </tr>
+              </thead>
+              <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+                }`}>
+                {filteredPurchases.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
+                      {t('noPurchasesFound')}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPurchases.map(p => {
+                    const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
+                    const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
+                    const due = Math.max(0, total - paid);
+                    const status = due === 0 && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
+
+                    return (
+                      <tr key={p.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
+                        }`}>
+                        <td className="py-3 px-4 font-mono font-bold text-brand-500">{p.purchaseNo || p.purchaseno}</td>
+                        <td className="py-3 px-4 font-bold">{p.supplier || p.supplierName || p.suppliername}</td>
+                        <td className="py-3 px-4 text-slate-400">{typeof p.items === 'string' ? p.items : (Array.isArray(p.items) ? p.items.map(i => i.name || i.productName).join(', ') : 'Commodity Items')}</td>
+                        <td className="py-3 px-4 text-right font-extrabold">Rs. {total.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right font-bold text-emerald-500">Rs. {paid.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right font-bold text-rose-500">Rs. {due.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${status === 'Paid'
+                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30'
+                            : status === 'Partial'
+                              ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30'
+                              : 'bg-rose-500/10 text-rose-500 border border-rose-500/30'
+                            }`}>
+                            {status === 'Paid' ? t('paid') : status === 'Partial' ? t('partial') : t('pending')}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            {due > 0 ? (
+                              <button
+                                onClick={() => openPayModal(p)}
+                                className="px-3 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-bold transition shadow-xs active:scale-98 flex items-center gap-1 cursor-pointer"
+                              >
+                                {t('payBalance')}
+                              </button>
+                            ) : (
+                              <span className="text-[11px] font-bold text-emerald-500 inline-flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> {t('fullyPaid')}
+                              </span>
+                            )}
+
+                            {/* Return Action Button */}
+                            <button
+                              onClick={() => {
+                                setSelectedReturnPurchase(p);
+                                setShowReturnModal(true);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                              title="Return to Supplier"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Return</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                const totalAmt = Number(p.amount || 0);
+                                const paidAmt = Number(p.paidAmount || 0);
+                                const supplierObj = suppliers.find(s => s.name === p.supplier || s.id === p.supplierId);
+
+                                let purchaseItems = [];
+                                if (p.cart && Array.isArray(p.cart) && p.cart.length > 0) {
+                                  purchaseItems = p.cart.map(item => ({
+                                    name: item.name || item.productName || 'Commodity Product',
+                                    qty: Number(item.qty || item.enteredQty || 1),
+                                    unit: item.unit || item.unitName || item.enteredUnit || t('kg'),
+                                    price: Number(item.rate || item.price || item.ratePerEnteredUnit || (totalAmt / (item.qty || 1))),
+                                    total: Number(item.total || item.totalAmount) || (Number(item.rate || item.price || 0) * Number(item.qty || 1)) || totalAmt
+                                  }));
+                                } else if (p.items && Array.isArray(p.items) && p.items.length > 0) {
+                                  purchaseItems = p.items.map(item => ({
+                                    name: item.name || item.productName || 'Commodity Product',
+                                    qty: Number(item.qty || item.enteredQty || 1),
+                                    unit: item.unit || item.unitName || item.enteredUnit || t('kg'),
+                                    price: Number(item.rate || item.price || item.ratePerEnteredUnit || (totalAmt / (item.qty || item.enteredQty || 1))),
+                                    total: Number(item.total || item.totalAmount) || totalAmt
+                                  }));
+                                } else {
+                                  purchaseItems = [{
+                                    name: p.productName || (typeof p.items === 'string' ? p.items : t('products')),
+                                    qty: Number(p.qty || p.qtyKg || 1),
+                                    unit: p.unit || p.unitName || t('kg'),
+                                    price: Number(p.rate || p.purchasePrice || (p.qty ? Math.round(totalAmt / p.qty) : totalAmt)),
+                                    total: totalAmt
+                                  }];
+                                }
+
+                                const receiptData = {
+                                  purchaseNo: p.purchaseNo,
+                                  date: p.date,
+                                  supplierName: p.supplier,
+                                  supplierPhone: supplierObj?.phone || '',
+                                  supplierCity: supplierObj?.city || '',
+                                  items: purchaseItems,
+                                  totalAmount: totalAmt,
+                                  paidAmount: paidAmt,
+                                  paymentMode: paidAmt >= totalAmt ? 'Cash' : paidAmt > 0 ? 'Partial Cash' : 'Supplier Credit (Khata)',
+                                  supplierBalance: supplierObj ? supplierObj.balance : 0,
+                                  note: 'Official Purchase Arrival Voucher'
+                                };
+                                setSelectedReceipt(receiptData);
+                              }}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-bold transition cursor-pointer shadow-2xs ${theme === 'dark'
+                                ? 'bg-slate-700 hover:bg-slate-600 text-emerald-400 border-slate-600'
+                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                }`}
+                              title={t('Print Receipt')}
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                              <span>{t('Print Receipt')}</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Record Purchase Modal */}
       {showModal && (
@@ -668,6 +747,18 @@ export const Purchases = () => {
           isOpen={!!selectedReceipt}
           onClose={() => setSelectedReceipt(null)}
           purchaseData={selectedReceipt}
+        />
+      )}
+
+      {/* Purchase Return Modal */}
+      {showReturnModal && (
+        <PurchaseReturnModal
+          isOpen={showReturnModal}
+          onClose={() => {
+            setShowReturnModal(false);
+            setSelectedReturnPurchase(null);
+          }}
+          selectedPurchase={selectedReturnPurchase}
         />
       )}
     </div>
