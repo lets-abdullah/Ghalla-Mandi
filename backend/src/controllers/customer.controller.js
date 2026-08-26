@@ -12,7 +12,21 @@ export const getCustomers = async (req, res) => {
 
 export const createCustomer = async (req, res) => {
   try {
-    const { name, phone, city, address, customerType, openingBalance = 0 } = req.body;
+    const {
+      name,
+      shopName,
+      phone,
+      whatsapp,
+      city,
+      address,
+      customerType,
+      openingBalance = 0,
+      creditLimit = 0,
+      paymentTerms = 'Cash / Credit',
+      cnic,
+      notes
+    } = req.body;
+
     if (!name) {
       return res.status(400).json({ success: false, message: 'Customer name is required' });
     }
@@ -20,11 +34,18 @@ export const createCustomer = async (req, res) => {
     const customer = await Customer.create({
       shop_id: req.shop_id,
       name,
+      shopName: shopName || '',
       phone: phone || '',
+      whatsapp: whatsapp || '',
       city: city || address || 'Local Mandi',
+      address: address || '',
       customerType: customerType || 'Regular Party',
-      openingBalance: Number(openingBalance),
-      balance: Number(openingBalance)
+      openingBalance: Number(openingBalance) || 0,
+      balance: Number(openingBalance) || 0,
+      creditLimit: Number(creditLimit) || 0,
+      paymentTerms: paymentTerms || 'Cash / Credit',
+      cnic: cnic || '',
+      notes: notes || ''
     });
 
     if (Number(openingBalance) !== 0) {

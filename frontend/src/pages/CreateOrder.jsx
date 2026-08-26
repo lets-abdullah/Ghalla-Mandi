@@ -58,9 +58,17 @@ export const CreateOrder = () => {
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [newCustomerForm, setNewCustomerForm] = useState({
     name: '',
+    shopName: '',
     phone: '',
-    city: 'Faisalabad',
-    openingBalance: 0
+    whatsapp: '',
+    city: '',
+    address: '',
+    customerType: 'Regular Party',
+    openingBalance: 0,
+    creditLimit: '',
+    paymentTerms: 'Cash / Credit',
+    cnic: '',
+    notes: ''
   });
 
   // Receipt Modal State
@@ -348,22 +356,45 @@ export const CreateOrder = () => {
   // Handle Quick Add Customer
   const handleCreateCustomerSubmit = async (e) => {
     e.preventDefault();
-    if (!newCustomerForm.name.trim()) return;
+    if (!newCustomerForm.name.trim()) {
+      alert('Customer / Party name is required.');
+      return;
+    }
 
     try {
       const created = await addCustomer({
         name: newCustomerForm.name.trim(),
+        shopName: newCustomerForm.shopName.trim(),
         phone: newCustomerForm.phone.trim() || 'N/A',
+        whatsapp: newCustomerForm.whatsapp.trim(),
         city: newCustomerForm.city.trim() || 'Local Mandi',
-        customerType: 'Regular Party',
-        openingBalance: Number(newCustomerForm.openingBalance) || 0
+        address: newCustomerForm.address.trim(),
+        customerType: newCustomerForm.customerType || 'Regular Party',
+        openingBalance: Number(newCustomerForm.openingBalance) || 0,
+        creditLimit: Number(newCustomerForm.creditLimit) || 0,
+        paymentTerms: newCustomerForm.paymentTerms || 'Cash / Credit',
+        cnic: newCustomerForm.cnic.trim(),
+        notes: newCustomerForm.notes.trim()
       });
 
       setSelectedParty(created);
       setCustomerType('Regular Party');
       setShowNewCustomerForm(false);
       setShowCustomerModal(false);
-      setNewCustomerForm({ name: '', phone: '', city: 'Faisalabad', openingBalance: 0 });
+      setNewCustomerForm({
+        name: '',
+        shopName: '',
+        phone: '',
+        whatsapp: '',
+        city: '',
+        address: '',
+        customerType: 'Regular Party',
+        openingBalance: 0,
+        creditLimit: '',
+        paymentTerms: 'Cash / Credit',
+        cnic: '',
+        notes: ''
+      });
     } catch (err) {
       alert(err.message || 'Failed to create customer');
     }
@@ -1312,8 +1343,8 @@ export const CreateOrder = () => {
                         }`}
                     >
                       <div>
-                        <div className="font-black text-xs">{c.name}</div>
-                        <div className="text-[10px] text-slate-400">{c.city} Mandi • {c.phone}</div>
+                        <div className="font-black text-xs">{c.name} {c.shopName ? `(${c.shopName})` : ''}</div>
+                        <div className="text-[10px] text-slate-400">{c.city || 'Mandi'} • {c.phone || 'No Phone'}</div>
                       </div>
                       <div className="text-right">
                         <div className="text-[10px] text-slate-400 uppercase font-bold">{t('balance')}</div>
@@ -1340,58 +1371,251 @@ export const CreateOrder = () => {
                 </div>
               </div>
             ) : (
-              /* Quick Add Customer Form */
-              <form onSubmit={handleCreateCustomerSubmit} className="space-y-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('customerPartyName')} *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Chaudhry & Sons"
-                    value={newCustomerForm.name}
-                    onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })}
-                    className={`w-full border rounded-2xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              /* Comprehensive Add Customer & Khata Profile Form */
+              <form onSubmit={handleCreateCustomerSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+                {/* 1. Basic & Business Identity */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                  <div className="text-[11px] font-black uppercase text-brand-600 dark:text-brand-400 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Basic & Business Identity (بنیادی و کاروباری معلومات)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        {t('customerPartyName')} *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Chaudhry Muhammad Aslam"
+                        value={newCustomerForm.name}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        Shop / Firm / Arhat Name (دکان / فرم کا نام)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Chaudhry & Sons Commission Shop"
+                        value={newCustomerForm.shopName}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, shopName: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Customer Type (خریدار کی قسم)
+                    </label>
+                    <select
+                      value={newCustomerForm.customerType}
+                      onChange={(e) => setNewCustomerForm({ ...newCustomerForm, customerType: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs font-bold text-slate-400 block mb-1">{t('phoneMobile')}</label>
-                    <input
-                      type="text"
-                      placeholder="03001234567"
-                      value={newCustomerForm.phone}
-                      onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: e.target.value })}
-                      className={`w-full border rounded-2xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-400 block mb-1">{t('mandiLocationCity')}</label>
-                    <input
-                      type="text"
-                      value={newCustomerForm.city}
-                      onChange={(e) => setNewCustomerForm({ ...newCustomerForm, city: e.target.value })}
-                      className={`w-full border rounded-2xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
+                    >
+                      <option value="Regular Party">Regular Party (کھاتہ دار / کمیشن ایجنٹ)</option>
+                      <option value="Wholesale Buyer">Wholesale Buyer (تھوک خریدار)</option>
+                      <option value="Retailer">Retailer / Shopkeeper (پرچون فروش)</option>
+                      <option value="Farmer / Producer">Farmer / Producer (زمیندار / کاشتکار)</option>
+                    </select>
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                {/* 2. Contact & Mandi Location */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                  <div className="text-[11px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Contact & Location (رابطہ و منڈی کا پتہ)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        {t('phoneMobile')} *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 03001234567"
+                        value={newCustomerForm.phone}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        WhatsApp / Alt Phone (واٹس ایپ نمبر)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 03217654321"
+                        value={newCustomerForm.whatsapp}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, whatsapp: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        {t('mandiLocationCity')} *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Sargodha Mandi / Faisalabad"
+                        value={newCustomerForm.city}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, city: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        Full Address / Shop # (مکمل پتہ)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Shop # 12, Block B, New Mandi"
+                        value={newCustomerForm.address}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, address: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Financial & Payment Terms */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                  <div className="text-[11px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5" />
+                    <span>Financial & Payment Terms (کھاتہ و ادھار شرائط)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        Opening Balance (سابقہ ادھار)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={newCustomerForm.openingBalance || ''}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, openingBalance: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        Credit Limit (ادھار کی حد)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 500000"
+                        value={newCustomerForm.creditLimit || ''}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, creditLimit: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        Payment Terms (مدت ادائیگی)
+                      </label>
+                      <select
+                        value={newCustomerForm.paymentTerms}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, paymentTerms: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        <option value="Cash / Credit">Cash / Regular Khata (نقد و ادھار)</option>
+                        <option value="Cash on Delivery">Cash on Delivery (فوری نقد)</option>
+                        <option value="7 Days">Weekly (7 Days / ہفتہ وار)</option>
+                        <option value="15 Days">15 Days (پندرہ دن)</option>
+                        <option value="30 Days">Monthly (30 Days / ماہانہ)</option>
+                        <option value="Seasonal">Seasonal (فصل کٹائی پر)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Identification & Notes */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        CNIC / National ID (شناختی کارڈ نمبر)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 38403-1234567-1"
+                        value={newCustomerForm.cnic}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, cnic: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        Notes / Guarantor Reference (حوالہ / نوٹ)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Reference: Haji Akram Shop # 4"
+                        value={newCustomerForm.notes}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, notes: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit & Cancel Buttons */}
+                <div className="flex gap-2.5 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowNewCustomerForm(false)}
-                    className="w-1/2 py-2.5 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                    className="w-1/3 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 cursor-pointer"
                   >
                     {t('cancel')}
                   </button>
                   <button
                     type="submit"
-                    className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-black text-xs rounded-2xl shadow-md cursor-pointer"
+                    className="w-2/3 py-3 bg-brand-500 hover:bg-brand-600 text-white font-black text-sm rounded-2xl shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                   >
-                    {t('save')}
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Save Customer Profile (کسٹمر محفوظ کریں)</span>
                   </button>
                 </div>
               </form>

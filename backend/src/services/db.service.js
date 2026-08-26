@@ -112,13 +112,28 @@ const createTables = async () => {
       id TEXT PRIMARY KEY,
       shop_id TEXT NOT NULL,
       name TEXT NOT NULL,
+      shopName TEXT,
       phone TEXT,
+      whatsapp TEXT,
       city TEXT,
+      address TEXT,
       customerType TEXT DEFAULT 'Regular Party',
       openingBalance NUMERIC DEFAULT 0,
       balance NUMERIC DEFAULT 0,
+      creditLimit NUMERIC DEFAULT 0,
+      paymentTerms TEXT DEFAULT 'Cash / Credit',
+      cnic TEXT,
+      notes TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    ALTER TABLE customers ADD COLUMN IF NOT EXISTS shopName TEXT;
+    ALTER TABLE customers ADD COLUMN IF NOT EXISTS whatsapp TEXT;
+    ALTER TABLE customers ADD COLUMN IF NOT EXISTS address TEXT;
+    ALTER TABLE customers ADD COLUMN IF NOT EXISTS creditLimit NUMERIC DEFAULT 0;
+    ALTER TABLE customers ADD COLUMN IF NOT EXISTS paymentTerms TEXT DEFAULT 'Cash / Credit';
+    ALTER TABLE customers ADD COLUMN IF NOT EXISTS cnic TEXT;
+    ALTER TABLE customers ADD COLUMN IF NOT EXISTS notes TEXT;
 
     -- Suppliers Table
     CREATE TABLE IF NOT EXISTS suppliers (

@@ -19,10 +19,17 @@ export const Customers = () => {
   // Form state for New Customer
   const [form, setForm] = useState({
     name: '',
+    shopName: '',
     phone: '',
+    whatsapp: '',
     city: '',
+    address: '',
     customerType: 'Regular Party',
-    openingBalance: 0
+    openingBalance: 0,
+    creditLimit: '',
+    paymentTerms: 'Cash / Credit',
+    cnic: '',
+    notes: ''
   });
 
   // Keyboard Escape listener
@@ -55,19 +62,33 @@ export const Customers = () => {
     try {
       await addCustomer({
         name: form.name.trim(),
+        shopName: form.shopName.trim(),
         phone: form.phone.trim() || 'N/A',
+        whatsapp: form.whatsapp.trim(),
         city: form.city.trim() || 'Local Mandi',
+        address: form.address.trim(),
         customerType: form.customerType,
-        openingBalance: Math.max(0, Number(form.openingBalance) || 0)
+        openingBalance: Math.max(0, Number(form.openingBalance) || 0),
+        creditLimit: Math.max(0, Number(form.creditLimit) || 0),
+        paymentTerms: form.paymentTerms || 'Cash / Credit',
+        cnic: form.cnic.trim(),
+        notes: form.notes.trim()
       });
 
       setShowModal(false);
       setForm({
         name: '',
+        shopName: '',
         phone: '',
+        whatsapp: '',
         city: '',
+        address: '',
         customerType: 'Regular Party',
-        openingBalance: 0
+        openingBalance: 0,
+        creditLimit: '',
+        paymentTerms: 'Cash / Credit',
+        cnic: '',
+        notes: ''
       });
     } catch (err) {
       alert(err.message || 'Failed to create customer');
@@ -78,7 +99,7 @@ export const Customers = () => {
     e.preventDefault();
     if (!editingCustomer || !editingCustomer.name.trim()) return;
 
-    if (editingCustomer.phone.trim()) {
+    if (editingCustomer.phone && editingCustomer.phone.trim()) {
       const cleanDigits = editingCustomer.phone.replace(/\D/g, '');
       if (cleanDigits.length < 10 || cleanDigits.length > 11) {
         alert(t('phoneNumberValidationAlert'));
@@ -89,10 +110,17 @@ export const Customers = () => {
     try {
       await updateCustomer(editingCustomer.id, {
         name: editingCustomer.name.trim(),
-        phone: editingCustomer.phone.trim() || 'N/A',
-        city: editingCustomer.city.trim() || 'Local Mandi',
+        shopName: editingCustomer.shopName ? editingCustomer.shopName.trim() : '',
+        phone: editingCustomer.phone ? editingCustomer.phone.trim() : 'N/A',
+        whatsapp: editingCustomer.whatsapp ? editingCustomer.whatsapp.trim() : '',
+        city: editingCustomer.city ? editingCustomer.city.trim() : 'Local Mandi',
+        address: editingCustomer.address ? editingCustomer.address.trim() : '',
         customerType: editingCustomer.customerType || 'Regular Party',
-        balance: Math.max(0, Number(editingCustomer.balance) || 0)
+        balance: Math.max(0, Number(editingCustomer.balance) || 0),
+        creditLimit: Math.max(0, Number(editingCustomer.creditLimit) || 0),
+        paymentTerms: editingCustomer.paymentTerms || 'Cash / Credit',
+        cnic: editingCustomer.cnic ? editingCustomer.cnic.trim() : '',
+        notes: editingCustomer.notes ? editingCustomer.notes.trim() : ''
       });
 
       setEditingCustomer(null);
@@ -301,13 +329,16 @@ export const Customers = () => {
       {showModal && (
         <div 
           onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border ${
+          <div className={`rounded-3xl max-w-2xl w-full p-6 space-y-4 card-shadow border ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-lg font-extrabold">{t('addNewRegularParty')}</h3>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-brand-500" />
+                <h3 className="text-base font-black uppercase tracking-wide">{t('addNewRegularParty')}</h3>
+              </div>
               <button 
                 type="button" 
                 onClick={() => setShowModal(false)}
@@ -318,64 +349,250 @@ export const Customers = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">{t('customerPartyName')} *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Chaudhry & Sons"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
+            <form onSubmit={handleCreateSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+              {/* 1. Basic & Business Identity */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="text-[11px] font-black uppercase text-brand-600 dark:text-brand-400 flex items-center gap-1.5">
+                  <span>Basic & Business Identity (بنیادی و کاروباری معلومات)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      {t('customerPartyName')} *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Chaudhry Muhammad Aslam"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Shop / Firm / Arhat Name (دکان / فرم کا نام)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Chaudhry & Sons Commission Shop"
+                      value={form.shopName}
+                      onChange={(e) => setForm({ ...form, shopName: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                    Customer Type (خریدار کی قسم)
+                  </label>
+                  <select
+                    value={form.customerType}
+                    onChange={(e) => setForm({ ...form, customerType: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="Regular Party">Regular Party (کھاتہ دار / کمیشن ایجنٹ)</option>
+                    <option value="Wholesale Buyer">Wholesale Buyer (تھوک خریدار)</option>
+                    <option value="Retailer">Retailer / Shopkeeper (پرچون فروش)</option>
+                    <option value="Farmer / Producer">Farmer / Producer (زمیندار / کاشتکار)</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('phoneMobile')}</label>
-                  <input
-                    type="tel"
-                    placeholder="03001234567"
-                    maxLength={11}
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+              {/* 2. Contact & Mandi Location */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="text-[11px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Contact & Location (رابطہ و منڈی کا پتہ)</span>
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('mandiLocationCity')}</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Sargodha"
-                    value={form.city}
-                    onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      {t('phoneMobile')} *
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 03001234567"
+                      maxLength={11}
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      WhatsApp / Alt Phone (واٹس ایپ نمبر)
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 03217654321"
+                      maxLength={11}
+                      value={form.whatsapp}
+                      onChange={(e) => setForm({ ...form, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      {t('mandiLocationCity')} *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Sargodha Mandi"
+                      value={form.city}
+                      onChange={(e) => setForm({ ...form, city: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Full Address / Shop # (مکمل پتہ)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Shop # 14, Block B, New Mandi"
+                      value={form.address}
+                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              {/* 3. Financial & Payment Terms */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="text-[11px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span>Financial & Payment Terms (کھاتہ و ادھار شرائط)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Opening Balance (سابقہ ادھار)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={form.openingBalance || ''}
+                      onChange={(e) => setForm({ ...form, openingBalance: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Credit Limit (ادھار کی حد)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 500000"
+                      value={form.creditLimit || ''}
+                      onChange={(e) => setForm({ ...form, creditLimit: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Payment Terms (مدت ادائیگی)
+                    </label>
+                    <select
+                      value={form.paymentTerms}
+                      onChange={(e) => setForm({ ...form, paymentTerms: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <option value="Cash / Credit">Cash / Regular Khata (نقد و ادھار)</option>
+                      <option value="Cash on Delivery">Cash on Delivery (فوری نقد)</option>
+                      <option value="7 Days">Weekly (7 Days / ہفتہ وار)</option>
+                      <option value="15 Days">15 Days (پندرہ دن)</option>
+                      <option value="30 Days">Monthly (30 Days / ماہانہ)</option>
+                      <option value="Seasonal">Seasonal (فصل کٹائی پر)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Identification & Notes */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      CNIC / National ID (شناختی کارڈ نمبر)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 38403-1234567-1"
+                      value={form.cnic}
+                      onChange={(e) => setForm({ ...form, cnic: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Notes / Guarantor Reference (حوالہ / نوٹ)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Reference: Haji Akram Shop # 4"
+                      value={form.notes}
+                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className="w-1/3 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 cursor-pointer"
                 >
                   {t('cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
+                  className="w-2/3 py-3 bg-brand-500 hover:bg-brand-600 text-white font-black text-sm rounded-2xl shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 >
-                  {t('save')}
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Save Customer Profile (کسٹمر محفوظ کریں)</span>
                 </button>
               </div>
             </form>
@@ -387,13 +604,16 @@ export const Customers = () => {
       {editingCustomer && (
         <div 
           onClick={(e) => { if (e.target === e.currentTarget) setEditingCustomer(null); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border ${
+          <div className={`rounded-3xl max-w-2xl w-full p-6 space-y-4 card-shadow border ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-lg font-extrabold">{t('editCustomer')}</h3>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-base font-black uppercase tracking-wide flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-brand-500" />
+                <span>{t('editCustomer')}</span>
+              </h3>
               <button 
                 type="button" 
                 onClick={() => setEditingCustomer(null)}
@@ -404,76 +624,238 @@ export const Customers = () => {
               </button>
             </div>
 
-            <form onSubmit={handleUpdateSubmit} className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">{t('customerPartyName')}</label>
-                <input
-                  type="text"
-                  required
-                  value={editingCustomer.name}
-                  onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('phoneMobile')}</label>
-                  <input
-                    type="tel"
-                    placeholder="03001234567"
-                    maxLength={11}
-                    value={editingCustomer.phone}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+            <form onSubmit={handleUpdateSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+              {/* 1. Basic & Business Identity */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="text-[11px] font-black uppercase text-brand-600 dark:text-brand-400">
+                  Basic & Business Identity (بنیادی و کاروباری معلومات)
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      {t('customerPartyName')} *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingCustomer.name || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Shop / Firm / Arhat Name (دکان / فرم کا نام)
+                    </label>
+                    <input
+                      type="text"
+                      value={editingCustomer.shopName || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, shopName: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('mandiLocationCity')}</label>
-                  <input
-                    type="text"
-                    value={editingCustomer.city}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, city: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                    Customer Type (خریدار کی قسم)
+                  </label>
+                  <select
+                    value={editingCustomer.customerType || 'Regular Party'}
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, customerType: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                     }`}
-                  />
+                  >
+                    <option value="Regular Party">Regular Party (کھاتہ دار / کمیشن ایجنٹ)</option>
+                    <option value="Wholesale Buyer">Wholesale Buyer (تھوک خریدار)</option>
+                    <option value="Retailer">Retailer / Shopkeeper (پرچون فروش)</option>
+                    <option value="Farmer / Producer">Farmer / Producer (زمیندار / کاشتکار)</option>
+                  </select>
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">{t('receivableBalance')} (Rs.)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  onWheel={(e) => e.target.blur()}
-                  onFocus={(e) => e.target.select()}
-                  value={editingCustomer.balance}
-                  onChange={(e) => setEditingCustomer({ ...editingCustomer, balance: Number(e.target.value) })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
+              {/* 2. Contact & Location */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="text-[11px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Contact & Location (رابطہ و منڈی کا پتہ)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      {t('phoneMobile')}
+                    </label>
+                    <input
+                      type="tel"
+                      maxLength={11}
+                      value={editingCustomer.phone || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      WhatsApp / Alt Phone (واٹس ایپ نمبر)
+                    </label>
+                    <input
+                      type="tel"
+                      maxLength={11}
+                      value={editingCustomer.whatsapp || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      {t('mandiLocationCity')}
+                    </label>
+                    <input
+                      type="text"
+                      value={editingCustomer.city || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, city: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Full Address / Shop # (مکمل پتہ)
+                    </label>
+                    <input
+                      type="text"
+                      value={editingCustomer.address || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              {/* 3. Financial & Payment Terms */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="text-[11px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span>Financial & Payment Terms (کھاتہ و ادھار شرائط)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      {t('receivableBalance')} (موجودہ بقایا)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={editingCustomer.balance !== undefined ? editingCustomer.balance : ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, balance: Number(e.target.value) })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Credit Limit (ادھار کی حد)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editingCustomer.creditLimit || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, creditLimit: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Payment Terms (مدت ادائیگی)
+                    </label>
+                    <select
+                      value={editingCustomer.paymentTerms || 'Cash / Credit'}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, paymentTerms: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <option value="Cash / Credit">Cash / Regular Khata (نقد و ادھار)</option>
+                      <option value="Cash on Delivery">Cash on Delivery (فوری نقد)</option>
+                      <option value="7 Days">Weekly (7 Days / ہفتہ وار)</option>
+                      <option value="15 Days">15 Days (پندرہ دن)</option>
+                      <option value="30 Days">Monthly (30 Days / ماہانہ)</option>
+                      <option value="Seasonal">Seasonal (فصل کٹائی پر)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Identification & Notes */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      CNIC / National ID (شناختی کارڈ نمبر)
+                    </label>
+                    <input
+                      type="text"
+                      value={editingCustomer.cnic || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, cnic: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Notes / Guarantor Reference (حوالہ / نوٹ)
+                    </label>
+                    <input
+                      type="text"
+                      value={editingCustomer.notes || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, notes: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => setEditingCustomer(null)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className="w-1/3 py-3 font-bold text-xs rounded-2xl transition cursor-pointer bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200"
                 >
                   {t('cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
+                  className="w-2/3 py-3 bg-brand-500 hover:bg-brand-600 text-white font-black text-sm rounded-2xl transition shadow-lg shadow-brand-500/25 cursor-pointer active:scale-98"
                 >
                   {t('saveChanges')}
                 </button>
