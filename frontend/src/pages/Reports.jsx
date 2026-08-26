@@ -801,7 +801,7 @@ export const Reports = () => {
                 theme === 'dark' ? 'bg-slate-800 border-emerald-500/50' : 'bg-gradient-to-br from-emerald-50 to-white border-emerald-300'
               }`}
             >
-              <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">4. Net Profit (Asal Bachat)</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">4. Net Profit</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">
                 Rs. {netOperatingProfit.toLocaleString()}
               </div>
@@ -813,38 +813,38 @@ export const Reports = () => {
           <div className={`border rounded-2xl p-6 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
             <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <PieChart className="w-4 h-4 text-emerald-600" />
-              <span>Profit & Loss Breakdown (Asan Hisab)</span>
+              <span>Profit & Loss Breakdown</span>
             </h3>
 
             <div className="space-y-3 text-xs font-bold">
               <div className="p-3.5 rounded-xl bg-emerald-50/60 dark:bg-slate-900/60 border border-emerald-200/60 dark:border-slate-700 flex justify-between items-center">
                 <div>
-                  <span className="text-slate-900 dark:text-white font-bold block text-sm">1. Total Sales (Kul Farokht)</span>
-                  <span className="text-[11px] text-slate-500 font-medium">Customer sales orders se aane wali raqam</span>
+                  <span className="text-slate-900 dark:text-white font-bold block text-sm">1. Total Sales</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Money earned from selling goods to customers</span>
                 </div>
                 <span className="font-mono text-base font-bold text-emerald-600 dark:text-emerald-400">Rs. {totalSalesGross.toLocaleString()}</span>
               </div>
 
               <div className="p-3.5 rounded-xl bg-blue-50/60 dark:bg-slate-900/60 border border-blue-200/60 dark:border-slate-700 flex justify-between items-center">
                 <div>
-                  <span className="text-slate-900 dark:text-white font-bold block text-sm">2. Minus: Purchases (Maal Khareedari)</span>
-                  <span className="text-[11px] text-slate-500 font-medium">Suppliers se maal khareedne par lagne wali raqam</span>
+                  <span className="text-slate-900 dark:text-white font-bold block text-sm">2. Minus: Purchases</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Money spent on buying stock from suppliers</span>
                 </div>
                 <span className="font-mono text-base font-bold text-blue-600 dark:text-blue-400">- Rs. {cogs.toLocaleString()}</span>
               </div>
 
               <div className="p-3.5 rounded-xl bg-rose-50/60 dark:bg-slate-900/60 border border-rose-200/60 dark:border-slate-700 flex justify-between items-center">
                 <div>
-                  <span className="text-slate-900 dark:text-white font-bold block text-sm">3. Minus: Shop Expenses (Dukan Ke Kharchay)</span>
-                  <span className="text-[11px] text-slate-500 font-medium">Mazdoori, loading, kiraya, bijli bills aur bardana boriyan</span>
+                  <span className="text-slate-900 dark:text-white font-bold block text-sm">3. Minus: Shop Expenses</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Labour, loading, rent, bills & bags</span>
                 </div>
                 <span className="font-mono text-base font-bold text-rose-600 dark:text-rose-400">- Rs. {totalExpensesAmount.toLocaleString()}</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:bg-slate-900 border border-emerald-300 dark:border-slate-700 flex items-center justify-between font-bold text-base text-slate-900 dark:text-white shadow-2xs">
                 <div>
-                  <span className="block text-lg text-emerald-800 dark:text-emerald-300">Net Profit (Khaliis Munafa / Asal Bachat)</span>
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Har kism ke kharche nikal kar bachi hui raqam</span>
+                  <span className="block text-lg text-emerald-800 dark:text-emerald-300">Net Profit</span>
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Money left after all costs are removed</span>
                 </div>
                 <span className="text-2xl font-mono text-emerald-700 dark:text-emerald-300 font-black">Rs. {netOperatingProfit.toLocaleString()}</span>
               </div>
@@ -868,7 +868,7 @@ export const Reports = () => {
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Total Business Assets</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalAssets.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Cash + Market Udhaar + Godown Stock</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Cash + Pending Dues + Stock Value</div>
             </div>
 
             <div
@@ -878,9 +878,9 @@ export const Reports = () => {
               }`}
               title="Click to view Supplier Payables"
             >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Total Payables (Dena)</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Total Payables</div>
               <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalLiabilities.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Suppliers Ko Dene Wali Raqam</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Amount you owe to suppliers</div>
             </div>
 
             <div
@@ -890,7 +890,7 @@ export const Reports = () => {
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Net Business Value</div>
               <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalEquity.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Kul Sarmaya Minus Dena</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Assets minus what you owe</div>
             </div>
           </div>
 
@@ -900,23 +900,23 @@ export const Reports = () => {
             <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
                 <Building className="w-4 h-4 text-emerald-600" />
-                <span>Dukan Ka Kul Sarmaya (Assets)</span>
+                <span>What You Own (Assets)</span>
               </h3>
               <div className="space-y-3 text-xs font-bold">
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500 font-medium">Cash in Hand (Galla / Cash Box):</span>
+                  <span className="text-slate-500 font-medium">Cash in Hand:</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {cashInHand.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500 font-medium">Customer Udhaar (Market Se Lene Hain):</span>
+                  <span className="text-slate-500 font-medium">Pending from Customers:</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalCustomerReceivables.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500 font-medium">Godown Stock Value (Mojooda Maal):</span>
+                  <span className="text-slate-500 font-medium">Stock in Warehouse:</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalStockValuation.toLocaleString()}</span>
                 </div>
                 <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-bold text-sm text-slate-900 dark:text-white">
-                  <span>TOTAL ASSETS (KUL SARMAYA):</span>
+                  <span>TOTAL ASSETS:</span>
                   <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
                 </div>
               </div>
@@ -926,15 +926,15 @@ export const Reports = () => {
             <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
                 <PieChart className="w-4 h-4 text-rose-600" />
-                <span>Dena Baqaya & Asal Value</span>
+                <span>What You Owe & Net Worth</span>
               </h3>
               <div className="space-y-3 text-xs font-bold">
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500 font-medium">Supplier Baqaya (Suppliers Ko Dena Hay):</span>
+                  <span className="text-slate-500 font-medium">Due to Suppliers:</span>
                   <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500 font-medium">Net Business Worth (Asal Bacha Hua Sarmaya):</span>
+                  <span className="text-slate-500 font-medium">Net Business Worth:</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalEquity.toLocaleString()}</span>
                 </div>
                 <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-bold text-sm text-slate-900 dark:text-white">
