@@ -4,7 +4,8 @@ import {
   LayoutGrid, List, User, UserPlus,
   Percent, CheckCircle2, DollarSign,
   CreditCard, Smartphone, Wallet, Edit3,
-  RefreshCw, Wheat, Check, PanelLeftClose, PanelLeftOpen, Maximize2
+  RefreshCw, Wheat, Check, PanelLeftClose, PanelLeftOpen, Maximize2,
+  Receipt, AlertCircle, FileText
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
