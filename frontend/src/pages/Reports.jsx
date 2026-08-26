@@ -342,9 +342,8 @@ export const Reports = () => {
 
           <button
             onClick={() => window.print()}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
           >
             <Printer className="w-4 h-4" />
             <span>Print</span>
@@ -373,9 +372,8 @@ export const Reports = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div
               onClick={() => { setCategoryFilter('All'); setStockStatusFilter('All'); setSearchTerm(''); }}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+                }`}
               title="Click to view all registered commodities"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Stock Valuation</div>
@@ -385,9 +383,8 @@ export const Reports = () => {
 
             <div
               onClick={() => setStockStatusFilter('InStock')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+                }`}
               title="Click to filter In-Stock commodities"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">In-Stock Products</div>
@@ -397,9 +394,8 @@ export const Reports = () => {
 
             <div
               onClick={() => setStockStatusFilter('LowStock')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200/60'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200/60'
+                }`}
               title="Click to filter Low Stock Warnings"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Low Stock Warnings</div>
@@ -409,9 +405,8 @@ export const Reports = () => {
 
             <div
               onClick={() => setStockStatusFilter('OutOfStock')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
+                }`}
               title="Click to filter Out of Stock items"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Out of Stock</div>
@@ -421,9 +416,8 @@ export const Reports = () => {
           </div>
 
           {/* Interactive Filters Bar for Stock Report */}
-          <div className={`p-4 rounded-2xl border card-shadow flex flex-col md:flex-row md:items-center justify-between gap-3 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-          }`}>
+          <div className={`p-4 rounded-2xl border card-shadow flex flex-col md:flex-row md:items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+            }`}>
             <div className="flex flex-wrap items-center gap-3 flex-1">
               {/* Search */}
               <div className="relative min-w-[220px] flex-1 max-w-sm">
@@ -433,9 +427,8 @@ export const Reports = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search product, category, code..."
-                  className={`w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border outline-none focus:border-slate-800 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -445,9 +438,8 @@ export const Reports = () => {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   {allCategories.map(cat => (
                     <option key={cat} value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>
@@ -459,9 +451,8 @@ export const Reports = () => {
               <select
                 value={stockStatusFilter}
                 onChange={(e) => setStockStatusFilter(e.target.value)}
-                className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Statuses</option>
                 <option value="InStock">In Stock ({inStockCount})</option>
@@ -478,9 +469,8 @@ export const Reports = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="valueDesc">Highest Stock Value</option>
                 <option value="qtyDesc">Highest Quantity</option>
@@ -546,13 +536,12 @@ export const Reports = () => {
                           Rs. {item.stockVal.toLocaleString()}
                         </td>
                         <td className="py-3.5 px-3 text-center">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
-                            item.status === 'In Stock'
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${item.status === 'In Stock'
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               : item.status === 'Low Stock'
                                 ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                 : 'bg-rose-50 text-rose-700 border border-rose-200'
-                          }`}>
+                            }`}>
                             {item.status}
                           </span>
                         </td>
@@ -574,9 +563,8 @@ export const Reports = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div
               onClick={() => navigate('/sales')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+                }`}
               title="Click to view Sales Invoices"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Gross Sales Volume</div>
@@ -586,9 +574,8 @@ export const Reports = () => {
 
             <div
               onClick={() => navigate('/invoices?tab=Sales')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+                }`}
               title="Click to view Sales Invoices"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Counter Collections</div>
@@ -598,9 +585,8 @@ export const Reports = () => {
 
             <div
               onClick={() => navigate('/customers')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+                }`}
               title="Click to view Customer Khata Receivables"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Credit (Khata) Receivables</div>
@@ -653,9 +639,8 @@ export const Reports = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div
               onClick={() => setShowAddExpenseModal(true)}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+                }`}
               title="Click to Record New Expense"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Operating Expenses</div>
@@ -665,9 +650,8 @@ export const Reports = () => {
 
             <div
               onClick={() => setShowAddExpenseModal(true)}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-purple-500/30' : 'bg-gradient-to-b from-purple-50/50 to-white border-purple-200/80'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-purple-500/30' : 'bg-gradient-to-b from-purple-50/50 to-white border-purple-200/80'
+                }`}
               title="Click to Record New Expense"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Top Cost Category</div>
@@ -677,9 +661,8 @@ export const Reports = () => {
 
             <div
               onClick={() => setShowAddExpenseModal(true)}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+                }`}
               title="Click to Record New Expense"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Logged Entries</div>
@@ -762,9 +745,8 @@ export const Reports = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div
               onClick={() => navigate('/sales')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+                }`}
               title="Click to view Sales"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Total Sales</div>
@@ -774,9 +756,8 @@ export const Reports = () => {
 
             <div
               onClick={() => navigate('/purchases')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-br from-blue-50/40 to-white border-blue-200/60'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-br from-blue-50/40 to-white border-blue-200/60'
+                }`}
               title="Click to view Purchases"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Total Purchases</div>
@@ -786,9 +767,8 @@ export const Reports = () => {
 
             <div
               onClick={() => setShowAddExpenseModal(true)}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
+                }`}
               title="Click to view or add Expenses"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Shop Expenses</div>
@@ -797,9 +777,8 @@ export const Reports = () => {
             </div>
 
             <div
-              className={`p-5 rounded-2xl border card-shadow transition-all ${
-                theme === 'dark' ? 'bg-slate-800 border-emerald-500/50' : 'bg-gradient-to-br from-emerald-50 to-white border-emerald-300'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/50' : 'bg-gradient-to-br from-emerald-50 to-white border-emerald-300'
+                }`}
             >
               <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">4. Net Profit</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">
@@ -861,9 +840,8 @@ export const Reports = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div
               onClick={() => navigate('/inventory')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+                }`}
               title="Click to view Inventory"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Total Business Assets</div>
@@ -873,9 +851,8 @@ export const Reports = () => {
 
             <div
               onClick={() => navigate('/suppliers')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-                theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
+                }`}
               title="Click to view Supplier Payables"
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Total Payables</div>
@@ -884,9 +861,8 @@ export const Reports = () => {
             </div>
 
             <div
-              className={`p-5 rounded-2xl border card-shadow transition-all ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-gradient-to-br from-slate-50/50 to-white border-slate-200'
-              }`}
+              className={`p-5 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-gradient-to-br from-slate-50/50 to-white border-slate-200'
+                }`}
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Net Business Value</div>
               <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalEquity.toLocaleString()}</div>
@@ -955,9 +931,8 @@ export const Reports = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setShowAddExpenseModal(false); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
         >
-          <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
                 <DollarSign className="w-5 h-5 text-slate-700" />
@@ -980,9 +955,8 @@ export const Reports = () => {
                 <select
                   value={newExpense.category}
                   onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="Labour & Loading (Palla)">Labour & Loading (Palla / Mazdoori)</option>
                   <option value="Bardana / Bags">Bardana / Bags Procurement</option>
@@ -1005,9 +979,8 @@ export const Reports = () => {
                   value={newExpense.amount}
                   onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
                   placeholder="e.g. 5000"
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 font-mono ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1020,9 +993,8 @@ export const Reports = () => {
                   value={newExpense.desc}
                   onChange={(e) => setNewExpense({ ...newExpense, desc: e.target.value })}
                   placeholder="e.g. Loading and unloading mazdoori..."
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1033,9 +1005,8 @@ export const Reports = () => {
                 <select
                   value={newExpense.mode}
                   onChange={(e) => setNewExpense({ ...newExpense, mode: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="Cash">Cash (Counter Drawer)</option>
                   <option value="Bank Transfer">Bank Transfer / Online</option>
@@ -1047,9 +1018,8 @@ export const Reports = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddExpenseModal(false)}
-                  className={`w-1/2 py-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                    theme === 'dark' ? 'border-slate-700 text-slate-300 hover:bg-slate-700' : 'border-slate-200 text-slate-700 hover:bg-slate-100'
-                  }`}
+                  className={`w-1/2 py-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${theme === 'dark' ? 'border-slate-700 text-slate-300 hover:bg-slate-700' : 'border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
                 >
                   Cancel
                 </button>
