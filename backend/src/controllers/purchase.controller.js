@@ -3,6 +3,7 @@ import { Product } from '../models/product.model.js';
 import { Supplier } from '../models/supplier.model.js';
 import { Ledger } from '../models/ledger.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
+import { convertToKg } from '../services/unitConversion.service.js';
 
 // Anti-duplicate rapid submission cache
 const recentPurchases = new Map();
@@ -44,21 +45,24 @@ export const createPurchase = async (req, res) => {
       const itemTotal = qty * rate;
       totalGrand += itemTotal;
 
+      const itemUnit = item.unit || item.unitName || item.enteredUnit || product.unit || product.baseUnit || 'KG';
+      const qtyInKg = convertToKg(qty, itemUnit);
+      const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
+      const baseQtyAdded = qtyInKg / baseProductFactor;
+
       // Update product stock and purchase price
-      const newStock = Number(product.stockQty) + qty;
+      const newStock = Number(product.stockQty) + baseQtyAdded;
       await Product.findByIdAndUpdate(product.id, {
         stockQty: newStock,
         purchasePrice: rate > 0 ? rate : product.purchasePrice
       });
-
-      const itemUnit = item.unit || item.unitName || item.enteredUnit || product.unit || product.baseUnit || 'KG';
 
       // Audit Log
       await AuditLog.create({
         shop_id: req.shop_id,
         product: product.name,
         type: 'IN (Purchase)',
-        qty: `${qty} ${itemUnit}`,
+        qty: `${qty} ${itemUnit} (${baseQtyAdded} ${product.unit || 'KG'})`,
         ref: `Purchase Bill`,
         date: new Date().toLocaleDateString('en-GB')
       });

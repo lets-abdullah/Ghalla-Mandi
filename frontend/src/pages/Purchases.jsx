@@ -181,12 +181,15 @@ export const Purchases = () => {
   };
 
   // Calculations for KPI Header Cards
-  const totalPurchaseVolume = purchases.reduce((acc, p) => acc + (Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0), 0);
+  const totalGrossPurchases = purchases.reduce((acc, p) => acc + (Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0), 0);
+  const totalPurchaseReturnsVal = (purchaseReturns || []).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+  const totalNetPurchases = Math.max(0, totalGrossPurchases - totalPurchaseReturnsVal);
   const totalPaidOut = purchases.reduce((acc, p) => acc + (Number(p.paidAmount ?? p.paidamount) || 0), 0);
   const totalOutstandingPayable = purchases.reduce((acc, p) => {
     const amt = Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0;
     const paid = Number(p.paidAmount ?? p.paidamount) || 0;
-    return acc + Math.max(0, amt - paid);
+    const ret = Number(p.returnAmount || 0);
+    return acc + Math.max(0, amt - paid - ret);
   }, 0);
 
   const filteredPurchases = purchases.filter(p => {
@@ -223,7 +226,7 @@ export const Purchases = () => {
               setSelectedReturnPurchase(null);
               setShowReturnModal(true);
             }}
-            className="flex items-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-md shadow-rose-500/20 transition cursor-pointer"
+            className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-md shadow-rose-500/20 transition cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
             <span>Process Purchase Return</span>
@@ -272,7 +275,7 @@ export const Purchases = () => {
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <ShoppingCart className="w-4 h-4 text-blue-600" /> {t('totalPurchasesVolume')}
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-blue-600 dark:text-blue-400">Rs. {totalPurchaseVolume.toLocaleString()}</div>
+          <div className="text-2xl font-black mt-1.5 font-mono text-blue-600 dark:text-blue-400">Rs. {totalNetPurchases.toLocaleString()}</div>
           <div className="text-xs text-blue-700 dark:text-blue-400 font-bold mt-1">{purchases.length} {t('invoices')}</div>
         </div>
 

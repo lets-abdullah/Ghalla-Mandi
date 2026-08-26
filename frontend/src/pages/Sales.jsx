@@ -91,8 +91,15 @@ export const Sales = () => {
   };
 
   const totalGrossSales = (sales || []).reduce((acc, s) => acc + (Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0), 0);
+  const totalSaleReturnsVal = (saleReturns || []).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+  const totalNetSales = Math.max(0, totalGrossSales - totalSaleReturnsVal);
   const totalPaidCollected = (sales || []).reduce((acc, s) => acc + (Number(s.paidAmount ?? s.paidamount) || 0), 0);
-  const totalOutstandingReceivable = Math.max(0, totalGrossSales - totalPaidCollected);
+  const totalOutstandingReceivable = (sales || []).reduce((acc, s) => {
+    const amt = Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0;
+    const paid = Number(s.paidAmount ?? s.paidamount) || 0;
+    const ret = Number(s.returnAmount || 0);
+    return acc + Math.max(0, amt - paid - ret);
+  }, 0);
 
   const filteredSales = (sales || []).filter(s => {
     const matchesSearch = (s.invoiceNo || s.invoiceno || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -149,7 +156,7 @@ export const Sales = () => {
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <ShoppingBag className="w-4 h-4 text-emerald-600" /> {t('totalSalesVolume')}
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalGrossSales.toLocaleString()}</div>
+          <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalNetSales.toLocaleString()}</div>
           <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">{sales.length} {t('invoices')}</div>
         </div>
 

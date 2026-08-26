@@ -59,7 +59,7 @@ export const recordPayment = async (req, res) => {
 
       if (cust) {
         targetPartyName = cust.name;
-        const newBalance = Math.max(0, Number(cust.balance || 0) - amtNum);
+        const newBalance = Number(cust.balance || 0) - amtNum;
         await Customer.findByIdAndUpdate(cust.id, { balance: newBalance });
       }
 
@@ -93,7 +93,7 @@ export const recordPayment = async (req, res) => {
       const sup = partyId ? await Supplier.findById(partyId) : null;
       if (sup) {
         targetPartyName = sup.name;
-        const newBalance = Math.max(0, Number(sup.balance || 0) - amtNum);
+        const newBalance = Number(sup.balance || 0) - amtNum;
         await Supplier.findByIdAndUpdate(sup.id, { balance: newBalance });
       }
 

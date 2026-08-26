@@ -3,6 +3,7 @@ import { Product } from '../models/product.model.js';
 import { Customer } from '../models/customer.model.js';
 import { Ledger } from '../models/ledger.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
+import { convertToKg } from '../services/unitConversion.service.js';
 
 // Anti-duplicate rapid submission cache
 const recentSales = new Map();
@@ -48,8 +49,13 @@ export const createSale = async (req, res) => {
       const unitProfit = rate - Number(product.purchasePrice || 0);
       totalProfit += unitProfit * qty;
 
-      // Update product stock
-      const newStock = Math.max(0, Number(product.stockQty) - qty);
+      const itemUnit = item.unitName || item.unit || product.unit || 'KG';
+      const qtyInKg = convertToKg(qty, itemUnit);
+      const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
+      const baseQtyDeducted = qtyInKg / baseProductFactor;
+
+      // Update product stock in base unit
+      const newStock = Math.max(0, Number(product.stockQty) - baseQtyDeducted);
       await Product.findByIdAndUpdate(product.id, { stockQty: newStock });
 
       // Audit Log
@@ -57,7 +63,7 @@ export const createSale = async (req, res) => {
         shop_id: req.shop_id,
         product: product.name,
         type: 'OUT (Sale)',
-        qty: `${qty} ${product.unit || 'KG'}`,
+        qty: `${qty} ${itemUnit} (${baseQtyDeducted} ${product.unit || 'KG'})`,
         ref: `POS Checkout`,
         date: new Date().toLocaleDateString('en-GB')
       });
