@@ -112,18 +112,17 @@ export const PurchaseReturns = () => {
               }`}>
                 <th className="py-3 px-4">Debit #</th>
                 <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Supplier Firm</th>
-                <th className="py-3 px-4">Associated Purchase</th>
-                <th className="py-3 px-4">Returned Commodity</th>
-                <th className="py-3 px-4">Settlement Mode</th>
-                <th className="py-3 px-4">Reason</th>
-                <th className="py-3 px-4 text-right">Debit Valuation</th>
+                <th className="py-3 px-4">Supplier</th>
+                <th className="py-3 px-4">Purchase #</th>
+                <th className="py-3 px-4">Item</th>
+                <th className="py-3 px-4 text-center">Mode</th>
+                <th className="py-3 px-4 text-right">Amount</th>
               </tr>
             </thead>
             <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
               {filteredReturns.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
                     <Package className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
                     No purchase returns recorded yet.
                   </td>
@@ -131,22 +130,21 @@ export const PurchaseReturns = () => {
               ) : (
                 filteredReturns.map(ret => (
                   <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">{ret.returnNo}</td>
-                    <td className="py-3.5 px-4 text-slate-500">{ret.date}</td>
-                    <td className="py-3.5 px-4 font-bold">{ret.supplierName}</td>
-                    <td className="py-3.5 px-4 font-mono font-medium text-slate-600 dark:text-slate-300">{ret.purchaseNo}</td>
-                    <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
-                      {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Commodity Item'}
+                    <td className="py-3 px-4 font-mono font-bold text-rose-600 dark:text-rose-400">{ret.returnNo}</td>
+                    <td className="py-3 px-4 text-slate-500">{ret.date}</td>
+                    <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{ret.supplierName}</td>
+                    <td className="py-3 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">{ret.purchaseNo}</td>
+                    <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200">
+                      {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Item'}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3 px-4 text-center">
                       <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${
-                        ret.refundMode === 'Cash' ? 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
+                        ret.refundMode === 'Cash' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700 border border-slate-200'
                       }`}>
-                        {ret.refundMode === 'Cash' ? 'Cash Received' : 'Supplier Khata Deducted'}
+                        {ret.refundMode === 'Cash' ? 'Cash' : 'Khata'}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-500 max-w-[200px] truncate">{ret.reason}</td>
-                    <td className="py-3.5 px-4 text-right font-bold font-mono text-slate-900 dark:text-white">
+                    <td className="py-3 px-4 text-right font-black font-mono text-rose-600 dark:text-rose-400">
                       Rs. {Number(ret.refundAmount || 0).toLocaleString()}
                     </td>
                   </tr>

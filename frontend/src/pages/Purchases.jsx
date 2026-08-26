@@ -339,13 +339,13 @@ export const Purchases = () => {
             <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
               <thead>
                 <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                  <th className="py-3 px-4">Debit Note #</th>
+                  <th className="py-3 px-4">Debit #</th>
                   <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Supplier Firm</th>
-                  <th className="py-3 px-4">Associated Purchase</th>
-                  <th className="py-3 px-4">Returned Commodity</th>
-                  <th className="py-3 px-4">Settlement Mode</th>
-                  <th className="py-3 px-4 text-right">Debit Valuation</th>
+                  <th className="py-3 px-4">Supplier</th>
+                  <th className="py-3 px-4">Purchase #</th>
+                  <th className="py-3 px-4">Item</th>
+                  <th className="py-3 px-4 text-center">Mode</th>
+                  <th className="py-3 px-4 text-right">Amount</th>
                 </tr>
               </thead>
               <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
@@ -354,19 +354,19 @@ export const Purchases = () => {
                 ) : (
                   purchaseReturns.map(ret => (
                     <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
-                      <td className="py-3.5 px-4 font-mono font-black text-rose-500">{ret.returnNo}</td>
-                      <td className="py-3.5 px-4 text-slate-400">{ret.date}</td>
-                      <td className="py-3.5 px-4 font-bold">{ret.supplierName}</td>
-                      <td className="py-3.5 px-4 font-mono text-brand-500 font-bold">{ret.purchaseNo}</td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
-                        {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Commodity Item'}
+                      <td className="py-3 px-4 font-mono font-bold text-rose-600 dark:text-rose-400">{ret.returnNo}</td>
+                      <td className="py-3 px-4 text-slate-500">{ret.date}</td>
+                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{ret.supplierName}</td>
+                      <td className="py-3 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">{ret.purchaseNo}</td>
+                      <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200">
+                        {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Item'}
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${ret.refundMode === 'Cash' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
-                          {ret.refundMode === 'Cash' ? 'Cash Received' : 'Supplier Ledger Dues Deducted'}
+                      <td className="py-3 px-4 text-center">
+                        <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${ret.refundMode === 'Cash' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                          {ret.refundMode === 'Cash' ? 'Cash' : 'Khata'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-right font-black font-mono text-rose-600 dark:text-rose-400">
+                      <td className="py-3 px-4 text-right font-black font-mono text-rose-600 dark:text-rose-400">
                         Rs. {Number(ret.refundAmount || 0).toLocaleString()}
                       </td>
                     </tr>
@@ -385,14 +385,14 @@ export const Purchases = () => {
               <thead>
                 <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                   }`}>
-                  <th className="py-3 px-4">{t('purchaseNo')}</th>
-                  <th className="py-3 px-4">{t('supplierFirmName')}</th>
-                  <th className="py-3 px-4">{t('itemsSold')}</th>
-                  <th className="py-3 px-4 text-right">{t('totalAmount')}</th>
-                  <th className="py-3 px-4 text-right">{t('paid')}</th>
-                  <th className="py-3 px-4 text-right">{t('remainingDue')}</th>
-                  <th className="py-3 px-4 text-center">{t('status')}</th>
-                  <th className="py-3 px-4 text-center">{t('actions')}</th>
+                  <th className="py-3 px-4">Purchase #</th>
+                  <th className="py-3 px-4">Supplier</th>
+                  <th className="py-3 px-4">Items</th>
+                  <th className="py-3 px-4 text-right">Total</th>
+                  <th className="py-3 px-4 text-right">Paid</th>
+                  <th className="py-3 px-4 text-right">Due</th>
+                  <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-4 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'

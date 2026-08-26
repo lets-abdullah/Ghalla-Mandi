@@ -258,14 +258,14 @@ export const Invoices = () => {
             <thead>
               <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                <th className="py-3.5 px-4">{t('invoiceNo')}</th>
-                <th className="py-3.5 px-4">{activeTab === 'Sales' ? t('customerParty') : t('supplierFirmName')}</th>
-                <th className="py-3.5 px-4">{activeTab === 'Sales' ? t('itemsSold') : t('product')}</th>
-                <th className="py-3.5 px-4">{t('date')}</th>
-                <th className="py-3.5 px-4 text-right">{t('totalAmount')}</th>
-                <th className="py-3.5 px-4 text-right">{t('remainingDue')}</th>
-                <th className="py-3.5 px-4 text-center">{t('status')}</th>
-                <th className="py-3.5 px-4 text-center">{t('actions')}</th>
+                <th className="py-3.5 px-4">{activeTab === 'Sales' ? 'Invoice #' : 'Purchase #'}</th>
+                <th className="py-3.5 px-4">{activeTab === 'Sales' ? 'Customer' : 'Supplier'}</th>
+                <th className="py-3.5 px-4">Items</th>
+                <th className="py-3.5 px-4">Date</th>
+                <th className="py-3.5 px-4 text-right">Total</th>
+                <th className="py-3.5 px-4 text-right">Due</th>
+                <th className="py-3.5 px-4 text-center">Status</th>
+                <th className="py-3.5 px-4 text-center">Action</th>
               </tr>
             </thead>
             <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
@@ -285,20 +285,13 @@ export const Invoices = () => {
                   return (
                     <tr key={inv.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
                       }`}>
-                      <td className="py-3.5 px-4 font-mono font-black text-brand-500">{inv.invoiceNo}</td>
-                      <td className="py-3.5 px-4 font-extrabold text-xs">{inv.partyName}</td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 font-mono font-bold text-blue-600 dark:text-blue-400">{inv.invoiceNo}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">{inv.partyName}</td>
+                      <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200">
                         {inv.cart && inv.cart.length > 0 ? (
-                          <div className="flex flex-col gap-1.5">
-                            {inv.cart.map((item, idx) => (
-                              <div key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 font-extrabold text-xs border border-brand-500/20 whitespace-nowrap w-fit">
-                                <span>📦 {item.name}</span>
-                                <span className="text-[10px] opacity-80">({item.qty} {item.unitName || item.unit || t('kg')} @ Rs. {(item.rate || item.price || 0).toLocaleString()})</span>
-                              </div>
-                            ))}
-                          </div>
+                          inv.cart.map(i => `${i.name} (${i.qty} ${i.unitName || i.unit || 'KG'})`).join(', ')
                         ) : (
-                          <span className="text-slate-400 font-semibold">{inv.productName || (typeof inv.items === 'string' ? inv.items : (Array.isArray(inv.items) ? inv.items.map(i => i.name || i.productName).join(', ') : t('products')))}</span>
+                          <span className="text-slate-600 dark:text-slate-300">{inv.productName || (typeof inv.items === 'string' ? inv.items : (Array.isArray(inv.items) ? inv.items.map(i => i.name || i.productName).join(', ') : 'Items'))}</span>
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">{inv.date}</td>
