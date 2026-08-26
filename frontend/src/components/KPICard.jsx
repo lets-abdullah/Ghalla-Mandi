@@ -58,27 +58,27 @@ export const KPICard = ({
   return (
     <div
       onClick={onClick}
-      className={`border rounded-2xl p-4 card-shadow card-hover flex flex-col justify-between cursor-pointer group transition-all ${activeStyle.card}`}
+      className={`border rounded-2xl p-3.5 sm:p-4 card-shadow card-hover flex flex-col justify-between cursor-pointer group transition-all ${activeStyle.card}`}
     >
       {/* Top row: Title and Icon Badge */}
-      <div className="flex items-start justify-between">
-        <div className="min-w-0 pr-2">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block truncate">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block truncate" title={title}>
             {title}
           </span>
-          <h3 className={`text-xl font-black mt-1 tracking-tight font-mono truncate ${activeStyle.value}`}>
+          <h3 className={`text-base sm:text-lg lg:text-xl font-black mt-1 tracking-tight font-mono whitespace-nowrap overflow-visible ${activeStyle.value}`}>
             {amount}
           </h3>
         </div>
         {Icon && (
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition ${activeStyle.iconBox}`}>
+          <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition ${activeStyle.iconBox}`}>
             <Icon className="w-4 h-4" />
           </div>
         )}
       </div>
 
       {/* Bottom row: Subtext or Trend */}
-      <div className={`mt-3 pt-2.5 border-t flex items-center justify-between text-xs ${
+      <div className={`mt-3 pt-2 border-t flex items-center justify-between text-xs ${
         theme === 'dark' ? 'border-slate-700/60' : 'border-slate-100'
       }`}>
         {trend && (
@@ -88,7 +88,7 @@ export const KPICard = ({
           </span>
         )}
         {subtext && (
-          <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] truncate ${activeStyle.badge}`}>
+          <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] truncate max-w-full ${activeStyle.badge}`} title={subtext}>
             {subtext}
           </span>
         )}
