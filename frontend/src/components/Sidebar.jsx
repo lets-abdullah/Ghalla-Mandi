@@ -77,12 +77,12 @@ export const Sidebar = () => {
               className={`flex items-center gap-3 overflow-hidden cursor-pointer group ${isCollapsed ? 'justify-center' : ''}`}
               title={t('dashboard')}
             >
-              <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-all">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 shrink-0 group-hover:scale-105 transition-all">
                 <Wheat className="w-5 h-5 stroke-[2.5]" />
               </div>
               {!isCollapsed && (
                 <div className="overflow-hidden">
-                  <h1 className="font-black text-slate-900 text-sm tracking-tight leading-none uppercase truncate group-hover:text-brand-600 transition-colors">
+                  <h1 className="font-black text-slate-900 text-sm tracking-tight leading-none uppercase truncate group-hover:text-emerald-600 transition-colors">
                     {t('appName')}
                   </h1>
                   <p className="text-[11px] text-slate-500 font-medium mt-1 truncate">
@@ -513,15 +513,15 @@ export const Sidebar = () => {
         <div className="space-y-2.5 pt-3 border-t border-slate-100">
           {/* Support Widget */}
           {!isCollapsed ? (
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
-              <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center mx-auto mb-1">
-                <Headphones className="w-3.5 h-3.5" />
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50/60 border border-emerald-200/80 rounded-2xl p-3 text-center shadow-2xs">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-1 shadow-2xs">
+                <Headphones className="w-4 h-4" />
               </div>
               <h4 className="text-xs font-bold text-slate-800">{t('needHelp')}</h4>
               <p className="text-[10px] text-slate-500 mb-2">{t('dedicatedSupport')}</p>
               <button
                 onClick={() => setShowSupportModal(true)}
-                className="w-full py-1.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-1.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
                 <span>{t('contactSupport')}</span>
@@ -530,7 +530,7 @@ export const Sidebar = () => {
           ) : (
             <button
               onClick={() => setShowSupportModal(true)}
-              className="w-full p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer relative group"
+              className="w-full p-2.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center transition cursor-pointer relative group shadow-2xs"
               title={t('contactSupport')}
             >
               <Headphones className="w-4 h-4" />

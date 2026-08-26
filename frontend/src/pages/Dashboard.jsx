@@ -40,9 +40,7 @@ export const Dashboard = () => {
           amount={`Rs. ${totalSales.toLocaleString()}`}
           subtext={t('salesTodayCount', { count: sales.length })}
           icon={ShoppingBag}
-          bgClass="bg-emerald-50"
-          iconClass="text-emerald-600"
-          isPositive={true}
+          color="emerald"
           onClick={() => navigate('/sales')}
         />
         <KPICard
@@ -50,9 +48,7 @@ export const Dashboard = () => {
           amount={`Rs. ${totalPurchases.toLocaleString()}`}
           subtext={t('purchasesTodayCount', { count: purchases.length })}
           icon={ShoppingCart}
-          bgClass="bg-brand-50"
-          iconClass="text-brand-600"
-          isPositive={false}
+          color="blue"
           onClick={() => navigate('/purchases')}
         />
         <KPICard
@@ -60,28 +56,23 @@ export const Dashboard = () => {
           amount={`Rs. ${totalProfit.toLocaleString()}`}
           subtext={t('grossProfit')}
           icon={DollarSign}
-          bgClass="bg-emerald-50"
-          iconClass="text-emerald-600"
-          isPositive={true}
-          onClick={() => navigate('/reports')}
+          color="emerald"
+          onClick={() => navigate('/reports?type=ProfitLoss')}
         />
         <KPICard
           title={t('stockAndInventory')}
           amount={`Rs. ${totalInventoryValue.toLocaleString()}`}
           subtext={`${totalStockQty.toLocaleString()} ${t('itemsInStock') || 'units in stock'}`}
           icon={TrendingUp}
-          bgClass="bg-indigo-50"
-          iconClass="text-indigo-600"
-          isPositive={true}
-          onClick={() => navigate('/inventory')}
+          color="indigo"
+          onClick={() => navigate('/reports?type=Stock')}
         />
         <KPICard
           title={t('outstandingReceivables')}
           amount={`Rs. ${totalReceivables.toLocaleString()}`}
           subtext={t('fromCustomersCount', { count: customers.length })}
           icon={Users}
-          bgClass="bg-amber-50"
-          iconClass="text-amber-600"
+          color="amber"
           onClick={() => navigate('/customers')}
         />
         <KPICard
@@ -89,8 +80,7 @@ export const Dashboard = () => {
           amount={`Rs. ${totalPayables.toLocaleString()}`}
           subtext={t('toSuppliersCount', { count: suppliers.length })}
           icon={CreditCard}
-          bgClass="bg-rose-50"
-          iconClass="text-rose-600"
+          color="rose"
           onClick={() => navigate('/suppliers')}
         />
       </div>

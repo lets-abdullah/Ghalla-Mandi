@@ -32,7 +32,7 @@ export const SaleReturns = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-            <RotateCcw className="w-6 h-6 text-slate-800 dark:text-slate-200" />
+            <RotateCcw className="w-6 h-6 text-orange-500" />
             <span>Sale Returns</span>
           </h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -53,7 +53,7 @@ export const SaleReturns = () => {
 
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-xs cursor-pointer"
+            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-orange-500/20 cursor-pointer active:scale-98"
           >
             <Plus className="w-4 h-4" />
             <span>Process Sale Return</span>
@@ -63,22 +63,22 @@ export const SaleReturns = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-orange-500/30' : 'bg-gradient-to-b from-orange-50/50 to-white border-orange-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Returns Value</div>
-          <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalRefundAmount.toLocaleString()}</div>
+          <div className="text-2xl font-black mt-1.5 text-orange-600 dark:text-orange-400 font-mono">Rs. {totalRefundAmount.toLocaleString()}</div>
           <div className="text-xs text-slate-400 font-medium mt-1">{saleReturns.length} Return Records</div>
         </div>
 
-        <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Payouts</div>
-          <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalCashRefunds.toLocaleString()}</div>
-          <div className="text-xs text-slate-500 font-medium mt-1">Direct Counter Refunds</div>
+          <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalCashRefunds.toLocaleString()}</div>
+          <div className="text-xs text-rose-700 dark:text-rose-400 font-medium mt-1">Direct Counter Refunds</div>
         </div>
 
-        <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Khata Dues Deducted</div>
-          <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalKhataAdjustments.toLocaleString()}</div>
-          <div className="text-xs text-slate-500 font-medium mt-1">Customer Ledger Reductions</div>
+          <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">Rs. {totalKhataAdjustments.toLocaleString()}</div>
+          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">Customer Ledger Reductions</div>
         </div>
       </div>
 

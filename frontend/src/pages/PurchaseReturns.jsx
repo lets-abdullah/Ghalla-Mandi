@@ -32,7 +32,7 @@ export const PurchaseReturns = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-            <RotateCcw className="w-6 h-6 text-slate-800 dark:text-slate-200" />
+            <RotateCcw className="w-6 h-6 text-rose-500" />
             <span>Purchase Returns (Debit Notes)</span>
           </h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -53,7 +53,7 @@ export const PurchaseReturns = () => {
 
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-xs cursor-pointer"
+            className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-rose-500/20 cursor-pointer active:scale-98"
           >
             <Plus className="w-4 h-4" />
             <span>Process Purchase Return</span>
@@ -63,22 +63,22 @@ export const PurchaseReturns = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Debit Valuation</div>
-          <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalReturnAmount.toLocaleString()}</div>
+          <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalReturnAmount.toLocaleString()}</div>
           <div className="text-xs text-slate-400 font-medium mt-1">{purchaseReturns.length} Return Records</div>
         </div>
 
-        <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Supplier Dues Deducted</div>
-          <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalPayablesDeducted.toLocaleString()}</div>
-          <div className="text-xs text-slate-500 font-medium mt-1">Supplier Ledger Reductions</div>
+          <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">Rs. {totalPayablesDeducted.toLocaleString()}</div>
+          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">Supplier Ledger Reductions</div>
         </div>
 
-        <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Received Back</div>
-          <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalCashRefunds.toLocaleString()}</div>
-          <div className="text-xs text-slate-500 font-medium mt-1">Cash Returned by Suppliers</div>
+          <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalCashRefunds.toLocaleString()}</div>
+          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">Cash Returned by Suppliers</div>
         </div>
       </div>
 

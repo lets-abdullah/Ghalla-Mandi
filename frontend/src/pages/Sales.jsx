@@ -126,7 +126,7 @@ export const Sales = () => {
               setSelectedReturnSale(null);
               setShowReturnModal(true);
             }}
-            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition cursor-pointer"
+            className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-md shadow-orange-500/20 transition cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
             <span>Process Sale Return</span>
@@ -144,30 +144,30 @@ export const Sales = () => {
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
           }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <ShoppingBag className="w-4 h-4 text-slate-600" /> {t('totalSalesVolume')}
+            <ShoppingBag className="w-4 h-4 text-emerald-600" /> {t('totalSalesVolume')}
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-slate-900 dark:text-white">Rs. {totalGrossSales.toLocaleString()}</div>
-          <div className="text-xs text-slate-400 font-medium mt-1">{sales.length} {t('invoices')}</div>
+          <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalGrossSales.toLocaleString()}</div>
+          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">{sales.length} {t('invoices')}</div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
           }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-slate-600" /> {t('Cash Received')}
+            <DollarSign className="w-4 h-4 text-blue-600" /> {t('Cash Received')}
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-slate-900 dark:text-white">Rs. {totalPaidCollected.toLocaleString()}</div>
-          <div className="text-xs text-slate-500 font-medium mt-1">{t('paid')}</div>
+          <div className="text-2xl font-black mt-1.5 font-mono text-blue-600 dark:text-blue-400">Rs. {totalPaidCollected.toLocaleString()}</div>
+          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-1">{t('paid')}</div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
           }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-slate-600" /> {t('amountToReceive')}
+            <Clock className="w-4 h-4 text-amber-600" /> {t('amountToReceive')}
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-slate-900 dark:text-white">Rs. {totalOutstandingReceivable.toLocaleString()}</div>
+          <div className="text-2xl font-black mt-1.5 font-mono text-amber-600 dark:text-amber-400">Rs. {totalOutstandingReceivable.toLocaleString()}</div>
           <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">{t('pending')}</div>
         </div>
       </div>
@@ -181,8 +181,8 @@ export const Sales = () => {
             <button
               key={type}
               onClick={() => setFilterType(type)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${filterType === type
-                ? 'bg-slate-900 text-white shadow-xs'
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${filterType === type
+                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 font-black'
                 : theme === 'dark' ? 'bg-slate-900 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
             >
