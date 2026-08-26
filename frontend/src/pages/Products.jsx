@@ -275,7 +275,7 @@ export const Products = () => {
             <thead>
               <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                <th className="py-3 px-4">{t('optional')}</th>
+                <th className="py-3 px-4">Image</th>
                 <th className="py-3 px-4">{t('productName')}</th>
                 <th className="py-3 px-4">{t('category')}</th>
                 <th className="py-3 px-4">{t('productCode')}</th>

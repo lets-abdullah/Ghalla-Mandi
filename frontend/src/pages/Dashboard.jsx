@@ -33,8 +33,8 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Fully Interactive KPI Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5 sm:gap-4">
+      {/* 5 Essential High-Impact KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <KPICard
           title={t('todaySales')}
           amount={`Rs. ${totalSales.toLocaleString()}`}
@@ -52,19 +52,11 @@ export const Dashboard = () => {
           onClick={() => navigate('/purchases')}
         />
         <KPICard
-          title={t('todayProfit')}
-          amount={`Rs. ${totalProfit.toLocaleString()}`}
-          subtext={t('grossProfit')}
-          icon={DollarSign}
-          color="emerald"
-          onClick={() => navigate('/reports?type=ProfitLoss')}
-        />
-        <KPICard
           title={t('stockAndInventory')}
           amount={`Rs. ${totalInventoryValue.toLocaleString()}`}
           subtext={`${totalStockQty.toLocaleString()} ${t('itemsInStock') || 'units in stock'}`}
           icon={TrendingUp}
-          color="emerald"
+          color="amber"
           onClick={() => navigate('/reports?type=Stock')}
         />
         <KPICard
@@ -103,54 +95,9 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Bottom Row: Recent Transactions & Business Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8">
-          <RecentTransactionsTable onViewInvoice={(inv) => setActiveInvoice(inv)} />
-        </div>
-
-        {/* Business Summary Monthly Card */}
-        <div
-          onClick={() => navigate('/reports')}
-          className="lg:col-span-4 bg-white border border-slate-200 hover:border-brand-300 rounded-2xl p-5 card-shadow flex flex-col justify-between cursor-pointer group"
-        >
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-slate-900 text-sm group-hover:text-brand-600 transition">
-                {t('businessSummary')} <span className="text-slate-400 text-xs font-normal">{t('thisMonth')}</span>
-              </h3>
-              <Sparkles className="w-4 h-4 text-emerald-500" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-emerald-50/60 border border-emerald-100 p-3 rounded-xl">
-                <div className="text-[11px] font-semibold text-slate-500">{t('totalSalesVolume')}</div>
-                <div className="text-base font-extrabold text-slate-900 mt-0.5">Rs. {totalSales.toLocaleString()}</div>
-              </div>
-
-              <div className="bg-brand-50/60 border border-brand-100 p-3 rounded-xl">
-                <div className="text-[11px] font-semibold text-slate-500">{t('totalPurchasesVolume')}</div>
-                <div className="text-base font-extrabold text-slate-900 mt-0.5">Rs. {totalPurchases.toLocaleString()}</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-purple-50/60 border border-purple-100 p-3 rounded-xl">
-                <div className="text-[11px] font-semibold text-slate-500">{t('grossProfit')}</div>
-                <div className="text-base font-extrabold text-slate-900 mt-0.5">Rs. {totalProfit.toLocaleString()}</div>
-              </div>
-
-              <div className="bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl">
-                <div className="text-[11px] font-semibold text-slate-500">{t('stockAndInventory')}</div>
-                <div className="text-base font-extrabold text-slate-900 mt-0.5">Rs. {totalInventoryValue.toLocaleString()}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-100 text-center text-xs text-slate-400 group-hover:text-brand-600 font-semibold transition">
-            {t('clickDetailedReport')}
-          </div>
-        </div>
+      {/* Full Width Clean Recent Transactions Table */}
+      <div className="w-full">
+        <RecentTransactionsTable onViewInvoice={(inv) => setActiveInvoice(inv)} />
       </div>
 
       {/* Invoice Drawer Modal */}

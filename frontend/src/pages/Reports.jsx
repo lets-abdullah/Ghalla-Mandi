@@ -301,11 +301,11 @@ export const Reports = () => {
             </span>
           </h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
-            {reportType === 'Stock' && 'Current stock quantities, category filter, dynamic units (Litre, KG, Packets), and valuations'}
-            {reportType === 'Sales' && 'Gross revenue turnover, cash collections, khata credit sales, and top-selling commodities'}
-            {reportType === 'Expenses' && 'Labour loading, transport freight, bardana bags, and operational expense records'}
-            {reportType === 'ProfitLoss' && 'Revenue turnover minus procurement costs and operating expenses'}
-            {reportType === 'BalanceSheet' && 'Cash in hand, customer receivables, and stock valuation versus supplier payables'}
+            {reportType === 'Stock' && 'Live stock inventory quantities, unit measurements, and godown valuations'}
+            {reportType === 'Sales' && 'Gross revenue turnover, cash counter collections, and customer khata breakdown'}
+            {reportType === 'Expenses' && 'Operating overheads, labour, transport, and Mandi expenses'}
+            {reportType === 'ProfitLoss' && 'Financial performance summary: Revenue minus Cost of Goods and Expenses'}
+            {reportType === 'BalanceSheet' && 'Financial position: Total Godown Assets vs. Supplier Liabilities'}
           </p>
         </div>
 
@@ -556,11 +556,11 @@ export const Reports = () => {
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
             }`}>
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Counter Collections</div>
-              <div className="text-2xl font-black mt-1.5 text-blue-600 dark:text-blue-400 font-mono">Rs. {totalSalesCash.toLocaleString()}</div>
-              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">Direct Cash Payments</div>
+              <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalSalesCash.toLocaleString()}</div>
+              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">Direct Cash Payments</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${

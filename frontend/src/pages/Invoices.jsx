@@ -182,44 +182,49 @@ export const Invoices = () => {
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            {isPurchases ? <ShoppingCart className="w-4 h-4 text-brand-500" /> : <ShoppingBag className="w-4 h-4 text-emerald-500" />}
+        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${
+          theme === 'dark'
+            ? isPurchases ? 'bg-slate-800 border-blue-500/30' : 'bg-slate-800 border-emerald-500/30'
+            : isPurchases ? 'bg-gradient-to-br from-blue-50/40 to-white border-blue-200/60' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+        }`}>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            {isPurchases ? <ShoppingCart className="w-4 h-4 text-blue-600" /> : <ShoppingBag className="w-4 h-4 text-emerald-600" />}
             {isPurchases ? t('totalPurchasesVolume') : t('totalSalesVolume')}
           </div>
-          <div className="text-2xl font-extrabold mt-1">
+          <div className={`text-2xl font-black mt-1.5 font-mono ${isPurchases ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
             Rs. {(isPurchases ? totalPurchasesInvoiced : totalSalesInvoiced).toLocaleString()}
           </div>
-          <div className="text-xs text-emerald-500 font-bold mt-1">
+          <div className="text-xs text-slate-400 font-medium mt-1">
             {(isPurchases ? purchaseInvoices.length : salesInvoices.length)} {t('invoices')}
           </div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-emerald-500" />
-            {isPurchases ? t('totalPaidOut') || 'Total Paid to Suppliers' : t('totalReceivedPayment') || 'Total Cash Received'}
+        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${
+          theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+        }`}>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <DollarSign className="w-4 h-4 text-emerald-600" />
+            {isPurchases ? (t('totalPaidOut') || 'Total Paid to Suppliers') : (t('totalReceivedPayment') || 'Total Cash Received')}
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-emerald-500">
+          <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">
             Rs. {(isPurchases ? totalPurchasesPaid : totalSalesPaid).toLocaleString()}
           </div>
-          <div className="text-xs text-slate-400 font-medium mt-1">
+          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">
             {t('paid')}
           </div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <FileText className="w-4 h-4 text-amber-500" /> {t('totalInvoicesCount') || 'Total Invoices'}
+        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${
+          theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-br from-blue-50/40 to-white border-blue-200/60'
+        }`}>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <FileText className="w-4 h-4 text-blue-600" /> {t('totalInvoicesCount') || 'Total Invoices'}
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-amber-500">
+          <div className="text-2xl font-black mt-1.5 font-mono text-blue-600 dark:text-blue-400">
             {(isPurchases ? purchaseInvoices.length : salesInvoices.length)} {t('invoices')}
           </div>
-          <div className="text-xs text-amber-500 font-bold mt-1">
-            {isPurchases ? 'Purchases Record' : 'Sales Record'}
+          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-1">
+            Billed Records
           </div>
         </div>
       </div>
