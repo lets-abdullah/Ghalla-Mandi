@@ -126,7 +126,7 @@ export const Sales = () => {
               setSelectedReturnSale(null);
               setShowReturnModal(true);
             }}
-            className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-xs px-3.5 py-2.5 rounded-xl shadow-md transition cursor-pointer"
+            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
             <span>Process Sale Return</span>
@@ -134,7 +134,7 @@ export const Sales = () => {
 
           <button
             onClick={() => window.print()}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
           >
             <Printer className="w-4 h-4" /> {t('Print Receipt')}
@@ -144,31 +144,31 @@ export const Sales = () => {
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <ShoppingBag className="w-4 h-4 text-emerald-500" /> {t('totalSalesVolume')}
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <ShoppingBag className="w-4 h-4 text-slate-600" /> {t('totalSalesVolume')}
           </div>
-          <div className="text-2xl font-extrabold mt-1">Rs. {totalGrossSales.toLocaleString()}</div>
-          <div className="text-xs text-emerald-500 font-bold mt-1">{sales.length} {t('invoices')}</div>
+          <div className="text-2xl font-black mt-1.5 font-mono text-slate-900 dark:text-white">Rs. {totalGrossSales.toLocaleString()}</div>
+          <div className="text-xs text-slate-400 font-medium mt-1">{sales.length} {t('invoices')}</div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-brand-500" /> {t('Cash Received')}
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <DollarSign className="w-4 h-4 text-slate-600" /> {t('Cash Received')}
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-emerald-500">Rs. {totalPaidCollected.toLocaleString()}</div>
-          <div className="text-xs text-slate-400 font-medium mt-1">{t('paid')}</div>
+          <div className="text-2xl font-black mt-1.5 font-mono text-slate-900 dark:text-white">Rs. {totalPaidCollected.toLocaleString()}</div>
+          <div className="text-xs text-slate-500 font-medium mt-1">{t('paid')}</div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-amber-500" /> {t('amountToReceive')}
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <Clock className="w-4 h-4 text-slate-600" /> {t('amountToReceive')}
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-amber-500">Rs. {totalOutstandingReceivable.toLocaleString()}</div>
-          <div className="text-xs text-amber-500 font-bold mt-1">{t('pending')}</div>
+          <div className="text-2xl font-black mt-1.5 font-mono text-slate-900 dark:text-white">Rs. {totalOutstandingReceivable.toLocaleString()}</div>
+          <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">{t('pending')}</div>
         </div>
       </div>
 
@@ -182,7 +182,7 @@ export const Sales = () => {
               key={type}
               onClick={() => setFilterType(type)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${filterType === type
-                ? 'bg-brand-500 text-white shadow-sm'
+                ? 'bg-slate-900 text-white shadow-xs'
                 : theme === 'dark' ? 'bg-slate-900 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
             >

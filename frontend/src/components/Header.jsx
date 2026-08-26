@@ -49,9 +49,9 @@ export const Header = () => {
           {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
         </button>
 
-        <Link to="/dashboard" className="flex items-center gap-2 cursor-pointer group" title={t('dashboard')}>
-          <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-2xs shrink-0 group-hover:bg-emerald-100 group-hover:scale-105 transition-all">
-            <Wheat className="w-5 h-5 stroke-[2.5]" />
+        <Link to="/dashboard" className="flex items-center gap-2.5 cursor-pointer group" title={t('dashboard')}>
+          <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 shadow-2xs shrink-0 group-hover:bg-slate-200 transition-all">
+            <Wheat className="w-4 h-4 stroke-[2.5]" />
           </div>
           <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight group-hover:text-brand-600 transition-colors">
             {t('dashboard')}
@@ -62,8 +62,8 @@ export const Header = () => {
       {/* Right Controls */}
       <div className="ml-auto flex items-center gap-3">
         {/* Active Shop Badge */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-xs font-bold text-emerald-800">
-          <Store className="w-4 h-4 text-emerald-600" />
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
+          <Store className="w-4 h-4 text-slate-600" />
           <span>{shop?.name || t('mandiTrader')}</span>
         </div>
 
@@ -71,16 +71,16 @@ export const Header = () => {
         <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 pl-2 border-l border-slate-200 hover:opacity-80 transition cursor-pointer"
+            className="flex items-center gap-2.5 pl-2 border-l border-slate-200 hover:opacity-80 transition cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-full bg-brand-100 border border-brand-300 text-brand-700 font-extrabold flex items-center justify-center text-xs">
-              {user?.fullName ? user.fullName.charAt(0) : 'U'}
+            <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-xs shadow-xs">
+              {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="hidden md:block text-left">
               <div className="text-xs font-bold text-slate-900 leading-tight">
                 {user?.fullName || t('shopOwner')}
               </div>
-              <div className="text-[10px] text-slate-500 font-medium">
+              <div className="text-[10px] text-slate-400 font-medium">
                 {user?.role === 'Employee' ? t('employee') : t('shopOwner')}
               </div>
             </div>

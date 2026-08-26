@@ -286,13 +286,8 @@ export const Reports = () => {
       {/* ========================================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2.5">
-            {reportType === 'Stock' && <Warehouse className="w-6 h-6 text-amber-500" />}
-            {reportType === 'Sales' && <TrendingUp className="w-6 h-6 text-brand-500" />}
-            {reportType === 'Expenses' && <DollarSign className="w-6 h-6 text-rose-500" />}
-            {reportType === 'ProfitLoss' && <PieChart className="w-6 h-6 text-emerald-500" />}
-            {reportType === 'BalanceSheet' && <Building className="w-6 h-6 text-brand-500" />}
-
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <Warehouse className="w-6 h-6 text-slate-800 dark:text-slate-200" />
             <span>
               {reportType === 'Stock' && 'Stock & Inventory Report'}
               {reportType === 'Sales' && 'Sales & Revenue Report'}
@@ -301,7 +296,7 @@ export const Reports = () => {
               {reportType === 'BalanceSheet' && 'Balance Sheet Statement'}
             </span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1 font-medium">
+          <p className="text-xs text-slate-500 mt-1 font-medium">
             {reportType === 'Stock' && 'Current stock quantities, category filter, dynamic units (Litre, KG, Packets), and valuations'}
             {reportType === 'Sales' && 'Gross revenue turnover, cash collections, khata credit sales, and top-selling commodities'}
             {reportType === 'Expenses' && 'Labour loading, transport freight, bardana bags, and operational expense records'}
@@ -315,7 +310,7 @@ export const Reports = () => {
           {reportType === 'Expenses' && (
             <button
               onClick={() => setShowAddExpenseModal(true)}
-              className="flex items-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white font-black text-xs px-3.5 py-2.5 rounded-xl shadow-md transition cursor-pointer"
+              className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-xs transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Record Expense</span>
@@ -325,7 +320,7 @@ export const Reports = () => {
           <button
             onClick={() => window.print()}
             className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
             <Printer className="w-4 h-4" />
@@ -334,7 +329,7 @@ export const Reports = () => {
 
           <button
             onClick={exportReportCSV}
-            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-black text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-xs cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4" />
             <span>Export CSV</span>
@@ -347,34 +342,34 @@ export const Reports = () => {
       {/* ========================================================================= */}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 1. STOCK REPORT (FULLY FUNCTIONAL & ADAPTIVE UNITS) */}
+      {/* 1. STOCK REPORT (COHESIVE EXECUTIVE DESIGN) */}
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'Stock' && (
         <div className="space-y-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Total Stock Valuation</div>
-              <div className="text-2xl font-black mt-1 text-emerald-500 font-mono">Rs. {totalStockValuation.toLocaleString()}</div>
-              <div className="text-xs text-slate-400 font-medium mt-1.5">{processedStock.length} Total Registered Products</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Stock Valuation</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalStockValuation.toLocaleString()}</div>
+              <div className="text-xs text-slate-400 font-medium mt-1">{processedStock.length} Total Registered Products</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">In-Stock Products</div>
-              <div className="text-2xl font-black mt-1 text-brand-500 font-mono">{inStockCount} Items</div>
-              <div className="text-xs text-emerald-500 font-bold mt-1.5">Available for Immediate Sale</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">In-Stock Products</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">{inStockCount} Items</div>
+              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">Available for Sale</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Low Stock Warnings</div>
-              <div className="text-2xl font-black mt-1 text-amber-500 font-mono">{lowStockCount} Items</div>
-              <div className="text-xs text-amber-500 font-bold mt-1.5">Below Threshold Limit</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Low Stock Warnings</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">{lowStockCount} Items</div>
+              <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">Below Minimum Threshold</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Out of Stock</div>
-              <div className="text-2xl font-black mt-1 text-rose-500 font-mono">{outOfStockCount} Items</div>
-              <div className="text-xs text-rose-500 font-bold mt-1.5">0 Quantity Remaining</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Out of Stock</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">{outOfStockCount} Items</div>
+              <div className="text-xs text-rose-700 dark:text-rose-400 font-bold mt-1">0 Quantity Remaining</div>
             </div>
           </div>
 
@@ -391,7 +386,7 @@ export const Reports = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search product, category, code..."
-                  className={`w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border outline-none focus:border-brand-500 ${
+                  className={`w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border outline-none focus:border-slate-800 ${
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
                 />
@@ -430,7 +425,7 @@ export const Reports = () => {
 
             {/* Sort Order */}
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
+              <span className="text-xs text-slate-500 font-bold flex items-center gap-1">
                 <ArrowUpDown className="w-3.5 h-3.5" /> Sort:
               </span>
               <select
@@ -447,11 +442,11 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* Universal Clean Stock Table (Dynamically adapts to Litre, KG, Packets, Bottles, etc.) */}
+          {/* Universal Clean Stock Table */}
           <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
             <div className="flex items-center justify-between">
-              <h3 className="font-black text-sm uppercase tracking-wide text-slate-900 dark:text-white flex items-center gap-2">
-                <Package className="w-5 h-5 text-brand-500" />
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Package className="w-4 h-4 text-slate-600" />
                 <span>Stock Statement ({filteredStock.length} Products Displayed)</span>
               </h3>
             </div>
@@ -459,14 +454,14 @@ export const Reports = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead>
-                  <tr className={`border-b text-[11px] font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
+                  <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
                     <th className="py-3 px-3">Product Name</th>
                     <th className="py-3 px-3 text-center">Category</th>
-                    <th className="py-3 px-3 text-center font-black text-brand-500">Available Stock</th>
+                    <th className="py-3 px-3 text-center">Available Stock</th>
                     <th className="py-3 px-3 text-center">Bag Breakdown</th>
                     <th className="py-3 px-3 text-right">Purchase Rate</th>
                     <th className="py-3 px-3 text-right">Selling Rate</th>
-                    <th className="py-3 px-3 text-right font-black">Stock Valuation</th>
+                    <th className="py-3 px-3 text-right">Stock Valuation</th>
                     <th className="py-3 px-3 text-center">Status</th>
                   </tr>
                 </thead>
@@ -482,45 +477,44 @@ export const Reports = () => {
                     filteredStock.map((item) => (
                       <tr key={item.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
                         <td className="py-3.5 px-3">
-                          <div className="font-black text-slate-900 dark:text-white flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-brand-500" />
+                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             <span>{item.name}</span>
                           </div>
-                          {item.code && <span className="text-[10px] text-slate-400 font-mono block pl-4">{item.code}</span>}
+                          {item.code && <span className="text-[10px] text-slate-400 font-mono block">{item.code}</span>}
                         </td>
                         <td className="py-3.5 px-3 text-center">
                           <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>
                             {item.category}
                           </span>
                         </td>
-                        <td className="py-3.5 px-3 text-center font-mono font-black text-slate-900 dark:text-white text-sm">
-                          {item.qty.toLocaleString()} <span className="text-xs font-bold text-slate-400">{item.unit}</span>
+                        <td className="py-3.5 px-3 text-center font-mono font-bold text-slate-900 dark:text-white text-xs">
+                          {item.qty.toLocaleString()} <span className="text-[11px] font-medium text-slate-500">{item.unit}</span>
                         </td>
-                        <td className="py-3.5 px-3 text-center font-mono text-slate-500 font-bold">
+                        <td className="py-3.5 px-3 text-center font-mono text-slate-600 dark:text-slate-300 font-medium">
                           {item.bagDetail ? (
-                            <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px]">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-[11px]">
                               {item.bagDetail}
                             </span>
                           ) : (
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
-                        <td className="py-3.5 px-3 text-right font-mono text-slate-500">
+                        <td className="py-3.5 px-3 text-right font-mono text-slate-600 dark:text-slate-300">
                           Rs. {item.purchaseRate.toLocaleString()} / {item.unit}
                         </td>
-                        <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-200">
+                        <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
                           Rs. {item.sellingRate.toLocaleString()} / {item.unit}
                         </td>
-                        <td className="py-3.5 px-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                        <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
                           Rs. {item.stockVal.toLocaleString()}
                         </td>
                         <td className="py-3.5 px-3 text-center">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
                             item.status === 'In Stock'
-                              ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               : item.status === 'Low Stock'
-                                ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
-                                : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                : 'bg-rose-50 text-rose-700 border border-rose-200'
                           }`}>
                             {item.status}
                           </span>
@@ -542,34 +536,34 @@ export const Reports = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Gross Sales Volume</div>
-              <div className="text-2xl font-black mt-1 text-slate-900 dark:text-white font-mono">Rs. {totalSalesGross.toLocaleString()}</div>
-              <div className="text-xs text-emerald-500 font-bold mt-1.5">{salesList.length} Total Invoices</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Gross Sales Volume</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalSalesGross.toLocaleString()}</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">{salesList.length} Total Invoices</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Cash Counter Collections</div>
-              <div className="text-2xl font-black mt-1 text-emerald-500 font-mono">Rs. {totalSalesCash.toLocaleString()}</div>
-              <div className="text-xs text-slate-400 font-medium mt-1.5">Direct Cash Payments</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Counter Collections</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalSalesCash.toLocaleString()}</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Direct Cash Payments</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Credit (Khata) Receivables</div>
-              <div className="text-2xl font-black mt-1 text-amber-500 font-mono">Rs. {totalSalesCredit.toLocaleString()}</div>
-              <div className="text-xs text-amber-500 font-bold mt-1.5">Customer Ledger Due</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Credit (Khata) Receivables</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalSalesCredit.toLocaleString()}</div>
+              <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">Customer Ledger Due</div>
             </div>
           </div>
 
           {/* Commodity-wise Sales Table */}
           <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <h3 className="font-black text-sm uppercase tracking-wide text-slate-900 dark:text-white flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-brand-500" />
+            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-slate-600" />
               <span>Commodity-Wise Sales Turnover</span>
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className={`border-b text-[11px] font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
+                  <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
                     <th className="py-3 px-3">Commodity Name</th>
                     <th className="py-3 px-3 text-center">Total Quantity Sold</th>
                     <th className="py-3 px-3 text-center">Invoices Count</th>
@@ -582,10 +576,10 @@ export const Reports = () => {
                   ) : (
                     productWiseSales.map((item, idx) => (
                       <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
-                        <td className="py-3.5 px-3 font-black text-slate-900 dark:text-white">{item.name}</td>
+                        <td className="py-3.5 px-3 font-bold text-slate-900 dark:text-white">{item.name}</td>
                         <td className="py-3.5 px-3 text-center font-bold">{item.totalQty} {item.unit}</td>
-                        <td className="py-3.5 px-3 text-center text-slate-400">{item.orderCount} Orders</td>
-                        <td className="py-3.5 px-3 text-right font-black text-emerald-600 dark:text-emerald-400 font-mono">Rs. {item.totalRevenue.toLocaleString()}</td>
+                        <td className="py-3.5 px-3 text-center text-slate-500">{item.orderCount} Orders</td>
+                        <td className="py-3.5 px-3 text-right font-bold text-slate-900 dark:text-white font-mono">Rs. {item.totalRevenue.toLocaleString()}</td>
                       </tr>
                     ))
                   )}
@@ -603,34 +597,34 @@ export const Reports = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Total Operating Expenses</div>
-              <div className="text-2xl font-black mt-1 text-rose-500 font-mono">Rs. {totalExpensesAmount.toLocaleString()}</div>
-              <div className="text-xs text-rose-500 font-bold mt-1.5">{expenses.length} Expense Records</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Operating Expenses</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalExpensesAmount.toLocaleString()}</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">{expenses.length} Expense Records</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Top Cost Category</div>
-              <div className="text-2xl font-black mt-1 text-slate-900 dark:text-white truncate">{topExpenseCategory}</div>
-              <div className="text-xs text-slate-400 font-medium mt-1.5">Based on Logged Vouchers</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Top Cost Category</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white truncate">{topExpenseCategory}</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Based on Logged Vouchers</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Logged Entries</div>
-              <div className="text-2xl font-black mt-1 text-emerald-500 font-mono">{expenses.length} Entries</div>
-              <div className="text-xs text-emerald-500 font-bold mt-1.5">Direct Expense Records</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Logged Entries</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">{expenses.length} Entries</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Direct Expense Records</div>
             </div>
           </div>
 
           {/* Expenses Table */}
           <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
             <div className="flex items-center justify-between">
-              <h3 className="font-black text-sm uppercase tracking-wide text-slate-900 dark:text-white flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-rose-500" />
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-slate-600" />
                 <span>Operating Expenses Log</span>
               </h3>
               <button
                 onClick={() => setShowAddExpenseModal(true)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-black text-xs transition cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Record Expense</span>
@@ -640,7 +634,7 @@ export const Reports = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead>
-                  <tr className={`border-b text-[11px] font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
+                  <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
                     <th className="py-3 px-3">Date</th>
                     <th className="py-3 px-3">Voucher #</th>
                     <th className="py-3 px-3">Category</th>
@@ -656,22 +650,22 @@ export const Reports = () => {
                   ) : (
                     expenses.map((exp) => (
                       <tr key={exp.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
-                        <td className="py-3 px-3 text-slate-400">{exp.date}</td>
-                        <td className="py-3 px-3 font-mono font-black text-brand-500">{exp.ref}</td>
-                        <td className="py-3 px-3 font-black text-slate-900 dark:text-white">
-                          <span className="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 font-black text-[10px]">
+                        <td className="py-3 px-3 text-slate-500">{exp.date}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">{exp.ref}</td>
+                        <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">
+                          <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-[10px]">
                             {exp.category}
                           </span>
                         </td>
                         <td className="py-3 px-3 text-slate-500">{exp.desc}</td>
-                        <td className="py-3 px-3 font-bold">{exp.mode}</td>
-                        <td className="py-3 px-3 text-right font-black text-rose-500 font-mono">
+                        <td className="py-3 px-3 font-medium">{exp.mode}</td>
+                        <td className="py-3 px-3 text-right font-bold text-slate-900 dark:text-white font-mono">
                           Rs. {Number(exp.amount).toLocaleString()}
                         </td>
                         <td className="py-3 px-3 text-center">
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
-                            className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
                             title="Delete Entry"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -694,62 +688,62 @@ export const Reports = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">1. Gross Revenue</div>
-              <div className="text-2xl font-black mt-1 text-slate-900 dark:text-white font-mono">Rs. {totalSalesGross.toLocaleString()}</div>
-              <div className="text-xs text-emerald-500 font-bold mt-1.5">Total Sales Turnover</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Gross Revenue</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalSalesGross.toLocaleString()}</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Total Sales Turnover</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">2. Cost of Goods Sold (COGS)</div>
-              <div className="text-2xl font-black mt-1 text-brand-500 font-mono">Rs. {cogs.toLocaleString()}</div>
-              <div className="text-xs text-brand-500 font-bold mt-1.5">Procurement Costs</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Cost of Goods Sold (COGS)</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {cogs.toLocaleString()}</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Procurement Costs</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">3. Net Operating Profit</div>
-              <div className={`text-2xl font-black mt-1 font-mono ${netOperatingProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Net Operating Profit</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">
                 Rs. {netOperatingProfit.toLocaleString()}
               </div>
-              <div className="text-xs text-emerald-500 font-bold mt-1.5">Take-Home Profit Margin</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Take-Home Profit Margin</div>
             </div>
           </div>
 
           {/* Income Statement Table */}
           <div className={`border rounded-2xl p-6 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <h3 className="font-black text-sm uppercase tracking-wide text-slate-900 dark:text-white flex items-center gap-2">
-              <PieChart className="w-5 h-5 text-emerald-500" />
+            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <PieChart className="w-4 h-4 text-slate-600" />
               <span>Profit & Loss Financial Statement</span>
             </h3>
 
             <div className="space-y-3.5 text-xs font-bold">
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <div>
-                  <span className="text-slate-900 dark:text-white font-black block text-sm">1. Gross Sales Revenue</span>
-                  <span className="text-[11px] text-slate-400 font-medium">Total sales value billed from commodity orders</span>
+                  <span className="text-slate-900 dark:text-white font-bold block text-sm">1. Gross Sales Revenue</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Total sales value billed from commodity orders</span>
                 </div>
-                <span className="font-mono text-base font-black text-slate-900 dark:text-white">Rs. {totalSalesGross.toLocaleString()}</span>
+                <span className="font-mono text-base font-bold text-slate-900 dark:text-white">Rs. {totalSalesGross.toLocaleString()}</span>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <div>
-                  <span className="text-slate-900 dark:text-white font-black block text-sm">2. Less: Cost of Goods Sold (Purchases Cost)</span>
-                  <span className="text-[11px] text-slate-400 font-medium">Procurement expenses paid or payable to suppliers</span>
+                  <span className="text-slate-900 dark:text-white font-bold block text-sm">2. Less: Cost of Goods Sold (Purchases Cost)</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Procurement expenses paid or payable to suppliers</span>
                 </div>
-                <span className="font-mono text-base font-black text-rose-500">- Rs. {cogs.toLocaleString()}</span>
+                <span className="font-mono text-base font-bold text-slate-700 dark:text-slate-300">- Rs. {cogs.toLocaleString()}</span>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <div>
-                  <span className="text-slate-900 dark:text-white font-black block text-sm">3. Less: Operating Expenses</span>
-                  <span className="text-[11px] text-slate-400 font-medium">Labour loading, transport, bardana bags, and shop utilities</span>
+                  <span className="text-slate-900 dark:text-white font-bold block text-sm">3. Less: Operating Expenses</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Labour loading, transport, bardana bags, and shop utilities</span>
                 </div>
-                <span className="font-mono text-base font-black text-rose-500">- Rs. {totalExpensesAmount.toLocaleString()}</span>
+                <span className="font-mono text-base font-bold text-slate-700 dark:text-slate-300">- Rs. {totalExpensesAmount.toLocaleString()}</span>
               </div>
 
-              <div className="p-5 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-between font-black text-base text-emerald-600 dark:text-emerald-400">
+              <div className="p-5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 flex items-center justify-between font-bold text-base text-slate-900 dark:text-white">
                 <div>
                   <span className="block text-lg">Net Operating Profit</span>
-                  <span className="text-xs text-emerald-600/80 font-medium">Net profit after all procurement and operational expenses</span>
+                  <span className="text-xs text-slate-500 font-medium">Net profit after all procurement and operational expenses</span>
                 </div>
                 <span className="text-2xl font-mono">Rs. {netOperatingProfit.toLocaleString()}</span>
               </div>
@@ -765,21 +759,21 @@ export const Reports = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">1. Total Assets</div>
-              <div className="text-2xl font-black mt-1 text-emerald-500 font-mono">Rs. {totalAssets.toLocaleString()}</div>
-              <div className="text-xs text-slate-400 font-medium mt-1.5">Cash, Godown Stock & Receivables</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Total Assets</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalAssets.toLocaleString()}</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Cash, Godown Stock & Receivables</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">2. Total Liabilities</div>
-              <div className="text-2xl font-black mt-1 text-rose-500 font-mono">Rs. {totalLiabilities.toLocaleString()}</div>
-              <div className="text-xs text-rose-500 font-bold mt-1.5">Supplier Payables Balance</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Total Liabilities</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalLiabilities.toLocaleString()}</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Supplier Payables Balance</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">3. Net Business Worth</div>
-              <div className="text-2xl font-black mt-1 text-brand-500 font-mono">Rs. {totalEquity.toLocaleString()}</div>
-              <div className="text-xs text-brand-500 font-bold mt-1.5">Total Assets Less Liabilities</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Net Business Worth</div>
+              <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalEquity.toLocaleString()}</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Total Assets Less Liabilities</div>
             </div>
           </div>
 
@@ -787,24 +781,24 @@ export const Reports = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* ASSETS COLUMN */}
             <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <h3 className="font-black text-sm uppercase tracking-wide text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-                <Building className="w-5 h-5" />
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                <Building className="w-4 h-4 text-slate-600" />
                 <span>Business Assets</span>
               </h3>
               <div className="space-y-3 text-xs font-bold">
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500">Cash in Hand & Counter Drawer:</span>
-                  <span className="font-mono font-black text-slate-900 dark:text-white">Rs. {cashInHand.toLocaleString()}</span>
+                  <span className="text-slate-500 font-medium">Cash in Hand & Counter Drawer:</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {cashInHand.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500">Customer Khata Receivables:</span>
-                  <span className="font-mono font-black text-slate-900 dark:text-white">Rs. {totalCustomerReceivables.toLocaleString()}</span>
+                  <span className="text-slate-500 font-medium">Customer Khata Receivables:</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalCustomerReceivables.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500">Warehouse Inventory Stock Value:</span>
-                  <span className="font-mono font-black text-slate-900 dark:text-white">Rs. {totalStockValuation.toLocaleString()}</span>
+                  <span className="text-slate-500 font-medium">Warehouse Inventory Stock Value:</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalStockValuation.toLocaleString()}</span>
                 </div>
-                <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-emerald-600 dark:text-emerald-400">
+                <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-bold text-sm text-slate-900 dark:text-white">
                   <span>TOTAL ASSETS:</span>
                   <span className="font-mono">Rs. {totalAssets.toLocaleString()}</span>
                 </div>
@@ -813,20 +807,20 @@ export const Reports = () => {
 
             {/* LIABILITIES & EQUITY COLUMN */}
             <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <h3 className="font-black text-sm uppercase tracking-wide text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
-                <PieChart className="w-5 h-5" />
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                <PieChart className="w-4 h-4 text-slate-600" />
                 <span>Liabilities & Owner's Equity</span>
               </h3>
               <div className="space-y-3 text-xs font-bold">
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500">Supplier Payables (Market Creditors):</span>
-                  <span className="font-mono font-black text-rose-500">Rs. {totalSupplierPayables.toLocaleString()}</span>
+                  <span className="text-slate-500 font-medium">Supplier Payables (Market Creditors):</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalSupplierPayables.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500">Net Retained Equity & Profit:</span>
-                  <span className="font-mono font-black text-emerald-500">Rs. {totalEquity.toLocaleString()}</span>
+                  <span className="text-slate-500 font-medium">Net Retained Equity & Profit:</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalEquity.toLocaleString()}</span>
                 </div>
-                <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-indigo-600 dark:text-indigo-400">
+                <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-bold text-sm text-slate-900 dark:text-white">
                   <span>TOTAL LIABILITIES & EQUITY:</span>
                   <span className="font-mono">Rs. {(totalLiabilities + totalEquity).toLocaleString()}</span>
                 </div>
@@ -848,8 +842,8 @@ export const Reports = () => {
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-black flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-rose-500" />
+              <h3 className="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+                <DollarSign className="w-5 h-5 text-slate-700" />
                 <span>Record Operating Expense</span>
               </h3>
               <button
@@ -863,13 +857,13 @@ export const Reports = () => {
 
             <form onSubmit={handleAddExpense} className="space-y-3.5">
               <div>
-                <label className="text-xs font-black text-slate-400 block mb-1">
+                <label className="text-xs font-bold text-slate-600 block mb-1">
                   Expense Category
                 </label>
                 <select
                   value={newExpense.category}
                   onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
                 >
@@ -884,7 +878,7 @@ export const Reports = () => {
               </div>
 
               <div>
-                <label className="text-xs font-black text-slate-400 block mb-1">
+                <label className="text-xs font-bold text-slate-600 block mb-1">
                   Amount (Rs.)
                 </label>
                 <input
@@ -894,14 +888,14 @@ export const Reports = () => {
                   value={newExpense.amount}
                   onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
                   placeholder="e.g. 5000"
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 font-mono ${
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
                 />
               </div>
 
               <div>
-                <label className="text-xs font-black text-slate-400 block mb-1">
+                <label className="text-xs font-bold text-slate-600 block mb-1">
                   Description / Remarks
                 </label>
                 <input
@@ -909,20 +903,20 @@ export const Reports = () => {
                   value={newExpense.desc}
                   onChange={(e) => setNewExpense({ ...newExpense, desc: e.target.value })}
                   placeholder="e.g. Loading and unloading mazdoori..."
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
                 />
               </div>
 
               <div>
-                <label className="text-xs font-black text-slate-400 block mb-1">
+                <label className="text-xs font-bold text-slate-600 block mb-1">
                   Payment Mode
                 </label>
                 <select
                   value={newExpense.mode}
                   onChange={(e) => setNewExpense({ ...newExpense, mode: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
                 >
@@ -944,7 +938,7 @@ export const Reports = () => {
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-black shadow-md transition cursor-pointer"
+                  className="w-1/2 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
                 >
                   Save Expense
                 </button>

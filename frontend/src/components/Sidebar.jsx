@@ -77,8 +77,8 @@ export const Sidebar = () => {
               className={`flex items-center gap-3 overflow-hidden cursor-pointer group ${isCollapsed ? 'justify-center' : ''}`}
               title={t('dashboard')}
             >
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-xs shrink-0 group-hover:scale-105 group-hover:bg-emerald-100 group-hover:border-emerald-300 transition-all">
-                <Wheat className="w-6 h-6 stroke-[2.5]" />
+              <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-all">
+                <Wheat className="w-5 h-5 stroke-[2.5]" />
               </div>
               {!isCollapsed && (
                 <div className="overflow-hidden">
@@ -491,15 +491,15 @@ export const Sidebar = () => {
         <div className="space-y-2.5 pt-3 border-t border-slate-100">
           {/* Support Widget */}
           {!isCollapsed ? (
-            <div className="bg-emerald-50/70 border border-emerald-200/60 rounded-2xl p-3 text-center">
-              <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-1">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
+              <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center mx-auto mb-1">
                 <Headphones className="w-3.5 h-3.5" />
               </div>
               <h4 className="text-xs font-bold text-slate-800">{t('needHelp')}</h4>
               <p className="text-[10px] text-slate-500 mb-2">{t('dedicatedSupport')}</p>
               <button
                 onClick={() => setShowSupportModal(true)}
-                className="w-full py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-1.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
                 <span>{t('contactSupport')}</span>
@@ -508,7 +508,7 @@ export const Sidebar = () => {
           ) : (
             <button
               onClick={() => setShowSupportModal(true)}
-              className="w-full p-2.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center transition cursor-pointer relative group"
+              className="w-full p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer relative group"
               title={t('contactSupport')}
             >
               <Headphones className="w-4 h-4" />
