@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search, ShoppingCart, Plus, Minus, Trash2, X,
   LayoutGrid, List, User, UserPlus,
   Percent, CheckCircle2, DollarSign,
   CreditCard, Smartphone, Wallet, Edit3,
   RefreshCw, Wheat, Check, PanelLeftClose, PanelLeftOpen, Maximize2,
-  Receipt, AlertCircle, FileText
+  Receipt, AlertCircle, FileText, ChevronDown, Filter
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -14,9 +14,10 @@ import { useSidebar } from '../context/SidebarContext';
 import { ReceiptModal } from '../components/ReceiptModal';
 
 export const CreateOrder = () => {
-  const { products, categories, customers, addCustomer, createSale } = useERP();
+  const { products = [], categories = [], customers = [], addCustomer, createSale } = useERP();
   const { theme } = useTheme();
   const { t, locale } = useLocale();
+  const isRTL = locale === 'ur';
   const { isCollapsed, toggleSidebar } = useSidebar();
 
   // View Mode: 'grid' | 'compact'
@@ -298,13 +299,44 @@ export const CreateOrder = () => {
   const previousKhataBalance = selectedParty ? Number(selectedParty.balance || 0) : 0;
   const newKhataBalance = previousKhataBalance + remainingDue;
 
-  // Filtered Products
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.category && p.category.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
-    return matchesSearch && matchesCat;
-  });
+  // Dynamic Unique Categories directly from Products Catalog (no duplicates, no mutations)
+  const availableCategories = useMemo(() => {
+    const catSet = new Set();
+    (products || []).forEach(p => {
+      if (p && p.category && typeof p.category === 'string' && p.category.trim()) {
+        catSet.add(p.category.trim());
+      }
+    });
+    if (Array.isArray(categories)) {
+      categories.forEach(c => {
+        const name = typeof c === 'string' ? c : c?.name;
+        if (name && name.trim()) catSet.add(name.trim());
+      });
+    }
+    return Array.from(catSet).sort((a, b) => a.localeCompare(b));
+  }, [products, categories]);
+
+  // Product Count per Category
+  const categoryCounts = useMemo(() => {
+    const counts = {};
+    (products || []).forEach(p => {
+      const cat = p?.category && typeof p.category === 'string' && p.category.trim() ? p.category.trim() : 'Uncategorized';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [products]);
+
+  // Immediate filtering of products by search and category
+  const filteredProducts = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    return (products || []).filter(p => {
+      const pName = (p.name || '').toLowerCase();
+      const pCat = (p.category || '').toLowerCase();
+      const matchesSearch = !term || pName.includes(term) || pCat.includes(term);
+      const matchesCat = selectedCategory === 'All' || (p.category && p.category.trim() === selectedCategory.trim());
+      return matchesSearch && matchesCat;
+    });
+  }, [products, searchTerm, selectedCategory]);
 
   // Filtered Customers for Modal
   const filteredCustomers = customers.filter(c =>
@@ -426,8 +458,6 @@ export const CreateOrder = () => {
     }
   };
 
-  const isRTL = locale === 'ur';
-
   return (
     <div className="space-y-3.5 pb-10">
       {/* ========================================================================= */}
@@ -445,7 +475,7 @@ export const CreateOrder = () => {
           <div className="space-y-3 pb-3 border-b border-slate-100 dark:border-slate-700">
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               {/* Search Bar */}
-              <div className="relative flex-1 min-w-[200px]">
+              <div className="relative flex-1 min-w-[180px]">
                 <Search className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 ${isRTL ? 'right-3.5' : 'left-3.5'}`} />
                 <input
                   type="text"
@@ -464,6 +494,26 @@ export const CreateOrder = () => {
                     <X className="w-4 h-4" />
                   </button>
                 )}
+              </div>
+
+              {/* Category Dropdown Selector */}
+              <div className="relative shrink-0 min-w-[140px]">
+                <select
+                  id="pos-category-dropdown"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className={`w-full border rounded-2xl py-2.5 pl-3 pr-8 text-xs font-bold outline-none transition cursor-pointer appearance-none ${
+                    selectedCategory !== 'All' ? 'border-brand-500 text-brand-600 dark:text-brand-400 font-extrabold' : ''
+                  } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                >
+                  <option value="All">All Categories ({products.length})</option>
+                  {availableCategories.map(cat => (
+                    <option key={cat} value={cat}>
+                      {cat} ({categoryCounts[cat] || 0})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
 
               {/* View Mode & Wide Mode Controls */}
@@ -531,6 +581,7 @@ export const CreateOrder = () => {
             {/* Category Quick Chips Filter */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
               <button
+                type="button"
                 onClick={() => setSelectedCategory('All')}
                 className={`px-3 py-1 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
                   selectedCategory === 'All'
@@ -542,21 +593,22 @@ export const CreateOrder = () => {
               >
                 {t('allCategories')} ({products.length})
               </button>
-              {categories.map(c => {
-                const count = products.filter(p => p.category === c.name).length;
+              {availableCategories.map(catName => {
+                const count = categoryCounts[catName] || 0;
                 return (
                   <button
-                    key={c.id}
-                    onClick={() => setSelectedCategory(c.name)}
+                    key={catName}
+                    type="button"
+                    onClick={() => setSelectedCategory(catName)}
                     className={`px-3 py-1 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
-                      selectedCategory === c.name
+                      selectedCategory === catName
                         ? 'bg-brand-500 text-white shadow-xs'
                         : theme === 'dark'
                           ? 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-700'
                           : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
-                    {c.name} {count > 0 && `(${count})`}
+                    {catName} {count > 0 && `(${count})`}
                   </button>
                 );
               })}
