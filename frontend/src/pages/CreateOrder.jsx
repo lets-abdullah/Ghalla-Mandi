@@ -5,7 +5,7 @@ import {
   Percent, CheckCircle2, DollarSign,
   CreditCard, Smartphone, Wallet, Edit3,
   RefreshCw, Wheat, Check, PanelLeftClose, PanelLeftOpen, Maximize2,
-  Receipt, AlertCircle, FileText, ChevronDown, Filter
+  Receipt, AlertCircle, FileText, ChevronDown, Filter, Building2
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -291,7 +291,7 @@ export const CreateOrder = () => {
   const netGrandTotal = Math.round(taxableAmount + taxAmount);
 
   // Payment Received & Balance / Change Calculations
-  const receivedNum = amountReceived === '' ? (paymentMode === 'Mandi Credit' ? 0 : netGrandTotal) : Number(amountReceived) || 0;
+  const receivedNum = amountReceived === '' ? (paymentMode === 'Credit' || paymentMode === 'Mandi Credit' || paymentMode === 'Khata (Udhaar)' ? 0 : netGrandTotal) : Number(amountReceived) || 0;
   const changeDue = Math.max(0, receivedNum - netGrandTotal);
   const remainingDue = Math.max(0, netGrandTotal - receivedNum);
 
@@ -1082,27 +1082,30 @@ export const CreateOrder = () => {
                 {t('paymentSettlementTitle')}
               </span>
 
-              {/* Payment Mode Buttons */}
-              <div className={`grid ${customerType === 'Regular Party' && selectedParty ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
+              {/* Payment Mode Buttons: Cash, Bank, Credit, Card */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {[
-                  { key: 'Cash', label: t('Cash'), icon: DollarSign },
-                  { key: 'Card', label: t('Card'), icon: CreditCard },
-                  ...(customerType === 'Regular Party' && selectedParty
-                    ? [{ key: 'Khata (Udhaar)', label: t('khataCredit') || 'Khata (Udhaar)', icon: Wallet }]
-                    : [])
+                  { key: 'Cash', label: 'Cash', icon: DollarSign },
+                  { key: 'Bank', label: 'Bank', icon: Building2 },
+                  { key: 'Credit', label: 'Credit (Khata)', icon: Wallet },
+                  { key: 'Card', label: 'Card', icon: CreditCard }
                 ].map(mode => (
                   <button
                     key={mode.key}
                     type="button"
                     onClick={() => {
                       setPaymentMode(mode.key);
-                      if (mode.key === 'Khata (Udhaar)') {
+                      if (mode.key === 'Credit') {
                         setAmountReceived('0');
-                      } else if (amountReceived === '0') {
-                        setAmountReceived('');
+                        if (customerType === 'Walk-in Customer') {
+                          setCustomerType('Regular Party');
+                          if (!selectedParty) setShowCustomerModal(true);
+                        }
+                      } else if (amountReceived === '0' || mode.key === 'Bank' || mode.key === 'Card') {
+                        setAmountReceived(netGrandTotal.toString());
                       }
                     }}
-                    className={`py-2 px-2 rounded-2xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                    className={`py-2 px-1.5 rounded-2xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                       paymentMode === mode.key
                         ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/20'
                         : theme === 'dark'

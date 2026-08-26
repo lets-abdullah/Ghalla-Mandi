@@ -670,7 +670,8 @@ export const ERPProvider = ({ children }) => {
       items,
       paidAmount: Number(saleData.paidAmount) || 0,
       discount: Number(saleData.discount) || 0,
-      tax: Number(saleData.tax) || 0
+      tax: Number(saleData.tax) || 0,
+      paymentMethod: saleData.paymentMethod || saleData.paymentMode || 'Cash'
     };
 
     const lockKey = `sale:${payload.customerId || payload.customerName}:${items.length}:${items[0]?.productId}:${items[0]?.qty}:${payload.paidAmount}`;

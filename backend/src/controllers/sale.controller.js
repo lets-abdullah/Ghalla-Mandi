@@ -18,7 +18,7 @@ setInterval(() => {
 
 export const createSale = async (req, res) => {
   try {
-    const { customerName, customerId, items, paidAmount = 0, discount = 0, tax = 0 } = req.body;
+    const { customerName, customerId, items, paidAmount = 0, discount = 0, tax = 0, paymentMethod = 'Cash' } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, message: 'At least one sale item is required' });
@@ -103,10 +103,10 @@ export const createSale = async (req, res) => {
             partyType: 'Customer',
             partyName: cust.name,
             amount: paid,
-            mode: 'Cash (POS)',
+            mode: `${paymentMethod || 'Cash'} (POS)`,
             date: dateStr,
             ref: `PAY-${invoiceNo.split('-').pop()}`,
-            note: `POS Payment Received on Invoice (${invoiceNo})`
+            note: `POS Payment Received via ${paymentMethod || 'Cash'} on Invoice (${invoiceNo})`
           });
         }
       }
