@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   TrendingUp, Warehouse, DollarSign, PieChart, Building,
-  FileSpreadsheet, Printer, Plus, Wheat, X, Trash2
+  FileSpreadsheet, Printer, Plus, Wheat, X, Trash2, Search, Filter,
+  CheckCircle2, AlertTriangle, ArrowUpDown, Package, Eye
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -16,6 +17,12 @@ export const Reports = () => {
 
   // Active Report Type from URL parameter (default: Stock)
   const reportType = searchParams.get('type') || 'Stock';
+
+  // Interactive filters for stock & sales
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [stockStatusFilter, setStockStatusFilter] = useState('All'); // 'All' | 'LowStock' | 'InStock' | 'OutOfStock'
+  const [sortBy, setSortBy] = useState('valueDesc'); // 'valueDesc' | 'qtyDesc' | 'nameAsc'
 
   // Live expenses persisted in local storage per user/shop session
   const [expenses, setExpenses] = useState(() => {
@@ -68,10 +75,90 @@ export const Reports = () => {
   };
 
   // =========================================================================
-  // CORE CALCULATIONS (100% Dynamic - Zero Dummy Data)
+  // 1. DYNAMIC STOCK CALCULATIONS & FILTERING
   // =========================================================================
+  const allCategories = useMemo(() => {
+    const set = new Set((products || []).map(p => p.category || 'General'));
+    return ['All', ...Array.from(set)];
+  }, [products]);
 
-  // 1. Sales Calculations
+  const processedStock = useMemo(() => {
+    return (products || []).map(p => {
+      const qty = Number(p.stockQty || 0);
+      const purchaseRate = Number(p.purchasePrice || 0);
+      const sellingRate = Number(p.sellingPrice || 0);
+      const minStock = Number(p.minStock || 10);
+      const unit = (p.unit || p.baseUnit || 'KG').trim();
+      const unitLower = unit.toLowerCase();
+
+      // Check unit classification
+      const isLiquidOrPackaged = ['litre', 'liter', 'ltr', 'bottle', 'packet', 'pcs', 'piece', 'can', 'tin', 'box', 'carton'].some(u => unitLower.includes(u));
+      const isBori = ['bori', 'bag', 'bora'].some(u => unitLower.includes(u));
+      const isMann = unitLower.includes('mann') || unitLower.includes('mon');
+      const isKg = ['kg', 'kilogram'].some(u => unitLower.includes(u));
+
+      let bagDetail = null;
+      if (!isLiquidOrPackaged) {
+        if (isBori) {
+          bagDetail = `${qty} Bori`;
+        } else if (isMann) {
+          bagDetail = `~${Math.round((qty * 40) / 50)} Bags (50kg)`;
+        } else if (isKg) {
+          bagDetail = `~${Math.round(qty / 50)} Bags (50kg)`;
+        }
+      }
+
+      // Status
+      let status = 'In Stock';
+      if (qty <= 0) status = 'Out of Stock';
+      else if (qty <= minStock) status = 'Low Stock';
+
+      // Value (Qty * Purchase Price, fallback Selling Price)
+      const stockVal = Math.round(qty * (purchaseRate > 0 ? purchaseRate : sellingRate));
+
+      return {
+        ...p,
+        qty,
+        unit,
+        bagDetail,
+        isLiquidOrPackaged,
+        purchaseRate,
+        sellingRate,
+        stockVal,
+        minStock,
+        status
+      };
+    });
+  }, [products]);
+
+  // Filtered and Sorted Stock
+  const filteredStock = useMemo(() => {
+    return processedStock.filter(item => {
+      const matchSearch = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (item.code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (item.category || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchCat = categoryFilter === 'All' || item.category === categoryFilter;
+      const matchStatus = stockStatusFilter === 'All' ||
+                          (stockStatusFilter === 'LowStock' && item.status === 'Low Stock') ||
+                          (stockStatusFilter === 'InStock' && item.status === 'In Stock') ||
+                          (stockStatusFilter === 'OutOfStock' && item.status === 'Out of Stock');
+      return matchSearch && matchCat && matchStatus;
+    }).sort((a, b) => {
+      if (sortBy === 'valueDesc') return b.stockVal - a.stockVal;
+      if (sortBy === 'qtyDesc') return b.qty - a.qty;
+      if (sortBy === 'nameAsc') return (a.name || '').localeCompare(b.name || '');
+      return 0;
+    });
+  }, [processedStock, searchTerm, categoryFilter, stockStatusFilter, sortBy]);
+
+  const totalStockValuation = useMemo(() => processedStock.reduce((sum, p) => sum + p.stockVal, 0), [processedStock]);
+  const inStockCount = useMemo(() => processedStock.filter(p => p.status === 'In Stock').length, [processedStock]);
+  const lowStockCount = useMemo(() => processedStock.filter(p => p.status === 'Low Stock').length, [processedStock]);
+  const outOfStockCount = useMemo(() => processedStock.filter(p => p.status === 'Out of Stock').length, [processedStock]);
+
+  // =========================================================================
+  // 2. SALES CALCULATIONS
+  // =========================================================================
   const salesList = useMemo(() => {
     return (sales || []).map(s => {
       const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
@@ -85,7 +172,7 @@ export const Reports = () => {
   const totalSalesCash = useMemo(() => salesList.filter(s => s.isCash).reduce((sum, s) => sum + s.paidAmt, 0), [salesList]);
   const totalSalesCredit = useMemo(() => salesList.reduce((sum, s) => sum + s.dueAmt, 0), [salesList]);
 
-  // Product-wise sales breakdown
+  // Commodity sales aggregation
   const productWiseSales = useMemo(() => {
     const map = {};
     salesList.forEach(s => {
@@ -107,7 +194,9 @@ export const Reports = () => {
     return Object.values(map);
   }, [salesList]);
 
-  // 2. Purchases & COGS
+  // =========================================================================
+  // 3. PURCHASES & EXPENSES CALCULATIONS
+  // =========================================================================
   const purchasesList = useMemo(() => {
     return (purchases || []).map(p => {
       const grossAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
@@ -119,69 +208,6 @@ export const Reports = () => {
   const totalPurchasesGross = useMemo(() => purchasesList.reduce((sum, p) => sum + p.grossAmt, 0), [purchasesList]);
   const totalPurchasesPaid = useMemo(() => purchasesList.reduce((sum, p) => sum + p.paidAmt, 0), [purchasesList]);
 
-  // 3. Stock & Dynamic Unit-Aware Metrics (Handles Litre, KG, Bori, Gram, Mann, Packet, Bottle, etc.)
-  const stockInventory = useMemo(() => {
-    return (products || []).map(p => {
-      const qty = Number(p.stockQty || 0);
-      const rate = Number(p.purchasePrice || p.sellingPrice || 0);
-      const unit = p.unit || p.baseUnit || 'KG';
-      const unitLower = unit.toLowerCase().trim();
-
-      // Check if unit is grain weight-based or liquid/packaged
-      const isLiquidOrPackaged = ['litre', 'liter', 'ltr', 'bottle', 'packet', 'pcs', 'piece', 'can', 'tin', 'box'].some(u => unitLower.includes(u));
-      const isBoriUnit = ['bori', 'bag', 'bora'].some(u => unitLower.includes(u));
-      const isMannUnit = unitLower.includes('mann') || unitLower.includes('mon');
-      const isKgUnit = ['kg', 'kilogram'].some(u => unitLower.includes(u));
-
-      let bags = null;
-      let deductionKatt = 0;
-      let grossQty = qty;
-
-      if (!isLiquidOrPackaged) {
-        if (isBoriUnit) {
-          bags = qty;
-        } else if (isMannUnit) {
-          // 1 Mann = 40 KG, 1 standard Bori = 50 KG
-          bags = Math.round((qty * 40) / 50);
-        } else if (isKgUnit) {
-          bags = Math.round(qty / 50);
-        }
-
-        // Standard Mandi allowance calculation if applicable
-        deductionKatt = Math.round(qty * 0.01); // 1% deduction
-        grossQty = qty + deductionKatt;
-      }
-
-      const stockVal = Math.round(qty * rate);
-
-      return {
-        ...p,
-        qty,
-        unit,
-        bags,
-        grossQty,
-        deductionKatt,
-        netQty: qty,
-        rate,
-        stockVal
-      };
-    });
-  }, [products]);
-
-  const totalStockValuation = useMemo(() => stockInventory.reduce((sum, p) => sum + p.stockVal, 0), [stockInventory]);
-  const totalStockBags = useMemo(() => stockInventory.reduce((sum, p) => sum + (p.bags || 0), 0), [stockInventory]);
-  const lowStockCount = useMemo(() => stockInventory.filter(p => p.qty <= (p.minStock || 10)).length, [stockInventory]);
-
-  // 4. Receivables & Payables
-  const totalCustomerReceivables = useMemo(() => {
-    return (customers || []).reduce((sum, c) => sum + Math.max(0, Number(c.balance !== undefined ? c.balance : c.openingBalance || 0)), 0);
-  }, [customers]);
-
-  const totalSupplierPayables = useMemo(() => {
-    return (suppliers || []).reduce((sum, s) => sum + Math.max(0, Number(s.balance !== undefined ? s.balance : s.openingBalance || 0)), 0);
-  }, [suppliers]);
-
-  // 5. Expenses
   const totalExpensesAmount = useMemo(() => expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0), [expenses]);
 
   const topExpenseCategory = useMemo(() => {
@@ -194,12 +220,21 @@ export const Reports = () => {
     return sorted.length > 0 ? sorted[0][0] : 'None';
   }, [expenses]);
 
-  // 6. P&L and Balance Sheet (100% Dynamic)
+  // =========================================================================
+  // 4. FINANCIAL STATEMENTS (P&L and Balance Sheet)
+  // =========================================================================
   const cogs = useMemo(() => Math.max(0, totalPurchasesGross), [totalPurchasesGross]);
   const grossOperatingProfit = useMemo(() => Math.max(0, totalSalesGross - cogs), [totalSalesGross, cogs]);
   const netOperatingProfit = useMemo(() => grossOperatingProfit - totalExpensesAmount, [grossOperatingProfit, totalExpensesAmount]);
 
-  // Live cash in counter drawer
+  const totalCustomerReceivables = useMemo(() => {
+    return (customers || []).reduce((sum, c) => sum + Math.max(0, Number(c.balance !== undefined ? c.balance : c.openingBalance || 0)), 0);
+  }, [customers]);
+
+  const totalSupplierPayables = useMemo(() => {
+    return (suppliers || []).reduce((sum, s) => sum + Math.max(0, Number(s.balance !== undefined ? s.balance : s.openingBalance || 0)), 0);
+  }, [suppliers]);
+
   const cashInHand = useMemo(() => {
     const netCash = totalSalesCash - totalPurchasesPaid - totalExpensesAmount;
     return Math.max(0, netCash);
@@ -209,19 +244,24 @@ export const Reports = () => {
   const totalLiabilities = useMemo(() => totalSupplierPayables, [totalSupplierPayables]);
   const totalEquity = useMemo(() => totalAssets - totalLiabilities, [totalAssets, totalLiabilities]);
 
-  // Export CSV
+  // =========================================================================
+  // EXPORT CSV HANDLER (100% Unit Accurate)
+  // =========================================================================
   const exportReportCSV = () => {
     let csvData = `Report Type: ${reportType}\nGenerated At: ${new Date().toLocaleString()}\n\n`;
 
     if (reportType === 'Stock') {
-      csvData += `Product,Category,Bags,Gross Qty,Deduction,Net Qty,Unit,Avg Rate,Stock Value\n`;
-      stockInventory.forEach(p => {
-        csvData += `"${p.name}","${p.category}",${p.bags !== null ? p.bags : 'N/A'},${p.grossQty},${p.deductionKatt},${p.netQty},"${p.unit}",${p.rate},${p.stockVal}\n`;
+      csvData += `Product Name,Category,Available Stock,Unit,Bag Detail,Purchase Rate,Selling Rate,Stock Valuation,Status\n`;
+      filteredStock.forEach(p => {
+        csvData += `"${p.name}","${p.category}",${p.qty},"${p.unit}","${p.bagDetail || 'N/A'}",${p.purchaseRate},${p.sellingRate},${p.stockVal},"${p.status}"\n`;
       });
     } else if (reportType === 'Sales') {
-      csvData += `Metric,Value\nGross Sales Volume,${totalSalesGross}\nCash Sales,${totalSalesCash}\nCredit (Khata) Sales,${totalSalesCredit}\n`;
+      csvData += `Commodity Name,Total Quantity Sold,Unit,Invoices Count,Total Revenue (Rs.)\n`;
+      productWiseSales.forEach(s => {
+        csvData += `"${s.name}",${s.totalQty},"${s.unit}",${s.orderCount},${s.totalRevenue}\n`;
+      });
     } else if (reportType === 'Expenses') {
-      csvData += `Date,Ref,Category,Description,Payment Mode,Amount\n`;
+      csvData += `Date,Voucher Ref,Category,Description,Payment Mode,Amount (Rs.)\n`;
       expenses.forEach(e => {
         csvData += `"${e.date}","${e.ref}","${e.category}","${e.desc}","${e.mode}",${e.amount}\n`;
       });
@@ -262,7 +302,7 @@ export const Reports = () => {
             </span>
           </h1>
           <p className="text-xs text-slate-400 mt-1 font-medium">
-            {reportType === 'Stock' && 'Current stock quantity, unit metrics, deduction allowance, and valuation breakdown'}
+            {reportType === 'Stock' && 'Current stock quantities, category filter, dynamic units (Litre, KG, Packets), and valuations'}
             {reportType === 'Sales' && 'Gross revenue turnover, cash collections, khata credit sales, and top-selling commodities'}
             {reportType === 'Expenses' && 'Labour loading, transport freight, bardana bags, and operational expense records'}
             {reportType === 'ProfitLoss' && 'Revenue turnover minus procurement costs and operating expenses'}
@@ -307,90 +347,183 @@ export const Reports = () => {
       {/* ========================================================================= */}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 1. STOCK REPORT (DYNAMIC UNIT HANDLING) */}
+      {/* 1. STOCK REPORT (FULLY FUNCTIONAL & ADAPTIVE UNITS) */}
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'Stock' && (
         <div className="space-y-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Total Stock Value</div>
+              <div className="text-xs font-bold text-slate-400">Total Stock Valuation</div>
               <div className="text-2xl font-black mt-1 text-emerald-500 font-mono">Rs. {totalStockValuation.toLocaleString()}</div>
-              <div className="text-xs text-slate-400 font-medium mt-1.5">{stockInventory.length} Registered Products</div>
+              <div className="text-xs text-slate-400 font-medium mt-1.5">{processedStock.length} Total Registered Products</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Available Bags (Grain)</div>
-              <div className="text-2xl font-black mt-1 text-brand-500 font-mono">{totalStockBags.toLocaleString()} Bags</div>
-              <div className="text-xs text-brand-500 font-bold mt-1.5">Calculated for Grains</div>
+              <div className="text-xs font-bold text-slate-400">In-Stock Products</div>
+              <div className="text-2xl font-black mt-1 text-brand-500 font-mono">{inStockCount} Items</div>
+              <div className="text-xs text-emerald-500 font-bold mt-1.5">Available for Immediate Sale</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Active Inventory Items</div>
-              <div className="text-2xl font-black mt-1 text-slate-900 dark:text-white font-mono">{stockInventory.length} Items</div>
-              <div className="text-xs text-slate-400 font-medium mt-1.5">Across All Categories</div>
+              <div className="text-xs font-bold text-slate-400">Low Stock Warnings</div>
+              <div className="text-2xl font-black mt-1 text-amber-500 font-mono">{lowStockCount} Items</div>
+              <div className="text-xs text-amber-500 font-bold mt-1.5">Below Threshold Limit</div>
             </div>
 
             <div className={`p-5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="text-xs font-bold text-slate-400">Low Stock Alerts</div>
-              <div className="text-2xl font-black mt-1 text-rose-500 font-mono">{lowStockCount} Items</div>
-              <div className="text-xs text-rose-500 font-bold mt-1.5">Reorder Threshold Reached</div>
+              <div className="text-xs font-bold text-slate-400">Out of Stock</div>
+              <div className="text-2xl font-black mt-1 text-rose-500 font-mono">{outOfStockCount} Items</div>
+              <div className="text-xs text-rose-500 font-bold mt-1.5">0 Quantity Remaining</div>
             </div>
           </div>
 
-          {/* Unit-Aware Stock Table */}
+          {/* Interactive Filters Bar for Stock Report */}
+          <div className={`p-4 rounded-2xl border card-shadow flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+          }`}>
+            <div className="flex flex-wrap items-center gap-3 flex-1">
+              {/* Search */}
+              <div className="relative min-w-[220px] flex-1 max-w-sm">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search product, category, code..."
+                  className={`w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              {/* Category Filter */}
+              <div className="flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  {allCategories.map(cat => (
+                    <option key={cat} value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <select
+                value={stockStatusFilter}
+                onChange={(e) => setStockStatusFilter(e.target.value)}
+                className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="All">All Statuses</option>
+                <option value="InStock">In Stock ({inStockCount})</option>
+                <option value="LowStock">Low Stock ({lowStockCount})</option>
+                <option value="OutOfStock">Out of Stock ({outOfStockCount})</option>
+              </select>
+            </div>
+
+            {/* Sort Order */}
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
+                <ArrowUpDown className="w-3.5 h-3.5" /> Sort:
+              </span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="valueDesc">Highest Stock Value</option>
+                <option value="qtyDesc">Highest Quantity</option>
+                <option value="nameAsc">Product Name (A-Z)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Universal Clean Stock Table (Dynamically adapts to Litre, KG, Packets, Bottles, etc.) */}
           <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <h3 className="font-black text-sm uppercase tracking-wide text-slate-900 dark:text-white flex items-center gap-2">
-              <Wheat className="w-5 h-5 text-amber-500" />
-              <span>Product Inventory Breakdown (Dynamic Units, Bags, Deduction & Stock Value)</span>
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-sm uppercase tracking-wide text-slate-900 dark:text-white flex items-center gap-2">
+                <Package className="w-5 h-5 text-brand-500" />
+                <span>Stock Statement ({filteredStock.length} Products Displayed)</span>
+              </h3>
+            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead>
                   <tr className={`border-b text-[11px] font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
-                    <th className="py-3 px-3">Product / Commodity</th>
+                    <th className="py-3 px-3">Product Name</th>
                     <th className="py-3 px-3 text-center">Category</th>
-                    <th className="py-3 px-3 text-center font-black text-brand-500">Bags</th>
-                    <th className="py-3 px-3 text-center">Gross Qty</th>
-                    <th className="py-3 px-3 text-center text-amber-500">Deduction (Katt)</th>
-                    <th className="py-3 px-3 text-center font-black text-emerald-500">Net Quantity</th>
-                    <th className="py-3 px-3 text-right">Avg Rate</th>
-                    <th className="py-3 px-3 text-right font-black">Stock Value</th>
+                    <th className="py-3 px-3 text-center font-black text-brand-500">Available Stock</th>
+                    <th className="py-3 px-3 text-center">Bag Breakdown</th>
+                    <th className="py-3 px-3 text-right">Purchase Rate</th>
+                    <th className="py-3 px-3 text-right">Selling Rate</th>
+                    <th className="py-3 px-3 text-right font-black">Stock Valuation</th>
+                    <th className="py-3 px-3 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                  {stockInventory.length === 0 ? (
-                    <tr><td colSpan={8} className="py-8 text-center text-slate-400">No products registered in stock.</td></tr>
+                  {filteredStock.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-slate-400">
+                        <Package className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
+                        No products match your active search or filters.
+                      </td>
+                    </tr>
                   ) : (
-                    stockInventory.map((item) => (
+                    filteredStock.map((item) => (
                       <tr key={item.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
-                        <td className="py-3.5 px-3 font-black text-slate-900 dark:text-white flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-brand-500" />
-                          <span>{item.name}</span>
+                        <td className="py-3.5 px-3">
+                          <div className="font-black text-slate-900 dark:text-white flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-brand-500" />
+                            <span>{item.name}</span>
+                          </div>
+                          {item.code && <span className="text-[10px] text-slate-400 font-mono block pl-4">{item.code}</span>}
                         </td>
                         <td className="py-3.5 px-3 text-center">
-                          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>
+                          <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>
                             {item.category}
                           </span>
                         </td>
-                        <td className="py-3.5 px-3 text-center font-mono font-black text-brand-500">
-                          {item.bags !== null ? `${item.bags} Bags` : '-'}
+                        <td className="py-3.5 px-3 text-center font-mono font-black text-slate-900 dark:text-white text-sm">
+                          {item.qty.toLocaleString()} <span className="text-xs font-bold text-slate-400">{item.unit}</span>
                         </td>
-                        <td className="py-3.5 px-3 text-center font-mono text-slate-400">
-                          {item.grossQty} {item.unit}
+                        <td className="py-3.5 px-3 text-center font-mono text-slate-500 font-bold">
+                          {item.bagDetail ? (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px]">
+                              {item.bagDetail}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
                         </td>
-                        <td className="py-3.5 px-3 text-center font-mono text-amber-600 dark:text-amber-400 font-bold">
-                          {item.deductionKatt > 0 ? `- ${item.deductionKatt} ${item.unit}` : `0 ${item.unit}`}
+                        <td className="py-3.5 px-3 text-right font-mono text-slate-500">
+                          Rs. {item.purchaseRate.toLocaleString()} / {item.unit}
                         </td>
-                        <td className="py-3.5 px-3 text-center font-mono font-black text-emerald-600 dark:text-emerald-400">
-                          {item.netQty} {item.unit}
+                        <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-200">
+                          Rs. {item.sellingRate.toLocaleString()} / {item.unit}
                         </td>
-                        <td className="py-3.5 px-3 text-right font-mono font-bold">
-                          Rs. {item.rate.toLocaleString()} / {item.unit}
-                        </td>
-                        <td className="py-3.5 px-3 text-right font-mono font-black text-slate-900 dark:text-white">
+                        <td className="py-3.5 px-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
                           Rs. {item.stockVal.toLocaleString()}
+                        </td>
+                        <td className="py-3.5 px-3 text-center">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
+                            item.status === 'In Stock'
+                              ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                              : item.status === 'Low Stock'
+                                ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                                : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                          }`}>
+                            {item.status}
+                          </span>
                         </td>
                       </tr>
                     ))
@@ -445,7 +578,7 @@ export const Reports = () => {
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                   {productWiseSales.length === 0 ? (
-                    <tr><td colSpan={4} className="py-6 text-center text-slate-400">No sales recorded yet.</td></tr>
+                    <tr><td colSpan={4} className="py-8 text-center text-slate-400">No sales recorded yet.</td></tr>
                   ) : (
                     productWiseSales.map((item, idx) => (
                       <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
