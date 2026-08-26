@@ -1,45 +1,42 @@
 import React, { useState, useMemo } from 'react';
 import {
-  AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { TrendingUp, BarChart3, LineChart, Calendar, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { TrendingUp, ArrowUpRight, ArrowDownRight, Layers, BarChart2, Calendar } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
-import { useLocale } from '../context/LocaleContext';
 
 export const SalesChart = () => {
   const { sales = [], purchases = [] } = useERP();
   const { theme } = useTheme();
-  const { t } = useLocale();
-
-  const [timeframe, setTimeframe] = useState('7d'); // '7d' | '30d' | '6m'
-  const [chartMode, setChartMode] = useState('area'); // 'area' | 'bar'
+  const [timeframe, setTimeframe] = useState('7D'); // '7D' | '30D' | '6M' | '1Y'
+  const [chartType, setChartType] = useState('area'); // 'area' | 'bar'
 
   // Build timeline data based on selected timeframe
   const chartData = useMemo(() => {
     const today = new Date();
     const todayStr = today.toLocaleDateString('en-GB');
 
-    if (timeframe === '7d') {
+    if (timeframe === '7D') {
       // Last 7 days sequence
       const days = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(today.getDate() - i);
-        const dayName = d.toLocaleDateString('en-GB', { weekday: 'short' });
-        const dateNum = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+        const dateNum = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
         const rawIso = d.toISOString().split('T')[0];
         const ddmmyyyy = d.toLocaleDateString('en-GB');
 
         days.push({
-          date: `${dayName}, ${dateNum}`,
-          shortDate: dayName,
+          date: `${dayName} (${dateNum})`,
+          shortDate: dateNum,
           rawIso,
           ddmmyyyy,
           sales: 0,
-          purchases: 0
+          purchases: 0,
+          net: 0
         });
       }
 
@@ -75,54 +72,70 @@ export const SalesChart = () => {
         }
       });
 
-      return days;
-    } else if (timeframe === '30d') {
-      // Group last 30 days in 4-5 weekly intervals or daily
-      const days = [];
-      for (let i = 29; i >= 0; i -= 5) {
-        const d = new Date();
-        d.setDate(today.getDate() - i);
-        const dateNum = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-        const rawIso = d.toISOString().split('T')[0];
-        const ddmmyyyy = d.toLocaleDateString('en-GB');
+      days.forEach(d => {
+        d.net = d.sales - d.purchases;
+      });
 
-        days.push({
-          date: dateNum,
-          shortDate: dateNum,
-          rawIso,
-          ddmmyyyy,
+      return days;
+    } else if (timeframe === '30D') {
+      // 4 Weekly intervals over the last 30 days
+      const weeks = [];
+      for (let i = 3; i >= 0; i--) {
+        const endDay = new Date();
+        endDay.setDate(today.getDate() - (i * 7));
+        const startDay = new Date();
+        startDay.setDate(today.getDate() - ((i + 1) * 7) + 1);
+
+        const label = `W${4 - i} (${startDay.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })})`;
+        weeks.push({
+          date: label,
+          shortDate: `W${4 - i}`,
+          startDate: startDay,
+          endDate: endDay,
           sales: 0,
-          purchases: 0
+          purchases: 0,
+          net: 0
         });
       }
 
       sales.forEach(s => {
         const amt = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? s.total ?? 0);
         if (amt <= 0) return;
-        days[days.length - 1].sales += amt;
+        const sDate = s.createdAt ? new Date(s.createdAt) : new Date();
+        const matched = weeks.find(w => sDate >= w.startDate && sDate <= w.endDate);
+        if (matched) matched.sales += amt;
+        else weeks[weeks.length - 1].sales += amt;
       });
 
       purchases.forEach(p => {
         const amt = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? p.total ?? 0);
         if (amt <= 0) return;
-        days[days.length - 1].purchases += amt;
+        const pDate = p.createdAt ? new Date(p.createdAt) : new Date();
+        const matched = weeks.find(w => pDate >= w.startDate && pDate <= w.endDate);
+        if (matched) matched.purchases += amt;
+        else weeks[weeks.length - 1].purchases += amt;
       });
 
-      return days;
-    } else {
+      weeks.forEach(w => {
+        w.net = w.sales - w.purchases;
+      });
+
+      return weeks;
+    } else if (timeframe === '6M') {
       // Last 6 Months sequence
       const months = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const monthName = d.toLocaleDateString('en-GB', { month: 'short' });
+        const monthName = d.toLocaleDateString('en-US', { month: 'short' });
         const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
         months.push({
-          date: monthName,
+          date: `${monthName} ${d.getFullYear()}`,
           shortDate: monthName,
           yearMonth,
           sales: 0,
-          purchases: 0
+          purchases: 0,
+          net: 0
         });
       }
 
@@ -130,300 +143,350 @@ export const SalesChart = () => {
         const amt = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? s.total ?? 0);
         if (amt <= 0) return;
         const sDateStr = String(s.date || s.createdAt || '');
-        const matched = months.find(m => sDateStr.includes(m.yearMonth) || sDateStr.includes(m.date));
-        if (matched) {
-          matched.sales += amt;
-        } else {
-          months[months.length - 1].sales += amt;
-        }
+        const matched = months.find(m => sDateStr.includes(m.yearMonth) || sDateStr.includes(m.shortDate));
+        if (matched) matched.sales += amt;
+        else months[months.length - 1].sales += amt;
       });
 
       purchases.forEach(p => {
         const amt = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? p.total ?? 0);
         if (amt <= 0) return;
         const pDateStr = String(p.date || p.createdAt || '');
-        const matched = months.find(m => pDateStr.includes(m.yearMonth) || pDateStr.includes(m.date));
-        if (matched) {
-          matched.purchases += amt;
-        } else {
-          months[months.length - 1].purchases += amt;
-        }
+        const matched = months.find(m => pDateStr.includes(m.yearMonth) || pDateStr.includes(m.shortDate));
+        if (matched) matched.purchases += amt;
+        else months[months.length - 1].purchases += amt;
+      });
+
+      months.forEach(m => {
+        m.net = m.sales - m.purchases;
+      });
+
+      return months;
+    } else {
+      // 1Y - 12 Months
+      const months = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const monthName = d.toLocaleDateString('en-US', { month: 'short' });
+        const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+        months.push({
+          date: `${monthName} ${d.getFullYear()}`,
+          shortDate: monthName,
+          yearMonth,
+          sales: 0,
+          purchases: 0,
+          net: 0
+        });
+      }
+
+      sales.forEach(s => {
+        const amt = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? s.total ?? 0);
+        if (amt <= 0) return;
+        const sDateStr = String(s.date || s.createdAt || '');
+        const matched = months.find(m => sDateStr.includes(m.yearMonth) || sDateStr.includes(m.shortDate));
+        if (matched) matched.sales += amt;
+        else months[months.length - 1].sales += amt;
+      });
+
+      purchases.forEach(p => {
+        const amt = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? p.total ?? 0);
+        if (amt <= 0) return;
+        const pDateStr = String(p.date || p.createdAt || '');
+        const matched = months.find(m => pDateStr.includes(m.yearMonth) || pDateStr.includes(m.shortDate));
+        if (matched) matched.purchases += amt;
+        else months[months.length - 1].purchases += amt;
+      });
+
+      months.forEach(m => {
+        m.net = m.sales - m.purchases;
       });
 
       return months;
     }
   }, [sales, purchases, timeframe]);
 
-  const totalSales = useMemo(() => chartData.reduce((sum, d) => sum + d.sales, 0), [chartData]);
-  const totalPurchases = useMemo(() => chartData.reduce((sum, d) => sum + d.purchases, 0), [chartData]);
-  const netTradeMargin = totalSales - totalPurchases;
+  const totalPeriodSales = useMemo(() => chartData.reduce((sum, d) => sum + d.sales, 0), [chartData]);
+  const totalPeriodPurchases = useMemo(() => chartData.reduce((sum, d) => sum + d.purchases, 0), [chartData]);
+  const totalNetFlow = totalPeriodSales - totalPeriodPurchases;
+
+  const isDark = theme === 'dark';
+
+  // Custom High-End Tooltip Component
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || !payload.length) return null;
+
+    const sVal = payload.find(p => p.dataKey === 'sales')?.value || 0;
+    const pVal = payload.find(p => p.dataKey === 'purchases')?.value || 0;
+    const netVal = sVal - pVal;
+
+    return (
+      <div className={`p-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all ${
+        isDark ? 'bg-slate-900/95 border-slate-700 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
+      }`}>
+        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5 pb-1.5 border-b border-slate-200/50 dark:border-slate-800">
+          {label}
+        </div>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between gap-6">
+            <span className="flex items-center gap-1.5 font-medium text-slate-500 dark:text-slate-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20"></span>
+              Sales Revenue
+            </span>
+            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+              Rs. {sVal.toLocaleString()}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-6">
+            <span className="flex items-center gap-1.5 font-medium text-slate-500 dark:text-slate-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-blue-500/20"></span>
+              Stock Purchases
+            </span>
+            <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
+              Rs. {pVal.toLocaleString()}
+            </span>
+          </div>
+
+          <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-6 font-bold">
+            <span className="text-slate-600 dark:text-slate-300">
+              Net Inflow
+            </span>
+            <span className={`font-mono ${netVal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              {netVal >= 0 ? '+' : ''}Rs. {netVal.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className={`border rounded-3xl p-5 sm:p-6 card-shadow transition-all duration-300 flex-1 flex flex-col justify-between relative overflow-hidden ${
-      theme === 'dark'
-        ? 'bg-slate-900/90 border-slate-800 text-white shadow-xl shadow-slate-950/40'
-        : 'bg-white border-slate-200/80 text-slate-900 shadow-xl shadow-slate-200/50'
+    <div className={`border rounded-3xl p-6 card-shadow transition-all flex-1 flex flex-col justify-between relative overflow-hidden ${
+      isDark ? 'bg-slate-800/90 border-slate-700/80 text-white' : 'bg-white border-slate-200/90 text-slate-800'
     }`}>
-      {/* Top Header Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+      {/* Decorative top accent glow */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-600 opacity-80" />
+
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-              theme === 'dark' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'
-            }`}>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
               <TrendingUp className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-base tracking-tight text-slate-900 dark:text-white">
-                Revenue & Procurement Flow
+              <h3 className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
+                Revenue & Purchase Analytics
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Live comparison of customer sales volume versus inventory purchases
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                Live commercial inflow vs stock procurement
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
-          {/* Chart Mode Toggle: Area vs Bar */}
-          <div className={`flex items-center p-0.5 rounded-xl border ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'
+        {/* Controls Toolbar */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Chart View Toggle (Area / Bar) */}
+          <div className={`flex items-center p-1 rounded-xl border ${
+            isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'
           }`}>
             <button
-              onClick={() => setChartMode('area')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                chartMode === 'area'
-                  ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              onClick={() => setChartType('area')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                chartType === 'area'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
-              title="Smooth Line Chart"
+              title="Smooth Area Spline"
             >
-              <LineChart className="w-3.5 h-3.5" />
-              <span>Line</span>
+              <Layers className="w-3.5 h-3.5" />
+              <span>Spline</span>
             </button>
             <button
-              onClick={() => setChartMode('bar')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                chartMode === 'bar'
-                  ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              onClick={() => setChartType('bar')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                chartType === 'bar'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
-              title="Column Bar Chart"
+              title="Bar Chart View"
             >
-              <BarChart3 className="w-3.5 h-3.5" />
+              <BarChart2 className="w-3.5 h-3.5" />
               <span>Bars</span>
             </button>
           </div>
 
-          {/* Timeframe Selector Pills */}
-          <div className={`flex items-center p-0.5 rounded-xl border ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'
+          {/* Timeframe Segmented Pills */}
+          <div className={`flex items-center p-1 rounded-xl border ${
+            isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'
           }`}>
-            <button
-              onClick={() => setTimeframe('7d')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                timeframe === '7d'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              7 Days
-            </button>
-            <button
-              onClick={() => setTimeframe('30d')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                timeframe === '30d'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              30 Days
-            </button>
-            <button
-              onClick={() => setTimeframe('6m')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                timeframe === '6m'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              6 Months
-            </button>
+            {[
+              { id: '7D', label: '7D' },
+              { id: '30D', label: '30D' },
+              { id: '6M', label: '6M' },
+              { id: '1Y', label: '1Y' }
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTimeframe(t.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  timeframe === t.id
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Mini Executive Metric Cards Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        {/* Sales Mini Card */}
+      {/* Summary KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <div className={`p-3 rounded-2xl border transition-all ${
-          theme === 'dark'
-            ? 'bg-slate-800/60 border-emerald-500/20'
-            : 'bg-emerald-50/50 border-emerald-100'
+          isDark ? 'bg-slate-900/60 border-slate-700/60' : 'bg-emerald-50/50 border-emerald-100'
         }`}>
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              Total Sales
-            </span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Total Sales
           </div>
-          <div className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1">
-            Rs. {totalSales.toLocaleString()}
+          <div className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+            Rs. {totalPeriodSales.toLocaleString()}
           </div>
         </div>
 
-        {/* Purchases Mini Card */}
         <div className={`p-3 rounded-2xl border transition-all ${
-          theme === 'dark'
-            ? 'bg-slate-800/60 border-blue-500/20'
-            : 'bg-blue-50/50 border-blue-100'
+          isDark ? 'bg-slate-900/60 border-slate-700/60' : 'bg-blue-50/50 border-blue-100'
         }`}>
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-              Total Purchases
-            </span>
-            <ArrowDownRight className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+          <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+            Total Purchases
           </div>
-          <div className="text-lg font-black font-mono text-blue-600 dark:text-blue-400 mt-1">
-            Rs. {totalPurchases.toLocaleString()}
+          <div className="text-lg font-black font-mono text-blue-600 dark:text-blue-400 mt-0.5">
+            Rs. {totalPeriodPurchases.toLocaleString()}
           </div>
         </div>
 
-        {/* Trade Spread */}
         <div className={`p-3 rounded-2xl border transition-all ${
-          theme === 'dark'
-            ? 'bg-slate-800/60 border-slate-700'
-            : 'bg-slate-50 border-slate-200'
+          isDark ? 'bg-slate-900/60 border-slate-700/60' : 'bg-slate-50 border-slate-200'
         }`}>
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Trade Margin
-            </span>
-            <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${
-              netTradeMargin >= 0
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-            }`}>
-              {netTradeMargin >= 0 ? '+Surplus' : '-Deficit'}
-            </span>
+          <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            {totalNetFlow >= 0 ? (
+              <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600" />
+            ) : (
+              <ArrowDownRight className="w-3.5 h-3.5 text-rose-600" />
+            )}
+            Net Balance
           </div>
-          <div className={`text-lg font-black font-mono mt-1 ${
-            netTradeMargin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+          <div className={`text-lg font-black font-mono mt-0.5 ${
+            totalNetFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
           }`}>
-            Rs. {Math.abs(netTradeMargin).toLocaleString()}
+            {totalNetFlow >= 0 ? '+' : ''}Rs. {totalNetFlow.toLocaleString()}
           </div>
         </div>
       </div>
 
-      {/* Main Chart Graphic Canvas */}
-      <div className="w-full h-64 min-h-[260px] pt-2">
+      {/* Main Chart Area */}
+      <div className="w-full h-72 min-h-[270px]">
         <ResponsiveContainer width="100%" height="100%">
-          {chartMode === 'area' ? (
-            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+          {chartType === 'area' ? (
+            <AreaChart data={chartData} margin={{ top: 12, right: 12, left: -18, bottom: 0 }}>
               <defs>
-                <linearGradient id="gradSales" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                <linearGradient id="proSalesGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
+                  <stop offset="85%" stopColor="#10b981" stopOpacity={0.0} />
                 </linearGradient>
-                <linearGradient id="gradPurchases" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2563eb" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
+                <linearGradient id="proPurchasesGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.35} />
+                  <stop offset="85%" stopColor="#3b82f6" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
-                strokeDasharray="3 3"
+                strokeDasharray="4 4"
                 vertical={false}
-                stroke={theme === 'dark' ? '#334155' : '#f1f5f9'}
+                stroke={isDark ? '#334155' : '#f1f5f9'}
+                strokeOpacity={0.8}
               />
               <XAxis
-                dataKey="date"
+                dataKey="shortDate"
                 tickLine={false}
-                axisLine={{ stroke: theme === 'dark' ? '#334155' : '#e2e8f0' }}
-                tick={{ fontSize: 11, fontWeight: 600, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                axisLine={{ stroke: isDark ? '#334155' : '#e2e8f0' }}
+                tick={{ fontSize: 11, fontWeight: 600, fill: isDark ? '#94a3b8' : '#64748b' }}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 11, fontWeight: 600, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
-                tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
-                  borderRadius: '16px',
-                  border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
-                  color: theme === 'dark' ? '#ffffff' : '#0f172a',
-                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                  padding: '12px 16px',
-                  fontSize: '12px'
+                tick={{ fontSize: 11, fontWeight: 600, fill: isDark ? '#94a3b8' : '#64748b' }}
+                tickFormatter={(val) => {
+                  if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+                  if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
+                  return val;
                 }}
-                formatter={(value, name) => [
-                  `Rs. ${Number(value).toLocaleString()}`,
-                  name === 'sales' ? 'Total Sales' : 'Total Purchases'
-                ]}
-                labelStyle={{ fontWeight: 800, marginBottom: '6px', color: theme === 'dark' ? '#cbd5e1' : '#475569' }}
               />
+              <Tooltip content={<CustomTooltip />} />
               <Area
-                type="monotone"
+                type="natural"
                 dataKey="sales"
-                name="sales"
+                name="Sales"
                 stroke="#10b981"
                 strokeWidth={3}
                 dot={{ r: 4, strokeWidth: 2, fill: '#10b981', stroke: '#ffffff' }}
-                activeDot={{ r: 7, strokeWidth: 2, fill: '#10b981', stroke: '#ffffff' }}
+                activeDot={{ r: 7, strokeWidth: 2, fill: '#10b981', stroke: '#ffffff', filter: 'drop-shadow(0 4px 6px rgba(16, 185, 129, 0.4))' }}
                 fillOpacity={1}
-                fill="url(#gradSales)"
+                fill="url(#proSalesGradient)"
               />
               <Area
-                type="monotone"
+                type="natural"
                 dataKey="purchases"
-                name="purchases"
-                stroke="#2563eb"
+                name="Purchases"
+                stroke="#3b82f6"
                 strokeWidth={3}
-                dot={{ r: 4, strokeWidth: 2, fill: '#2563eb', stroke: '#ffffff' }}
-                activeDot={{ r: 7, strokeWidth: 2, fill: '#2563eb', stroke: '#ffffff' }}
+                dot={{ r: 4, strokeWidth: 2, fill: '#3b82f6', stroke: '#ffffff' }}
+                activeDot={{ r: 7, strokeWidth: 2, fill: '#3b82f6', stroke: '#ffffff', filter: 'drop-shadow(0 4px 6px rgba(59, 130, 246, 0.4))' }}
                 fillOpacity={1}
-                fill="url(#gradPurchases)"
+                fill="url(#proPurchasesGradient)"
               />
             </AreaChart>
           ) : (
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }} barGap={6}>
+            <BarChart data={chartData} margin={{ top: 12, right: 12, left: -18, bottom: 0 }} barGap={6}>
               <CartesianGrid
-                strokeDasharray="3 3"
+                strokeDasharray="4 4"
                 vertical={false}
-                stroke={theme === 'dark' ? '#334155' : '#f1f5f9'}
+                stroke={isDark ? '#334155' : '#f1f5f9'}
+                strokeOpacity={0.8}
               />
               <XAxis
-                dataKey="date"
+                dataKey="shortDate"
                 tickLine={false}
-                axisLine={{ stroke: theme === 'dark' ? '#334155' : '#e2e8f0' }}
-                tick={{ fontSize: 11, fontWeight: 600, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                axisLine={{ stroke: isDark ? '#334155' : '#e2e8f0' }}
+                tick={{ fontSize: 11, fontWeight: 600, fill: isDark ? '#94a3b8' : '#64748b' }}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 11, fontWeight: 600, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
-                tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
-                  borderRadius: '16px',
-                  border: theme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
-                  color: theme === 'dark' ? '#ffffff' : '#0f172a',
-                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
-                  padding: '12px 16px'
+                tick={{ fontSize: 11, fontWeight: 600, fill: isDark ? '#94a3b8' : '#64748b' }}
+                tickFormatter={(val) => {
+                  if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+                  if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
+                  return val;
                 }}
-                formatter={(value, name) => [
-                  `Rs. ${Number(value).toLocaleString()}`,
-                  name === 'sales' ? 'Total Sales' : 'Total Purchases'
-                ]}
-                labelStyle={{ fontWeight: 800, marginBottom: '6px', color: theme === 'dark' ? '#cbd5e1' : '#475569' }}
               />
-              <Bar dataKey="sales" name="sales" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={32} />
-              <Bar dataKey="purchases" name="purchases" fill="#2563eb" radius={[6, 6, 0, 0]} maxBarSize={32} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar
+                dataKey="sales"
+                name="Sales"
+                fill="#10b981"
+                radius={[6, 6, 0, 0]}
+              />
+              <Bar
+                dataKey="purchases"
+                name="Purchases"
+                fill="#3b82f6"
+                radius={[6, 6, 0, 0]}
+              />
             </BarChart>
           )}
         </ResponsiveContainer>
