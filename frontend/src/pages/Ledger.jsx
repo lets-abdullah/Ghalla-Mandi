@@ -12,21 +12,8 @@ export const Ledger = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const typeParam = searchParams.get('type');
-  const [ledgerType, setLedgerType] = useState(
-    typeParam && (typeParam.toLowerCase() === 'supplier' || typeParam.toLowerCase() === 'suppliers')
-      ? 'Supplier'
-      : 'Customer'
-  );
-
-  useEffect(() => {
-    if (typeParam) {
-      if (typeParam.toLowerCase() === 'supplier' || typeParam.toLowerCase() === 'suppliers') {
-        setLedgerType('Supplier');
-      } else if (typeParam.toLowerCase() === 'customer' || typeParam.toLowerCase() === 'customers') {
-        setLedgerType('Customer');
-      }
-    }
-  }, [typeParam]);
+  const isSupplier = typeParam && (typeParam.toLowerCase() === 'supplier' || typeParam.toLowerCase() === 'suppliers');
+  const ledgerType = isSupplier ? 'Supplier' : 'Customer';
 
   const [selectedCustomerId, setSelectedCustomerId] = useState(customers[0]?.id || '');
   const [selectedSupplierId, setSelectedSupplierId] = useState(suppliers[0]?.id || '');
@@ -222,10 +209,18 @@ export const Ledger = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-brand-500" />
-            {t('ledgerTitle')}
+            {isSupplier ? (
+              <UserCheck className="w-6 h-6 text-brand-500" />
+            ) : (
+              <Users className="w-6 h-6 text-brand-500" />
+            )}
+            {isSupplier ? (t('supplierLedger') || 'Supplier Ledger') : (t('customerLedger') || 'Customer Ledger')}
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">{t('ledgerSubtitle')}</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {isSupplier
+              ? (t('supplierLedgerSubtitle') || 'Supplier firm and commission agent credit khata ledger statements')
+              : (t('customerLedgerSubtitle') || 'Customer regular party debit khata and balance receivable statements')}
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -241,60 +236,44 @@ export const Ledger = () => {
             onClick={() => setShowPaymentModal(true)}
             className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> {t('recordPayment')}
+            <Plus className="w-4 h-4" /> {isSupplier ? 'Record Payment to Supplier' : 'Record Payment from Customer'}
           </button>
         </div>
       </div>
 
-      {/* Tabs & Party Selector Container */}
+      {/* Account Selector Bar (No Cross Tabs) */}
       <div className={`border rounded-2xl p-4 card-shadow flex flex-col md:flex-row gap-4 justify-between items-center transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
-        {/* Tab Switcher */}
-        <div className={`flex p-1 rounded-xl w-full md:w-auto border ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'
-          }`}>
-          <button
-            onClick={() => setLedgerType('Customer')}
-            className={`flex-1 md:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${ledgerType === 'Customer'
-              ? 'bg-brand-500 text-white shadow-xs'
-              : 'text-slate-400 hover:text-slate-200'
-              }`}
-          >
-            <Users className="w-3.5 h-3.5" /> {t('customerLedgerTab')}
-          </button>
-          <button
-            onClick={() => setLedgerType('Supplier')}
-            className={`flex-1 md:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${ledgerType === 'Supplier'
-              ? 'bg-brand-500 text-white shadow-xs'
-              : 'text-slate-400 hover:text-slate-200'
-              }`}
-          >
-            <UserCheck className="w-3.5 h-3.5" /> {t('supplierLedgerTab')}
-          </button>
+        <div className="text-xs font-black text-slate-500 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-brand-500"></span>
+          <span>{isSupplier ? 'Supplier Khata Statement Record' : 'Customer Party Khata Statement Record'}</span>
         </div>
 
         {/* Party Selector Dropdown */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          <span className="text-xs font-bold text-slate-400 whitespace-nowrap">{t('selectKhataAccount')}:</span>
-          {ledgerType === 'Customer' ? (
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-              className={`w-full md:w-72 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-            >
-              {regularCustomers.map(c => (
-                <option key={c.id} value={c.id}>{c.name} ({c.city}) — Rs. {(Number(c.balance) || 0).toLocaleString()}</option>
-              ))}
-            </select>
-          ) : (
+          <span className="text-xs font-bold text-slate-400 whitespace-nowrap">
+            {isSupplier ? (t('selectSupplierAccount') || 'Select Supplier Firm') : (t('selectCustomerAccount') || 'Select Customer Party')}:
+          </span>
+          {isSupplier ? (
             <select
               value={selectedSupplierId}
               onChange={(e) => setSelectedSupplierId(e.target.value)}
-              className={`w-full md:w-72 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              className={`w-full md:w-80 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
             >
               {suppliers.map(s => (
                 <option key={s.id} value={s.id}>{s.name} ({s.city}) — Rs. {(Number(s.balance) || 0).toLocaleString()}</option>
+              ))}
+            </select>
+          ) : (
+            <select
+              value={selectedCustomerId}
+              onChange={(e) => setSelectedCustomerId(e.target.value)}
+              className={`w-full md:w-80 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+            >
+              {regularCustomers.map(c => (
+                <option key={c.id} value={c.id}>{c.name} ({c.city}) — Rs. {(Number(c.balance) || 0).toLocaleString()}</option>
               ))}
             </select>
           )}

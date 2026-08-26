@@ -14,20 +14,6 @@ export const Invoices = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const typeParam = searchParams.get('type');
-  const [activeTab, setActiveTab] = useState(
-    typeParam && typeParam.toLowerCase() === 'purchases' ? 'Purchases' : 'Sales'
-  );
-
-  useEffect(() => {
-    if (typeParam) {
-      if (typeParam.toLowerCase() === 'purchases') {
-        setActiveTab('Purchases');
-      } else if (typeParam.toLowerCase() === 'sales') {
-        setActiveTab('Sales');
-      }
-    }
-  }, [typeParam]);
-
   const [search, setSearch] = useState('');
   const [selectedSaleReceipt, setSelectedSaleReceipt] = useState(null);
   const [selectedPurchaseReceipt, setSelectedPurchaseReceipt] = useState(null);
@@ -94,10 +80,15 @@ export const Invoices = () => {
     };
   });
 
-  const totalSalesInvoiced = salesInvoices.reduce((acc, i) => acc + i.amountNum, 0);
-  const totalPurchasesInvoiced = purchaseInvoices.reduce((acc, i) => acc + i.amountNum, 0);
+  const isPurchases = typeParam && typeParam.toLowerCase() === 'purchases';
+  const activeTab = isPurchases ? 'Purchases' : 'Sales';
 
-  const list = activeTab === 'Sales' ? salesInvoices : purchaseInvoices;
+  const totalSalesInvoiced = salesInvoices.reduce((acc, i) => acc + i.amountNum, 0);
+  const totalSalesPaid = salesInvoices.reduce((acc, i) => acc + i.paidAmount, 0);
+  const totalPurchasesInvoiced = purchaseInvoices.reduce((acc, i) => acc + i.amountNum, 0);
+  const totalPurchasesPaid = purchaseInvoices.reduce((acc, i) => acc + i.paidAmount, 0);
+
+  const list = isPurchases ? purchaseInvoices : salesInvoices;
 
   const filtered = list.filter(item =>
     item.invoiceNo.toLowerCase().includes(search.toLowerCase()) ||
@@ -166,10 +157,18 @@ export const Invoices = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
-            <FileText className="w-6 h-6 text-brand-500" />
-            {t('invoicesTitle')}
+            {isPurchases ? (
+              <ShoppingCart className="w-6 h-6 text-brand-500" />
+            ) : (
+              <FileText className="w-6 h-6 text-brand-500" />
+            )}
+            {isPurchases ? (t('purchaseInvoices') || 'Purchase Invoices') : (t('saleInvoices') || 'Sale Invoices')}
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">{t('invoicesSubtitle')}</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {isPurchases
+              ? (t('purchasesInvoicesSubtitle') || 'View, search and print procurement invoices and supplier inward receipts')
+              : (t('salesInvoicesSubtitle') || 'View, search and print customer sales tax invoices and counter receipts')}
+          </p>
         </div>
 
         <button
@@ -186,61 +185,58 @@ export const Invoices = () => {
         <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
           <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <ShoppingBag className="w-4 h-4 text-emerald-500" /> {t('totalSalesVolume')}
+            {isPurchases ? <ShoppingCart className="w-4 h-4 text-brand-500" /> : <ShoppingBag className="w-4 h-4 text-emerald-500" />}
+            {isPurchases ? t('totalPurchasesVolume') : t('totalSalesVolume')}
           </div>
-          <div className="text-2xl font-extrabold mt-1">Rs. {totalSalesInvoiced.toLocaleString()}</div>
-          <div className="text-xs text-emerald-500 font-bold mt-1">{salesInvoices.length} {t('invoices')}</div>
+          <div className="text-2xl font-extrabold mt-1">
+            Rs. {(isPurchases ? totalPurchasesInvoiced : totalSalesInvoiced).toLocaleString()}
+          </div>
+          <div className="text-xs text-emerald-500 font-bold mt-1">
+            {(isPurchases ? purchaseInvoices.length : salesInvoices.length)} {t('invoices')}
+          </div>
         </div>
 
         <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
           <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <ShoppingCart className="w-4 h-4 text-brand-500" /> {t('totalPurchasesVolume')}
+            <DollarSign className="w-4 h-4 text-emerald-500" />
+            {isPurchases ? t('totalPaidOut') || 'Total Paid to Suppliers' : t('totalReceivedPayment') || 'Total Cash Received'}
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-brand-500">Rs. {totalPurchasesInvoiced.toLocaleString()}</div>
-          <div className="text-xs text-slate-400 font-medium mt-1">{purchaseInvoices.length} {t('invoices')}</div>
+          <div className="text-2xl font-extrabold mt-1 text-emerald-500">
+            Rs. {(isPurchases ? totalPurchasesPaid : totalSalesPaid).toLocaleString()}
+          </div>
+          <div className="text-xs text-slate-400 font-medium mt-1">
+            {t('paid')}
+          </div>
         </div>
 
         <div className={`border rounded-2xl p-5 card-shadow transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
           <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-amber-500" /> {t('invoices')}
+            <FileText className="w-4 h-4 text-amber-500" /> {t('totalInvoicesCount') || 'Total Invoices'}
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-amber-500">{salesInvoices.length + purchaseInvoices.length} {t('items')}</div>
-          <div className="text-xs text-amber-500 font-bold mt-1">{t('paid')}</div>
+          <div className="text-2xl font-extrabold mt-1 text-amber-500">
+            {(isPurchases ? purchaseInvoices.length : salesInvoices.length)} {t('invoices')}
+          </div>
+          <div className="text-xs text-amber-500 font-bold mt-1">
+            {isPurchases ? 'Purchases Record' : 'Sales Record'}
+          </div>
         </div>
       </div>
 
-      {/* Tabs & Search Container */}
+      {/* Search Header Container */}
       <div className={`border rounded-2xl p-4 card-shadow flex flex-col md:flex-row gap-4 justify-between items-center transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
-        <div className={`flex p-1 rounded-xl w-full md:w-auto border ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'
-          }`}>
-          <button
-            onClick={() => setActiveTab('Sales')}
-            className={`flex-1 md:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${activeTab === 'Sales'
-              ? 'bg-brand-500 text-white shadow-xs'
-              : 'text-slate-400 hover:text-slate-200'
-              }`}
-          >
-            <ArrowUpRight className="w-3.5 h-3.5" /> {t('salesInvoicesTab')} ({salesInvoices.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('Purchases')}
-            className={`flex-1 md:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${activeTab === 'Purchases'
-              ? 'bg-emerald-600 text-white shadow-xs'
-              : 'text-slate-400 hover:text-slate-200'
-              }`}
-          >
-            <ArrowDownLeft className="w-3.5 h-3.5" /> {t('purchasesInvoicesTab')} ({purchaseInvoices.length})
-          </button>
+        <div className="text-xs font-black text-slate-500 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-brand-500"></span>
+          <span>{isPurchases ? 'All Purchase Procurement Invoices' : 'All Customer Sales Tax Invoices'} ({filtered.length})</span>
         </div>
 
-        <div className="relative w-full md:w-72">
+        <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder={t('searchInvoicePlaceholder')}
+            placeholder={isPurchases ? "Filter invoice no or supplier firm..." : "Filter invoice no or customer party..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
