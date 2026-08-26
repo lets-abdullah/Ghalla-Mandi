@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Package, Warehouse, ShoppingCart, ShoppingBag,
   Receipt, Users, UserCheck, BookOpen, FileText,
   BarChart3, Settings, Wheat, LogOut, Headphones, MessageSquare, Phone, X, PlusCircle,
-  ChevronLeft, ChevronRight, ChevronDown, Circle
+  ChevronLeft, ChevronRight, ChevronDown, Circle,
+  TrendingUp, TrendingDown, DollarSign, RotateCcw, Scale, PieChart, Building, FileSpreadsheet
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
@@ -31,9 +32,12 @@ export const Sidebar = () => {
     (location.pathname === '/invoices' && (location.search.includes('Purchases') || location.search.includes('purchases'))) ||
     (location.pathname === '/ledger' && (location.search.includes('Supplier') || location.search.includes('supplier')));
 
+  const isReportsActive = location.pathname === '/reports';
+
   // Collapsible dropdown states (open by default or when active)
   const [salesOpen, setSalesOpen] = useState(true);
   const [purchasesOpen, setPurchasesOpen] = useState(true);
+  const [reportsOpen, setReportsOpen] = useState(true);
 
   useEffect(() => {
     if (isSalesActive) setSalesOpen(true);
@@ -42,6 +46,10 @@ export const Sidebar = () => {
   useEffect(() => {
     if (isPurchasesActive) setPurchasesOpen(true);
   }, [location.pathname, location.search, isPurchasesActive]);
+
+  useEffect(() => {
+    if (isReportsActive) setReportsOpen(true);
+  }, [location.pathname, location.search, isReportsActive]);
 
   const handleLogout = () => {
     logout();
@@ -361,25 +369,156 @@ export const Sidebar = () => {
               )}
             </NavLink>
 
-            {/* 7. Reports */}
-            <NavLink
-              to="/reports"
-              title={isCollapsed ? t('reports') : undefined}
-              className={({ isActive }) =>
-                `flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
-                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`
-              }
-            >
-              <BarChart3 className="w-4 h-4 shrink-0 stroke-[2.2]" />
-              {!isCollapsed && <span className="truncate">{t('reports')}</span>}
-              {isCollapsed && (
+            {/* 7. Reports ▾ (Collapsible Dropdown Group) */}
+            {isCollapsed ? (
+              <NavLink
+                to="/reports"
+                title={t('reports')}
+                className={({ isActive }) =>
+                  `flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all relative group ${isReportsActive
+                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`
+                }
+              >
+                <BarChart3 className="w-4 h-4 shrink-0 stroke-[2.2]" />
                 <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
                   {t('reports')}
                 </div>
-              )}
-            </NavLink>
+              </NavLink>
+            ) : (
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setReportsOpen(!reportsOpen)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isReportsActive
+                    ? 'bg-brand-500/10 text-brand-600 font-black'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <BarChart3 className={`w-4 h-4 shrink-0 stroke-[2.2] ${isReportsActive ? 'text-brand-500' : ''}`} />
+                    <span>{t('reports')}</span>
+                  </div>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${reportsOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
+                </button>
+
+                {/* Submenu Items for Reports */}
+                {reportsOpen && (
+                  <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
+                    <Link
+                      to="/reports?type=Sales"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Sales') || (location.pathname === '/reports' && !location.search)
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <TrendingUp className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('salesReport') || 'Sales Report'}</span>
+                    </Link>
+
+                    <Link
+                      to="/reports?type=Purchases"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Purchases')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <TrendingDown className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('purchaseReport') || 'Purchase Report'}</span>
+                    </Link>
+
+                    <Link
+                      to="/reports?type=Stock"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Stock')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <Warehouse className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('stockReport') || 'Stock Report'}</span>
+                    </Link>
+
+                    <Link
+                      to="/reports?type=Customers"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Customers')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <Users className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('customerReport') || 'Customer Report'}</span>
+                    </Link>
+
+                    <Link
+                      to="/reports?type=Suppliers"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Suppliers')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <UserCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('supplierReport') || 'Supplier Report'}</span>
+                    </Link>
+
+                    <Link
+                      to="/reports?type=Expenses"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Expenses')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <DollarSign className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('expenseReport') || 'Expense Report'}</span>
+                    </Link>
+
+                    <Link
+                      to="/reports?type=Returns"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Returns')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('returnHistory') || 'Return History'}</span>
+                    </Link>
+
+                    <Link
+                      to="/reports?type=TrialBalance"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'TrialBalance')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <Scale className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('trialBalance') || 'Trial Balance'}</span>
+                    </Link>
+
+                    <Link
+                      to="/reports?type=ProfitLoss"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'ProfitLoss')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <PieChart className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('profitLoss') || 'Profit & Loss'}</span>
+                    </Link>
+
+                    <Link
+                      to="/reports?type=BalanceSheet"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'BalanceSheet')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <Building className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>{t('balanceSheet') || 'Balance Sheet'}</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 8. Settings */}
             <NavLink
