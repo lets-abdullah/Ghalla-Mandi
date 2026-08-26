@@ -91,7 +91,7 @@ export const Ledger = () => {
         id: `pay-${p.id}`,
         date: p.date,
         ref: p.ref,
-        type: `${t('paymentReceivedBtn')} (${p.mode || 'Cash'})`,
+        type: `${t('Received')} (${p.mode || 'Cash'})`,
         debit: 0,
         credit: Number(p.amount) || 0,
         desc: p.note || t('cashOnCounter')

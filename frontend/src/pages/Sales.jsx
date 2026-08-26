@@ -261,10 +261,10 @@ export const Sales = () => {
                             <button
                               onClick={() => openPaymentModal(s)}
                               className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-3 py-1.5 rounded-xl transition shadow-xs cursor-pointer"
-                              title={t('paymentReceivedBtn')}
+                              title={t('Received') || 'Receive Payment'}
                             >
                               <DollarSign className="w-3.5 h-3.5" />
-                              <span>{t('paymentReceivedBtn')}</span>
+                              <span>{t('Received') || 'Receive Payment'}</span>
                             </button>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
@@ -333,7 +333,7 @@ export const Sales = () => {
                   <DollarSign className="w-5 h-5 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold">{t('paymentReceivedBtn')}</h3>
+                  <h3 className="text-base font-extrabold">{t('Received')}</h3>
                   <p className="text-[11px] text-slate-400 font-mono font-bold">{paymentModalSale.invoiceNo}</p>
                 </div>
               </div>
