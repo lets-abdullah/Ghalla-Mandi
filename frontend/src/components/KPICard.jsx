@@ -66,7 +66,7 @@ export const KPICard = ({
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide block truncate" title={title}>
             {title}
           </span>
-          <h3 className={`text-base sm:text-lg lg:text-xl font-black mt-1 tracking-tight font-mono whitespace-nowrap overflow-visible ${activeStyle.value}`}>
+          <h3 className={`text-base sm:text-lg lg:text-xl font-bold mt-1 tracking-tight tabular-nums whitespace-nowrap overflow-visible ${activeStyle.value}`}>
             {amount}
           </h3>
         </div>
