@@ -28,12 +28,13 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
     note = ''
   } = purchaseData;
 
+  const displaySupplier = supplierName || 'N/A';
   const cleanPurchaseNo = `#${String(purchaseNo).replace(/[^0-9A-Za-z-]/g, '')}`;
   const totalNum = Number(totalAmount || 0);
   const paidNum = Number(paidAmount || 0);
   const dueRemaining = Math.max(0, totalNum - paidNum);
 
-  // High Quality Isolated Print
+  // High Quality Isolated Print - Full Width A4 & Thermal
   const handlePrint = () => {
     try {
       const existingFrame = document.getElementById('purchase-receipt-print-frame');
@@ -54,21 +55,25 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
       const doc = printFrame.contentWindow.document;
       doc.open();
 
-      const itemsRowsHtml = items.map((item) => {
+      const itemsRowsHtml = items.map((item, idx) => {
         const itemPrice = Number(item.price || item.rate || 0);
         const itemQty = Number(item.qty || 1);
         const itemUnit = item.unit || item.unitName || t('kg');
         const lineTotal = Number(item.total) || (itemPrice * itemQty);
         return `
-          <tr>
-            <td style="padding: 7px 0; border-bottom: 1px solid #e2e8f0;">
-              <div style="font-weight: 800; font-size: 12px; color: #064e3b;">📦 ${item.name}</div>
-              <div style="font-size: 10px; color: #64748b;">Rate: Rs. ${itemPrice.toLocaleString()} / ${itemUnit}</div>
+          <tr style="border-bottom: 1px solid #e2e8f0; ${idx % 2 === 1 ? 'background-color: #f8fafc;' : ''}">
+            <td style="padding: 10px 12px; font-weight: 700; color: #64748b; text-align: center; width: 45px;">${idx + 1}</td>
+            <td style="padding: 10px 12px;">
+              <div style="font-weight: 800; font-size: 13px; color: #064e3b;">📦 ${item.name}</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Commodity Procurement</div>
             </td>
-            <td style="padding: 7px 0; text-align: center; font-weight: 800; font-size: 11px; border-bottom: 1px solid #e2e8f0; color: #0f172a;">
-              ${itemQty} ${itemUnit}
+            <td style="padding: 10px 12px; text-align: right; font-weight: 700; font-size: 13px; color: #334155; font-family: monospace;">
+              Rs. ${itemPrice.toLocaleString()}
             </td>
-            <td style="padding: 7px 0; text-align: right; font-weight: 800; font-size: 12px; border-bottom: 1px solid #e2e8f0; color: #064e3b;">
+            <td style="padding: 10px 12px; text-align: center; font-weight: 800; font-size: 13px; color: #1e293b;">
+              ${itemQty} <span style="font-size: 11px; color: #64748b; font-weight: 600;">${itemUnit}</span>
+            </td>
+            <td style="padding: 10px 14px; text-align: right; font-weight: 900; font-size: 14px; color: #064e3b; font-family: monospace;">
               Rs. ${lineTotal.toLocaleString()}
             </td>
           </tr>
@@ -83,14 +88,14 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
             <title>Purchase Voucher - ${cleanPurchaseNo}</title>
             <style>
               @page {
-                size: 80mm auto;
-                margin: 4mm;
+                size: A4 portrait;
+                margin: 12mm 15mm;
               }
               * {
                 box-sizing: border-box;
                 margin: 0;
                 padding: 0;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
               }
@@ -98,153 +103,187 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                 background: #ffffff;
                 color: #0f172a;
                 width: 100%;
-                max-width: 320px;
-                margin: 0 auto;
-                padding: 6px 4px;
+                margin: 0;
+                padding: 0;
+                font-size: 12px;
+                line-height: 1.4;
+              }
+              .invoice-container {
+                width: 100%;
+                border: 1.5px solid #064e3b;
+                border-radius: 12px;
+                overflow: hidden;
+                padding: 24px;
+              }
+              .header-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+                padding-bottom: 16px;
+                border-bottom: 2px solid #064e3b;
+              }
+              .meta-box {
+                background: #f0fdf4;
+                border: 1px solid #bbf7d0;
+                border-radius: 8px;
+                padding: 12px 16px;
+                margin-bottom: 20px;
+              }
+              .meta-table {
+                width: 100%;
+                border-collapse: collapse;
+              }
+              .meta-table td {
+                padding: 4px 8px;
+                vertical-align: top;
+              }
+              .items-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 24px;
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+                overflow: hidden;
+              }
+              .items-table th {
+                background: #064e3b;
+                color: #ffffff;
+                padding: 10px 12px;
                 font-size: 11px;
-                line-height: 1.35;
-              }
-              .center { text-align: center; }
-              .flex-row { display: flex; justify-content: space-between; align-items: center; }
-              .divider { border-top: 1px solid #cbd5e1; margin: 7px 0; }
-              .dashed { border-top: 1px dashed #94a3b8; margin: 8px 0; }
-              .double-dashed { border-top: 2px dashed #064e3b; margin: 8px 0; }
-              .badge {
-                display: inline-block;
-                padding: 3px 8px;
-                background: #ecfdf5;
-                color: #047857;
-                border: 1px solid #a7f3d0;
-                font-size: 9px;
                 font-weight: 800;
-                border-radius: 4px;
                 text-transform: uppercase;
-                margin-top: 3px;
+                letter-spacing: 0.5px;
               }
-              table { width: 100%; border-collapse: collapse; margin: 6px 0; }
-              th { text-align: left; padding: 4px 0; border-bottom: 1.5px solid #064e3b; font-size: 9.5px; font-weight: 800; color: #065f46; text-transform: uppercase; }
-              .stamp-box {
-                border: 1px dashed #cbd5e1;
-                border-radius: 6px;
-                padding: 8px;
-                margin-top: 10px;
-                display: flex;
-                justify-content: space-between;
-                font-size: 9px;
-                color: #475569;
+              .grand-total-row {
+                background: #064e3b;
+                color: #ffffff;
+                font-size: 16px;
+                font-weight: 900;
               }
-              .stamp-line {
-                border-top: 1px solid #94a3b8;
-                width: 100px;
-                margin-top: 24px;
+              .grand-total-row td {
+                padding: 10px 14px;
+              }
+              .sig-box {
                 text-align: center;
+                width: 200px;
+                border-top: 1.5px dashed #94a3b8;
+                padding-top: 6px;
+                font-size: 11px;
                 font-weight: 700;
+                color: #475569;
               }
             </style>
           </head>
           <body>
-            <!-- Procurement Brand Header -->
-            <div class="center" style="margin-bottom: 6px;">
-              <h1 style="font-size: 16px; font-weight: 900; letter-spacing: -0.5px; color: #064e3b;">GHALLA MANDI ERP</h1>
-              <div class="badge">GOODS INWARD & PROCUREMENT VOUCHER</div>
-              <p style="font-size: 9.5px; color: #64748b; margin-top: 2px;">خریداری رسید / مال آمد بل</p>
-            </div>
-
-            <div class="divider"></div>
-
-            <!-- Metadata Details -->
-            <div style="font-size: 10.5px; line-height: 1.5;">
-              <div class="flex-row">
-                <span style="color: #64748b; font-weight: 600;">Voucher No:</span>
-                <span style="font-weight: 800; color: #064e3b;">${cleanPurchaseNo}</span>
-              </div>
-              <div class="flex-row">
-                <span style="color: #64748b; font-weight: 600;">Arrival Date:</span>
-                <span style="font-weight: 700;">${date}</span>
-              </div>
-              <div class="flex-row">
-                <span style="color: #64748b; font-weight: 600;">Supplier / Party:</span>
-                <span style="font-weight: 800;">${supplierName} ${supplierCity ? `(${supplierCity})` : ''}</span>
-              </div>
-              ${supplierPhone ? `
-              <div class="flex-row">
-                <span style="color: #64748b; font-weight: 600;">Phone:</span>
-                <span style="font-weight: 700;">${supplierPhone}</span>
-              </div>` : ''}
-              <div class="flex-row">
-                <span style="color: #64748b; font-weight: 600;">Payment Mode:</span>
-                <span style="font-weight: 700;">${paymentMode}</span>
-              </div>
-            </div>
-
-            <div class="divider"></div>
-
-            <!-- Inward Items Table -->
-            <table>
-              <thead>
+            <div class="invoice-container">
+              <!-- Header -->
+              <table class="header-table">
                 <tr>
-                  <th style="width: 50%;">COMMODITY</th>
-                  <th style="width: 22%; text-align: center;">QTY</th>
-                  <th style="width: 28%; text-align: right;">TOTAL</th>
+                  <td style="vertical-align: middle; width: 60%;">
+                    <div style="font-size: 24px; font-weight: 900; color: #064e3b; letter-spacing: -0.5px;">GHALLA MANDI ERP</div>
+                    <div style="font-size: 12px; font-weight: 700; color: #047857; margin-top: 2px;">COMMISSION AGENTS & GRAIN PROCUREMENT</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Inward Purchase Voucher & Grain Receipt (آمد چٹھہ)</div>
+                  </td>
+                  <td style="vertical-align: middle; text-align: right; width: 40%;">
+                    <div style="display: inline-block; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 8px 14px; text-align: right;">
+                      <div style="font-size: 10px; font-weight: 700; color: #047857; text-transform: uppercase;">PURCHASE VOUCHER</div>
+                      <div style="font-size: 18px; font-weight: 900; color: #064e3b; font-family: monospace;">${cleanPurchaseNo}</div>
+                      <div style="font-size: 11px; font-weight: 600; color: #475569; margin-top: 2px;">${date}</div>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                ${itemsRowsHtml}
-              </tbody>
-            </table>
+              </table>
 
-            <div class="divider"></div>
-
-            <!-- Financial Calculations Summary -->
-            <div style="font-size: 11px; line-height: 1.55;">
-              <div class="flex-row" style="font-size: 13px; font-weight: 900; color: #064e3b;">
-                <span>PURCHASE TOTAL:</span>
-                <span>Rs. ${totalNum.toLocaleString()}</span>
+              <!-- Supplier Metadata -->
+              <div class="meta-box">
+                <table class="meta-table">
+                  <tr>
+                    <td style="width: 50%; border-right: 1px solid #bbf7d0; padding-right: 16px;">
+                      <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #047857; margin-bottom: 4px;">SUPPLIER / GROWER DETAILS (سپلائر / زمیندار):</div>
+                      <div style="font-size: 15px; font-weight: 900; color: #0f172a;">${displaySupplier}</div>
+                      ${supplierCity ? `<div style="font-size: 12px; color: #475569; font-weight: 600; margin-top: 2px;">📍 City: ${supplierCity}</div>` : ''}
+                      ${supplierPhone ? `<div style="font-size: 12px; color: #475569; font-weight: 600; margin-top: 2px;">📞 Phone: ${supplierPhone}</div>` : ''}
+                    </td>
+                    <td style="width: 50%; padding-left: 16px;">
+                      <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #047857; margin-bottom: 4px;">PURCHASE DETAILS:</div>
+                      <div style="font-size: 13px; font-weight: 800; color: #0f172a;">Payment: <span style="color: #047857;">${paymentMode}</span></div>
+                      ${truckNo ? `<div style="font-size: 12px; color: #0f172a; font-weight: 700; margin-top: 2px;">🚚 Truck / Vehicle: ${truckNo}</div>` : ''}
+                      ${gatePassNo ? `<div style="font-size: 11px; color: #64748b;">🎫 Gate Pass: ${gatePassNo}</div>` : ''}
+                    </td>
+                  </tr>
+                </table>
               </div>
 
-              <div class="flex-row" style="color: #047857; font-weight: 700; margin-top: 3px;">
-                <span>Paid on Delivery:</span>
-                <span>Rs. ${paidNum.toLocaleString()}</span>
+              <!-- Products Table -->
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th style="width: 45px; text-align: center;">#</th>
+                    <th style="text-align: left;">COMMODITY / GRAIN DESCRIPTION</th>
+                    <th style="width: 130px; text-align: right;">PURCHASE RATE</th>
+                    <th style="width: 130px; text-align: center;">QUANTITY / WEIGHT</th>
+                    <th style="width: 150px; text-align: right;">TOTAL COST</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsRowsHtml}
+                </tbody>
+              </table>
+
+              <!-- Summary Table -->
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="width: 50%; vertical-align: top; padding-right: 20px;">
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-size: 11px; color: #64748b;">
+                      <div style="font-weight: 800; color: #0f172a; margin-bottom: 4px;">Quality & Mandi Arrival Note:</div>
+                      <div>• Goods verified on arrival by quality inspector & weighed at weighbridge.</div>
+                      <div>• Inventory updated into system stock.</div>
+                    </div>
+                  </td>
+                  <td style="width: 50%; vertical-align: top;">
+                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+                      <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 8px 12px; font-weight: 700; color: #64748b;">Subtotal Amount:</td>
+                        <td style="padding: 8px 12px; text-align: right; font-weight: 800; font-family: monospace; font-size: 13px;">Rs. ${Number(subtotalAmount || totalNum).toLocaleString()}</td>
+                      </tr>
+                      ${freightCharges > 0 ? `
+                      <tr style="border-bottom: 1px solid #e2e8f0; color: #475569;">
+                        <td style="padding: 8px 12px; font-weight: 700;">Freight / Carriage:</td>
+                        <td style="padding: 8px 12px; text-align: right; font-weight: 800; font-family: monospace; font-size: 13px;">+ Rs. ${Number(freightCharges).toLocaleString()}</td>
+                      </tr>` : ''}
+                      <tr class="grand-total-row">
+                        <td style="padding: 10px 14px; font-size: 14px; font-weight: 900;">TOTAL PAYABLE:</td>
+                        <td style="padding: 10px 14px; text-align: right; font-size: 16px; font-weight: 900; font-family: monospace;">Rs. ${totalNum.toLocaleString()}</td>
+                      </tr>
+                      <tr style="border-bottom: 1px solid #e2e8f0; background: #ecfdf5; color: #047857;">
+                        <td style="padding: 8px 12px; font-weight: 800;">Amount Paid (ادا شدہ):</td>
+                        <td style="padding: 8px 12px; text-align: right; font-weight: 900; font-family: monospace; font-size: 13px;">Rs. ${paidNum.toLocaleString()}</td>
+                      </tr>
+                      ${dueRemaining > 0 ? `
+                      <tr style="background: #fffbeb; color: #b45309;">
+                        <td style="padding: 8px 12px; font-weight: 800;">Balance Due (واجب الادا کھاتہ):</td>
+                        <td style="padding: 8px 12px; text-align: right; font-weight: 900; font-family: monospace; font-size: 13px;">Rs. ${dueRemaining.toLocaleString()}</td>
+                      </tr>` : `
+                      <tr style="background: #f0fdf4; color: #15803d;">
+                        <td style="padding: 8px 12px; font-weight: 800;">Payment Status:</td>
+                        <td style="padding: 8px 12px; text-align: right; font-weight: 900; font-size: 12px;">✓ FULLY PAID</td>
+                      </tr>`}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Signatures -->
+              <div style="margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div class="sig-box">
+                  Supplier / Grower Signature<br />
+                  <span style="font-size: 10px; font-weight: 600; color: #94a3b8;">دستخط سپلائر</span>
+                </div>
+                <div class="sig-box">
+                  Authorized Munshi Signature<br />
+                  <span style="font-size: 10px; font-weight: 600; color: #94a3b8;">مہر و دستخط منشی</span>
+                </div>
               </div>
-
-              ${dueRemaining > 0 ? `
-              <div class="flex-row" style="color: #b45309; font-weight: 800; margin-top: 2px;">
-                <span>Supplier Credit (Payable):</span>
-                <span>Rs. ${dueRemaining.toLocaleString()}</span>
-              </div>` : `
-              <div class="flex-row" style="color: #047857; font-weight: 700; margin-top: 2px;">
-                <span>Payment Status:</span>
-                <span>PAID (100% Settled)</span>
-              </div>`}
-
-              ${supplierBalance > 0 ? `
-              <div class="flex-row" style="color: #475569; font-size: 10px; font-weight: 700; margin-top: 4px; padding-top: 4px; border-top: 1px dashed #e2e8f0;">
-                <span>Supplier Total Balance:</span>
-                <span>Rs. ${Number(supplierBalance).toLocaleString()}</span>
-              </div>` : ''}
-
-              ${note ? `
-              <div style="margin-top: 6px; font-size: 10px; color: #64748b; font-style: italic;">
-                <strong>Remarks:</strong> ${note}
-              </div>` : ''}
-            </div>
-
-            <!-- Signatures verification -->
-            <div class="stamp-box">
-              <div>
-                <div class="stamp-line">Weigher (تولائی کار)</div>
-              </div>
-              <div>
-                <div class="stamp-line">Receiver / Munshi</div>
-              </div>
-            </div>
-
-            <div class="dashed"></div>
-
-            <!-- Footer Note -->
-            <div class="center" style="margin-top: 6px; font-size: 9px; color: #64748b;">
-              <p>Certified Inward Arrival & Weighment Record</p>
-              <p style="font-weight: 700; color: #064e3b; margin-top: 2px;">Ghalla Mandi ERP Procurement</p>
             </div>
           </body>
         </html>

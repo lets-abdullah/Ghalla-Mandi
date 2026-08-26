@@ -762,22 +762,30 @@ export const CreateOrder = () => {
             {/* Header: Title + Summary Badge */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-brand-500" />
-                <h3 className="font-black text-sm uppercase tracking-wide text-slate-900 dark:text-white">
-                  {t('checkoutAndBilling')}
-                </h3>
+                <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center">
+                  <Receipt className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm uppercase tracking-wide text-slate-900 dark:text-white">
+                    {t('checkoutAndBilling')}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-bold">Fast POS Counter Billing</p>
+                </div>
               </div>
-              <span className="font-mono text-brand-500 font-black text-xs px-2.5 py-1 rounded-xl bg-brand-500/10 border border-brand-500/20">
-                {totalItemsCount} {t('items')} • {totalQuantityUnits} {t('qty')}
+              <span className="font-mono text-brand-600 dark:text-brand-400 font-black text-xs px-2.5 py-1 rounded-xl bg-brand-500/10 border border-brand-500/20">
+                {cart.length} {t('items')} • {totalQuantityUnits} {t('qty')}
               </span>
             </div>
 
-            {/* 1. Selected Cart Items List (Inside Form) */}
+            {/* 1. Selected Cart Items List */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                  {t('cart')} ({cart.length})
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded-full bg-brand-500 text-white text-[10px] font-black flex items-center justify-center">1</span>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {t('cart')} ({cart.length})
+                  </span>
+                </div>
                 {cart.length > 0 && (
                   <button
                     type="button"
@@ -791,11 +799,14 @@ export const CreateOrder = () => {
               </div>
 
               {cart.length === 0 ? (
-                <div className="p-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-center text-slate-400 text-xs font-medium">
-                  {t('cartIsEmptySub') || 'Click commodity products on the left to add items to bill.'}
+                <div className="p-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700/80 text-center text-slate-400 text-xs font-medium space-y-1">
+                  <ShoppingCart className="w-6 h-6 mx-auto text-slate-300 dark:text-slate-600 stroke-[1.5]" />
+                  <p className="font-bold text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('cartIsEmptySub') || 'Click items on the left catalog to add them to bill.'}
+                  </p>
                 </div>
               ) : (
-                <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1">
                   {cart.map((item, index) => (
                     <div
                       key={item.id}
@@ -807,7 +818,7 @@ export const CreateOrder = () => {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                          <span className="w-5 h-5 rounded-md bg-brand-500/10 text-brand-500 flex items-center justify-center font-black text-[10px] shrink-0">
+                          <span className="w-4 h-4 rounded-md bg-brand-500/10 text-brand-500 flex items-center justify-center font-black text-[9px] shrink-0">
                             {index + 1}
                           </span>
                           <span className="font-black text-xs truncate text-slate-900 dark:text-white">
@@ -840,7 +851,7 @@ export const CreateOrder = () => {
                               max={item.stockQty}
                               value={item.qty}
                               onChange={(e) => setDirectItemQty(item.productId, e.target.value)}
-                              className="w-7 text-center bg-transparent outline-none"
+                              className="w-7 text-center bg-transparent outline-none font-bold"
                             />
                             <button
                               type="button"
@@ -884,9 +895,12 @@ export const CreateOrder = () => {
             {/* 2. Customer Selection / Khata Profile */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                  {t('selectedCustomerProfile')}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded-full bg-brand-500 text-white text-[10px] font-black flex items-center justify-center">2</span>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {t('customerPartyBtn') || 'Customer'}
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => setShowCustomerModal(true)}
@@ -905,13 +919,13 @@ export const CreateOrder = () => {
                     setCustomerType('Walk-in Customer');
                     setSelectedParty(null);
                   }}
-                  className={`py-1.5 rounded-xl transition cursor-pointer ${
+                  className={`py-1.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
                     customerType === 'Walk-in Customer'
                       ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
                       : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
-                  {t('walkInCustomer')}
+                  <span>{t('walkInCustomer')}</span>
                 </button>
                 <button
                   type="button"
@@ -919,13 +933,13 @@ export const CreateOrder = () => {
                     setCustomerType('Regular Party');
                     if (!selectedParty) setShowCustomerModal(true);
                   }}
-                  className={`py-1.5 rounded-xl transition cursor-pointer ${
+                  className={`py-1.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
                     customerType === 'Regular Party'
                       ? 'bg-brand-500 text-white shadow-xs'
                       : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
-                  {t('regularParty')}
+                  <span>{t('regularParty')}</span>
                 </button>
               </div>
 
@@ -948,7 +962,7 @@ export const CreateOrder = () => {
                     type="text"
                     value={walkinName}
                     onChange={(e) => setWalkinName(e.target.value)}
-                    placeholder={t('walkInNamePlaceholder') || "Customer / Farmer Name (Walk-in)"}
+                    placeholder={t('walkInNamePlaceholder') || "Customer / Farmer Name (Optional)"}
                     className={`w-full border rounded-2xl pl-10 pr-3.5 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
                       theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
@@ -960,9 +974,9 @@ export const CreateOrder = () => {
             {/* 3. Live Order Calculation & Integrated Bill Discount */}
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2.5 text-xs">
               {/* Gross Total */}
-              <div className="flex justify-between text-slate-500 font-bold">
+              <div className="flex justify-between items-center text-slate-500 font-bold">
                 <span>{t('grossSubtotal')}:</span>
-                <span className="font-black text-slate-800 dark:text-slate-100 font-mono">
+                <span className="font-black text-slate-800 dark:text-slate-100 font-mono text-sm">
                   Rs. {grossSubtotal.toLocaleString()}
                 </span>
               </div>
@@ -975,7 +989,7 @@ export const CreateOrder = () => {
                     <span>{t('discountAmount')}</span>
                   </span>
                   {orderDiscountAmount > 0 && (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-mono">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">
                       - Rs. {orderDiscountAmount.toLocaleString()}
                     </span>
                   )}
@@ -1032,10 +1046,13 @@ export const CreateOrder = () => {
 
               {/* HERO NET TOTAL PAYABLE BANNER */}
               <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase text-slate-400">
-                  {t('netPayableTotal')}
-                </span>
-                <span className="text-xl font-black text-brand-500 font-mono tracking-tight">
+                <div>
+                  <span className="text-[11px] font-black uppercase text-slate-400 block">
+                    {t('netPayableTotal')}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">Final Bill Amount</span>
+                </div>
+                <span className="text-2xl font-black text-brand-600 dark:text-brand-400 font-mono tracking-tight">
                   Rs. {netGrandTotal.toLocaleString()}
                 </span>
               </div>
@@ -1043,17 +1060,22 @@ export const CreateOrder = () => {
 
             {/* 4. Payment Mode & Cash Tender */}
             <div className="space-y-2.5">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                {t('paymentSettlementTitle')}
-              </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 h-4 rounded-full bg-brand-500 text-white text-[10px] font-black flex items-center justify-center">3</span>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {t('paymentSettlementTitle')}
+                  </span>
+                </div>
+              </div>
 
-              {/* Payment Mode Buttons: Cash, Bank, Credit, Card */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              {/* Payment Mode Buttons: 2x2 Grid with Full Labels */}
+              <div className="grid grid-cols-2 gap-2">
                 {[
-                  { key: 'Cash', label: 'Cash', icon: DollarSign },
-                  { key: 'Bank', label: 'Bank', icon: Building2 },
-                  { key: 'Credit', label: 'Credit (Khata)', icon: Wallet },
-                  { key: 'Card', label: 'Card', icon: CreditCard }
+                  { key: 'Cash', label: 'Cash (نقد)', icon: DollarSign },
+                  { key: 'Bank', label: 'Bank Transfer', icon: Building2 },
+                  { key: 'Credit', label: 'Credit (ادھار)', icon: Wallet },
+                  { key: 'Card', label: 'Card Payment', icon: CreditCard }
                 ].map(mode => (
                   <button
                     key={mode.key}
@@ -1070,7 +1092,7 @@ export const CreateOrder = () => {
                         setAmountReceived(netGrandTotal.toString());
                       }
                     }}
-                    className={`py-2 px-1.5 rounded-2xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                    className={`py-2.5 px-3 rounded-2xl border text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer ${
                       paymentMode === mode.key
                         ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/20'
                         : theme === 'dark'
@@ -1078,36 +1100,38 @@ export const CreateOrder = () => {
                           : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
-                    <mode.icon className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{mode.label}</span>
+                    <mode.icon className="w-4 h-4 shrink-0" />
+                    <span>{mode.label}</span>
                   </button>
                 ))}
               </div>
 
               {/* Quick Cash Presets */}
               {paymentMode === 'Cash' && (
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                  <button
-                    type="button"
-                    onClick={() => setAmountReceived(netGrandTotal.toString())}
-                    className={`px-2.5 py-1 rounded-xl text-[11px] font-black border transition cursor-pointer shrink-0 ${
-                      amountReceived === netGrandTotal.toString()
-                        ? 'bg-brand-500 text-white border-brand-500'
-                        : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-                    }`}
-                  >
-                    {t('exactCash')}
-                  </button>
-                  {[500, 1000, 2000, 5000].map(val => (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                     <button
-                      key={val}
                       type="button"
-                      onClick={() => setAmountReceived(val.toString())}
-                      className="px-2.5 py-1 rounded-xl text-[11px] font-black border bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-brand-500 transition cursor-pointer shrink-0 font-mono"
+                      onClick={() => setAmountReceived(netGrandTotal.toString())}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black border transition cursor-pointer shrink-0 ${
+                        amountReceived === netGrandTotal.toString()
+                          ? 'bg-brand-500 text-white border-brand-500'
+                          : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}
                     >
-                      {val}
+                      {t('exactCash')} (Full)
                     </button>
-                  ))}
+                    {[500, 1000, 2000, 5000].map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setAmountReceived(val.toString())}
+                        className="px-2.5 py-1.5 rounded-xl text-xs font-black border bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-brand-500 transition cursor-pointer shrink-0 font-mono"
+                      >
+                        Rs. {val}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -1116,19 +1140,22 @@ export const CreateOrder = () => {
                 <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-wider">
                   {t('amountReceivedInput')}
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={amountReceived}
-                  onChange={(e) => setAmountReceived(e.target.value)}
-                  placeholder={netGrandTotal.toString()}
-                  className={`w-full border rounded-2xl px-3.5 py-2 text-sm font-black outline-none focus:border-brand-500 font-mono ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    value={amountReceived}
+                    onChange={(e) => setAmountReceived(e.target.value)}
+                    placeholder={netGrandTotal.toString()}
+                    className={`w-full border rounded-2xl px-3.5 py-2.5 text-base font-black outline-none focus:border-brand-500 font-mono ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">PKR</span>
+                </div>
               </div>
 
-              {/* Live Status Calculation */}
+              {/* Live Status Calculation & Return Change / Due */}
               {customerType === 'Regular Party' && selectedParty ? (
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-1.5 text-xs font-black">
                   <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
@@ -1136,42 +1163,42 @@ export const CreateOrder = () => {
                     <span className="font-mono">Rs. {previousKhataBalance.toLocaleString()}</span>
                   </div>
                   {remainingDue > 0 ? (
-                    <div className="flex items-center justify-between text-amber-500">
+                    <div className="flex items-center justify-between text-amber-500 bg-amber-500/10 p-2 rounded-xl border border-amber-500/20">
                       <span>{t('remainingDueKhata')}:</span>
-                      <span className="font-mono">+ Rs. {remainingDue.toLocaleString()}</span>
+                      <span className="font-mono text-sm">+ Rs. {remainingDue.toLocaleString()}</span>
                     </div>
                   ) : changeDue > 0 ? (
-                    <div className="flex items-center justify-between text-emerald-500">
+                    <div className="flex items-center justify-between text-emerald-600 bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
                       <span>{t('changeReturnDue')}:</span>
-                      <span className="font-mono">Rs. {changeDue.toLocaleString()}</span>
+                      <span className="font-mono text-sm">Rs. {changeDue.toLocaleString()}</span>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between text-emerald-500 text-xs">
+                    <div className="flex items-center justify-between text-emerald-600 bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20 text-xs">
                       <span>{t('status')}:</span>
-                      <span>{t('settled')} (100% Paid)</span>
+                      <span>✓ Fully Settled (100% Paid)</span>
                     </div>
                   )}
                   <div className="pt-1.5 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-brand-500">
                     <span>{t('newKhataBalanceAfterSale')}:</span>
-                    <span className="font-mono">Rs. {newKhataBalance.toLocaleString()}</span>
+                    <span className="font-mono font-black">Rs. {newKhataBalance.toLocaleString()}</span>
                   </div>
                 </div>
               ) : (
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-1.5 text-xs font-black">
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 text-xs font-black">
                   {changeDue > 0 ? (
-                    <div className="flex items-center justify-between text-emerald-500">
+                    <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
                       <span>{t('changeReturnDue')}:</span>
-                      <span className="font-mono text-sm">Rs. {changeDue.toLocaleString()}</span>
+                      <span className="font-mono text-base font-black">Rs. {changeDue.toLocaleString()}</span>
                     </div>
                   ) : remainingDue > 0 ? (
-                    <div className="flex items-center justify-between text-amber-500">
+                    <div className="flex items-center justify-between text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2 rounded-xl border border-amber-500/20">
                       <span>{t('remainingDueKhata')}:</span>
-                      <span className="font-mono text-sm">Rs. {remainingDue.toLocaleString()}</span>
+                      <span className="font-mono text-base font-black">Rs. {remainingDue.toLocaleString()}</span>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between text-emerald-500 text-xs">
+                    <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
                       <span>{t('status')}:</span>
-                      <span>{t('settled')} (100% Paid)</span>
+                      <span>✓ Fully Paid (صاف حساب)</span>
                     </div>
                   )}
                 </div>
@@ -1185,7 +1212,7 @@ export const CreateOrder = () => {
                 value={saleNote}
                 onChange={(e) => setSaleNote(e.target.value)}
                 placeholder={t('saleNotesPlaceholder') || "Gate Pass #, Truck #, remarks (optional)..."}
-                className={`w-full border rounded-2xl px-3.5 py-1.5 text-xs font-medium outline-none focus:border-brand-500 ${
+                className={`w-full border rounded-2xl px-3.5 py-2 text-xs font-medium outline-none focus:border-brand-500 ${
                   theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
               />
@@ -1197,13 +1224,13 @@ export const CreateOrder = () => {
                 type="button"
                 onClick={handlePlaceOrder}
                 disabled={cart.length === 0 || isPlacingOrder}
-                className="w-full py-3.5 px-4 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-2xl transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center"
+                className="w-full py-4 px-4 bg-brand-500 hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm rounded-2xl transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center"
               >
                 <CheckCircle2 className="w-5 h-5 shrink-0" />
-                <span className="leading-snug">{isPlacingOrder ? 'Processing...' : t('completeAndPrintReceipt')}</span>
+                <span className="leading-snug text-base">{isPlacingOrder ? 'Processing...' : (t('completeAndPrintReceipt') || 'Complete Sale')}</span>
               </button>
               <div className="text-[10px] text-center text-slate-400 font-bold">
-                {t('shortcutHint')}
+                {t('shortcutHint') || 'Press F9 or Ctrl+Enter to Checkout'}
               </div>
             </div>
           </div>
