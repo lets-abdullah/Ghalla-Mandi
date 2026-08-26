@@ -714,9 +714,9 @@ export const CreateOrder = () => {
         </div>
 
         {/* ======================================================================= */}
-        {/* 3. CENTER PANEL — CURRENT SALE CART (4.5 Cols) */}
+        {/* 3. CENTER PANEL — CURRENT SALE CART (4 Cols) */}
         {/* ======================================================================= */}
-        <div className={`lg:col-span-5 border rounded-3xl p-4 card-shadow flex flex-col space-y-3 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        <div className={`lg:col-span-4 border rounded-3xl p-4 card-shadow flex flex-col space-y-3 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
           {/* Cart Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
@@ -733,34 +733,15 @@ export const CreateOrder = () => {
             </div>
 
             {cart.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                {/* Quick Order Discount Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowDiscountModal(true)}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-black border transition cursor-pointer ${
-                    orderDiscountAmount > 0
-                      ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
-                      : theme === 'dark'
-                        ? 'bg-slate-900 border-slate-700 text-amber-400 hover:bg-slate-700'
-                        : 'bg-amber-500/10 border-amber-500/30 text-amber-700 hover:bg-amber-500/20'
-                  }`}
-                  title={t('applyDiscountModalTitle')}
-                >
-                  <Percent className="w-3 h-3" />
-                  <span>{orderDiscountAmount > 0 ? `- Rs. ${orderDiscountAmount.toLocaleString()}` : t('discountAmount')}</span>
-                </button>
-
-                {/* Clear Cart */}
-                <button
-                  type="button"
-                  onClick={() => clearCart(false)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition cursor-pointer"
-                  title={t('clearCart')}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => clearCart(false)}
+                className="flex items-center gap-1 px-2 py-1 rounded-xl text-[11px] font-bold text-rose-500 hover:bg-rose-500/10 transition cursor-pointer"
+                title={t('clearCart')}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{t('clearCart')}</span>
+              </button>
             )}
           </div>
 
@@ -915,190 +896,309 @@ export const CreateOrder = () => {
         </div>
 
         {/* ======================================================================= */}
-        {/* 4. RIGHT PANEL — CHECKOUT & SETTLEMENT (Responsive Column Sizing) */}
+        {/* 4. RIGHT PANEL — UNIFIED PROFESSIONAL POS CHECKOUT FORM (4 Cols) */}
         {/* ======================================================================= */}
-        <div className="lg:col-span-4 xl:col-span-3 space-y-3.5">
-
-          {/* CARD A: SUMMARY */}
-          <div className={`border rounded-3xl p-4 card-shadow space-y-3 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-            }`}>
-            <div className="flex items-center justify-between gap-1.5 pb-2 border-b border-slate-100 dark:border-slate-700">
-              <span className="text-[11px] font-black uppercase tracking-wide text-slate-400 whitespace-nowrap">
-                {t('orderSummaryTitle')}
-              </span>
-              <span className="font-mono text-brand-500 font-black text-[11px] whitespace-nowrap shrink-0">
+        <div className="lg:col-span-4 xl:col-span-4">
+          <div className={`border rounded-3xl p-5 card-shadow flex flex-col space-y-4 transition-colors ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            
+            {/* Header: Title + Summary Badge */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-brand-500" />
+                <h3 className="font-black text-sm uppercase tracking-wide text-slate-900 dark:text-white">
+                  {t('checkoutAndBilling')}
+                </h3>
+              </div>
+              <span className="font-mono text-brand-500 font-black text-xs px-2.5 py-1 rounded-xl bg-brand-500/10 border border-brand-500/20">
                 {totalItemsCount} {t('items')} • {totalQuantityUnits} {t('qty')}
               </span>
             </div>
 
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between text-slate-400 font-bold">
-                <span>{t('grossSubtotal')}:</span>
-                <span className="font-black text-slate-800 dark:text-slate-100">Rs. {grossSubtotal.toLocaleString()}</span>
+            {/* 1. Customer Selection / Khata Profile */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                  {t('selectedCustomerProfile')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomerModal(true)}
+                  className="text-xs font-black text-brand-500 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>{selectedParty ? t('edit') : `+ ${t('add')}`}</span>
+                </button>
               </div>
 
-              {orderDiscountAmount > 0 && (
-                <div className="flex justify-between text-emerald-500 font-black">
-                  <span>{t('discountAmount')}:</span>
-                  <span>- Rs. {orderDiscountAmount.toLocaleString()}</span>
+              {/* Toggle Customer Type */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-xs font-black">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerType('Walk-in Customer');
+                    setSelectedParty(null);
+                  }}
+                  className={`py-1.5 rounded-xl transition cursor-pointer ${
+                    customerType === 'Walk-in Customer'
+                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {t('walkInCustomer')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerType('Regular Party');
+                    if (!selectedParty) setShowCustomerModal(true);
+                  }}
+                  className={`py-1.5 rounded-xl transition cursor-pointer ${
+                    customerType === 'Regular Party'
+                      ? 'bg-brand-500 text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {t('regularParty')}
+                </button>
+              </div>
+
+              {/* Customer Input or Selected Party Card */}
+              {customerType === 'Regular Party' && selectedParty ? (
+                <div className="p-3 rounded-2xl bg-brand-500/5 border border-brand-500/20 space-y-1.5 text-xs">
+                  <div className="font-black text-slate-900 dark:text-white flex items-center justify-between">
+                    <span className="truncate">{selectedParty.name}</span>
+                    <span className="text-[10px] text-slate-400 font-bold shrink-0">{selectedParty.city}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-brand-500/10">
+                    <span className="text-slate-400 font-bold">{t('previousKhataBalance')}:</span>
+                    <span className="font-black text-amber-500 font-mono">Rs. {previousKhataBalance.toLocaleString()}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={walkinName}
+                    onChange={(e) => setWalkinName(e.target.value)}
+                    placeholder={t('walkInNamePlaceholder') || "Customer / Farmer Name (Walk-in)"}
+                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
                 </div>
               )}
+            </div>
 
+            {/* 2. Live Order Calculation & Integrated Bill Discount */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2.5 text-xs">
+              {/* Gross Total */}
+              <div className="flex justify-between text-slate-500 font-bold">
+                <span>{t('grossSubtotal')}:</span>
+                <span className="font-black text-slate-800 dark:text-slate-100 font-mono">
+                  Rs. {grossSubtotal.toLocaleString()}
+                </span>
+              </div>
+
+              {/* Integrated Bill Discount Input */}
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-black text-amber-700 dark:text-amber-400">
+                  <span className="flex items-center gap-1">
+                    <Percent className="w-3.5 h-3.5" />
+                    <span>{t('discountAmount')}</span>
+                  </span>
+                  {orderDiscountAmount > 0 && (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-mono">
+                      - Rs. {orderDiscountAmount.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* % vs Rs toggle */}
+                  <div className="inline-flex rounded-xl p-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-black shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setOrderDiscountType('percentage')}
+                      className={`px-2 py-0.5 rounded-lg transition cursor-pointer ${
+                        orderDiscountType === 'percentage'
+                          ? 'bg-amber-500 text-white shadow-2xs'
+                          : 'text-slate-600 dark:text-slate-300'
+                      }`}
+                    >
+                      %
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrderDiscountType('flat')}
+                      className={`px-2 py-0.5 rounded-lg transition cursor-pointer ${
+                        orderDiscountType === 'flat'
+                          ? 'bg-amber-500 text-white shadow-2xs'
+                          : 'text-slate-600 dark:text-slate-300'
+                      }`}
+                    >
+                      Rs.
+                    </button>
+                  </div>
+
+                  <input
+                    type="number"
+                    min="0"
+                    max={orderDiscountType === 'percentage' ? 100 : grossSubtotal}
+                    value={orderDiscountValue === 0 ? '' : orderDiscountValue}
+                    onChange={(e) => setOrderDiscountValue(Math.max(0, Number(e.target.value) || 0))}
+                    placeholder="0"
+                    className={`flex-1 border rounded-xl px-2.5 py-1 text-xs font-black outline-none focus:border-amber-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Tax GST (If any) */}
               {taxAmount > 0 && (
                 <div className="flex justify-between text-amber-500 font-black">
                   <span>{t('taxGST')} ({taxPercentage}%):</span>
-                  <span>+ Rs. {taxAmount.toLocaleString()}</span>
+                  <span className="font-mono">+ Rs. {taxAmount.toLocaleString()}</span>
                 </div>
               )}
 
-              <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between gap-2">
-                <span className="text-[11px] font-black uppercase text-slate-400 whitespace-nowrap shrink-0">
+              {/* HERO NET TOTAL PAYABLE BANNER */}
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase text-slate-400">
                   {t('netPayableTotal')}
                 </span>
-                <span className="text-xl font-black text-brand-500 whitespace-nowrap shrink-0">
+                <span className="text-xl font-black text-brand-500 font-mono tracking-tight">
                   Rs. {netGrandTotal.toLocaleString()}
                 </span>
               </div>
             </div>
-          </div>
 
-          {/* CARD B: CUSTOMER KHATA PROFILE */}
-          <div className={`border rounded-3xl p-4 card-shadow space-y-2.5 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-            }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-black text-slate-400">
-                <User className="w-4 h-4 text-brand-500" />
-                <span>{t('selectedCustomerProfile')}</span>
-              </div>
-              <button
-                onClick={() => setShowCustomerModal(true)}
-                className="text-xs font-black text-brand-500 hover:underline cursor-pointer"
-              >
-                {selectedParty ? t('edit') : t('add')}
-              </button>
-            </div>
+            {/* 3. Payment Mode & Cash Tender */}
+            <div className="space-y-2.5">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                {t('paymentSettlementTitle')}
+              </span>
 
-            {customerType === 'Regular Party' && selectedParty ? (
-              <div className="p-3 rounded-2xl bg-brand-500/5 border border-brand-500/20 space-y-1.5 text-xs">
-                <div className="font-black text-slate-900 dark:text-white flex items-center justify-between">
-                  <span>{selectedParty.name}</span>
-                  <span className="text-[10px] text-slate-400 font-bold">{selectedParty.city}</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-brand-500/10">
-                  <span className="text-slate-400 font-bold">{t('previousKhataBalance')}:</span>
-                  <span className="font-black text-amber-500">Rs. {previousKhataBalance.toLocaleString()}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="relative">
-                <input
-                  type="text"
-                  value={walkinName}
-                  onChange={(e) => setWalkinName(e.target.value)}
-                  placeholder={t('walkInNamePlaceholder')}
-                  className={`w-full border rounded-2xl px-3.5 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              {/* Payment Mode Buttons */}
+              <div className={`grid ${customerType === 'Regular Party' && selectedParty ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
+                {[
+                  { key: 'Cash', label: t('Cash'), icon: DollarSign },
+                  { key: 'Card', label: t('Card'), icon: CreditCard },
+                  ...(customerType === 'Regular Party' && selectedParty
+                    ? [{ key: 'Khata (Udhaar)', label: t('khataCredit') || 'Khata (Udhaar)', icon: Wallet }]
+                    : [])
+                ].map(mode => (
+                  <button
+                    key={mode.key}
+                    type="button"
+                    onClick={() => {
+                      setPaymentMode(mode.key);
+                      if (mode.key === 'Khata (Udhaar)') {
+                        setAmountReceived('0');
+                      } else if (amountReceived === '0') {
+                        setAmountReceived('');
+                      }
+                    }}
+                    className={`py-2 px-2 rounded-2xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                      paymentMode === mode.key
+                        ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/20'
+                        : theme === 'dark'
+                          ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}
+                  >
+                    <mode.icon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{mode.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Quick Cash Presets */}
+              {paymentMode === 'Cash' && (
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => setAmountReceived(netGrandTotal.toString())}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-black border transition cursor-pointer shrink-0 ${
+                      amountReceived === netGrandTotal.toString()
+                        ? 'bg-brand-500 text-white border-brand-500'
+                        : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {t('exactCash')}
+                  </button>
+                  {[500, 1000, 2000, 5000].map(val => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setAmountReceived(val.toString())}
+                      className="px-2.5 py-1 rounded-xl text-[11px] font-black border bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-brand-500 transition cursor-pointer shrink-0 font-mono"
+                    >
+                      {val}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Amount Received Input */}
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-wider">
+                  {t('amountReceivedInput')}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={amountReceived}
+                  onChange={(e) => setAmountReceived(e.target.value)}
+                  placeholder={netGrandTotal.toString()}
+                  className={`w-full border rounded-2xl px-3.5 py-2 text-sm font-black outline-none focus:border-brand-500 font-mono ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
                 />
               </div>
-            )}
-          </div>
 
-          {/* CARD C: PAYMENT & SETTLEMENT */}
-          <div className={`border rounded-3xl p-4 card-shadow space-y-3 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-            }`}>
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
-              {t('paymentSettlementTitle')}
-            </h3>
-
-            {/* Payment Mode Pills */}
-            <div className={`grid ${customerType === 'Regular Party' && selectedParty ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
-              {[
-                { key: 'Cash', label: t('Cash'), icon: DollarSign },
-                { key: 'Card', label: t('Card'), icon: CreditCard },
-                ...(customerType === 'Regular Party' && selectedParty
-                  ? [{ key: 'Khata (Udhaar)', label: t('khataCredit') || 'Khata (Udhaar)', icon: Wallet }]
-                  : [])
-              ].map(mode => (
-                <button
-                  key={mode.key}
-                  type="button"
-                  onClick={() => {
-                    setPaymentMode(mode.key);
-                    if (mode.key === 'Khata (Udhaar)') {
-                      setAmountReceived('0');
-                    } else if (amountReceived === '0') {
-                      setAmountReceived('');
-                    }
-                  }}
-                  className={`py-2.5 px-2 rounded-2xl border text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap ${paymentMode === mode.key
-                    ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/20'
-                    : theme === 'dark'
-                      ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
-                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
-                >
-                  <mode.icon className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{mode.label}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Received Amount Input */}
-            <div>
-              <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-wider">
-                {t('amountReceivedInput')}
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={amountReceived}
-                onChange={(e) => setAmountReceived(e.target.value)}
-                placeholder={netGrandTotal.toString()}
-                className={`w-full border rounded-2xl px-3.5 py-2.5 text-sm font-black outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              />
-            </div>
-
-            {/* Live Calculation: Change Due vs Khata Balance */}
-            {customerType === 'Regular Party' && selectedParty ? (
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-1.5 text-xs font-black">
-                <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
-                  <span>{t('previousKhataBalance')}:</span>
-                  <span>Rs. {previousKhataBalance.toLocaleString()}</span>
+              {/* Live Status Calculation */}
+              {customerType === 'Regular Party' && selectedParty ? (
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-1.5 text-xs font-black">
+                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+                    <span>{t('previousKhataBalance')}:</span>
+                    <span className="font-mono">Rs. {previousKhataBalance.toLocaleString()}</span>
+                  </div>
+                  {remainingDue > 0 ? (
+                    <div className="flex items-center justify-between text-amber-500">
+                      <span>{t('remainingDueKhata')}:</span>
+                      <span className="font-mono">+ Rs. {remainingDue.toLocaleString()}</span>
+                    </div>
+                  ) : changeDue > 0 ? (
+                    <div className="flex items-center justify-between text-emerald-500">
+                      <span>{t('changeReturnDue')}:</span>
+                      <span className="font-mono">Rs. {changeDue.toLocaleString()}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-emerald-500 text-xs">
+                      <span>{t('status')}:</span>
+                      <span>{t('settled')} (100% Paid)</span>
+                    </div>
+                  )}
+                  <div className="pt-1.5 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-brand-500">
+                    <span>{t('newKhataBalanceAfterSale')}:</span>
+                    <span className="font-mono">Rs. {newKhataBalance.toLocaleString()}</span>
+                  </div>
                 </div>
-                {remainingDue > 0 ? (
-                  <div className="flex items-center justify-between text-amber-500">
-                    <span>{t('remainingDueKhata')}:</span>
-                    <span className="text-sm font-black">+ Rs. {remainingDue.toLocaleString()}</span>
-                  </div>
-                ) : changeDue > 0 ? (
-                  <div className="flex items-center justify-between text-emerald-500">
-                    <span>{t('changeReturnDue')}:</span>
-                    <span className="text-sm font-black">Rs. {changeDue.toLocaleString()}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between text-emerald-500 text-xs">
-                    <span>{t('status')}:</span>
-                    <span>{t('settled')} (100% Paid)</span>
-                  </div>
-                )}
-                <div className="pt-1.5 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between font-black text-xs text-brand-500">
-                  <span>{t('newKhataBalanceAfterSale')}:</span>
-                  <span className="text-sm">Rs. {newKhataBalance.toLocaleString()}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
+              ) : (
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-1.5 text-xs font-black">
                   {changeDue > 0 ? (
                     <div className="flex items-center justify-between text-emerald-500">
                       <span>{t('changeReturnDue')}:</span>
-                      <span className="text-sm font-black">Rs. {changeDue.toLocaleString()}</span>
+                      <span className="font-mono text-sm">Rs. {changeDue.toLocaleString()}</span>
                     </div>
                   ) : remainingDue > 0 ? (
                     <div className="flex items-center justify-between text-amber-500">
                       <span>{t('remainingDueKhata')}:</span>
-                      <span className="text-sm font-black">Rs. {remainingDue.toLocaleString()}</span>
+                      <span className="font-mono text-sm">Rs. {remainingDue.toLocaleString()}</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between text-emerald-500 text-xs">
@@ -1107,27 +1207,38 @@ export const CreateOrder = () => {
                     </div>
                   )}
                 </div>
-                {remainingDue > 0 && (
-                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{t('khataOnlyForPermanentNotice')}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          {/* PRIMARY ACTION: COMPLETE SALE & PRINT RECEIPT */}
-          <button
-            onClick={handlePlaceOrder}
-            disabled={cart.length === 0 || isPlacingOrder}
-            className="w-full py-3.5 px-4 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-2xl transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center"
-          >
-            <CheckCircle2 className="w-5 h-5 shrink-0" />
-            <span className="leading-snug">{isPlacingOrder ? 'Processing...' : t('completeAndPrintReceipt')}</span>
-          </button>
-          <div className="text-[10px] text-center text-slate-400 font-bold">
-            {t('shortcutHint')}
+            {/* 4. Sale Remarks / Gate Pass (Optional) */}
+            <div>
+              <input
+                type="text"
+                value={saleNote}
+                onChange={(e) => setSaleNote(e.target.value)}
+                placeholder={t('saleNotesPlaceholder') || "Gate Pass #, Truck #, remarks (optional)..."}
+                className={`w-full border rounded-2xl px-3.5 py-1.5 text-xs font-medium outline-none focus:border-brand-500 ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              />
+            </div>
+
+            {/* 5. PRIMARY ACTION: COMPLETE SALE & PRINT RECEIPT */}
+            <div className="space-y-1.5 pt-1">
+              <button
+                type="button"
+                onClick={handlePlaceOrder}
+                disabled={cart.length === 0 || isPlacingOrder}
+                className="w-full py-3.5 px-4 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-2xl transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center"
+              >
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                <span className="leading-snug">{isPlacingOrder ? 'Processing...' : t('completeAndPrintReceipt')}</span>
+              </button>
+              <div className="text-[10px] text-center text-slate-400 font-bold">
+                {t('shortcutHint')}
+              </div>
+            </div>
+
           </div>
         </div>
 

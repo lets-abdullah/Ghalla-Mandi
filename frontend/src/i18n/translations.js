@@ -245,6 +245,8 @@ export const translations = {
     saleNoteTitle: "Sale Notes & Gate Pass",
     saleNotesPlaceholder: "e.g. Truck # LES-1234, Driver / Arhat remarks, Gate Pass # 84...",
     selectedCustomerProfile: "Customer Khata Profile",
+    walkInNamePlaceholder: "Customer / Farmer Name (Walk-in)",
+    checkoutAndBilling: "Checkout & Billing",
     previousKhataBalance: "Previous Due Khata",
     newKhataBalanceAfterSale: "New Total Khata Balance",
     completeAndPrintReceipt: "Complete Sale",
