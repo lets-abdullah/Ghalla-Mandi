@@ -431,139 +431,150 @@ export const CreateOrder = () => {
   return (
     <div className="space-y-3.5 pb-10">
       {/* ========================================================================= */}
-      {/* 1. TOP HEADER & CATEGORY CHIPS BAR */}
+      {/* 2-PANEL BALANCED PROFESSIONAL POS WORKSTATION */}
       {/* ========================================================================= */}
-      <div className={`p-4 rounded-3xl border card-shadow space-y-3 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+        {/* ======================================================================= */}
+        {/* 1. LEFT PANEL — COMMODITY PRODUCTS SELECTION (7 Cols) */}
+        {/* ======================================================================= */}
+        <div className={`lg:col-span-7 xl:col-span-7 border rounded-3xl p-4 sm:p-5 card-shadow flex flex-col space-y-3.5 transition-colors ${
+          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-500 shadow-xs">
-              <Wheat className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-black tracking-tight">
-                  {t('posTerminalTitle')}
-                </h1>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  {t('liveActiveBadge')}
-                </span>
+          {/* Top Controls Bar: Search + Category Chips + View Toggles */}
+          <div className="space-y-3 pb-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              {/* Search Bar */}
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 ${isRTL ? 'right-3.5' : 'left-3.5'}`} />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={t('searchCommoditiesPlaceholder')}
+                  className={`w-full border rounded-2xl py-2.5 text-xs font-bold outline-none transition focus:border-brand-500 ${
+                    isRTL ? 'pr-10 pl-8' : 'pl-10 pr-8'
+                  } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className={`absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer ${isRTL ? 'left-3' : 'right-3'}`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                {t('posTerminalSubtitle')}
-              </p>
+
+              {/* View Mode & Wide Mode Controls */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Grid / List View Toggle */}
+                <div className="flex p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded-lg transition cursor-pointer ${
+                      viewMode === 'grid'
+                        ? 'bg-white dark:bg-slate-800 text-brand-500 shadow-2xs'
+                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                    }`}
+                    title={t('gridView')}
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('compact')}
+                    className={`p-1.5 rounded-lg transition cursor-pointer ${
+                      viewMode === 'compact'
+                        ? 'bg-white dark:bg-slate-800 text-brand-500 shadow-2xs'
+                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                    }`}
+                    title={t('compactView')}
+                  >
+                    <List className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Sidebar Collapse Toggle Button */}
+                <button
+                  onClick={toggleSidebar}
+                  className={`p-2 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition cursor-pointer ${
+                    isCollapsed
+                      ? 'bg-brand-500/10 border-brand-500/40 text-brand-600 dark:text-brand-400'
+                      : theme === 'dark'
+                        ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
+                        : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                  }`}
+                  title={isCollapsed ? "Expand Sidebar" : "Wide Mode (Full Screen)"}
+                >
+                  {isCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
+                  <span className="hidden sm:inline text-[11px] font-bold">{isCollapsed ? "Sidebar" : "Wide Mode"}</span>
+                </button>
+
+                {/* Clear / Reset */}
+                <button
+                  onClick={clearCart}
+                  className={`flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                    theme === 'dark'
+                      ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
+                      : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                  }`}
+                  title={t('newSaleBtn')}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline text-[11px]">{t('newSaleBtn')}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Category Quick Chips Filter */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+              <button
+                onClick={() => setSelectedCategory('All')}
+                className={`px-3 py-1 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
+                  selectedCategory === 'All'
+                    ? 'bg-brand-500 text-white shadow-xs'
+                    : theme === 'dark'
+                      ? 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-700'
+                      : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                {t('allCategories')} ({products.length})
+              </button>
+              {categories.map(c => {
+                const count = products.filter(p => p.category === c.name).length;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedCategory(c.name)}
+                    className={`px-3 py-1 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
+                      selectedCategory === c.name
+                        ? 'bg-brand-500 text-white shadow-xs'
+                        : theme === 'dark'
+                          ? 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-700'
+                          : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {c.name} {count > 0 && `(${count})`}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Top Right Controls */}
-          <div className="flex items-center gap-2">
-            {/* Sidebar Collapse Toggle Button */}
-            <button
-              onClick={toggleSidebar}
-              className={`p-2 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition cursor-pointer ${isCollapsed
-                ? 'bg-brand-500/10 border-brand-500/40 text-brand-600 dark:text-brand-400'
-                : theme === 'dark'
-                  ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
-                  : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                }`}
-              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar (Full Width POS)"}
-            >
-              {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-              <span className="hidden sm:inline text-[11px]">{isCollapsed ? "Sidebar" : "Wide Mode"}</span>
-            </button>
-
-            {/* Clear / New Sale */}
-            <button
-              onClick={clearCart}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${theme === 'dark'
-                ? 'bg-slate-700/60 border-slate-600 text-slate-300 hover:bg-slate-700'
-                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                }`}
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>{t('newSaleBtn')}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Category Quick Chips Filter */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-1 border-t border-slate-100 dark:border-slate-700/80">
-          <button
-            onClick={() => setSelectedCategory('All')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer ${selectedCategory === 'All'
-              ? 'bg-brand-500 text-white shadow-sm'
-              : theme === 'dark'
-                ? 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-700'
-                : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
-              }`}
-          >
-            {t('allCategories')} ({products.length})
-          </button>
-          {categories.map(c => {
-            const count = products.filter(p => p.category === c.name).length;
-            return (
-              <button
-                key={c.id}
-                onClick={() => setSelectedCategory(c.name)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer ${selectedCategory === c.name
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : theme === 'dark'
-                    ? 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-700'
-                    : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
-                  }`}
-              >
-                {c.name} {count > 0 && `(${count})`}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 3-PANEL RESPONSIVE POS BODY */}
-      {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
-
-        {/* ======================================================================= */}
-        {/* 2. LEFT PANEL — COMMODITY PRODUCTS (4.5 Cols) */}
-        {/* ======================================================================= */}
-        <div className={`lg:col-span-4 border rounded-3xl p-4 card-shadow flex flex-col space-y-3 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-          {/* Search Header */}
-          <div className="relative">
-            <Search className={`w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 ${isRTL ? 'right-3.5' : 'left-3.5'}`} />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t('searchCommoditiesPlaceholder')}
-              className={`w-full border rounded-2xl py-2.5 text-xs font-bold outline-none transition focus:border-brand-500 ${isRTL ? 'pr-10 pl-8' : 'pl-10 pr-8'
-                } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className={`absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer ${isRTL ? 'left-3' : 'right-3'}`}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Scrollable Products Container */}
-          <div className="max-h-[580px] overflow-y-auto pr-1 space-y-2">
+          {/* Scrollable Products Catalog Area */}
+          <div className="max-h-[720px] overflow-y-auto pr-1 space-y-2">
             {filteredProducts.length === 0 ? (
-              <div className="py-16 text-center space-y-2">
-                <Wheat className="w-8 h-8 text-slate-400 mx-auto stroke-[1.5]" />
-                <p className="text-xs text-slate-400 font-medium">
+              <div className="py-24 text-center space-y-2">
+                <Wheat className="w-10 h-10 text-slate-400 mx-auto stroke-[1.5]" />
+                <p className="text-xs text-slate-400 font-bold">
                   {t('noProductsMatch')}
                 </p>
               </div>
             ) : viewMode === 'grid' ? (
-              /* GRID VIEW: Responsive 2-column Cards */
-              <div className="grid grid-cols-2 gap-2.5">
+              /* GRID VIEW: Responsive 2 or 3 Columns of Commodity Cards */
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                 {filteredProducts.map(p => {
                   const cartItem = cart.find(i => i.productId === p.id);
                   const isOutOfStock = p.stockQty <= 0;
@@ -572,14 +583,15 @@ export const CreateOrder = () => {
                     <div
                       key={p.id}
                       onClick={() => !isOutOfStock && addToCart(p)}
-                      className={`p-3 rounded-2xl border flex flex-col justify-between transition cursor-pointer relative group ${cartItem
-                        ? 'border-brand-500 bg-brand-500/5 shadow-xs ring-1 ring-brand-500/30'
-                        : isOutOfStock
-                          ? 'opacity-60 border-slate-200 dark:border-slate-800'
-                          : theme === 'dark'
-                            ? 'bg-slate-900/60 border-slate-700 hover:border-slate-500 hover:bg-slate-900'
-                            : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-white'
-                        }`}
+                      className={`p-3.5 rounded-2xl border flex flex-col justify-between transition cursor-pointer relative group ${
+                        cartItem
+                          ? 'border-brand-500 bg-brand-500/5 shadow-xs ring-1 ring-brand-500/30'
+                          : isOutOfStock
+                            ? 'opacity-60 border-slate-200 dark:border-slate-800'
+                            : theme === 'dark'
+                              ? 'bg-slate-900/60 border-slate-700 hover:border-slate-500 hover:bg-slate-900'
+                              : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-white'
+                      }`}
                     >
                       <div>
                         <div className="flex items-start justify-between gap-1">
@@ -587,21 +599,22 @@ export const CreateOrder = () => {
                             {p.name}
                           </span>
                         </div>
-                        <div className="mt-1 flex items-center justify-between text-[10px]">
-                          <span className="text-slate-400 truncate max-w-[70px]">{p.category}</span>
-                          <span className={`px-1.5 py-0.5 rounded-md font-extrabold shrink-0 ${isOutOfStock
-                            ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
-                            : p.stockQty <= (p.minStock || 10)
-                              ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                              : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                            }`}>
+                        <div className="mt-1.5 flex items-center justify-between text-[10px]">
+                          <span className="text-slate-400 truncate max-w-[80px]">{p.category}</span>
+                          <span className={`px-1.5 py-0.5 rounded-md font-extrabold shrink-0 ${
+                            isOutOfStock
+                              ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                              : p.stockQty <= (p.minStock || 10)
+                                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                                : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                          }`}>
                             {p.stockQty} {p.unit || t('kg')}
                           </span>
                         </div>
                       </div>
 
-                      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
-                        <div className="font-black text-xs text-brand-500">
+                      <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+                        <div className="font-black text-xs text-brand-500 font-mono">
                           Rs. {Number(p.sellingPrice).toLocaleString()}
                         </div>
 
@@ -610,8 +623,9 @@ export const CreateOrder = () => {
                           {cartItem ? (
                             <>
                               <button
+                                type="button"
                                 onClick={() => updateItemQty(p.id, -1)}
-                                className="w-5 h-5 rounded-md bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-rose-500 hover:text-white transition cursor-pointer"
+                                className="w-5 h-5 rounded-md bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-rose-500 hover:text-white transition cursor-pointer font-bold text-xs"
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
@@ -619,14 +633,16 @@ export const CreateOrder = () => {
                                 {cartItem.qty}
                               </span>
                               <button
+                                type="button"
                                 onClick={() => updateItemQty(p.id, 1)}
-                                className="w-5 h-5 rounded-md bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition cursor-pointer"
+                                className="w-5 h-5 rounded-md bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition cursor-pointer font-bold text-xs"
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
                             </>
                           ) : (
                             <button
+                              type="button"
                               disabled={isOutOfStock}
                               onClick={() => addToCart(p)}
                               className="w-6 h-6 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white flex items-center justify-center shadow-xs transition cursor-pointer"
@@ -641,7 +657,7 @@ export const CreateOrder = () => {
                 })}
               </div>
             ) : (
-              /* COMPACT LIST VIEW: Single column dense list */
+              /* COMPACT LIST VIEW */
               <div className="space-y-1.5">
                 {filteredProducts.map(p => {
                   const cartItem = cart.find(i => i.productId === p.id);
@@ -651,14 +667,15 @@ export const CreateOrder = () => {
                     <div
                       key={p.id}
                       onClick={() => !isOutOfStock && addToCart(p)}
-                      className={`p-2.5 rounded-2xl border flex items-center justify-between gap-2 transition cursor-pointer ${cartItem
-                        ? 'border-brand-500 bg-brand-500/5 ring-1 ring-brand-500/30'
-                        : isOutOfStock
-                          ? 'opacity-60 border-slate-200 dark:border-slate-800'
-                          : theme === 'dark'
-                            ? 'bg-slate-900/60 border-slate-700 hover:border-slate-500'
-                            : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-                        }`}
+                      className={`p-2.5 rounded-2xl border flex items-center justify-between gap-2 transition cursor-pointer ${
+                        cartItem
+                          ? 'border-brand-500 bg-brand-500/5 ring-1 ring-brand-500/30'
+                          : isOutOfStock
+                            ? 'opacity-60 border-slate-200 dark:border-slate-800'
+                            : theme === 'dark'
+                              ? 'bg-slate-900/60 border-slate-700 hover:border-slate-500'
+                              : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                      }`}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="font-black text-xs truncate">{p.name}</div>
@@ -672,7 +689,7 @@ export const CreateOrder = () => {
                       </div>
 
                       <div className="flex items-center gap-2.5 shrink-0">
-                        <span className="font-black text-xs text-brand-500">
+                        <span className="font-black text-xs text-brand-500 font-mono">
                           Rs. {Number(p.sellingPrice).toLocaleString()}
                         </span>
 
@@ -680,8 +697,9 @@ export const CreateOrder = () => {
                           {cartItem ? (
                             <>
                               <button
+                                type="button"
                                 onClick={() => updateItemQty(p.id, -1)}
-                                className="w-5 h-5 rounded-md bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-rose-500 hover:text-white transition cursor-pointer"
+                                className="w-5 h-5 rounded-md bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-rose-500 hover:text-white transition cursor-pointer font-bold text-xs"
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
@@ -689,14 +707,16 @@ export const CreateOrder = () => {
                                 {cartItem.qty}
                               </span>
                               <button
+                                type="button"
                                 onClick={() => updateItemQty(p.id, 1)}
-                                className="w-5 h-5 rounded-md bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition cursor-pointer"
+                                className="w-5 h-5 rounded-md bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition cursor-pointer font-bold text-xs"
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
                             </>
                           ) : (
                             <button
+                              type="button"
                               disabled={isOutOfStock}
                               onClick={() => addToCart(p)}
                               className="w-6 h-6 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white flex items-center justify-center shadow-xs transition cursor-pointer"
@@ -715,191 +735,9 @@ export const CreateOrder = () => {
         </div>
 
         {/* ======================================================================= */}
-        {/* 3. CENTER PANEL — CURRENT SALE CART (4 Cols) */}
+        {/* 2. RIGHT PANEL — UNIFIED PROFESSIONAL POS CHECKOUT FORM (5 Cols) */}
         {/* ======================================================================= */}
-        <div className={`lg:col-span-4 border rounded-3xl p-4 card-shadow flex flex-col space-y-3 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-          {/* Cart Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="w-4 h-4 text-brand-500" />
-              <h3 className="font-black text-xs uppercase tracking-wider">
-                {t('cart')}
-              </h3>
-              {cart.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-brand-500/10 text-brand-500 border border-brand-500/30">
-                  {cart.length} {t('items')}
-                </span>
-              )}
-            </div>
-
-            {cart.length > 0 && (
-              <button
-                type="button"
-                onClick={() => clearCart(false)}
-                className="flex items-center gap-1 px-2 py-1 rounded-xl text-[11px] font-bold text-rose-500 hover:bg-rose-500/10 transition cursor-pointer"
-                title={t('clearCart')}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>{t('clearCart')}</span>
-              </button>
-            )}
-          </div>
-
-          {/* Cart Items Area — 100% No Horizontal Scrollbar */}
-          <div className="max-h-[520px] overflow-y-auto overflow-x-hidden space-y-2.5 pr-0.5">
-            {cart.length === 0 ? (
-              /* Clean Empty-Cart State */
-              <div className="py-20 text-center space-y-3">
-                <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center mx-auto text-slate-400">
-                  <ShoppingCart className="w-8 h-8 stroke-[1.5]" />
-                </div>
-                <h3 className="font-black text-sm text-slate-700 dark:text-slate-200">
-                  {t('cartIsEmpty')}
-                </h3>
-                <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                  {t('cartIsEmptySub')}
-                </p>
-              </div>
-            ) : (
-              cart.map((item, index) => (
-                <div
-                  key={item.id}
-                  className={`p-3 rounded-2xl border transition-all ${
-                    theme === 'dark'
-                      ? 'bg-slate-900/60 border-slate-700/80 hover:border-slate-600'
-                      : 'bg-slate-50/90 border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  {/* Top Row: Serial Badge + Product Name + Unit Price Override + Delete Button */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[11px] shrink-0 ${
-                        theme === 'dark' ? 'bg-slate-800 text-brand-400' : 'bg-white text-brand-600 border border-slate-200 shadow-2xs'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-black text-xs truncate text-slate-900 dark:text-white">
-                          {item.name}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowRateModal(item);
-                            setTempNewRate(item.price);
-                          }}
-                          className="text-[11px] font-bold text-slate-400 hover:text-brand-500 transition inline-flex items-center gap-1 cursor-pointer mt-0.5"
-                          title="Edit Item Price"
-                        >
-                          <span>Rs. {Number(item.price).toLocaleString()} / {item.unit}</span>
-                          <Edit3 className="w-2.5 h-2.5 opacity-70" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Delete Item */}
-                    <button
-                      type="button"
-                      onClick={() => removeFromCart(item.productId)}
-                      className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition cursor-pointer shrink-0"
-                      title={t('delete')}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Bottom Row: Qty Controls + Unit Selector + Discount Input + Line Total */}
-                  <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-2">
-                    {/* Left: Qty Stepper & Unit Selector */}
-                    <div className="flex items-center gap-1.5">
-                      <div className="inline-flex items-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs p-0.5">
-                        <button
-                          type="button"
-                          onClick={() => updateItemQty(item.productId, -1)}
-                          className="w-5 h-5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center font-black text-xs cursor-pointer"
-                        >
-                          -
-                        </button>
-                        <input
-                          type="number"
-                          min="1"
-                          max={item.stockQty}
-                          value={item.qty}
-                          onChange={(e) => setDirectItemQty(item.productId, e.target.value)}
-                          className="w-9 text-center bg-transparent font-black text-xs outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => updateItemQty(item.productId, 1)}
-                          className="w-5 h-5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center font-black text-xs cursor-pointer"
-                        >
-                          +
-                        </button>
-                      </div>
-
-                      {/* Unit Selector */}
-                      <select
-                        value={item.unit}
-                        onChange={(e) => updateItemUnit(item.productId, e.target.value)}
-                        className={`text-[11px] font-black py-1 px-1.5 rounded-xl border outline-none cursor-pointer ${
-                          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
-                        }`}
-                      >
-                        <option value="KG">KG</option>
-                        <option value="Gram">Gram</option>
-                        <option value="Mann">Mann (40 KG)</option>
-                        <option value="Bori">Bori (50 KG)</option>
-                        <option value="Litre">Litre</option>
-                        <option value="ML">ML</option>
-                        <option value="Dozen">Dozen</option>
-                        <option value="Pack">Pack</option>
-                        <option value="Carton">Carton</option>
-                        <option value="Piece">Piece</option>
-                        <option value="Ton">Ton</option>
-                      </select>
-                    </div>
-
-                    {/* Right: Dedicated Item Discount % + Line Total */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 rounded-xl px-2 py-0.5">
-                        <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase">
-                          {t('discountAmount') || 'Disc'} %:
-                        </span>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={item.discountPct || ''}
-                          placeholder="0"
-                          onChange={(e) => updateItemDiscountPct(item.productId, e.target.value)}
-                          className="w-8 text-center bg-transparent font-black text-xs text-amber-600 dark:text-amber-400 outline-none placeholder:text-amber-500/40"
-                        />
-                      </div>
-
-                      {/* Line Total */}
-                      <div className="text-right">
-                        {item.discountPct > 0 && (
-                          <div className="text-[10px] text-slate-400 line-through">
-                            Rs. {(item.qty * item.price).toLocaleString()}
-                          </div>
-                        )}
-                        <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                          Rs. {Number(item.total).toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* ======================================================================= */}
-        {/* 4. RIGHT PANEL — UNIFIED PROFESSIONAL POS CHECKOUT FORM (4 Cols) */}
-        {/* ======================================================================= */}
-        <div className="lg:col-span-4 xl:col-span-4">
+        <div className="lg:col-span-5 xl:col-span-5">
           <div className={`border rounded-3xl p-5 card-shadow flex flex-col space-y-4 transition-colors ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
@@ -917,7 +755,116 @@ export const CreateOrder = () => {
               </span>
             </div>
 
-            {/* 1. Customer Selection / Khata Profile */}
+            {/* 1. Selected Cart Items List (Inside Form) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                  {t('cart')} ({cart.length})
+                </span>
+                {cart.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => clearCart(false)}
+                    className="text-[11px] font-bold text-rose-500 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>{t('clearCart')}</span>
+                  </button>
+                )}
+              </div>
+
+              {cart.length === 0 ? (
+                <div className="p-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-center text-slate-400 text-xs font-medium">
+                  {t('cartIsEmptySub') || 'Click commodity products on the left to add items to bill.'}
+                </div>
+              ) : (
+                <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                  {cart.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className={`p-2.5 rounded-2xl border transition-all ${
+                        theme === 'dark'
+                          ? 'bg-slate-900/60 border-slate-700/80'
+                          : 'bg-slate-50/90 border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <span className="w-5 h-5 rounded-md bg-brand-500/10 text-brand-500 flex items-center justify-center font-black text-[10px] shrink-0">
+                            {index + 1}
+                          </span>
+                          <span className="font-black text-xs truncate text-slate-900 dark:text-white">
+                            {item.name}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(item.productId)}
+                          className="text-slate-400 hover:text-rose-500 p-1 cursor-pointer"
+                          title={t('delete')}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <div className="inline-flex items-center bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 text-[11px] font-black">
+                            <button
+                              type="button"
+                              onClick={() => updateItemQty(item.productId, -1)}
+                              className="w-4 h-4 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              max={item.stockQty}
+                              value={item.qty}
+                              onChange={(e) => setDirectItemQty(item.productId, e.target.value)}
+                              className="w-7 text-center bg-transparent outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => updateItemQty(item.productId, 1)}
+                              className="w-4 h-4 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center cursor-pointer"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <select
+                            value={item.unit}
+                            onChange={(e) => updateItemUnit(item.productId, e.target.value)}
+                            className={`text-[10px] font-bold py-0.5 px-1 rounded-lg border outline-none cursor-pointer ${
+                              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
+                            }`}
+                          >
+                            <option value="KG">KG</option>
+                            <option value="Gram">Gram</option>
+                            <option value="Mann">Mann (40 KG)</option>
+                            <option value="Bori">Bori (50 KG)</option>
+                            <option value="Litre">Litre</option>
+                            <option value="ML">ML</option>
+                            <option value="Dozen">Dozen</option>
+                            <option value="Pack">Pack</option>
+                            <option value="Carton">Carton</option>
+                            <option value="Piece">Piece</option>
+                            <option value="Ton">Ton</option>
+                          </select>
+                        </div>
+
+                        <div className="font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
+                          Rs. {Number(item.total).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 2. Customer Selection / Khata Profile */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
@@ -993,7 +940,7 @@ export const CreateOrder = () => {
               )}
             </div>
 
-            {/* 2. Live Order Calculation & Integrated Bill Discount */}
+            {/* 3. Live Order Calculation & Integrated Bill Discount */}
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2.5 text-xs">
               {/* Gross Total */}
               <div className="flex justify-between text-slate-500 font-bold">
@@ -1077,7 +1024,7 @@ export const CreateOrder = () => {
               </div>
             </div>
 
-            {/* 3. Payment Mode & Cash Tender */}
+            {/* 4. Payment Mode & Cash Tender */}
             <div className="space-y-2.5">
               <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
                 {t('paymentSettlementTitle')}
@@ -1211,7 +1158,7 @@ export const CreateOrder = () => {
               )}
             </div>
 
-            {/* 4. Sale Remarks / Gate Pass (Optional) */}
+            {/* 5. Sale Remarks / Gate Pass (Optional) */}
             <div>
               <input
                 type="text"
@@ -1224,7 +1171,7 @@ export const CreateOrder = () => {
               />
             </div>
 
-            {/* 5. PRIMARY ACTION: COMPLETE SALE & PRINT RECEIPT */}
+            {/* 6. PRIMARY ACTION: COMPLETE SALE & PRINT RECEIPT */}
             <div className="space-y-1.5 pt-1">
               <button
                 type="button"
@@ -1239,10 +1186,8 @@ export const CreateOrder = () => {
                 {t('shortcutHint')}
               </div>
             </div>
-
           </div>
         </div>
-
       </div>
 
       {/* ========================================================================= */}
