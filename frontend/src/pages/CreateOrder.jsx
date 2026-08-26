@@ -578,41 +578,6 @@ export const CreateOrder = () => {
               </div>
             </div>
 
-            {/* Category Quick Chips Filter */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('All')}
-                className={`px-3 py-1 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
-                  selectedCategory === 'All'
-                    ? 'bg-brand-500 text-white shadow-xs'
-                    : theme === 'dark'
-                      ? 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-700'
-                      : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {t('allCategories')} ({products.length})
-              </button>
-              {availableCategories.map(catName => {
-                const count = categoryCounts[catName] || 0;
-                return (
-                  <button
-                    key={catName}
-                    type="button"
-                    onClick={() => setSelectedCategory(catName)}
-                    className={`px-3 py-1 rounded-xl text-xs font-black transition whitespace-nowrap cursor-pointer ${
-                      selectedCategory === catName
-                        ? 'bg-brand-500 text-white shadow-xs'
-                        : theme === 'dark'
-                          ? 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-700'
-                          : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    {catName} {count > 0 && `(${count})`}
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
           {/* Scrollable Products Catalog Area */}
