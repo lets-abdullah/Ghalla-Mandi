@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   TrendingUp, Warehouse, DollarSign, PieChart, Building,
   FileSpreadsheet, Printer, Plus, Wheat, X, Trash2, Search, Filter,
@@ -14,6 +14,7 @@ export const Reports = () => {
   const { theme } = useTheme();
   const { t } = useLocale();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Active Report Type from URL parameter (default: Stock)
   const reportType = searchParams.get('type') || 'Stock';
@@ -276,9 +277,9 @@ export const Reports = () => {
     let csvData = `Report Type: ${reportType}\nGenerated At: ${new Date().toLocaleString()}\n\n`;
 
     if (reportType === 'Stock') {
-      csvData += `Product Name,Category,Available Stock,Unit,Bag Detail,Purchase Rate,Selling Rate,Stock Valuation,Status\n`;
+      csvData += `Product,Category,Available Stock,Unit,Purchase Rate,Selling Rate,Stock Valuation,Status\n`;
       filteredStock.forEach(p => {
-        csvData += `"${p.name}","${p.category}",${p.qty},"${p.unit}","${p.bagDetail || 'N/A'}",${p.purchaseRate},${p.sellingRate},${p.stockVal},"${p.status}"\n`;
+        csvData += `"${p.name}","${p.category}",${p.qty},"${p.unit}",${p.purchaseRate},${p.sellingRate},${p.stockVal},"${p.status}"\n`;
       });
     } else if (reportType === 'Sales') {
       csvData += `Commodity Name,Total Quantity Sold,Unit,Invoices Count,Total Revenue (Rs.)\n`;
@@ -370,36 +371,52 @@ export const Reports = () => {
         <div className="space-y-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-            }`}>
+            <div
+              onClick={() => { setCategoryFilter('All'); setStockStatusFilter('All'); setSearchTerm(''); }}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+              }`}
+              title="Click to view all registered commodities"
+            >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Stock Valuation</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalStockValuation.toLocaleString()}</div>
-              <div className="text-xs text-slate-400 font-medium mt-1">{processedStock.length} Total Registered Products</div>
+              <div className="text-xs text-slate-400 font-medium mt-1">{processedStock.length} Total Registered • View All</div>
             </div>
 
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-            }`}>
+            <div
+              onClick={() => setStockStatusFilter('InStock')}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+              }`}
+              title="Click to filter In-Stock commodities"
+            >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">In-Stock Products</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">{inStockCount} Items</div>
-              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">Available for Sale</div>
+              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">Available for Sale • Filter Available</div>
             </div>
 
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200/60'
-            }`}>
+            <div
+              onClick={() => setStockStatusFilter('LowStock')}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200/60'
+              }`}
+              title="Click to filter Low Stock Warnings"
+            >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Low Stock Warnings</div>
               <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">{lowStockCount} Items</div>
-              <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">Below Minimum Threshold</div>
+              <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">Below Threshold • Filter Low Stock</div>
             </div>
 
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
-            }`}>
+            <div
+              onClick={() => setStockStatusFilter('OutOfStock')}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
+              }`}
+              title="Click to filter Out of Stock items"
+            >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Out of Stock</div>
               <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">{outOfStockCount} Items</div>
-              <div className="text-xs text-rose-700 dark:text-rose-400 font-bold mt-1">0 Quantity Remaining</div>
+              <div className="text-xs text-rose-700 dark:text-rose-400 font-bold mt-1">0 Remaining • Filter Out of Stock</div>
             </div>
           </div>
 
@@ -467,7 +484,7 @@ export const Reports = () => {
               >
                 <option value="valueDesc">Highest Stock Value</option>
                 <option value="qtyDesc">Highest Quantity</option>
-                <option value="nameAsc">Product Name (A-Z)</option>
+                <option value="nameAsc">Product (A-Z)</option>
               </select>
             </div>
           </div>
@@ -485,10 +502,9 @@ export const Reports = () => {
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead>
                   <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
-                    <th className="py-3 px-3">Product Name</th>
+                    <th className="py-3 px-3">Product</th>
                     <th className="py-3 px-3 text-center">Category</th>
                     <th className="py-3 px-3 text-center">Available Stock</th>
-                    <th className="py-3 px-3 text-center">Bag Breakdown</th>
                     <th className="py-3 px-3 text-right">Purchase Rate</th>
                     <th className="py-3 px-3 text-right">Selling Rate</th>
                     <th className="py-3 px-3 text-right">Stock Valuation</th>
@@ -498,7 +514,7 @@ export const Reports = () => {
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                   {filteredStock.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-12 text-center text-slate-400">
+                      <td colSpan={7} className="py-12 text-center text-slate-400">
                         <Package className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
                         No products match your active search or filters.
                       </td>
@@ -519,15 +535,6 @@ export const Reports = () => {
                         </td>
                         <td className="py-3.5 px-3 text-center font-mono font-bold text-slate-900 dark:text-white text-xs">
                           {item.qty.toLocaleString()} <span className="text-[11px] font-medium text-slate-500">{item.unit}</span>
-                        </td>
-                        <td className="py-3.5 px-3 text-center font-mono text-slate-600 dark:text-slate-300 font-medium">
-                          {item.bagDetail ? (
-                            <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-[11px]">
-                              {item.bagDetail}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
                         </td>
                         <td className="py-3.5 px-3 text-right font-mono text-slate-600 dark:text-slate-300">
                           Rs. {item.purchaseRate.toLocaleString()} / {item.unit}
@@ -565,28 +572,40 @@ export const Reports = () => {
       {reportType === 'Sales' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-            }`}>
+            <div
+              onClick={() => navigate('/sales')}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+              }`}
+              title="Click to view Sales Invoices"
+            >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Gross Sales Volume</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalSalesGross.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">{salesList.length} Total Invoices</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">{salesList.length} Total Invoices • View Sales</div>
             </div>
 
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-            }`}>
+            <div
+              onClick={() => navigate('/invoices?tab=Sales')}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+              }`}
+              title="Click to view Sales Invoices"
+            >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Counter Collections</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalSalesCash.toLocaleString()}</div>
-              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">Direct Cash Payments</div>
+              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">Direct Cash Payments • View Invoices</div>
             </div>
 
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
-            }`}>
+            <div
+              onClick={() => navigate('/customers')}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+              }`}
+              title="Click to view Customer Khata Receivables"
+            >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Credit (Khata) Receivables</div>
               <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">Rs. {totalSalesCredit.toLocaleString()}</div>
-              <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">Customer Ledger Due</div>
+              <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">Customer Ledger Due • View Customers</div>
             </div>
           </div>
 
@@ -632,28 +651,40 @@ export const Reports = () => {
       {reportType === 'Expenses' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
-            }`}>
+            <div
+              onClick={() => setShowAddExpenseModal(true)}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+              }`}
+              title="Click to Record New Expense"
+            >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Operating Expenses</div>
               <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalExpensesAmount.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">{expenses.length} Expense Records</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">{expenses.length} Expense Records • Add Expense</div>
             </div>
 
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-purple-500/30' : 'bg-gradient-to-b from-purple-50/50 to-white border-purple-200/80'
-            }`}>
+            <div
+              onClick={() => setShowAddExpenseModal(true)}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-purple-500/30' : 'bg-gradient-to-b from-purple-50/50 to-white border-purple-200/80'
+              }`}
+              title="Click to Record New Expense"
+            >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Top Cost Category</div>
               <div className="text-2xl font-black mt-1.5 text-purple-600 dark:text-purple-400 truncate">{topExpenseCategory}</div>
               <div className="text-xs text-slate-500 font-medium mt-1">Based on Logged Vouchers</div>
             </div>
 
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-            }`}>
+            <div
+              onClick={() => setShowAddExpenseModal(true)}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+              }`}
+              title="Click to Record New Expense"
+            >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Logged Entries</div>
               <div className="text-2xl font-black mt-1.5 text-blue-600 dark:text-blue-400 font-mono">{expenses.length} Entries</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Direct Expense Records</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Direct Expense Records • Click to Add</div>
             </div>
           </div>
 
@@ -728,31 +759,53 @@ export const Reports = () => {
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'ProfitLoss' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-            }`}>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Gross Revenue</div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div
+              onClick={() => navigate('/sales')}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+              }`}
+              title="Click to view Sales"
+            >
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Total Sales</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalSalesGross.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Total Sales Turnover</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">From Customer Sales</div>
             </div>
 
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
-            }`}>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Cost of Goods Sold (COGS)</div>
-              <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {cogs.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Procurement Costs</div>
+            <div
+              onClick={() => navigate('/purchases')}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-br from-blue-50/40 to-white border-blue-200/60'
+              }`}
+              title="Click to view Purchases"
+            >
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Total Purchases</div>
+              <div className="text-2xl font-black mt-1.5 text-blue-600 dark:text-blue-400 font-mono">Rs. {cogs.toLocaleString()}</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Stock Purchase Cost</div>
             </div>
 
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-            }`}>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Net Operating Profit</div>
+            <div
+              onClick={() => setShowAddExpenseModal(true)}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
+              }`}
+              title="Click to view or add Expenses"
+            >
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Shop Expenses</div>
+              <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalExpensesAmount.toLocaleString()}</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Labour, Bills & Rent</div>
+            </div>
+
+            <div
+              className={`p-5 rounded-2xl border card-shadow transition-all ${
+                theme === 'dark' ? 'bg-slate-800 border-emerald-500/50' : 'bg-gradient-to-br from-emerald-50 to-white border-emerald-300'
+              }`}
+            >
+              <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">4. Net Profit (Asal Bachat)</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">
                 Rs. {netOperatingProfit.toLocaleString()}
               </div>
-              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">Take-Home Profit Margin</div>
+              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">Sales − Purchases − Expenses</div>
             </div>
           </div>
 
@@ -760,38 +813,38 @@ export const Reports = () => {
           <div className={`border rounded-2xl p-6 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
             <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <PieChart className="w-4 h-4 text-emerald-600" />
-              <span>Profit & Loss Financial Statement</span>
+              <span>Profit & Loss Breakdown (Asan Hisab)</span>
             </h3>
 
-            <div className="space-y-3.5 text-xs font-bold">
-              <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-slate-900/60 border border-emerald-200/60 dark:border-slate-700 flex justify-between items-center">
+            <div className="space-y-3 text-xs font-bold">
+              <div className="p-3.5 rounded-xl bg-emerald-50/60 dark:bg-slate-900/60 border border-emerald-200/60 dark:border-slate-700 flex justify-between items-center">
                 <div>
-                  <span className="text-slate-900 dark:text-white font-bold block text-sm">1. Gross Sales Revenue</span>
-                  <span className="text-[11px] text-slate-500 font-medium">Total sales value billed from commodity orders</span>
+                  <span className="text-slate-900 dark:text-white font-bold block text-sm">1. Total Sales (Kul Farokht)</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Customer sales orders se aane wali raqam</span>
                 </div>
                 <span className="font-mono text-base font-bold text-emerald-600 dark:text-emerald-400">Rs. {totalSalesGross.toLocaleString()}</span>
               </div>
 
-              <div className="p-4 rounded-xl bg-rose-50/60 dark:bg-slate-900/60 border border-rose-200/60 dark:border-slate-700 flex justify-between items-center">
+              <div className="p-3.5 rounded-xl bg-blue-50/60 dark:bg-slate-900/60 border border-blue-200/60 dark:border-slate-700 flex justify-between items-center">
                 <div>
-                  <span className="text-slate-900 dark:text-white font-bold block text-sm">2. Less: Cost of Goods Sold (Purchases Cost)</span>
-                  <span className="text-[11px] text-slate-500 font-medium">Procurement expenses paid or payable to suppliers</span>
+                  <span className="text-slate-900 dark:text-white font-bold block text-sm">2. Minus: Purchases (Maal Khareedari)</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Suppliers se maal khareedne par lagne wali raqam</span>
                 </div>
-                <span className="font-mono text-base font-bold text-rose-600 dark:text-rose-400">- Rs. {cogs.toLocaleString()}</span>
+                <span className="font-mono text-base font-bold text-blue-600 dark:text-blue-400">- Rs. {cogs.toLocaleString()}</span>
               </div>
 
-              <div className="p-4 rounded-xl bg-rose-50/60 dark:bg-slate-900/60 border border-rose-200/60 dark:border-slate-700 flex justify-between items-center">
+              <div className="p-3.5 rounded-xl bg-rose-50/60 dark:bg-slate-900/60 border border-rose-200/60 dark:border-slate-700 flex justify-between items-center">
                 <div>
-                  <span className="text-slate-900 dark:text-white font-bold block text-sm">3. Less: Operating Expenses</span>
-                  <span className="text-[11px] text-slate-500 font-medium">Labour loading, transport, bardana bags, and shop utilities</span>
+                  <span className="text-slate-900 dark:text-white font-bold block text-sm">3. Minus: Shop Expenses (Dukan Ke Kharchay)</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Mazdoori, loading, kiraya, bijli bills aur bardana boriyan</span>
                 </div>
                 <span className="font-mono text-base font-bold text-rose-600 dark:text-rose-400">- Rs. {totalExpensesAmount.toLocaleString()}</span>
               </div>
 
-              <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:bg-slate-900 border border-emerald-300 dark:border-slate-700 flex items-center justify-between font-bold text-base text-slate-900 dark:text-white shadow-2xs">
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:bg-slate-900 border border-emerald-300 dark:border-slate-700 flex items-center justify-between font-bold text-base text-slate-900 dark:text-white shadow-2xs">
                 <div>
-                  <span className="block text-lg text-emerald-800 dark:text-emerald-300">Net Operating Profit</span>
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Net profit after all procurement and operational expenses</span>
+                  <span className="block text-lg text-emerald-800 dark:text-emerald-300">Net Profit (Khaliis Munafa / Asal Bachat)</span>
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Har kism ke kharche nikal kar bachi hui raqam</span>
                 </div>
                 <span className="text-2xl font-mono text-emerald-700 dark:text-emerald-300 font-black">Rs. {netOperatingProfit.toLocaleString()}</span>
               </div>
@@ -806,28 +859,38 @@ export const Reports = () => {
       {reportType === 'BalanceSheet' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-            }`}>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Total Assets</div>
+            <div
+              onClick={() => navigate('/inventory')}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+              }`}
+              title="Click to view Inventory"
+            >
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Total Business Assets</div>
               <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalAssets.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Cash, Godown Stock & Receivables</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Cash + Market Udhaar + Godown Stock</div>
             </div>
 
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
-            }`}>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Total Liabilities</div>
+            <div
+              onClick={() => navigate('/suppliers')}
+              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+                theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
+              }`}
+              title="Click to view Supplier Payables"
+            >
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Total Payables (Dena)</div>
               <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalLiabilities.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Supplier Payables Balance</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Suppliers Ko Dene Wali Raqam</div>
             </div>
 
-            <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-gradient-to-br from-slate-50/50 to-white border-slate-200'
-            }`}>
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Net Business Worth</div>
+            <div
+              className={`p-5 rounded-2xl border card-shadow transition-all ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-gradient-to-br from-slate-50/50 to-white border-slate-200'
+              }`}
+            >
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Net Business Value</div>
               <div className="text-2xl font-black mt-1.5 text-slate-900 dark:text-white font-mono">Rs. {totalEquity.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Total Assets Less Liabilities</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">Kul Sarmaya Minus Dena</div>
             </div>
           </div>
 
@@ -836,25 +899,25 @@ export const Reports = () => {
             {/* ASSETS COLUMN */}
             <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                <Building className="w-4 h-4 text-slate-600" />
-                <span>Business Assets</span>
+                <Building className="w-4 h-4 text-emerald-600" />
+                <span>Dukan Ka Kul Sarmaya (Assets)</span>
               </h3>
               <div className="space-y-3 text-xs font-bold">
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500 font-medium">Cash in Hand & Counter Drawer:</span>
+                  <span className="text-slate-500 font-medium">Cash in Hand (Galla / Cash Box):</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {cashInHand.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500 font-medium">Customer Khata Receivables:</span>
+                  <span className="text-slate-500 font-medium">Customer Udhaar (Market Se Lene Hain):</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalCustomerReceivables.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500 font-medium">Warehouse Inventory Stock Value:</span>
+                  <span className="text-slate-500 font-medium">Godown Stock Value (Mojooda Maal):</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalStockValuation.toLocaleString()}</span>
                 </div>
                 <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-bold text-sm text-slate-900 dark:text-white">
-                  <span>TOTAL ASSETS:</span>
-                  <span className="font-mono">Rs. {totalAssets.toLocaleString()}</span>
+                  <span>TOTAL ASSETS (KUL SARMAYA):</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -862,20 +925,20 @@ export const Reports = () => {
             {/* LIABILITIES & EQUITY COLUMN */}
             <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-slate-600" />
-                <span>Liabilities & Owner's Equity</span>
+                <PieChart className="w-4 h-4 text-rose-600" />
+                <span>Dena Baqaya & Asal Value</span>
               </h3>
               <div className="space-y-3 text-xs font-bold">
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500 font-medium">Supplier Payables (Market Creditors):</span>
-                  <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalSupplierPayables.toLocaleString()}</span>
+                  <span className="text-slate-500 font-medium">Supplier Baqaya (Suppliers Ko Dena Hay):</span>
+                  <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-slate-500 font-medium">Net Retained Equity & Profit:</span>
+                  <span className="text-slate-500 font-medium">Net Business Worth (Asal Bacha Hua Sarmaya):</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalEquity.toLocaleString()}</span>
                 </div>
                 <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-bold text-sm text-slate-900 dark:text-white">
-                  <span>TOTAL LIABILITIES & EQUITY:</span>
+                  <span>TOTAL LIABILITIES & VALUE:</span>
                   <span className="font-mono">Rs. {(totalLiabilities + totalEquity).toLocaleString()}</span>
                 </div>
               </div>

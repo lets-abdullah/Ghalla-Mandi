@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Warehouse, ArrowUpRight, ArrowDownLeft, RefreshCw, X, Package, AlertTriangle, DollarSign } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -8,6 +9,7 @@ export const Inventory = () => {
   const { products, stockMovements, adjustStock } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
+  const navigate = useNavigate();
   const [showAdjModal, setShowAdjModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -90,7 +92,11 @@ export const Inventory = () => {
 
       {/* Inventory KPI Summary Header */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80 text-slate-800'}`}>
+        <div
+          onClick={() => navigate('/products')}
+          className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80 text-slate-800'}`}
+          title="Click to view Product Catalog"
+        >
           <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold">
             <Package className="w-5 h-5" />
           </div>
@@ -100,7 +106,11 @@ export const Inventory = () => {
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80 text-slate-800'}`}>
+        <div
+          onClick={() => navigate('/reports?type=Stock')}
+          className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80 text-slate-800'}`}
+          title="Click to view Stock & Inventory Statement"
+        >
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
             <Warehouse className="w-5 h-5" />
           </div>
@@ -110,7 +120,11 @@ export const Inventory = () => {
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80 text-slate-800'}`}>
+        <div
+          onClick={() => navigate('/reports?type=Stock')}
+          className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80 text-slate-800'}`}
+          title="Click to view Stock Valuation Report"
+        >
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
             <DollarSign className="w-5 h-5" />
           </div>
@@ -120,14 +134,18 @@ export const Inventory = () => {
           </div>
         </div>
 
-        <div className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+        <div
+          onClick={() => setShowAdjModal(true)}
+          className={`p-4 rounded-2xl border flex items-center gap-3 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}
+          title="Click to adjust stock"
+        >
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${lowStockCount > 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
             <div className="text-xs font-semibold text-slate-500">{t('lowStockAlerts')}</div>
             <div className={`text-lg font-black font-mono ${lowStockCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-              {lowStockCount} {t('items')}
+              {lowStockCount} {t('items')} • Click to Adjust
             </div>
           </div>
         </div>

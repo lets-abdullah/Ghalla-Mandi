@@ -177,11 +177,15 @@ export const Invoices = () => {
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${
-          theme === 'dark'
-            ? isPurchases ? 'bg-slate-800 border-blue-500/30' : 'bg-slate-800 border-emerald-500/30'
-            : isPurchases ? 'bg-gradient-to-br from-blue-50/40 to-white border-blue-200/60' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-        }`}>
+        <div
+          onClick={() => setFilterType('All')}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+            theme === 'dark'
+              ? isPurchases ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-slate-800 border-emerald-500/30 text-white'
+              : isPurchases ? 'bg-gradient-to-br from-blue-50/40 to-white border-blue-200/60' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+          }`}
+          title="Click to view all invoices"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             {isPurchases ? <ShoppingCart className="w-4 h-4 text-blue-600" /> : <ShoppingBag className="w-4 h-4 text-emerald-600" />}
             {isPurchases ? t('totalPurchasesVolume') : t('totalSalesVolume')}
@@ -190,13 +194,17 @@ export const Invoices = () => {
             Rs. {(isPurchases ? totalPurchasesInvoiced : totalSalesInvoiced).toLocaleString()}
           </div>
           <div className="text-xs text-slate-400 font-medium mt-1">
-            {(isPurchases ? purchaseInvoices.length : salesInvoices.length)} {t('invoices')}
+            {(isPurchases ? purchaseInvoices.length : salesInvoices.length)} {t('invoices')} • View All
           </div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${
-          theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-        }`}>
+        <div
+          onClick={() => setFilterType('Paid')}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+            theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
+          }`}
+          title="Click to filter fully paid invoices"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <DollarSign className="w-4 h-4 text-emerald-600" />
             {isPurchases ? (t('totalPaidOut') || 'Total Paid to Suppliers') : (t('totalReceivedPayment') || 'Total Cash Received')}
@@ -205,21 +213,25 @@ export const Invoices = () => {
             Rs. {(isPurchases ? totalPurchasesPaid : totalSalesPaid).toLocaleString()}
           </div>
           <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">
-            {t('paid')}
+            {t('paid')} • Filter Paid Invoices
           </div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${
-          theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-br from-blue-50/40 to-white border-blue-200/60'
-        }`}>
+        <div
+          onClick={() => setFilterType('Pending')}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+            theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200/60'
+          }`}
+          title="Click to filter pending due invoices"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <FileText className="w-4 h-4 text-blue-600" /> {t('totalInvoicesCount') || 'Total Invoices'}
+            <Clock className="w-4 h-4 text-amber-600" /> {t('pending') || 'Pending Balance'}
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-blue-600 dark:text-blue-400">
-            {(isPurchases ? purchaseInvoices.length : salesInvoices.length)} {t('invoices')}
+          <div className="text-2xl font-black mt-1.5 font-mono text-amber-600 dark:text-amber-400">
+            {(isPurchases ? purchaseInvoices.filter(i => i.status !== 'Paid').length : salesInvoices.filter(i => i.status !== 'Paid').length)} {t('invoices')}
           </div>
-          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-1">
-            Billed Records
+          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">
+            Filter Unpaid Invoices
           </div>
         </div>
       </div>

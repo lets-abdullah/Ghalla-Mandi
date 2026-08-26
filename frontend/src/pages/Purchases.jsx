@@ -269,31 +269,43 @@ export const Purchases = () => {
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-          }`}>
+        <div
+          onClick={() => setFilterType('All')}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+          }`}
+          title="Click to view all purchases"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <ShoppingCart className="w-4 h-4 text-blue-600" /> {t('totalPurchasesVolume')}
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-blue-600 dark:text-blue-400">Rs. {totalNetPurchases.toLocaleString()}</div>
-          <div className="text-xs text-blue-700 dark:text-blue-400 font-bold mt-1">{purchases.length} {t('invoices')}</div>
+          <div className="text-xs text-blue-700 dark:text-blue-400 font-bold mt-1">{purchases.length} {t('invoices')} • Click to View All</div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-          }`}>
+        <div
+          onClick={() => setFilterType('Paid')}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+          }`}
+          title="Click to filter paid purchases"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <DollarSign className="w-4 h-4 text-emerald-600" /> {t('Paid')}
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalPaidOut.toLocaleString()}</div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">{t('paid')}</div>
+          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">{t('paid')} • Filter Paid Invoices</div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
-          }`}>
+        <div
+          onClick={() => navigate('/suppliers')}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+          }`}
+          title="Click to view Supplier Payables & Khata"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-rose-600" /> {t('amountToPay')}
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-rose-600 dark:text-rose-400">Rs. {totalOutstandingPayable.toLocaleString()}</div>
-          <div className="text-xs text-rose-700 dark:text-rose-400 font-bold mt-1">{t('pending')}</div>
+          <div className="text-xs text-rose-700 dark:text-rose-400 font-bold mt-1">{t('pending')} • View Supplier Khata</div>
         </div>
       </div>
 

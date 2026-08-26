@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { RotateCcw, Search, Plus, Printer, CheckCircle2, DollarSign, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { RotateCcw, Search, Plus, Printer, CheckCircle2, DollarSign, Package, Clock } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
@@ -9,6 +10,7 @@ export const PurchaseReturns = () => {
   const { purchaseReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -60,22 +62,34 @@ export const PurchaseReturns = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}>
+        <div
+          onClick={() => navigate('/purchases')}
+          className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}
+          title="Click to view Purchases Invoices"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Debit Valuation</div>
           <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalReturnAmount.toLocaleString()}</div>
-          <div className="text-xs text-slate-400 font-medium mt-1">{purchaseReturns.length} Return Records</div>
+          <div className="text-xs text-slate-400 font-medium mt-1">{purchaseReturns.length} Return Records • View Purchases</div>
         </div>
 
-        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'}`}>
+        <div
+          onClick={() => navigate('/ledger?type=Supplier')}
+          className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'}`}
+          title="Click to view Supplier Khata Ledgers"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Supplier Dues Deducted</div>
           <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">Rs. {totalPayablesDeducted.toLocaleString()}</div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">Supplier Ledger Reductions</div>
+          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">Supplier Ledger Reductions • View Khata</div>
         </div>
 
-        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'}`}>
+        <div
+          onClick={() => setSearch('Cash')}
+          className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'}`}
+          title="Click to filter Cash Returned"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Received Back</div>
           <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalCashRefunds.toLocaleString()}</div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">Cash Returned by Suppliers</div>
+          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">Cash Returned by Suppliers • Filter Cash</div>
         </div>
       </div>
 

@@ -155,36 +155,48 @@ export const Suppliers = () => {
 
       {/* Summary KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${
-          theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80 text-slate-800'
-        }`}>
+        <div
+          onClick={() => setFilterType('All')}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+            theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80 text-slate-800'
+          }`}
+          title="Click to view all suppliers"
+        >
           <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
             <UserCheck className="w-4 h-4 text-blue-600" /> {t('Total Suppliers')}
           </div>
           <div className="text-2xl font-extrabold mt-1 font-mono text-blue-600 dark:text-blue-400">{totalSuppliersCount}</div>
-          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-1">{t('suppliers')}</div>
+          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-1">{t('suppliers')} • View All</div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${
-          theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80 text-slate-800'
-        }`}>
+        <div
+          onClick={() => setFilterType('Payable')}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+            theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80 text-slate-800'
+          }`}
+          title="Click to filter suppliers with unpaid balance"
+        >
           <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
             <DollarSign className="w-4 h-4 text-rose-600" /> {t('Amount To Pay')}
           </div>
           <div className="text-2xl font-extrabold mt-1 text-rose-600 dark:text-rose-400 font-mono">Rs. {(Number(totalPayablesAmount) || 0).toLocaleString()}</div>
-          <div className="text-xs text-rose-700 dark:text-rose-400 font-bold mt-1">{t('pending')}</div>
+          <div className="text-xs text-rose-700 dark:text-rose-400 font-bold mt-1">{t('pending')} • Filter Unpaid</div>
         </div>
 
-        <div className={`border rounded-2xl p-5 card-shadow transition-colors ${
-          theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80 text-slate-800'
-        }`}>
+        <div
+          onClick={() => setFilterType('Settled')}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
+            theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80 text-slate-800'
+          }`}
+          title="Click to filter settled supplier accounts"
+        >
           <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {t('settledAccounts')}
           </div>
           <div className="text-2xl font-extrabold mt-1 text-emerald-600 dark:text-emerald-400 font-mono">
             {suppliers.filter(s => (Number(s.balance) || 0) === 0).length}
           </div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">{t('zeroBalance')}</div>
+          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">{t('zeroBalance')} • Filter Settled</div>
         </div>
       </div>
 

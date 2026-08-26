@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { RotateCcw, Search, Plus, Printer, CheckCircle2, DollarSign, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { RotateCcw, Search, Plus, Printer, CheckCircle2, DollarSign, Package, Clock } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
@@ -9,6 +10,7 @@ export const SaleReturns = () => {
   const { saleReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -60,22 +62,34 @@ export const SaleReturns = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-orange-500/30' : 'bg-gradient-to-b from-orange-50/50 to-white border-orange-200/80'}`}>
+        <div
+          onClick={() => navigate('/sales')}
+          className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-orange-500/30' : 'bg-gradient-to-b from-orange-50/50 to-white border-orange-200/80'}`}
+          title="Click to view Sales Invoices"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Returns Value</div>
           <div className="text-2xl font-black mt-1.5 text-orange-600 dark:text-orange-400 font-mono">Rs. {totalRefundAmount.toLocaleString()}</div>
-          <div className="text-xs text-slate-400 font-medium mt-1">{saleReturns.length} Return Records</div>
+          <div className="text-xs text-slate-400 font-medium mt-1">{saleReturns.length} Return Records • View Sales</div>
         </div>
 
-        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}>
+        <div
+          onClick={() => setSearch('Cash')}
+          className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}
+          title="Click to filter Cash Refunds"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Payouts</div>
           <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalCashRefunds.toLocaleString()}</div>
-          <div className="text-xs text-rose-700 dark:text-rose-400 font-medium mt-1">Direct Counter Refunds</div>
+          <div className="text-xs text-rose-700 dark:text-rose-400 font-medium mt-1">Direct Counter Refunds • Filter Cash</div>
         </div>
 
-        <div className={`p-5 rounded-2xl border card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'}`}>
+        <div
+          onClick={() => navigate('/ledger?type=Customer')}
+          className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'}`}
+          title="Click to view Customer Khata Ledgers"
+        >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Khata Dues Deducted</div>
           <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">Rs. {totalKhataAdjustments.toLocaleString()}</div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">Customer Ledger Reductions</div>
+          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">Customer Ledger Reductions • View Khata</div>
         </div>
       </div>
 
