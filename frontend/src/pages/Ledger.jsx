@@ -6,7 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const Ledger = () => {
-  const { customers, suppliers, sales, purchases, paymentLogs, recordPayment } = useERP();
+  const { customers, suppliers, sales, purchases, paymentLogs, saleReturns = [], purchaseReturns = [], recordPayment } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -39,13 +39,13 @@ export const Ledger = () => {
 
   const regularCustomers = customers.filter(c => (c.customerType || 'Regular Party') === 'Regular Party');
   const activeCustomer = regularCustomers.find(c => c.id === selectedCustomerId) || regularCustomers[0];
-  const customerSales = sales.filter(s => s.customerId === (activeCustomer?.id || selectedCustomerId) || (activeCustomer && s.partyName === activeCustomer.name));
-  const customerPayments = paymentLogs.filter(p => p.partyId === (activeCustomer?.id || selectedCustomerId) && p.partyType === 'Customer');
-
-  // Supplier Ledger calculations
   const activeSupplier = suppliers.find(s => s.id === selectedSupplierId) || suppliers[0];
-  const supplierPurchases = purchases.filter(p => p.supplierId === selectedSupplierId || (activeSupplier && p.supplier === activeSupplier.name));
-  const supplierPayments = paymentLogs.filter(p => p.partyId === selectedSupplierId && p.partyType === 'Supplier');
+
+  const customerSales = (sales || []).filter(s => s.partyName === activeCustomer?.name || s.customerId === activeCustomer?.id);
+  const supplierPurchases = (purchases || []).filter(p => p.supplier === activeSupplier?.name || p.supplierName === activeSupplier?.name || p.supplierId === activeSupplier?.id);
+
+  const customerPayments = (paymentLogs || []).filter(p => p.type === 'Customer' && (p.partyName === activeCustomer?.name || p.partyId === activeCustomer?.id));
+  const supplierPayments = (paymentLogs || []).filter(p => p.type === 'Supplier' && (p.partyName === activeSupplier?.name || p.partyId === activeSupplier?.id));
 
   const todayStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -96,6 +96,22 @@ export const Ledger = () => {
         credit: Number(p.amount) || 0,
         desc: p.note || t('cashOnCounter')
       });
+    });
+
+    // Add sale returns if not already in paymentLogs
+    const custReturns = (saleReturns || []).filter(r => (r.customerId === activeCustomer.id || r.customerName === activeCustomer.name) && r.refundMode === 'Ledger');
+    custReturns.forEach(r => {
+      if (!entries.some(e => e.ref === r.returnNo)) {
+        entries.push({
+          id: `sr-${r.id}`,
+          date: r.date,
+          ref: r.returnNo,
+          type: 'Sale Return (Credit Note)',
+          debit: 0,
+          credit: Number(r.refundAmount) || 0,
+          desc: r.reason || 'Restocked goods credit voucher'
+        });
+      }
     });
 
     let runningBalance = 0;
@@ -154,6 +170,22 @@ export const Ledger = () => {
         credit: 0,
         desc: p.note || t('directPaymentSupplier')
       });
+    });
+
+    // Add purchase returns if not already in paymentLogs
+    const supReturns = (purchaseReturns || []).filter(r => (r.supplierId === activeSupplier.id || r.supplierName === activeSupplier.name) && r.refundMode === 'Ledger');
+    supReturns.forEach(r => {
+      if (!entries.some(e => e.ref === r.returnNo)) {
+        entries.push({
+          id: `pr-${r.id}`,
+          date: r.date,
+          ref: r.returnNo,
+          type: 'Purchase Return (Debit Note)',
+          debit: Number(r.refundAmount) || 0,
+          credit: 0,
+          desc: r.reason || 'Rejected goods debit voucher'
+        });
+      }
     });
 
     let runningBalance = 0;

@@ -10,7 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const Reports = () => {
-  const { sales, purchases, products, customers, suppliers } = useERP();
+  const { sales, purchases, products, customers, suppliers, saleReturns = [], purchaseReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const [searchParams] = useSearchParams();
@@ -74,6 +74,12 @@ export const Reports = () => {
     setExpenses(prev => prev.filter(e => e.id !== id));
   };
 
+  // Returns aggregates
+  const totalSaleReturnsVal = useMemo(() => (saleReturns || []).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0), [saleReturns]);
+  const totalSaleReturnsCash = useMemo(() => (saleReturns || []).filter(r => r.refundMode === 'Cash').reduce((sum, r) => sum + Number(r.refundAmount || 0), 0), [saleReturns]);
+  const totalPurchaseReturnsVal = useMemo(() => (purchaseReturns || []).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0), [purchaseReturns]);
+  const totalPurchaseReturnsCash = useMemo(() => (purchaseReturns || []).filter(r => r.refundMode === 'Cash').reduce((sum, r) => sum + Number(r.refundAmount || 0), 0), [purchaseReturns]);
+
   // =========================================================================
   // 1. DYNAMIC STOCK CALCULATIONS & FILTERING
   // =========================================================================
@@ -108,41 +114,41 @@ export const Reports = () => {
         }
       }
 
-      // Status
       let status = 'In Stock';
       if (qty <= 0) status = 'Out of Stock';
       else if (qty <= minStock) status = 'Low Stock';
 
-      // Value (Qty * Purchase Price, fallback Selling Price)
-      const stockVal = Math.round(qty * (purchaseRate > 0 ? purchaseRate : sellingRate));
-
       return {
-        ...p,
+        id: p.id,
+        name: p.name,
+        code: p.code || '',
+        category: p.category || 'General',
         qty,
         unit,
         bagDetail,
-        isLiquidOrPackaged,
         purchaseRate,
         sellingRate,
-        stockVal,
-        minStock,
-        status
+        stockVal: qty * purchaseRate,
+        status,
+        minStock
       };
     });
   }, [products]);
 
-  // Filtered and Sorted Stock
   const filteredStock = useMemo(() => {
-    return processedStock.filter(item => {
-      const matchSearch = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (item.code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (item.category || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchCat = categoryFilter === 'All' || item.category === categoryFilter;
-      const matchStatus = stockStatusFilter === 'All' ||
-                          (stockStatusFilter === 'LowStock' && item.status === 'Low Stock') ||
-                          (stockStatusFilter === 'InStock' && item.status === 'In Stock') ||
-                          (stockStatusFilter === 'OutOfStock' && item.status === 'Out of Stock');
-      return matchSearch && matchCat && matchStatus;
+    return processedStock.filter(p => {
+      const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.category || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCat = categoryFilter === 'All' || p.category === categoryFilter;
+
+      let matchesStatus = true;
+      if (stockStatusFilter === 'LowStock') matchesStatus = p.status === 'Low Stock';
+      else if (stockStatusFilter === 'InStock') matchesStatus = p.status === 'In Stock';
+      else if (stockStatusFilter === 'OutOfStock') matchesStatus = p.status === 'Out of Stock';
+
+      return matchesSearch && matchesCat && matchesStatus;
     }).sort((a, b) => {
       if (sortBy === 'valueDesc') return b.stockVal - a.stockVal;
       if (sortBy === 'qtyDesc') return b.qty - a.qty;
@@ -157,19 +163,29 @@ export const Reports = () => {
   const outOfStockCount = useMemo(() => processedStock.filter(p => p.status === 'Out of Stock').length, [processedStock]);
 
   // =========================================================================
-  // 2. SALES CALCULATIONS
+  // 2. SALES CALCULATIONS (Incorporates Sale Returns)
   // =========================================================================
   const salesList = useMemo(() => {
     return (sales || []).map(s => {
       const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
       const paidAmt = Number(s.paidAmount !== undefined ? s.paidAmount : (s.status === 'Paid' ? grossAmt : 0));
+      const returnAmt = Number(s.returnAmount || 0);
       const isCash = s.paymentMode?.toLowerCase().includes('cash') || paidAmt >= grossAmt;
-      return { ...s, grossAmt, paidAmt, dueAmt: Math.max(0, grossAmt - paidAmt), isCash };
+      return {
+        ...s,
+        grossAmt,
+        returnAmt,
+        netAmt: Math.max(0, grossAmt - returnAmt),
+        paidAmt,
+        dueAmt: Math.max(0, grossAmt - paidAmt - returnAmt),
+        isCash
+      };
     });
   }, [sales]);
 
   const totalSalesGross = useMemo(() => salesList.reduce((sum, s) => sum + s.grossAmt, 0), [salesList]);
-  const totalSalesCash = useMemo(() => salesList.filter(s => s.isCash).reduce((sum, s) => sum + s.paidAmt, 0), [salesList]);
+  const totalNetSales = useMemo(() => Math.max(0, totalSalesGross - totalSaleReturnsVal), [totalSalesGross, totalSaleReturnsVal]);
+  const totalSalesCash = useMemo(() => Math.max(0, salesList.filter(s => s.isCash).reduce((sum, s) => sum + s.paidAmt, 0) - totalSaleReturnsCash), [salesList, totalSaleReturnsCash]);
   const totalSalesCredit = useMemo(() => salesList.reduce((sum, s) => sum + s.dueAmt, 0), [salesList]);
 
   // Commodity sales aggregation
@@ -195,17 +211,26 @@ export const Reports = () => {
   }, [salesList]);
 
   // =========================================================================
-  // 3. PURCHASES & EXPENSES CALCULATIONS
+  // 3. PURCHASES & EXPENSES CALCULATIONS (Incorporates Purchase Returns)
   // =========================================================================
   const purchasesList = useMemo(() => {
     return (purchases || []).map(p => {
       const grossAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
       const paidAmt = Number(p.paidAmount !== undefined ? p.paidAmount : (p.status === 'Paid' ? grossAmt : 0));
-      return { ...p, grossAmt, paidAmt, dueAmt: Math.max(0, grossAmt - paidAmt) };
+      const returnAmt = Number(p.returnAmount || 0);
+      return {
+        ...p,
+        grossAmt,
+        returnAmt,
+        netAmt: Math.max(0, grossAmt - returnAmt),
+        paidAmt,
+        dueAmt: Math.max(0, grossAmt - paidAmt - returnAmt)
+      };
     });
   }, [purchases]);
 
   const totalPurchasesGross = useMemo(() => purchasesList.reduce((sum, p) => sum + p.grossAmt, 0), [purchasesList]);
+  const totalNetPurchases = useMemo(() => Math.max(0, totalPurchasesGross - totalPurchaseReturnsVal), [totalPurchasesGross, totalPurchaseReturnsVal]);
   const totalPurchasesPaid = useMemo(() => purchasesList.reduce((sum, p) => sum + p.paidAmt, 0), [purchasesList]);
 
   const totalExpensesAmount = useMemo(() => expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0), [expenses]);
@@ -221,10 +246,10 @@ export const Reports = () => {
   }, [expenses]);
 
   // =========================================================================
-  // 4. FINANCIAL STATEMENTS (P&L and Balance Sheet)
+  // 4. FINANCIAL STATEMENTS (P&L and Balance Sheet with Returns Deducted)
   // =========================================================================
-  const cogs = useMemo(() => Math.max(0, totalPurchasesGross), [totalPurchasesGross]);
-  const grossOperatingProfit = useMemo(() => Math.max(0, totalSalesGross - cogs), [totalSalesGross, cogs]);
+  const cogs = useMemo(() => Math.max(0, totalNetPurchases), [totalNetPurchases]);
+  const grossOperatingProfit = useMemo(() => Math.max(0, totalNetSales - cogs), [totalNetSales, cogs]);
   const netOperatingProfit = useMemo(() => grossOperatingProfit - totalExpensesAmount, [grossOperatingProfit, totalExpensesAmount]);
 
   const totalCustomerReceivables = useMemo(() => {
@@ -236,9 +261,9 @@ export const Reports = () => {
   }, [suppliers]);
 
   const cashInHand = useMemo(() => {
-    const netCash = totalSalesCash - totalPurchasesPaid - totalExpensesAmount;
+    const netCash = totalSalesCash + totalPurchaseReturnsCash - totalPurchasesPaid - totalExpensesAmount;
     return Math.max(0, netCash);
-  }, [totalSalesCash, totalPurchasesPaid, totalExpensesAmount]);
+  }, [totalSalesCash, totalPurchaseReturnsCash, totalPurchasesPaid, totalExpensesAmount]);
 
   const totalAssets = useMemo(() => cashInHand + totalCustomerReceivables + totalStockValuation, [cashInHand, totalCustomerReceivables, totalStockValuation]);
   const totalLiabilities = useMemo(() => totalSupplierPayables, [totalSupplierPayables]);

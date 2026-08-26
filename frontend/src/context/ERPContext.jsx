@@ -751,7 +751,7 @@ export const ERPProvider = ({ children }) => {
 
     // Adjust customer ledger if refund mode is Ledger
     if (returnData.refundMode === 'Ledger' && returnData.customerId) {
-      const cust = customers.find(c => c.id === returnData.customerId);
+      const cust = customers.find(c => c.id === returnData.customerId || String(c.id) === String(returnData.customerId));
       if (cust) {
         const newBal = Math.max(0, Number(cust.balance || 0) - Number(returnData.refundAmount || 0));
         try {
@@ -760,6 +760,38 @@ export const ERPProvider = ({ children }) => {
           setCustomers(prev => prev.map(c => c.id === cust.id ? { ...c, balance: newBal } : c));
         }
       }
+
+      // Log credit note transaction in paymentLogs for ledger statement
+      const creditLog = {
+        id: Date.now() + 1,
+        partyId: returnData.customerId,
+        partyName: returnData.customerName,
+        amount: Number(returnData.refundAmount) || 0,
+        date: dateStr,
+        mode: 'Credit Note',
+        note: `Sale Return Credit Adjustment #${returnNo}`,
+        ref: returnNo,
+        type: 'Customer'
+      };
+      setPaymentLogs(prev => [creditLog, ...prev]);
+    }
+
+    // Update matching sale invoice in sales state
+    if (returnData.saleId || returnData.invoiceNo) {
+      setSales(prev => prev.map(s => {
+        if (s.id === returnData.saleId || (s.invoiceNo && s.invoiceNo === returnData.invoiceNo)) {
+          const prevReturn = Number(s.returnAmount || 0);
+          const newReturnAmt = prevReturn + (Number(returnData.refundAmount) || 0);
+          const origAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal || 0));
+          const isFull = newReturnAmt >= origAmt;
+          return {
+            ...s,
+            returnAmount: newReturnAmt,
+            status: isFull ? 'Returned' : 'Partial Return'
+          };
+        }
+        return s;
+      }));
     }
 
     setSaleReturns(prev => [newReturn, ...prev]);
@@ -800,7 +832,7 @@ export const ERPProvider = ({ children }) => {
 
     // Adjust supplier ledger if refund mode is Ledger
     if (returnData.refundMode === 'Ledger' && returnData.supplierId) {
-      const sup = suppliers.find(s => s.id === returnData.supplierId);
+      const sup = suppliers.find(s => s.id === returnData.supplierId || String(s.id) === String(returnData.supplierId));
       if (sup) {
         const newBal = Math.max(0, Number(sup.balance || 0) - Number(returnData.refundAmount || 0));
         try {
@@ -809,6 +841,38 @@ export const ERPProvider = ({ children }) => {
           setSuppliers(prev => prev.map(s => s.id === sup.id ? { ...s, balance: newBal } : s));
         }
       }
+
+      // Log debit note transaction in paymentLogs for ledger statement
+      const debitLog = {
+        id: Date.now() + 2,
+        partyId: returnData.supplierId,
+        partyName: returnData.supplierName,
+        amount: Number(returnData.refundAmount) || 0,
+        date: dateStr,
+        mode: 'Debit Note',
+        note: `Purchase Return Debit Adjustment #${returnNo}`,
+        ref: returnNo,
+        type: 'Supplier'
+      };
+      setPaymentLogs(prev => [debitLog, ...prev]);
+    }
+
+    // Update matching purchase in purchases state
+    if (returnData.purchaseId || returnData.purchaseNo) {
+      setPurchases(prev => prev.map(p => {
+        if (p.id === returnData.purchaseId || (p.purchaseNo && p.purchaseNo === returnData.purchaseNo)) {
+          const prevReturn = Number(p.returnAmount || 0);
+          const newReturnAmt = prevReturn + (Number(returnData.refundAmount) || 0);
+          const origAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal || 0));
+          const isFull = newReturnAmt >= origAmt;
+          return {
+            ...p,
+            returnAmount: newReturnAmt,
+            status: isFull ? 'Returned' : 'Partial Return'
+          };
+        }
+        return p;
+      }));
     }
 
     setPurchaseReturns(prev => [newReturn, ...prev]);
