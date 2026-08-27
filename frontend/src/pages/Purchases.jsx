@@ -934,7 +934,7 @@ export const Purchases = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 1. MAIN NEW PURCHASE MODAL */}
+      {/* 1. MAIN NEW PURCHASE MODAL (Base Layer: z-50) */}
       {/* ========================================================================= */}
       {showModal && (
         <div
@@ -944,10 +944,14 @@ export const Purchases = () => {
               setShowModal(false); 
             }
           }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+          style={{ zIndex: 50 }}
         >
-          <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border my-6 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
               <h3 className="text-base font-extrabold flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-brand-500" />
@@ -1117,7 +1121,7 @@ export const Purchases = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 2. QUICK ADD NEW PRODUCT MODAL (Layered over New Purchase dialog at z-60) */}
+      {/* 2. QUICK ADD NEW PRODUCT MODAL (Layered on top of New Purchase dialog at z-[100]) */}
       {/* ========================================================================= */}
       {showAddProductModal && (
         <div
@@ -1127,11 +1131,15 @@ export const Purchases = () => {
               setShowAddProductModal(false); 
             }
           }}
-          className="fixed inset-0 z-60 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          style={{ zIndex: 100 }}
         >
-          <div className={`rounded-3xl max-w-lg w-full p-6 space-y-4 card-shadow border my-6 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`rounded-3xl max-w-lg w-full p-6 space-y-4 card-shadow border my-6 relative shadow-2xl ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
@@ -1341,7 +1349,7 @@ export const Purchases = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 3. QUICK ADD NEW CATEGORY MODAL (Layered over Product dialog at z-70) */}
+      {/* 3. QUICK ADD NEW CATEGORY MODAL (Layered on top of Product dialog at z-[110]) */}
       {/* ========================================================================= */}
       {showAddCategoryModal && (
         <div
@@ -1351,11 +1359,15 @@ export const Purchases = () => {
               setShowAddCategoryModal(false); 
             }
           }}
-          className="fixed inset-0 z-70 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+          style={{ zIndex: 110 }}
         >
-          <div className={`rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow border ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow border relative shadow-2xl ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}
+          >
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold">
