@@ -100,14 +100,9 @@ export const Reports = () => {
     setPlPage(1);
   };
 
-  // Professional Banking / Financial Balance Sheet States
-  const [bsFinancialYear, setBsFinancialYear] = useState('FY 2026–27');
-  const [bsPeriod, setBsPeriod] = useState('This Month');
-  const [bsAccountFilter, setBsAccountFilter] = useState('All');
-  const [bsBranchFilter, setBsBranchFilter] = useState('All');
-  const [bsAsOfDate, setBsAsOfDate] = useState('Today');
+  // Balance Sheet Date Filter States
+  const [bsDateFilter, setBsDateFilter] = useState('All Time'); // 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'All Time' | 'Custom'
   const [bsCustomDate, setBsCustomDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [bsComparisonMode, setBsComparisonMode] = useState('Previous Month');
   const [bsExpandedSections, setBsExpandedSections] = useState({
     cashBank: true,
     receivables: true,
@@ -128,12 +123,7 @@ export const Reports = () => {
   };
 
   const handleResetBsFilters = () => {
-    setBsFinancialYear('FY 2026–27');
-    setBsPeriod('This Month');
-    setBsAccountFilter('All');
-    setBsBranchFilter('All');
-    setBsAsOfDate('Today');
-    setBsComparisonMode('Previous Month');
+    setBsDateFilter('All Time');
   };
 
   // Live expenses persisted in local storage per user/shop session
@@ -1260,7 +1250,7 @@ export const Reports = () => {
       });
     } else if (reportType === 'BalanceSheet') {
       csvData += `--- BALANCE SHEET STATEMENT ---\n`;
-      csvData += `Financial Year,${bsFinancialYear}\nPeriod,${bsPeriod}\nAs of Date,${bsAsOfDate}\n\n`;
+      csvData += `As of Date / Period,${bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}\n\n`;
       csvData += `TOTAL ASSETS,Rs. ${totalAssets}\nTOTAL LIABILITIES,Rs. ${totalLiabilities}\nNET BUSINESS WORTH,Rs. ${totalEquity}\n\n`;
 
       csvData += `--- 1. ASSETS (WHAT YOU OWN) ---\n`;
@@ -3323,19 +3313,19 @@ export const Reports = () => {
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'BalanceSheet' && (
         <div className="space-y-6">
-          {/* Top Filter Bar */}
+          {/* Top Filter Bar - Single Clean Date Filter */}
           <div className={`p-4 rounded-2xl border card-shadow space-y-3.5 ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2.5 border-slate-100 dark:border-slate-700">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
                   <Building className="w-4 h-4 text-indigo-500" />
                   <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
                     Balance Sheet Statement
                   </span>
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                    As of {bsAsOfDate === 'Custom Date' ? bsCustomDate : bsAsOfDate}
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                    As of {bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 font-medium mt-0.5">
@@ -3343,9 +3333,39 @@ export const Reports = () => {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5">
-                  <span>Last updated: <strong className="text-slate-600 dark:text-slate-300">{bsLastUpdated}</strong></span>
+              {/* Single Clean Date Filter Dropdown & Controls */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                  <select
+                    value={bsDateFilter}
+                    onChange={(e) => setBsDateFilter(e.target.value)}
+                    className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="Today">Today ({new Date().toLocaleDateString('en-GB')})</option>
+                    <option value="Yesterday">Yesterday</option>
+                    <option value="This Week">Weekly (This Week)</option>
+                    <option value="This Month">Monthly (This Month)</option>
+                    <option value="All Time">All Time</option>
+                    <option value="Custom">Custom Date Range</option>
+                  </select>
+                </div>
+
+                {bsDateFilter === 'Custom' && (
+                  <input
+                    type="date"
+                    value={bsCustomDate}
+                    onChange={(e) => setBsCustomDate(e.target.value)}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                )}
+
+                <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
+                  <span className="text-[11px] text-slate-400 font-medium">Last updated: <strong className="text-slate-600 dark:text-slate-300">{bsLastUpdated}</strong></span>
                   <button
                     onClick={handleRefreshBalanceSheet}
                     className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-500 transition cursor-pointer"
@@ -3353,151 +3373,17 @@ export const Reports = () => {
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
+                  {bsDateFilter !== 'All Time' && (
+                    <button
+                      onClick={handleResetBsFilters}
+                      className="text-[11px] font-bold text-rose-500 hover:underline cursor-pointer ml-1"
+                    >
+                      Reset
+                    </button>
+                  )}
                 </div>
-
-                <button
-                  onClick={handleResetBsFilters}
-                  className="text-[11px] font-bold text-rose-500 hover:underline cursor-pointer"
-                >
-                  Reset
-                </button>
               </div>
             </div>
-
-            {/* Filter Inputs Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 items-center">
-              {/* 1. Financial Year */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Financial Year
-                </label>
-                <select
-                  value={bsFinancialYear}
-                  onChange={(e) => setBsFinancialYear(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                >
-                  <option value="FY 2026–27">FY 2026–27 (Current)</option>
-                  <option value="FY 2025–26">FY 2025–26</option>
-                  <option value="FY 2024–25">FY 2024–25</option>
-                </select>
-              </div>
-
-              {/* 2. Period */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Period
-                </label>
-                <select
-                  value={bsPeriod}
-                  onChange={(e) => setBsPeriod(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                >
-                  <option value="This Month">This Month</option>
-                  <option value="Today">Today</option>
-                  <option value="Yesterday">Yesterday</option>
-                  <option value="This Quarter">This Quarter (Q3)</option>
-                  <option value="This Year">This Year</option>
-                  <option value="All Time">All Time (Cumulative)</option>
-                </select>
-              </div>
-
-              {/* 3. Account / Channel */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Account / Channel
-                </label>
-                <select
-                  value={bsAccountFilter}
-                  onChange={(e) => setBsAccountFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                >
-                  <option value="All">All Accounts & Channels</option>
-                  <option value="Cash">Cash Counter Drawer</option>
-                  <option value="HBL">HBL Operating A/C</option>
-                  <option value="Meezan">Meezan Islamic A/C</option>
-                  <option value="JazzCash">JazzCash Merchant</option>
-                  <option value="Easypaisa">Easypaisa Merchant</option>
-                </select>
-              </div>
-
-              {/* 4. Branch / Location */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Branch / Location
-                </label>
-                <select
-                  value={bsBranchFilter}
-                  onChange={(e) => setBsBranchFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                >
-                  <option value="All">All Branches</option>
-                  <option value="Main">Main Mandi Shop #42</option>
-                  <option value="Warehouse">Warehouse Godown A</option>
-                </select>
-              </div>
-
-              {/* 5. As of Date */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Reporting As of
-                </label>
-                <select
-                  value={bsAsOfDate}
-                  onChange={(e) => setBsAsOfDate(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                >
-                  <option value="Today">Today ({new Date().toLocaleDateString('en-GB')})</option>
-                  <option value="Yesterday">Yesterday</option>
-                  <option value="This Month End">This Month End</option>
-                  <option value="This Quarter End">This Quarter End</option>
-                  <option value="Custom Date">Custom Specific Date</option>
-                </select>
-              </div>
-
-              {/* 6. Comparison Mode */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Compare With
-                </label>
-                <select
-                  value={bsComparisonMode}
-                  onChange={(e) => setBsComparisonMode(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                >
-                  <option value="Previous Month">Previous Month</option>
-                  <option value="Previous Quarter">Previous Quarter</option>
-                  <option value="Previous Year">Previous Year (YoY)</option>
-                  <option value="None">None</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Custom Date Input */}
-            {bsAsOfDate === 'Custom Date' && (
-              <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
-                <span className="text-[11px] font-bold text-slate-400">Select Date:</span>
-                <input
-                  type="date"
-                  value={bsCustomDate}
-                  onChange={(e) => setBsCustomDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
-            )}
           </div>
 
           {/* 3 Main Metric Cards with Movement Badges */}
