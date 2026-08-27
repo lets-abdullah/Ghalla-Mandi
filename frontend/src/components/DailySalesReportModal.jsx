@@ -194,7 +194,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80">
           {/* 1. Date Selector */}
           <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-brand-500" />
               <span>Select Report Date</span>
             </label>
@@ -210,7 +210,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
 
           {/* 2. Customer Type Filter */}
           <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-blue-500" />
               <span>Customer Type</span>
             </label>
@@ -229,7 +229,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
 
           {/* 3. Payment Status Filter */}
           <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
               <span>Payment Status</span>
             </label>

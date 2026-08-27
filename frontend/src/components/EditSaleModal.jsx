@@ -194,7 +194,7 @@ export const EditSaleModal = ({ isOpen, onClose, sale }) => {
           {/* Customer Selection Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80">
             <div>
-              <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <User className="w-3.5 h-3.5 text-blue-500" />
                 <span>Customer / Regular Party</span>
               </label>

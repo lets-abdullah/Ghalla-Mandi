@@ -425,7 +425,7 @@ export const Sales = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* 1. Date Range Dropdown */}
           <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-brand-500" />
               <span>Date Filter</span>
             </label>
@@ -447,7 +447,7 @@ export const Sales = () => {
 
           {/* 2. Customer Type Dropdown */}
           <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-blue-500" />
               <span>Customer Type</span>
             </label>
@@ -466,7 +466,7 @@ export const Sales = () => {
 
           {/* 3. Specific Customer Party Dropdown */}
           <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-indigo-500" />
               <span>Select Party</span>
             </label>
@@ -488,7 +488,7 @@ export const Sales = () => {
 
           {/* 4. Payment Status Dropdown */}
           <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-amber-500" />
               <span>Payment Status</span>
             </label>
