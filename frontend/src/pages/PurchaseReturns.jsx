@@ -70,8 +70,11 @@ export const PurchaseReturns = () => {
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             <RotateCcw className="w-6 h-6 text-rose-500" />
-            <span>Purchase Returns & Debit Notes</span>
+            <span>Purchase Returns</span>
           </h1>
+          <p className="text-xs text-slate-400 font-bold mt-0.5">
+            Record and manage goods returned to suppliers, refunds, and balance deductions
+          </p>
         </div>
 
         <div className="flex items-center gap-2.5">

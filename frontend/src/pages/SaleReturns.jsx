@@ -72,6 +72,9 @@ export const SaleReturns = () => {
             <RotateCcw className="w-6 h-6 text-orange-500" />
             <span>Sale Returns</span>
           </h1>
+          <p className="text-xs text-slate-400 font-bold mt-0.5">
+            Record and manage customer return items, cash refunds, and Khata adjustments
+          </p>
         </div>
 
         <div className="flex items-center gap-2.5">

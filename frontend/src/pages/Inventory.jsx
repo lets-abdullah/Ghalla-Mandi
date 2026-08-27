@@ -417,10 +417,10 @@ export const Inventory = () => {
         <div>
           <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
             <Warehouse className="w-6 h-6 text-brand-500" />
-            <span>Inventory Stock Statement</span>
+            <span>Stock & Inventory Ledger</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Chronological bank-statement ledger of all commodity movements & warehouse records
+            Complete record of stock arrivals, sales, and warehouse movements
           </p>
         </div>
 

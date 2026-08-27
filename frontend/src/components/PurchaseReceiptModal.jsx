@@ -73,7 +73,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
             <td style="padding: 10px 12px; font-weight: 700; color: #64748b; text-align: center; width: 45px;">${idx + 1}</td>
             <td style="padding: 10px 12px;">
               <div style="font-weight: 800; font-size: 13px; color: #064e3b;">📦 ${item.name}</div>
-              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Commodity Procurement</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Purchase Item</div>
             </td>
             <td style="padding: 10px 12px; text-align: right; font-weight: 700; font-size: 13px; color: #334155; font-family: monospace;">
               Rs. ${itemPrice.toLocaleString()}
@@ -242,7 +242,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                 <tr>
                   <td style="width: 55%; vertical-align: top; padding-right: 20px;">
                     <div style="border: 1px solid #d1fae5; border-radius: 8px; padding: 12px; font-size: 11px; color: #065f46; background: #f0fdf4;">
-                      <div style="font-weight: 800; margin-bottom: 4px;">Mandi Procurement Terms:</div>
+                      <div style="font-weight: 800; margin-bottom: 4px;">Purchase Terms:</div>
                       <div>• Goods inward verified per mandi weighing scale (کنڈا).</div>
                       <div>• Purchase voucher credited to supplier account.</div>
                       <div>• Authorized and stamped by Ghalla Mandi ERP.</div>

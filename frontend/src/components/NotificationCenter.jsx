@@ -159,7 +159,7 @@ export const NotificationCenter = () => {
         id: `purchase-${p.id || p.purchaseNo}`,
         category: 'Transactions',
         type: 'Purchase',
-        title: `Procurement #${p.purchaseNo || 'PUR'}`,
+        title: `Purchase #${p.purchaseNo || 'PUR'}`,
         message: `Arrival entry of Rs. ${amt.toLocaleString()} from ${p.supplierName || p.supplier || 'Supplier'}.`,
         time: p.date || 'Recent',
         timestamp: p.created_at ? new Date(p.created_at).getTime() : Date.now(),

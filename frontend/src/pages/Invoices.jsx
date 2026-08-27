@@ -349,8 +349,8 @@ export const Invoices = () => {
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
             {isPurchases
-              ? 'Official supplier inward procurement vouchers, goods receipts, and payable records'
-              : 'Official sales tax invoices, customer billing records, and printable A4 receipts'}
+              ? 'Supplier purchase bills, receipts, and payment records'
+              : 'Sales invoices, customer bills, and printable receipts'}
           </p>
         </div>
 

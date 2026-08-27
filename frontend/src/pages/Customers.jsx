@@ -254,7 +254,7 @@ export const Customers = () => {
             <span>Customers</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Master directory of all Regular Customers and Walk-in Customers
+            List and balance details of regular and walk-in customers
           </p>
         </div>
 

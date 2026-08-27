@@ -236,7 +236,7 @@ export const Ledger = () => {
           customerType: 'Supplier',
           ref: p.purchaseNo || 'PUR',
           txType: 'Purchases',
-          desc: `Procurement Inward Entry`,
+          desc: `Purchase Inward Entry`,
           debit: 0,
           credit: Number(p.amount || 0),
           items: pItems,
@@ -402,7 +402,7 @@ export const Ledger = () => {
             <span>{isSupplier ? 'Supplier Ledger' : 'Customer Ledger'}</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Chronological transaction history of sales and payments
+            Complete transaction history of sales, purchases, and payments
           </p>
         </div>
 
@@ -652,7 +652,7 @@ export const Ledger = () => {
         {/* Row 2: Custom Date Pickers + Reset */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
           <div className="text-xs text-slate-400 font-bold hidden sm:block">
-            {isSupplier ? 'Official procurement vouchers and supplier billing archive' : 'Official sales tax invoices and customer billing registry'}
+            {isSupplier ? 'Supplier purchase bills and payment records' : 'Customer sales invoices and payment records'}
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">

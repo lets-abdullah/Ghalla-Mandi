@@ -1556,11 +1556,11 @@ export const Reports = () => {
             </span>
           </h1>
           <p className="text-xs text-slate-400 font-medium mt-0.5">
-            {reportType === 'Stock' && 'Inventory Valuation • Stock Availability & Register Overview'}
-            {reportType === 'Sales' && 'Multi-dimensional date, product & supplier turnover analytics'}
-            {reportType === 'Expenses' && 'Financial Year 2026–27 • Expense Register & Financial Summary'}
-            {reportType === 'ProfitLoss' && 'Itemized transaction journal with cumulative running P&L ledger'}
-            {reportType === 'BalanceSheet' && 'Audited financial position • Assets, Liabilities & Net Worth'}
+            {reportType === 'Stock' && 'Stock value, available quantity, and warehouse overview'}
+            {reportType === 'Sales' && 'Sales summary, product performance, and revenue trends'}
+            {reportType === 'Expenses' && 'Expense register and financial summary'}
+            {reportType === 'ProfitLoss' && 'Income, purchase costs, expenses, and net profit'}
+            {reportType === 'BalanceSheet' && 'Summary of assets, liabilities, and net worth'}
           </p>
         </div>
 
@@ -3070,7 +3070,7 @@ export const Reports = () => {
                   <div className="text-lg font-black font-mono mt-1 text-blue-600 dark:text-blue-400">
                     -Rs. {plTotalCOGS.toLocaleString()}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">Procurement cost</div>
+                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">Purchase cost of goods</div>
                 </div>
 
                 {/* 3. Gross Profit */}
@@ -3092,7 +3092,7 @@ export const Reports = () => {
                   <div className="text-lg font-black font-mono mt-1 text-rose-500">
                     -Rs. {plTotalExpenses.toLocaleString()}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">Operational overheads</div>
+                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">Operating expenses</div>
                 </div>
 
                 {/* 5. Net Operating Profit */}
@@ -4137,7 +4137,7 @@ export const Reports = () => {
                         }`}
                     >
                       <option value="Labour & Loading (Palla)">Labour & Loading (Palla / Mazdoori)</option>
-                      <option value="Bardana / Bags">Bardana / Bags Procurement</option>
+                      <option value="Bardana / Bags">Bardana / Bags Purchase</option>
                       <option value="Freight & Transport">Freight & Truck Transport (Bilty)</option>
                       <option value="Electricity & Fuel">Electricity & Generator Diesel</option>
                       <option value="Tea & Refreshments">Tea & Customer Hospitality</option>

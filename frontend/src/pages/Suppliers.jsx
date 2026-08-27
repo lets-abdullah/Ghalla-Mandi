@@ -617,10 +617,10 @@ export const Suppliers = () => {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <UserCheck className="w-6 h-6 text-brand-500" />
-            <span>Suppliers Directory</span>
+            <span>Suppliers</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Manage commodity suppliers, supplied product links, and payable balances
+            Manage suppliers, supplied items, and pending payments
           </p>
         </div>
 
@@ -1553,7 +1553,7 @@ export const Suppliers = () => {
                       {viewingSupplier.status || 'Active'}
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400 font-bold">{viewingSupplier.businessName || 'Procurement Supplier'}</p>
+                  <p className="text-xs text-slate-400 font-bold">{viewingSupplier.businessName || 'Supplier'}</p>
                 </div>
               </div>
               <button

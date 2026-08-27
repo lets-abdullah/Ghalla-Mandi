@@ -400,7 +400,7 @@ export const Purchases = () => {
         paidAmount: 0,
         paymentMode: 'Supplier Khata (Credit Payable)',
         supplierBalance: (Number(supplierObj.balance) || 0) + calculatedTotal,
-        note: 'Procurement arrival entry verified in Mandi stock register.'
+        note: 'Purchase arrival recorded in stock register.'
       });
     } catch (err) {
       console.error(err);
@@ -594,10 +594,10 @@ export const Purchases = () => {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <ShoppingCart className="w-6 h-6 text-brand-500" />
-            <span>Goods Inward & Procurement</span>
+            <span>Purchases / Stock Inward</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Record inward truck arrivals, weighing scale entries, bags, and supplier deal booking
+            Record incoming stock, weight, bags, and supplier purchase deals
           </p>
         </div>
 

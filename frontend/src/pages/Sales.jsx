@@ -326,10 +326,10 @@ export const Sales = () => {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <Receipt className="w-6 h-6 text-brand-500" />
-            <span>Sales Orders & Operations</span>
+            <span>Sales & Orders</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Manage live trade orders, deal adjustments, counter cash collections, and return workflows
+            Track customer sales, cash payments, balances, and returns
           </p>
         </div>
 

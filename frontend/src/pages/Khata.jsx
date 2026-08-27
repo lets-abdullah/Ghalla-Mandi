@@ -236,7 +236,7 @@ export const Khata = () => {
             <span>Khata</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Customer balance settlement and credit accounts
+            Customer balances, credit records, and payment settlements
           </p>
         </div>
 
