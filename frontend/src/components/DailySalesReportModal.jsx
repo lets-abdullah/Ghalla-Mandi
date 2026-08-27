@@ -368,13 +368,8 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
                       <tr key={s.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/40">
                         <td className="py-2.5 px-3 font-mono font-black text-brand-500">{s.invoiceNo}</td>
                         <td className="py-2.5 px-3">
-                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                            <span>{s.partyName}</span>
-                            {isWalkin && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                                Walk-in
-                              </span>
-                            )}
+                          <div className="font-bold text-slate-900 dark:text-white">
+                            {s.partyName}
                           </div>
                         </td>
                         <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">

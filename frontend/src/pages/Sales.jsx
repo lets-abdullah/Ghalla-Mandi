@@ -753,13 +753,8 @@ export const Sales = () => {
 
                         {/* 3. Buyer / Customer */}
                         <td className="py-3.5 px-4">
-                          <div className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
-                            <span>{s.partyName}</span>
-                            {isWalkin && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                                Walk-in
-                              </span>
-                            )}
+                          <div className="font-extrabold text-xs text-slate-900 dark:text-white">
+                            {s.partyName}
                           </div>
                         </td>
 
