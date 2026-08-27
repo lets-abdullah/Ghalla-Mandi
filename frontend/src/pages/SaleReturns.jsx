@@ -22,7 +22,7 @@ export const SaleReturns = () => {
       (ret.invoiceNo || '').toLowerCase().includes(search.toLowerCase()) ||
       (ret.reason || '').toLowerCase().includes(search.toLowerCase());
     return matchSearch;
-  });
+  }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
 
   const totalRefundAmount = saleReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
   const totalCashRefunds = saleReturns.filter(r => r.refundMode === 'Cash').reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);

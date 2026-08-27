@@ -177,6 +177,9 @@ export const Khata = () => {
       if (balanceStatusFilter === 'Clear' && item.balance !== 0) return false;
 
       return true;
+    }).sort((a, b) => {
+      if (b.balance !== a.balance) return b.balance - a.balance;
+      return (Number(b.id) || 0) - (Number(a.id) || 0);
     });
   }, [customerKhataList, search, customerTypeFilter, selectedCustomerId, balanceStatusFilter]);
 

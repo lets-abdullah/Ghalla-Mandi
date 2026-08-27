@@ -204,6 +204,10 @@ export const Sales = () => {
       if (statusFilter === 'Pending' && status !== 'Pending') return false;
 
       return true;
+    }).sort((a, b) => {
+      const timeA = new Date(a.created_at || a.createdAt || a.date || 0).getTime() || Number(a.id) || 0;
+      const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
+      return timeB - timeA;
     });
   }, [sales, search, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter]);
 
@@ -223,7 +227,7 @@ export const Sales = () => {
         if (!matchesId && !matchesName) return false;
       }
       return true;
-    });
+    }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
   }, [saleReturns, search, selectedCustomerId]);
 
   // Aggregate Metrics based on Filtered Sales

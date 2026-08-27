@@ -117,7 +117,7 @@ export const Customers = () => {
       if (statusFilter === 'Inactive' && custStatus !== 'Inactive') return false;
 
       return true;
-    });
+    }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
   }, [customers, search, customerTypeFilter, balanceFilter, statusFilter]);
 
   const isAnyFilterActive = (

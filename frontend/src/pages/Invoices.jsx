@@ -252,6 +252,10 @@ export const Invoices = () => {
       }
 
       return true;
+    }).sort((a, b) => {
+      const timeA = new Date(a.created_at || a.createdAt || a.date || 0).getTime() || Number(a.id) || 0;
+      const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
+      return timeB - timeA;
     });
   }, [rawList, search, selectedPartyId, selectedProductFilter, dateFilterType, customStartDate, customEndDate, statusFilter]);
 

@@ -352,7 +352,7 @@ export const Ledger = () => {
         ...entry,
         runningBalance
       };
-    });
+    }).reverse();
   }, [rawLedgerEntries, selectedPartyId, selectedProductFilter, customerTypeFilter, dateFilterType, customStartDate, customEndDate, txTypeFilter, search, isSupplier]);
 
   // Aggregate stats (clean terminology, no Cr / Dr)

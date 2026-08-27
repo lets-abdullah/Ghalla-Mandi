@@ -532,7 +532,7 @@ export const Suppliers = () => {
     if (statusFilter === 'Settled' && bal > 0) return false;
 
     return true;
-  });
+  }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
 
   return (
     <div className="space-y-6">

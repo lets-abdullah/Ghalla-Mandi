@@ -22,7 +22,7 @@ export const PurchaseReturns = () => {
       (ret.purchaseNo || '').toLowerCase().includes(search.toLowerCase()) ||
       (ret.reason || '').toLowerCase().includes(search.toLowerCase());
     return matchSearch;
-  });
+  }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
 
   const totalReturnAmount = purchaseReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
   const totalCashRefunds = purchaseReturns.filter(r => r.refundMode === 'Cash').reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);

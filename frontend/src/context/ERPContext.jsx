@@ -246,14 +246,20 @@ export const ERPProvider = ({ children }) => {
         authFetch('/api/inventory/movements')
       ]);
 
+      const sortDesc = (arr) => [...arr].sort((a, b) => {
+        const timeA = new Date(a.created_at || a.createdAt || a.date || 0).getTime() || Number(a.id) || 0;
+        const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
+        return timeB - timeA;
+      });
+
       if (catRes.success) setCategories(catRes.categories || []);
-      if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
-      if (custRes.success) setCustomers((custRes.customers || []).map(normalizeCustomer));
-      if (supRes.success) setSuppliers((supRes.suppliers || []).map(normalizeSupplier));
-      if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
-      if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
-      if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
-      if (movRes.success) setStockMovements(movRes.movements || []);
+      if (prodRes.success) setProducts(sortDesc((prodRes.products || []).map(normalizeProduct)));
+      if (custRes.success) setCustomers(sortDesc((custRes.customers || []).map(normalizeCustomer)));
+      if (supRes.success) setSuppliers(sortDesc((supRes.suppliers || []).map(normalizeSupplier)));
+      if (saleRes.success) setSales(sortDesc((saleRes.sales || []).map(normalizeSale)));
+      if (purRes.success) setPurchases(sortDesc((purRes.purchases || []).map(normalizePurchase)));
+      if (ledgerRes.success) setPaymentLogs(sortDesc((ledgerRes.entries || []).map(normalizePaymentLog)));
+      if (movRes.success) setStockMovements(sortDesc(movRes.movements || []));
     } catch (err) {
       console.error('Failed to load ERP dataset from server:', err);
       setError(err.message || 'Error loading data from server');
