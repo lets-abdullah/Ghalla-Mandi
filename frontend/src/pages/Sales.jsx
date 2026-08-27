@@ -41,7 +41,6 @@ export const Sales = () => {
   const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Party' | 'Walk-in Customer'
   const [selectedCustomerId, setSelectedCustomerId] = useState('All'); // 'All' | specific customer id
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Pending'
-  const [returnFilter, setReturnFilter] = useState('All'); // 'All' | 'SalesOnly' | 'WithReturns' | 'ReturnsOnly'
 
   // Modals state
   const [activeReceiptModal, setActiveReceiptModal] = useState(null);
@@ -204,14 +203,9 @@ export const Sales = () => {
       if (statusFilter === 'Partial' && status !== 'Partial') return false;
       if (statusFilter === 'Pending' && status !== 'Pending') return false;
 
-      // 6. Return Filter
-      const hasReturns = Number(s.returnAmount || 0) > 0 || (saleReturns || []).some(r => r.saleId === s.id || r.invoiceNo === s.invoiceNo);
-      if (returnFilter === 'SalesOnly' && hasReturns) return false;
-      if (returnFilter === 'WithReturns' && !hasReturns) return false;
-
       return true;
     });
-  }, [sales, saleReturns, search, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter, returnFilter]);
+  }, [sales, search, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter]);
 
   // Filtered Sale Returns (for when Processed Returns Only is selected)
   const filteredSaleReturns = useMemo(() => {
@@ -256,8 +250,7 @@ export const Sales = () => {
     customEndDate !== '' ||
     customerTypeFilter !== 'All' ||
     selectedCustomerId !== 'All' ||
-    statusFilter !== 'All' ||
-    returnFilter !== 'All'
+    statusFilter !== 'All'
   );
 
   const resetAllFilters = () => {
@@ -268,7 +261,6 @@ export const Sales = () => {
     setCustomerTypeFilter('All');
     setSelectedCustomerId('All');
     setStatusFilter('All');
-    setReturnFilter('All');
   };
 
   const openPaymentModal = (sale) => {
@@ -286,57 +278,51 @@ export const Sales = () => {
     e.preventDefault();
     if (!paymentModalSale || isSubmitting) return;
 
-    const amt = Math.max(1, Number(paymentAmount) || 0);
+    const val = Math.max(1, Number(paymentAmount) || 0);
     const paid = Number(paymentModalSale.paidAmount || 0);
     const total = Number(paymentModalSale.amount || 0);
-    const due = Math.max(0, total - paid);
+    const retAmt = Number(paymentModalSale.returnAmount || 0);
+    const due = Math.max(0, total - paid - retAmt);
 
-    if (amt <= 0) {
-      alert(t('paidAmountNegativeAlert'));
+    if (val > due) {
+      alert(`Amount exceeds remaining due balance of Rs. ${due.toLocaleString()}`);
       return;
-    }
-
-    if (amt > due) {
-      if (!confirm(`Amount exceeds remaining due of Rs. ${(Number(due) || 0).toLocaleString()}. Continue?`)) {
-        return;
-      }
     }
 
     setIsSubmitting(true);
     try {
       await recordPayment({
-        partyId: paymentModalSale.customerId || null,
+        partyId: paymentModalSale.customerId,
         partyType: 'Customer',
-        amount: amt,
+        amount: val,
         paymentMode: paymentMode,
-        note: paymentNote,
+        note: paymentNote || `Payment for sale ${paymentModalSale.invoiceNo}`,
         saleId: paymentModalSale.id
       });
-
       setPaymentModalSale(null);
-      setPaymentAmount('');
-      setPaymentNote('');
     } catch (err) {
-      alert(err.message || 'Payment recording failed');
+      console.error('Payment error:', err);
+      alert(err.message || 'Failed to record payment');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Receipt Modal View Helper
   const openReceiptForSale = (s) => {
     const receiptData = {
       orderId: s.invoiceNo,
-      date: s.date,
+      date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '-'),
       customerName: s.partyName,
-      customerPhone: s.customerPhone || '',
-      customerCity: s.customerCity || '',
+      customerPhone: s.customerPhone,
+      customerCity: s.customerCity,
       items: s.cart && s.cart.length > 0 ? s.cart.map(item => ({
         name: item.name,
         qty: item.qty,
         unit: item.unitName || item.unit || t('kg'),
         price: Number(item.rate || item.price || 0)
       })) : [{
-        name: s.items || t('products'),
+        name: typeof s.items === 'string' ? s.items : (Array.isArray(s.items) ? s.items.map(i => i.name).join(', ') : t('products')),
         qty: s.itemsCount || 1,
         unit: t('item'),
         price: Number(s.amount || 0)
@@ -345,7 +331,7 @@ export const Sales = () => {
       discount: 0,
       tax: 0,
       grandTotal: Number(s.amount || 0),
-      paidAmount: Number(s.paidAmount !== undefined ? s.paidAmount : (s.status === 'Paid' ? s.amount : 0)),
+      paidAmount: Number(s.paidAmount || 0),
       paymentMethod: s.paymentMode || (Number(s.paidAmount) >= Number(s.amount) ? 'Cash' : Number(s.paidAmount) > 0 ? 'Partial Cash' : 'Khata (Udhaar)'),
       saleNote: s.note || ''
     };
@@ -394,7 +380,7 @@ export const Sales = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* 1. Total Sales Volume */}
         <div
-          onClick={() => { setStatusFilter('All'); setReturnFilter('All'); }}
+          onClick={() => setStatusFilter('All')}
           className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
               ? 'bg-slate-800 border-emerald-500/30 text-white'
               : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
@@ -448,11 +434,11 @@ export const Sales = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 5-FILTER TOOLBAR (DATE, CUSTOMER TYPE, PARTY, PAYMENT STATUS, SALE RETURNS) */}
+      {/* 4-FILTER TOOLBAR (DATE, CUSTOMER TYPE, PARTY, PAYMENT STATUS) */}
       {/* ========================================================================= */}
       <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* 1. Date Filter */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
@@ -531,25 +517,6 @@ export const Sales = () => {
               <option value="Pending">Unpaid / Due</option>
             </select>
           </div>
-
-          {/* 5. Sale Returns (Separate Filter) */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <RotateCcw className="w-3.5 h-3.5 text-orange-500" />
-              <span>Sale Returns</span>
-            </label>
-            <select
-              value={returnFilter}
-              onChange={(e) => setReturnFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-            >
-              <option value="All">All Transactions</option>
-              <option value="SalesOnly">Sales Only (No Returns)</option>
-              <option value="WithReturns">Sales with Returns</option>
-              <option value="ReturnsOnly">Processed Returns ({saleReturns.length})</option>
-            </select>
-          </div>
         </div>
 
         {/* Row 2: Custom Date Pickers (if Custom is chosen) + Search Bar + Reset */}
@@ -581,7 +548,7 @@ export const Sales = () => {
             </div>
           ) : (
             <div className="text-xs text-slate-400 font-bold hidden sm:block">
-              Filter sales by date range, customer type, party, payment status, and returns
+              Filter sales by date range, customer type, party, and payment status
             </div>
           )}
 
@@ -615,71 +582,10 @@ export const Sales = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* SALES TABLE VIEW (OR PROCESSED RETURNS VIEW) */}
+      {/* SALES TABLE VIEW */}
       {/* ========================================================================= */}
-      {returnFilter === 'ReturnsOnly' ? (
-        /* Sale Returns History Table */
-        <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-          <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-            <h3 className="font-black text-sm flex items-center gap-2">
-              <RotateCcw className="w-4 h-4 text-orange-500" />
-              <span>Processed Customer Sale Returns ({filteredSaleReturns.length})</span>
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
-              <thead>
-                <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                  }`}>
-                  <th className="py-3.5 px-4">Return #</th>
-                  <th className="py-3.5 px-4">Date</th>
-                  <th className="py-3.5 px-4">Buyer / Party</th>
-                  <th className="py-3.5 px-4">Original Sale ID</th>
-                  <th className="py-3.5 px-4">Commodity Returned</th>
-                  <th className="py-3.5 px-4 text-center">Refund Mode</th>
-                  <th className="py-3.5 px-4 text-right">Refund Amount</th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                {filteredSaleReturns.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400">
-                      No processed sale returns match the filter.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredSaleReturns.map(ret => (
-                    <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
-                      <td className="py-3.5 px-4 font-mono font-bold text-orange-600 dark:text-orange-400">{ret.returnNo}</td>
-                      <td className="py-3.5 px-4 text-slate-500">{ret.date}</td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">{ret.customerName}</td>
-                      <td className="py-3.5 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">{ret.invoiceNo}</td>
-                      <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200">
-                        {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Commodity Item'}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${ret.refundMode === 'Cash'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
-                          }`}>
-                          {ret.refundMode === 'Cash' ? 'Cash' : 'Khata'}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-black font-mono text-orange-600 dark:text-orange-400">
-                        Rs. {Number(ret.refundAmount || 0).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        /* Regular Sales Table */
-        <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
+      <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        }`}>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
               <thead>
@@ -841,21 +747,12 @@ export const Sales = () => {
             </table>
           </div>
         </div>
-      )}
 
       {/* ========================================================================= */}
       {/* MODALS */}
       {/* ========================================================================= */}
 
-      {/* 1. Daily Sales Summary Report Modal */}
-      {showDailyReportModal && (
-        <DailySalesReportModal
-          isOpen={showDailyReportModal}
-          onClose={() => setShowDailyReportModal(false)}
-        />
-      )}
-
-      {/* 2. Payment Received Modal */}
+      {/* 1. Payment Received Modal */}
       {paymentModalSale && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setPaymentModalSale(null); }}
