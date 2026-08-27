@@ -41,7 +41,6 @@ export const Ledger = () => {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [txTypeFilter, setTxTypeFilter] = useState('All'); // 'All' | 'Sales' | 'Payments' | 'Returns'
-  const [search, setSearch] = useState('');
 
   // Modals state
   const [viewingEntry, setViewingEntry] = useState(null);
@@ -336,15 +335,6 @@ export const Ledger = () => {
       if (txTypeFilter === 'Payments' && entry.txType !== 'Payments') return false;
       if (txTypeFilter === 'Returns' && entry.txType !== 'Returns') return false;
 
-      // 6. Text Search
-      const q = search.toLowerCase().trim();
-      if (q) {
-        const refMatch = entry.ref.toLowerCase().includes(q);
-        const nameMatch = entry.partyName.toLowerCase().includes(q);
-        const descMatch = entry.desc.toLowerCase().includes(q);
-        if (!refMatch && !nameMatch && !descMatch) return false;
-      }
-
       return true;
     }).map(entry => {
       runningBalance += (entry.debit - entry.credit);
@@ -353,7 +343,7 @@ export const Ledger = () => {
         runningBalance
       };
     }).reverse();
-  }, [rawLedgerEntries, selectedPartyId, selectedProductFilter, customerTypeFilter, dateFilterType, customStartDate, customEndDate, txTypeFilter, search, isSupplier]);
+  }, [rawLedgerEntries, selectedPartyId, selectedProductFilter, customerTypeFilter, dateFilterType, customStartDate, customEndDate, txTypeFilter, isSupplier]);
 
   // Aggregate stats (clean terminology, no Cr / Dr)
   const totalSalesAmount = filteredLedger.reduce((sum, e) => sum + e.debit, 0);
@@ -361,7 +351,6 @@ export const Ledger = () => {
   const balanceDue = Math.max(0, totalSalesAmount - totalPaymentsAmount);
 
   const isAnyFilterActive = (
-    search !== '' ||
     customerTypeFilter !== 'All' ||
     selectedPartyId !== 'All' ||
     dateFilterType !== 'All' ||
@@ -371,7 +360,6 @@ export const Ledger = () => {
   );
 
   const resetAllFilters = () => {
-    setSearch('');
     setCustomerTypeFilter('All');
     setSelectedPartyId('All');
     setDateFilterType('All');
@@ -474,10 +462,10 @@ export const Ledger = () => {
         </div>
       </div>
 
-      {/* Ledger Filter Toolbar: [Search] [Supplier / Customer] [Product] [Date] [Status] */}
+      {/* Ledger Filter Toolbar */}
       <div className={`border rounded-3xl p-4 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${isSupplier ? 'lg:grid-cols-4' : 'lg:grid-cols-5'} gap-3`}>
           {/* 1. Customer Type (Only if Customer Ledger) OR Supplier Selector (If Supplier Ledger) */}
           {isSupplier ? (
             <div>
@@ -599,7 +587,7 @@ export const Ledger = () => {
             </div>
           )}
 
-          {/* 4. Date Filter (for Customer Ledger) OR Transaction Type */}
+          {/* 4. Date Filter (for Customer Ledger) OR Transaction Type (for Supplier Ledger) */}
           {!isSupplier ? (
             <div>
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
@@ -639,8 +627,8 @@ export const Ledger = () => {
             </div>
           )}
 
-          {/* 5. Transaction Type (for Customer Ledger) OR Search (for Supplier Ledger) */}
-          {!isSupplier ? (
+          {/* 5. Transaction Type (Only for Customer Ledger) */}
+          {!isSupplier && (
             <div>
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <Filter className="w-3.5 h-3.5 text-amber-500" />
@@ -658,46 +646,14 @@ export const Ledger = () => {
                 <option value="Returns">Returns</option>
               </select>
             </div>
-          ) : (
-            <div>
-              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-                <Search className="w-3.5 h-3.5 text-slate-400" />
-                <span>Search Voucher</span>
-              </label>
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search ref #, supplier..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-              </div>
-            </div>
           )}
         </div>
 
-        {/* Row 2: Search Bar (for Customer Ledger) + Custom Date Pickers + Reset */}
+        {/* Row 2: Custom Date Pickers + Reset */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
-          {!isSupplier ? (
-            <div className="relative w-full sm:w-80">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search ref #, customer, description..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              />
-            </div>
-          ) : (
-            <div className="text-xs text-slate-400 font-bold">
-              Showing Procurement Ledger statements for Mandi suppliers
-            </div>
-          )}
+          <div className="text-xs text-slate-400 font-bold hidden sm:block">
+            {isSupplier ? 'Official procurement vouchers and supplier billing archive' : 'Official sales tax invoices and customer billing registry'}
+          </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {dateFilterType === 'Custom' && (

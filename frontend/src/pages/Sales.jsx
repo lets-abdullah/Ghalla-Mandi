@@ -33,8 +33,7 @@ export const Sales = () => {
   const { theme } = useTheme();
   const { t } = useLocale();
 
-  // Search & Filters State
-  const [search, setSearch] = useState('');
+  // Filters State
   const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -215,18 +214,11 @@ export const Sales = () => {
       const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
       return timeB - timeA;
     });
-  }, [sales, search, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter]);
+  }, [sales, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter]);
 
   // Filtered Sale Returns (for when Processed Returns Only is selected)
   const filteredSaleReturns = useMemo(() => {
     return (saleReturns || []).filter(r => {
-      const q = search.toLowerCase().trim();
-      if (q) {
-        const retMatch = (r.returnNo || '').toLowerCase().includes(q);
-        const invMatch = (r.invoiceNo || '').toLowerCase().includes(q);
-        const custMatch = (r.customerName || '').toLowerCase().includes(q);
-        if (!retMatch && !invMatch && !custMatch) return false;
-      }
       if (selectedCustomerId !== 'All') {
         const matchesId = r.customerId && r.customerId === selectedCustomerId;
         const matchesName = (r.customerName || '').toLowerCase() === selectedCustomerId.toLowerCase();
@@ -234,7 +226,7 @@ export const Sales = () => {
       }
       return true;
     }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-  }, [saleReturns, search, selectedCustomerId]);
+  }, [saleReturns, selectedCustomerId]);
 
   // Aggregate Metrics based on Filtered Sales
   const totalFilteredSalesVolume = filteredSales.reduce(
@@ -254,7 +246,6 @@ export const Sales = () => {
 
   // Check if any filter is active
   const isAnyFilterActive = (
-    search !== '' ||
     dateFilterType !== 'All' ||
     customStartDate !== '' ||
     customEndDate !== '' ||
@@ -264,7 +255,6 @@ export const Sales = () => {
   );
 
   const resetAllFilters = () => {
-    setSearch('');
     setDateFilterType('All');
     setCustomStartDate('');
     setCustomEndDate('');
@@ -531,7 +521,7 @@ export const Sales = () => {
           </div>
         </div>
 
-        {/* Row 2: Custom Date Pickers (if Custom is chosen) + Search Bar + Reset */}
+        {/* Row 2: Custom Date Pickers (if Custom is chosen) + Reset */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/80">
           {/* Custom Date Pickers */}
           {dateFilterType === 'Custom' ? (
@@ -564,32 +554,17 @@ export const Sales = () => {
             </div>
           )}
 
-          {/* Search Box & Reset Button */}
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search sale ID, buyer, commodity..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              />
-            </div>
-
-            {isAnyFilterActive && (
-              <button
-                type="button"
-                onClick={resetAllFilters}
-                className="px-3 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
-                title="Reset All Filters"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Reset</span>
-              </button>
-            )}
-          </div>
+          {isAnyFilterActive && (
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
+              title="Reset All Filters"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Reset Filters</span>
+            </button>
+          )}
         </div>
       </div>
 

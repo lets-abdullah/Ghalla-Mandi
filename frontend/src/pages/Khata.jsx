@@ -40,7 +40,6 @@ export const Khata = () => {
   const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Customer' | 'Walk-in Customer'
   const [selectedCustomerId, setSelectedCustomerId] = useState(customerIdParam || 'All');
   const [balanceStatusFilter, setBalanceStatusFilter] = useState('All'); // 'All' | 'Outstanding' | 'Clear'
-  const [search, setSearch] = useState('');
 
   // Payment Modal State
   const [paymentModalCust, setPaymentModalCust] = useState(null);
@@ -155,29 +154,19 @@ export const Khata = () => {
   // Filtered Khata Accounts
   const filteredKhata = useMemo(() => {
     return customerKhataList.filter(item => {
-      // 1. Text Search
-      const q = search.toLowerCase().trim();
-      if (q) {
-        const nameMatch = item.name.toLowerCase().includes(q);
-        const businessMatch = item.businessName.toLowerCase().includes(q);
-        const phoneMatch = item.phone.toLowerCase().includes(q);
-        const cityMatch = item.city.toLowerCase().includes(q);
-        if (!nameMatch && !businessMatch && !phoneMatch && !cityMatch) return false;
-      }
-
-      // 2. Customer Type Filter
+      // 1. Customer Type Filter
       const isWalkin = item.customerType.toLowerCase().includes('walk-in');
       if (customerTypeFilter === 'Regular Customer' && isWalkin) return false;
       if (customerTypeFilter === 'Walk-in Customer' && !isWalkin) return false;
 
-      // 3. Selected Customer Filter
+      // 2. Selected Customer Filter
       if (selectedCustomerId !== 'All') {
         const idMatch = item.id === selectedCustomerId;
         const nameMatch = item.name.toLowerCase() === selectedCustomerId.toLowerCase();
         if (!idMatch && !nameMatch) return false;
       }
 
-      // 4. Balance Status Filter
+      // 3. Balance Status Filter
       if (balanceStatusFilter === 'Outstanding' && item.balance <= 0) return false;
       if (balanceStatusFilter === 'Clear' && item.balance !== 0) return false;
 
@@ -186,7 +175,7 @@ export const Khata = () => {
       if (b.balance !== a.balance) return b.balance - a.balance;
       return (Number(b.id) || 0) - (Number(a.id) || 0);
     });
-  }, [customerKhataList, search, customerTypeFilter, selectedCustomerId, balanceStatusFilter]);
+  }, [customerKhataList, customerTypeFilter, selectedCustomerId, balanceStatusFilter]);
 
   // Aggregate Metrics based on Filtered Khata
   const totalVolume = filteredKhata.reduce((acc, k) => acc + k.totalSale, 0);
@@ -194,14 +183,12 @@ export const Khata = () => {
   const totalOutstanding = filteredKhata.reduce((acc, k) => acc + k.balance, 0);
 
   const isAnyFilterActive = (
-    search !== '' ||
     customerTypeFilter !== 'All' ||
     selectedCustomerId !== 'All' ||
     balanceStatusFilter !== 'All'
   );
 
   const resetAllFilters = () => {
-    setSearch('');
     setCustomerTypeFilter('All');
     setSelectedCustomerId('All');
     setBalanceStatusFilter('All');
@@ -351,7 +338,7 @@ export const Khata = () => {
       <div className={`border rounded-3xl p-4 card-shadow space-y-3 ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* 1. Customer Type */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
@@ -388,26 +375,6 @@ export const Khata = () => {
               <option value="Outstanding">Due / Outstanding</option>
               <option value="Clear">Clear (Zero Balance)</option>
             </select>
-          </div>
-
-          {/* 3. Search Box */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Search className="w-3.5 h-3.5 text-slate-400" />
-              <span>Search Khata</span>
-            </label>
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search customer, phone, city..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-              />
-            </div>
           </div>
         </div>
 

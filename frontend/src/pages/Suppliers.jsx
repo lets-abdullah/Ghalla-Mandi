@@ -295,7 +295,6 @@ export const Suppliers = () => {
 
   // Filters & State
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'card'
-  const [search, setSearch] = useState('');
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('All');
   const [selectedProductFilter, setSelectedProductFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Active' | 'Inactive' | 'Payable' | 'Settled'
@@ -587,18 +586,7 @@ export const Suppliers = () => {
 
   // Filtered Suppliers List
   const filteredSuppliers = suppliers.filter(s => {
-    // 1. Search filter
-    const matchesSearch =
-      (s.name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (s.businessName || '').toLowerCase().includes(search.toLowerCase()) ||
-      (s.phone || '').toLowerCase().includes(search.toLowerCase()) ||
-      (s.whatsapp || '').toLowerCase().includes(search.toLowerCase()) ||
-      (s.city || '').toLowerCase().includes(search.toLowerCase()) ||
-      (s.notes || '').toLowerCase().includes(search.toLowerCase());
-
-    if (!matchesSearch) return false;
-
-    // 2. Specific Supplier filter
+    // 1. Specific Supplier filter
     if (selectedSupplierFilter !== 'All' && s.id !== selectedSupplierFilter && s.name !== selectedSupplierFilter) {
       return false;
     }
@@ -712,22 +700,10 @@ export const Suppliers = () => {
         </div>
       </div>
 
-      {/* Unified Filter Toolbar: [Search] [Supplier] [Product] [Status] */}
-      <div className={`p-4 rounded-2xl border card-shadow flex flex-col md:flex-row items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      {/* Unified Filter Toolbar: [Supplier] [Product] [Status] */}
+      <div className={`p-4 rounded-2xl border card-shadow flex flex-wrap items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
-        <div className="relative w-full md:w-72">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search name, phone, city, firm..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full md:w-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full">
           {/* Supplier Selector */}
           <select
             value={selectedSupplierFilter}

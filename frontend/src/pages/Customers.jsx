@@ -42,7 +42,6 @@ export const Customers = () => {
   const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Customer' | 'Walk-in Customer'
   const [balanceFilter, setBalanceFilter] = useState('All'); // 'All' | 'Due' | 'Paid'
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Active' | 'Inactive'
-  const [search, setSearch] = useState('');
 
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -92,16 +91,6 @@ export const Customers = () => {
   // Filtered Customers Array
   const filteredCustomers = useMemo(() => {
     return customers.filter(c => {
-      const q = search.toLowerCase().trim();
-      if (q) {
-        const nameMatch = (c.name || '').toLowerCase().includes(q);
-        const businessMatch = (c.businessName || c.shopName || '').toLowerCase().includes(q);
-        const phoneMatch = (c.phone || '').toLowerCase().includes(q);
-        const cityMatch = (c.city || '').toLowerCase().includes(q);
-        const emailMatch = (c.email || '').toLowerCase().includes(q);
-        if (!nameMatch && !businessMatch && !phoneMatch && !cityMatch && !emailMatch) return false;
-      }
-
       // Customer Type Filter
       const isWalkin = (c.customerType || '').toLowerCase().includes('walk-in');
       if (customerTypeFilter === 'Regular Customer' && isWalkin) return false;
@@ -119,17 +108,15 @@ export const Customers = () => {
 
       return true;
     }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-  }, [customers, search, customerTypeFilter, balanceFilter, statusFilter]);
+  }, [customers, customerTypeFilter, balanceFilter, statusFilter]);
 
   const isAnyFilterActive = (
-    search !== '' ||
     customerTypeFilter !== 'All' ||
     balanceFilter !== 'All' ||
     statusFilter !== 'All'
   );
 
   const resetAllFilters = () => {
-    setSearch('');
     setCustomerTypeFilter('All');
     setBalanceFilter('All');
     setStatusFilter('All');
@@ -373,10 +360,10 @@ export const Customers = () => {
         </div>
       </div>
 
-      {/* Filter & Search Toolbar */}
+      {/* Filter Toolbar */}
       <div className={`border rounded-3xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* 1. Customer Type */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
@@ -429,25 +416,6 @@ export const Customers = () => {
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-          </div>
-
-          {/* 4. Search Box */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Search className="w-3.5 h-3.5 text-slate-400" />
-              <span>Search Customers</span>
-            </label>
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search name, phone, city..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              />
-            </div>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RotateCcw, Search, Plus, Printer, CheckCircle2, DollarSign, Package, Clock, Edit3, X } from 'lucide-react';
+import { RotateCcw, RefreshCw, Plus, Printer, CheckCircle2, DollarSign, Package, Clock, Edit3, X } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
@@ -12,7 +12,7 @@ export const SaleReturns = () => {
   const { t } = useLocale();
   const navigate = useNavigate();
 
-  const [search, setSearch] = useState('');
+  const [modeFilter, setModeFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
 
   // Edit Return State
@@ -54,12 +54,9 @@ export const SaleReturns = () => {
   };
 
   const filteredReturns = saleReturns.filter(ret => {
-    const matchSearch =
-      (ret.returnNo || '').toLowerCase().includes(search.toLowerCase()) ||
-      (ret.customerName || '').toLowerCase().includes(search.toLowerCase()) ||
-      (ret.invoiceNo || '').toLowerCase().includes(search.toLowerCase()) ||
-      (ret.reason || '').toLowerCase().includes(search.toLowerCase());
-    return matchSearch;
+    if (modeFilter === 'Cash' && ret.refundMode !== 'Cash') return false;
+    if (modeFilter === 'Ledger' && ret.refundMode !== 'Ledger') return false;
+    return true;
   }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
 
   const totalRefundAmount = saleReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
@@ -117,22 +114,35 @@ export const SaleReturns = () => {
         </div>
       </div>
 
-      {/* Search Bar */}
+      {/* Filter Toolbar */}
       <div className={`border rounded-2xl p-4 card-shadow flex items-center justify-between gap-4 ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
-        <div className="relative w-full max-w-sm">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search return #, customer, invoice, reason..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${
+        <div className="flex items-center gap-3">
+          <label className="text-xs font-bold text-slate-400">Filter By Mode:</label>
+          <select
+            value={modeFilter}
+            onChange={(e) => setModeFilter(e.target.value)}
+            className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer ${
               theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
             }`}
-          />
+          >
+            <option value="All">All Return Modes</option>
+            <option value="Cash">Cash Refunds</option>
+            <option value="Ledger">Khata Dues Deducted</option>
+          </select>
         </div>
+
+        {modeFilter !== 'All' && (
+          <button
+            type="button"
+            onClick={() => setModeFilter('All')}
+            className="px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold flex items-center gap-1.5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Reset Filter</span>
+          </button>
+        )}
       </div>
 
       {/* Sale Returns Table */}

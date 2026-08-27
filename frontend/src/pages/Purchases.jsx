@@ -50,7 +50,6 @@ export const Purchases = () => {
   const navigate = useNavigate();
 
   const [filterType, setFilterType] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Due' | 'Returns'
-  const [search, setSearch] = useState('');
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('All');
   const [selectedProductFilter, setSelectedProductFilter] = useState('All');
   const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
@@ -535,14 +534,7 @@ export const Purchases = () => {
   };
 
   const filteredPurchases = purchases.filter(p => {
-    // 1. Search Filter
-    const matchesSearch = (p.purchaseNo || p.purchaseno || '').toLowerCase().includes(search.toLowerCase()) ||
-      (p.supplier || p.supplierName || p.suppliername || '').toLowerCase().includes(search.toLowerCase()) ||
-      (typeof p.items === 'string' ? p.items.toLowerCase() : '').includes(search.toLowerCase());
-
-    if (!matchesSearch) return false;
-
-    // 2. Supplier Filter
+    // 1. Supplier Filter
     if (selectedSupplierFilter !== 'All') {
       const supMatch = (p.supplierId === selectedSupplierFilter) ||
         ((p.supplier || p.supplierName || '').toLowerCase() === selectedSupplierFilter.toLowerCase());
@@ -689,27 +681,11 @@ export const Purchases = () => {
         </div>
       </div>
 
-      {/* Unified Filter Toolbar: [Search] [Supplier] [Product] [Date] [Status] */}
+      {/* Unified Filter Toolbar: [Supplier] [Product] [Date] [Status] */}
       <div className={`p-4 rounded-3xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* 1. Search */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Search className="w-3.5 h-3.5 text-brand-500" />
-              <span>Search</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Search #, supplier, items..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-            />
-          </div>
-
-          {/* 2. Supplier */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* 1. Supplier */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <UserCheck className="w-3.5 h-3.5 text-blue-500" />
