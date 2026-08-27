@@ -49,7 +49,7 @@ export const Purchases = () => {
   const [search, setSearch] = useState('');
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('All');
   const [selectedProductFilter, setSelectedProductFilter] = useState('All');
-  const [dateFilter, setDateFilter] = useState('All Time'); // 'Today' | 'Yesterday' | 'Weekly' | 'Monthly' | 'Custom' | 'All Time'
+  const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showModal, setShowModal] = useState(false);
