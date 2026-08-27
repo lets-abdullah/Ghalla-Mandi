@@ -2229,47 +2229,7 @@ export const Reports = () => {
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'ProfitLoss' && (
         <div className="space-y-6">
-          {/* Statement Header & Period Presets */}
-          <div className={`p-4 rounded-2xl border card-shadow flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
-            <div>
-              <div className="flex items-center gap-2">
-                <PieChart className="w-5 h-5 text-emerald-500" />
-                <h2 className="text-base font-black tracking-tight">
-                  Financial Profit & Loss Statement
-                </h2>
-              </div>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">
-                Itemized transaction journal with cumulative running P&L ledger
-              </p>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-1.5">
-              {[
-                { id: 'All', label: 'All Time' },
-                { id: 'Today', label: 'Today' },
-                { id: 'This Week', label: 'This Week' },
-                { id: 'This Month', label: 'This Month' },
-                { id: 'Custom', label: 'Custom' }
-              ].map(preset => (
-                <button
-                  key={preset.id}
-                  onClick={() => {
-                    setPlDateFilter(preset.id);
-                    setPlPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
-                    plDateFilter === preset.id
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/60 dark:text-slate-400'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Statement Filter Bar */}
           <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${
