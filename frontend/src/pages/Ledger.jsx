@@ -7,7 +7,6 @@ import {
   User,
   UserCheck,
   Package,
-  DollarSign,
   X,
   Search,
   Calendar,
@@ -424,7 +423,7 @@ export const Ledger = () => {
             onClick={() => setShowPaymentModal(true)}
             className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
           >
-            <DollarSign className="w-4 h-4" />
+            <CreditCard className="w-4 h-4" />
             <span>Record Payment</span>
           </button>
 
@@ -467,7 +466,7 @@ export const Ledger = () => {
         <div className={`border rounded-2xl p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
           }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-amber-600" /> Balance Due
+            <CreditCard className="w-4 h-4 text-amber-600" /> Balance Due
           </div>
           <div className={`text-2xl font-black mt-1 font-mono ${balanceDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'}`}>
             {balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : 'Rs. 0'}
@@ -940,7 +939,7 @@ export const Ledger = () => {
             }`}>
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
               <h3 className="text-base font-extrabold flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-emerald-600" /> Record Ledger Payment
+                <CreditCard className="w-5 h-5 text-emerald-600" /> Record Ledger Payment
               </h3>
               <button
                 type="button"
