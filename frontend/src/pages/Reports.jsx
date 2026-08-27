@@ -1322,7 +1322,7 @@ export const Reports = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 items-center">
               {/* Date Filter */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
@@ -1417,6 +1417,27 @@ export const Reports = () => {
                   <option value="Cash">Cash Payments (Counter)</option>
                   <option value="Credit">Credit (Khata Due)</option>
                   <option value="Partial">Partial Payments</option>
+                </select>
+              </div>
+
+              {/* Report View Section */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Report Section / View
+                </label>
+                <select
+                  value={salesActiveSubTab}
+                  onChange={(e) => setSalesActiveSubTab(e.target.value)}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="all">All Sections (Overview)</option>
+                  <option value="dateWise">1. Date-wise Sales</option>
+                  <option value="productWise">2. Product-wise Sales</option>
+                  <option value="supplierWise">3. Supplier-wise Sales</option>
+                  <option value="supplierProduct">4. Supplier → Product Drill-down</option>
+                  <option value="analytics">5. Top Rankings & Analytics</option>
                 </select>
               </div>
             </div>
@@ -1541,29 +1562,7 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* Sub-View Navigation Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 border-b border-slate-200 dark:border-slate-700">
-            {[
-              { id: 'all', label: 'All Sections' },
-              { id: 'dateWise', label: '1. Date-wise Sales' },
-              { id: 'productWise', label: '2. Product-wise Sales' },
-              { id: 'supplierWise', label: '3. Supplier-wise Sales' },
-              { id: 'supplierProduct', label: '4. Supplier → Product Drill-down' },
-              { id: 'analytics', label: '5. Top Rankings & Analytics' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setSalesActiveSubTab(tab.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition cursor-pointer ${
-                  salesActiveSubTab === tab.id
-                    ? 'bg-brand-500 text-white shadow-xs'
-                    : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-400'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+
 
           {/* ========================================================================= */}
           {/* SECTION 1: DATE-WISE SALES */}
