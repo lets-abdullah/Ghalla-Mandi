@@ -1253,7 +1253,7 @@ export const Reports = () => {
       csvContent += makeRow(['--- EXECUTIVE STOCK VALUATION SUMMARY ---'], COLS);
       csvContent += makeRow(['Total Stock Value (Rs.)', num(totalStockValuation), 'Total Products Registered', filteredStock.length, 'In-Stock Items', inStockCount, 'Low Stock Alert', lowStockCount], COLS);
       csvContent += makeRow(['Total Physical Units', num(totalStockQty), 'Out of Stock Items', outOfStockCount, 'Avg Stock Value / Product', num(filteredStock.length ? totalStockValuation / filteredStock.length : 0), '', ''], COLS);
-      
+
       // Section 1: Detailed Inventory Table
       csvContent += makeSectionHeader('1. DETAILED INVENTORY REGISTER & VALUATION', COLS);
       csvContent += makeRow(['Product Name', 'Category', 'Available Stock', 'Unit', 'Purchase Rate (Rs.)', 'Selling Rate (Rs.)', 'Stock Valuation (Rs.)', 'Stock Status'], COLS);
@@ -1277,7 +1277,7 @@ export const Reports = () => {
       // Section 2: Category Breakdown
       csvContent += makeSectionHeader('2. CATEGORY-WISE STOCK VALUATION BREAKDOWN', COLS);
       csvContent += makeRow(['Category Name', 'Total Items', 'Total Stock Qty', 'Valuation (Rs.)', 'Share of Stock (%)', '', '', ''], COLS);
-      
+
       const catMap = {};
       filteredStock.forEach(p => {
         const c = p.category || 'General';
@@ -1309,7 +1309,7 @@ export const Reports = () => {
       // Section 1: Date-Wise Sales Breakdown
       csvContent += makeSectionHeader('1. DATE-WISE SALES & CASH/CREDIT SETTLEMENT', COLS);
       csvContent += makeRow(['Date', 'Invoices Count', 'Products Sold Summary', 'Total Qty Sold', 'Gross Sales (Rs.)', 'Discount (Rs.)', 'Net Sales (Rs.)', 'Cash Received (Rs.)', 'Credit Balance (Rs.)'], COLS);
-      
+
       dateWiseSalesData.forEach(d => {
         csvContent += makeRow([
           d.date,
@@ -1329,7 +1329,7 @@ export const Reports = () => {
       // Section 2: Product-Wise Sales Performance
       csvContent += makeSectionHeader('2. PRODUCT-WISE SALES & TURNOVER PERFORMANCE', COLS);
       csvContent += makeRow(['Product Name', 'Suppliers / Mandi Source', 'Qty Sold', 'Unit', 'Orders Count', 'Sales Revenue (Rs.)', 'Avg Selling Rate (Rs.)', 'Share of Total Sales (%)', 'Performance'], COLS);
-      
+
       productWiseSalesData.forEach(s => {
         csvContent += makeRow([
           s.name,
@@ -1347,7 +1347,7 @@ export const Reports = () => {
       // Section 3: Supplier-Wise Sales Contribution
       csvContent += makeSectionHeader('3. SUPPLIER-WISE SALES CONTRIBUTION', COLS);
       csvContent += makeRow(['Supplier Name', 'Supplied Products Count', 'Total Qty Sold', 'Orders Count', 'Total Sales Generated (Rs.)', 'Revenue Share (%)', 'Avg Order Value (Rs.)', 'Settlement Status', ''], COLS);
-      
+
       supplierWiseSalesData.forEach(sup => {
         const avg = sup.orderCount > 0 ? (sup.totalSales / sup.orderCount) : 0;
         csvContent += makeRow([
@@ -1380,7 +1380,7 @@ export const Reports = () => {
       // Section 1: Itemized Journal Ledger
       csvContent += makeSectionHeader('1. ITEMIZED TRANSACTION JOURNAL & RUNNING P&L LEDGER', COLS);
       csvContent += makeRow(['Date', 'Reference / Voucher', 'Particulars / Item', 'Category', 'Transaction Type', 'Quantity', 'Amount (Rs.)', 'Running Cumulative P&L (Rs.)'], COLS);
-      
+
       filteredPlJournal.forEach(tx => {
         csvContent += makeRow([
           tx.dateStr,
@@ -1397,7 +1397,7 @@ export const Reports = () => {
       // Section 2: Product-Wise Profitability Breakdown
       csvContent += makeSectionHeader('2. PRODUCT-WISE PROFITABILITY & GROSS MARGINS', COLS);
       csvContent += makeRow(['Product Name', 'Category', 'Units Sold', 'Unit', 'Sales Revenue (Rs.)', 'COGS Purchase Cost (Rs.)', 'Gross Profit (Rs.)', 'Gross Margin (%)'], COLS);
-      
+
       productWisePnLData.forEach(p => {
         csvContent += makeRow([
           p.name,
@@ -1414,7 +1414,7 @@ export const Reports = () => {
       // Section 3: Category-Wise P&L Breakdown
       csvContent += makeSectionHeader('3. CATEGORY-WISE PROFIT & LOSS BREAKDOWN', COLS);
       csvContent += makeRow(['Category Name', 'Sales Revenue (Rs.)', 'Purchases / COGS (Rs.)', 'Operating Expenses (Rs.)', 'Net Profit (Rs.)', 'Net Margin (%)', 'Status', ''], COLS);
-      
+
       categoryWisePnLData.forEach(c => {
         csvContent += makeRow([
           c.category,
@@ -1611,9 +1611,8 @@ export const Reports = () => {
             {/* 1. Total Valuation */}
             <div
               onClick={() => handleResetStockFilters()}
-              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}
             >
               <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Stock Value</div>
               <div className="text-xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
@@ -1624,9 +1623,8 @@ export const Reports = () => {
             {/* 2. Total Products */}
             <div
               onClick={() => setStockStatusFilter('All')}
-              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}
             >
               <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Registered Items</div>
               <div className="text-xl font-black mt-1 font-mono text-slate-900 dark:text-white">
@@ -1636,9 +1634,8 @@ export const Reports = () => {
 
             {/* 3. Total Units Available */}
             <div
-              className={`p-4 rounded-xl border card-shadow ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}
             >
               <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Available Units</div>
               <div className="text-xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
@@ -1649,9 +1646,8 @@ export const Reports = () => {
             {/* 4. Low Stock */}
             <div
               onClick={() => { setStockStatusFilter('LowStock'); setStockPage(1); }}
-              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-800 border-amber-500/40 text-white' : 'bg-white border-amber-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/40 text-white' : 'bg-white border-amber-200 text-slate-900'
+                }`}
             >
               <div className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Low Stock Warnings</div>
               <div className="text-xl font-black mt-1 font-mono text-amber-600 dark:text-amber-400">
@@ -1662,9 +1658,8 @@ export const Reports = () => {
             {/* 5. Out of Stock */}
             <div
               onClick={() => { setStockStatusFilter('OutOfStock'); setStockPage(1); }}
-              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-800 border-rose-500/40 text-white' : 'bg-white border-rose-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-rose-500/40 text-white' : 'bg-white border-rose-200 text-slate-900'
+                }`}
             >
               <div className="text-[10px] font-black uppercase text-rose-500 tracking-wider">Out of Stock</div>
               <div className="text-xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
@@ -1674,9 +1669,8 @@ export const Reports = () => {
           </div>
 
           {/* Enterprise Inventory Control & Filter Toolbar */}
-          <div className={`p-3.5 rounded-xl border card-shadow space-y-2.5 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`p-3.5 rounded-xl border card-shadow space-y-2.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
               {/* Search */}
               <div className="relative flex-1 min-w-[220px]">
@@ -1686,9 +1680,8 @@ export const Reports = () => {
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setStockPage(1); }}
                   placeholder="Search product name, SKU code, category..."
-                  className={`w-full pl-8 pr-3 py-1.5 text-xs font-bold rounded-xl border outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
-                  }`}
+                  className={`w-full pl-8 pr-3 py-1.5 text-xs font-bold rounded-xl border outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                    }`}
                 />
               </div>
 
@@ -1698,9 +1691,8 @@ export const Reports = () => {
                 <select
                   value={categoryFilter}
                   onChange={(e) => { setCategoryFilter(e.target.value); setStockPage(1); }}
-                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Categories</option>
                   {allCategories.filter(c => c !== 'All').map(cat => (
@@ -1712,9 +1704,8 @@ export const Reports = () => {
                 <select
                   value={stockStatusFilter}
                   onChange={(e) => { setStockStatusFilter(e.target.value); setStockPage(1); }}
-                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Stock Levels</option>
                   <option value="InStock">In Stock ({inStockCount})</option>
@@ -1726,9 +1717,8 @@ export const Reports = () => {
                 <select
                   value={stockUnitFilter}
                   onChange={(e) => { setStockUnitFilter(e.target.value); setStockPage(1); }}
-                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Units</option>
                   {allUnits.filter(u => u !== 'All').map(u => (
@@ -1740,9 +1730,8 @@ export const Reports = () => {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="valueDesc">Highest Stock Value</option>
                   <option value="valueAsc">Lowest Stock Value</option>
@@ -1768,15 +1757,13 @@ export const Reports = () => {
           </div>
 
           {/* Enterprise Inventory Register Table */}
-          <div className={`border rounded-xl card-shadow overflow-hidden ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-          }`}>
+          <div className={`border rounded-xl card-shadow overflow-hidden ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+            }`}>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead>
-                  <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
-                    theme === 'dark' ? 'text-slate-400 bg-slate-900/60 border-slate-700' : 'text-slate-500 bg-slate-50 border-slate-200'
-                  }`}>
+                  <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 bg-slate-900/60 border-slate-700' : 'text-slate-500 bg-slate-50 border-slate-200'
+                    }`}>
                     <th className="py-3 px-3.5">Product & SKU</th>
                     <th className="py-3 px-3">Category</th>
                     <th className="py-3 px-3 text-right">Available</th>
@@ -1811,9 +1798,7 @@ export const Reports = () => {
 
                         {/* 2. Category */}
                         <td className="py-3 px-3">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                            theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'
-                          }`}>
+                          <span className="font-semibold text-xs text-slate-600 dark:text-slate-300">
                             {item.category}
                           </span>
                         </td>
@@ -1843,15 +1828,14 @@ export const Reports = () => {
                           Rs. {item.stockVal.toLocaleString()}
                         </td>
 
-                        {/* 8. Status Badge */}
+                        {/* 8. Status */}
                         <td className="py-3 px-3 text-center">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
-                            item.status === 'In Stock'
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                          <span className={`font-extrabold text-xs ${item.status === 'In Stock'
+                              ? 'text-emerald-600 dark:text-emerald-400'
                               : item.status === 'Low Stock'
-                                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
-                                : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                          }`}>
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-rose-600 dark:text-rose-400'
+                            }`}>
                             {item.status}
                           </span>
                         </td>
@@ -1873,9 +1857,8 @@ export const Reports = () => {
             </div>
 
             {/* Table Footer with Pagination */}
-            <div className={`p-3 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium ${
-              theme === 'dark' ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50/70 border-slate-200 text-slate-500'
-            }`}>
+            <div className={`p-3 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50/70 border-slate-200 text-slate-500'
+              }`}>
               <div className="flex items-center gap-3">
                 <span>
                   Showing {filteredStock.length === 0 ? 0 : (stockPage - 1) * stockPageSize + 1}–{Math.min(stockPage * stockPageSize, filteredStock.length)} of {filteredStock.length} commodities
@@ -1885,9 +1868,8 @@ export const Reports = () => {
                   <select
                     value={stockPageSize}
                     onChange={(e) => { setStockPageSize(Number(e.target.value)); setStockPage(1); }}
-                    className={`border rounded-lg px-2 py-0.5 text-xs font-bold outline-none cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
+                    className={`border rounded-lg px-2 py-0.5 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
                   >
                     <option value={10}>10</option>
                     <option value={25}>25</option>
@@ -1929,9 +1911,8 @@ export const Reports = () => {
       {reportType === 'Sales' && (
         <div className="space-y-5">
           {/* Top Common Filter Bar */}
-          <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-brand-500" />
@@ -1960,9 +1941,8 @@ export const Reports = () => {
                 <select
                   value={salesDateFilter}
                   onChange={(e) => setSalesDateFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Dates</option>
                   <option value="Today">Today</option>
@@ -1981,9 +1961,8 @@ export const Reports = () => {
                 <select
                   value={salesProductFilter}
                   onChange={(e) => setSalesProductFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Products</option>
                   {products.map(p => (
@@ -2000,9 +1979,8 @@ export const Reports = () => {
                 <select
                   value={salesSupplierFilter}
                   onChange={(e) => setSalesSupplierFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Suppliers</option>
                   {suppliers.map(s => (
@@ -2019,9 +1997,8 @@ export const Reports = () => {
                 <select
                   value={salesCustomerFilter}
                   onChange={(e) => setSalesCustomerFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Customers</option>
                   {customers.map(c => (
@@ -2038,9 +2015,8 @@ export const Reports = () => {
                 <select
                   value={salesPaymentFilter}
                   onChange={(e) => setSalesPaymentFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Payment Types</option>
                   <option value="Cash">Cash Payments (Counter)</option>
@@ -2057,9 +2033,8 @@ export const Reports = () => {
                 <select
                   value={salesActiveSubTab}
                   onChange={(e) => setSalesActiveSubTab(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="all">All Sections (Overview)</option>
                   <option value="dateWise">1. Date-wise Sales</option>
@@ -2080,9 +2055,8 @@ export const Reports = () => {
                     type="date"
                     value={salesStartDate}
                     onChange={(e) => setSalesStartDate(e.target.value)}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -2091,9 +2065,8 @@ export const Reports = () => {
                     type="date"
                     value={salesEndDate}
                     onChange={(e) => setSalesEndDate(e.target.value)}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -2103,9 +2076,8 @@ export const Reports = () => {
           {/* 8 Overall Sales Summary Cards Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {/* 1. Gross Sales */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="text-[10px] font-black uppercase text-slate-400">Gross Sales</div>
               <div className="text-lg font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
                 Rs. {filteredGrossSales.toLocaleString()}
@@ -2113,9 +2085,8 @@ export const Reports = () => {
             </div>
 
             {/* 2. Net Sales */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="text-[10px] font-black uppercase text-slate-400">Net Sales</div>
               <div className="text-lg font-black font-mono mt-1 text-brand-500">
                 Rs. {filteredNetSales.toLocaleString()}
@@ -2123,9 +2094,8 @@ export const Reports = () => {
             </div>
 
             {/* 3. Total Invoices */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="text-[10px] font-black uppercase text-slate-400">Total Invoices</div>
               <div className="text-lg font-black font-mono mt-1 text-blue-600 dark:text-blue-400">
                 {filteredInvoicesCount} <span className="text-xs font-normal">Orders</span>
@@ -2133,9 +2103,8 @@ export const Reports = () => {
             </div>
 
             {/* 4. Total Quantity Sold */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="text-[10px] font-black uppercase text-slate-400">Total Items / Qty</div>
               <div className="text-lg font-black font-mono mt-1 text-purple-600 dark:text-purple-400">
                 {filteredTotalQty.toLocaleString()} <span className="text-xs font-normal">Units</span>
@@ -2143,9 +2112,8 @@ export const Reports = () => {
             </div>
 
             {/* 5. Cash Sales */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="text-[10px] font-black uppercase text-slate-400">Cash Collections</div>
               <div className="text-lg font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
                 Rs. {filteredCashSales.toLocaleString()}
@@ -2153,9 +2121,8 @@ export const Reports = () => {
             </div>
 
             {/* 6. Credit Sales */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="text-[10px] font-black uppercase text-slate-400">Credit (Khata) Due</div>
               <div className="text-lg font-black font-mono mt-1 text-amber-600 dark:text-amber-400">
                 Rs. {filteredCreditSales.toLocaleString()}
@@ -2163,9 +2130,8 @@ export const Reports = () => {
             </div>
 
             {/* 7. Total Discount */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="text-[10px] font-black uppercase text-slate-400">Total Discount</div>
               <div className="text-lg font-black font-mono mt-1 text-rose-500">
                 Rs. {filteredDiscount.toLocaleString()}
@@ -2173,9 +2139,8 @@ export const Reports = () => {
             </div>
 
             {/* 8. Average Invoice Value */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="text-[10px] font-black uppercase text-slate-400">Avg. Invoice Value</div>
               <div className="text-lg font-black font-mono mt-1 text-indigo-600 dark:text-indigo-400">
                 Rs. {filteredAvgInvoiceValue.toLocaleString()}
@@ -2189,9 +2154,8 @@ export const Reports = () => {
           {/* SECTION 1: DATE-WISE SALES */}
           {/* ========================================================================= */}
           {(salesActiveSubTab === 'all' || salesActiveSubTab === 'dateWise') && (
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-brand-500" />
@@ -2205,9 +2169,8 @@ export const Reports = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
-                      theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                    }`}>
+                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                      }`}>
                       <th className="py-2.5 px-3">Date</th>
                       <th className="py-2.5 px-3 text-center">Invoices</th>
                       <th className="py-2.5 px-3">Products Sold</th>
@@ -2248,9 +2211,8 @@ export const Reports = () => {
                   </tbody>
                   {dateWiseSalesData.length > 0 && (
                     <tfoot>
-                      <tr className={`border-t-2 text-xs font-black ${
-                        theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-slate-100/80 border-slate-300 text-slate-900'
-                      }`}>
+                      <tr className={`border-t-2 text-xs font-black ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-slate-100/80 border-slate-300 text-slate-900'
+                        }`}>
                         <td className="py-3 px-3 uppercase">Total / Summary</td>
                         <td className="py-3 px-3 text-center font-mono">{filteredInvoicesCount}</td>
                         <td className="py-3 px-3 font-medium text-slate-400">—</td>
@@ -2272,9 +2234,8 @@ export const Reports = () => {
           {/* SECTION 2: PRODUCT-WISE SALES */}
           {/* ========================================================================= */}
           {(salesActiveSubTab === 'all' || salesActiveSubTab === 'productWise') && (
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
                   <Wheat className="w-4 h-4 text-emerald-500" />
@@ -2288,9 +2249,8 @@ export const Reports = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
-                      theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                    }`}>
+                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                      }`}>
                       <th className="py-2.5 px-3">Product Name</th>
                       <th className="py-2.5 px-3">Supplied By</th>
                       <th className="py-2.5 px-3 text-center">Qty Sold</th>
@@ -2329,9 +2289,9 @@ export const Reports = () => {
                           <td className="py-3 px-3 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <div className="w-16 h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
-                                <div 
-                                  className="h-full bg-emerald-500 rounded-full" 
-                                  style={{ width: `${Math.min(100, Math.max(2, parseFloat(item.pctOfTotal)))}%` }} 
+                                <div
+                                  className="h-full bg-emerald-500 rounded-full"
+                                  style={{ width: `${Math.min(100, Math.max(2, parseFloat(item.pctOfTotal)))}%` }}
                                 />
                               </div>
                               <span className="font-mono font-bold text-[11px] text-emerald-600 dark:text-emerald-400 w-12 text-right">
@@ -2352,9 +2312,8 @@ export const Reports = () => {
           {/* SECTION 3: SUPPLIER-WISE SALES */}
           {/* ========================================================================= */}
           {(salesActiveSubTab === 'all' || salesActiveSubTab === 'supplierWise') && (
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
                   <Building className="w-4 h-4 text-blue-500" />
@@ -2368,9 +2327,8 @@ export const Reports = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
-                      theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                    }`}>
+                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                      }`}>
                       <th className="py-2.5 px-3">Supplier Firm</th>
                       <th className="py-2.5 px-3 text-center">Products Count</th>
                       <th className="py-2.5 px-3 text-right">Total Qty Sold</th>
@@ -2403,9 +2361,9 @@ export const Reports = () => {
                           <td className="py-3 px-3 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <div className="w-16 h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
-                                <div 
-                                  className="h-full bg-blue-500 rounded-full" 
-                                  style={{ width: `${Math.min(100, Math.max(2, parseFloat(sup.pctContribution)))}%` }} 
+                                <div
+                                  className="h-full bg-blue-500 rounded-full"
+                                  style={{ width: `${Math.min(100, Math.max(2, parseFloat(sup.pctContribution)))}%` }}
                                 />
                               </div>
                               <span className="font-mono font-bold text-[11px] text-blue-600 dark:text-blue-400 w-12 text-right">
@@ -2426,9 +2384,8 @@ export const Reports = () => {
           {/* SECTION 4: SUPPLIER -> PRODUCT DRILL-DOWN */}
           {/* ========================================================================= */}
           {(salesActiveSubTab === 'all' || salesActiveSubTab === 'supplierProduct') && (
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3.5 ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`border rounded-2xl p-4 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
                   <Layers className="w-4 h-4 text-purple-500" />
@@ -2447,18 +2404,16 @@ export const Reports = () => {
                     const isExpanded = expandedSuppliers[sup.supplierName] !== false; // default expanded
 
                     return (
-                      <div 
-                        key={idx} 
-                        className={`border rounded-xl overflow-hidden transition ${
-                          theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                        }`}
+                      <div
+                        key={idx}
+                        className={`border rounded-xl overflow-hidden transition ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                          }`}
                       >
                         {/* Supplier Card Header */}
-                        <div 
+                        <div
                           onClick={() => toggleSupplierExpand(sup.supplierName)}
-                          className={`p-3 flex items-center justify-between cursor-pointer transition ${
-                            theme === 'dark' ? 'hover:bg-slate-900/80' : 'hover:bg-slate-100'
-                          }`}
+                          className={`p-3 flex items-center justify-between cursor-pointer transition ${theme === 'dark' ? 'hover:bg-slate-900/80' : 'hover:bg-slate-100'
+                            }`}
                         >
                           <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center font-bold">
@@ -2549,9 +2504,8 @@ export const Reports = () => {
           {(salesActiveSubTab === 'all' || salesActiveSubTab === 'analytics') && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Top Selling Products */}
-              <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
+              <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}>
                 <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-emerald-500" />
                   <span>Top Selling Products by Revenue</span>
@@ -2575,9 +2529,9 @@ export const Reports = () => {
                           </span>
                         </div>
                         <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
-                          <div 
-                            className="h-full bg-emerald-500 rounded-full" 
-                            style={{ width: `${Math.min(100, Math.max(5, parseFloat(p.pctOfTotal)))}%` }} 
+                          <div
+                            className="h-full bg-emerald-500 rounded-full"
+                            style={{ width: `${Math.min(100, Math.max(5, parseFloat(p.pctOfTotal)))}%` }}
                           />
                         </div>
                       </div>
@@ -2587,9 +2541,8 @@ export const Reports = () => {
               </div>
 
               {/* Top Suppliers by Sales */}
-              <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
+              <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}>
                 <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-blue-500" />
                   <span>Top Suppliers by Sales Contribution</span>
@@ -2613,9 +2566,9 @@ export const Reports = () => {
                           </span>
                         </div>
                         <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
-                          <div 
-                            className="h-full bg-blue-500 rounded-full" 
-                            style={{ width: `${Math.min(100, Math.max(5, parseFloat(sup.pctContribution)))}%` }} 
+                          <div
+                            className="h-full bg-blue-500 rounded-full"
+                            style={{ width: `${Math.min(100, Math.max(5, parseFloat(sup.pctContribution)))}%` }}
                           />
                         </div>
                       </div>
@@ -2638,9 +2591,8 @@ export const Reports = () => {
             {/* 1. Total Expenses */}
             <div
               onClick={() => handleResetExpFilters()}
-              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}
             >
               <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Expenses</div>
               <div className="text-xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
@@ -2651,9 +2603,8 @@ export const Reports = () => {
             {/* 2. This Month */}
             <div
               onClick={() => { setExpDateFilter('This Month'); setExpPage(1); }}
-              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}
             >
               <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">This Month</div>
               <div className="text-xl font-black mt-1 font-mono text-amber-600 dark:text-amber-400">
@@ -2664,9 +2615,8 @@ export const Reports = () => {
             {/* 3. This Financial Year */}
             <div
               onClick={() => { setExpDateFilter('All'); setExpPage(1); }}
-              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}
             >
               <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">This Financial Year</div>
               <div className="text-xl font-black mt-1 font-mono text-indigo-600 dark:text-indigo-400">
@@ -2677,9 +2627,8 @@ export const Reports = () => {
             {/* 4. Expense Entries Count */}
             <div
               onClick={() => setShowAddExpenseModal(true)}
-              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-800 border-rose-500/40 text-white' : 'bg-white border-rose-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-rose-500/40 text-white' : 'bg-white border-rose-200 text-slate-900'
+                }`}
               title="Click to Record Expense"
             >
               <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Expense Entries</div>
@@ -2690,9 +2639,8 @@ export const Reports = () => {
           </div>
 
           {/* Enterprise Expenses Filter Toolbar */}
-          <div className={`p-3.5 rounded-xl border card-shadow space-y-2.5 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`p-3.5 rounded-xl border card-shadow space-y-2.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
               {/* Search */}
               <div className="relative flex-1 min-w-[220px]">
@@ -2702,9 +2650,8 @@ export const Reports = () => {
                   value={expSearch}
                   onChange={(e) => { setExpSearch(e.target.value); setExpPage(1); }}
                   placeholder="Search voucher #, category, description, payment mode..."
-                  className={`w-full pl-8 pr-3 py-1.5 text-xs font-bold rounded-xl border outline-none focus:border-rose-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
-                  }`}
+                  className={`w-full pl-8 pr-3 py-1.5 text-xs font-bold rounded-xl border outline-none focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                    }`}
                 />
               </div>
 
@@ -2714,9 +2661,8 @@ export const Reports = () => {
                 <select
                   value={expDateFilter}
                   onChange={(e) => { setExpDateFilter(e.target.value); setExpPage(1); }}
-                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Dates</option>
                   <option value="Today">Today</option>
@@ -2731,9 +2677,8 @@ export const Reports = () => {
                 <select
                   value={expCategoryFilter}
                   onChange={(e) => { setExpCategoryFilter(e.target.value); setExpPage(1); }}
-                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Categories</option>
                   <option value="Labour & Loading (Palla)">Labour & Loading (Palla)</option>
@@ -2749,24 +2694,14 @@ export const Reports = () => {
                 <select
                   value={expPaymentFilter}
                   onChange={(e) => { setExpPaymentFilter(e.target.value); setExpPage(1); }}
-                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Payment Modes</option>
                   <option value="Cash">Cash (Counter Drawer)</option>
                   <option value="Bank Transfer">Bank Transfer / Online</option>
                   <option value="Cheque">Cheque</option>
                 </select>
-
-                {/* Record Button */}
-                <button
-                  onClick={() => setShowAddExpenseModal(true)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs shadow-md shadow-rose-500/20 transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Record</span>
-                </button>
 
                 {/* Reset Button */}
                 {hasActiveExpFilters && (
@@ -2791,9 +2726,8 @@ export const Reports = () => {
                     type="date"
                     value={expStartDate}
                     onChange={(e) => { setExpStartDate(e.target.value); setExpPage(1); }}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -2802,9 +2736,8 @@ export const Reports = () => {
                     type="date"
                     value={expEndDate}
                     onChange={(e) => { setExpEndDate(e.target.value); setExpPage(1); }}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -2812,15 +2745,13 @@ export const Reports = () => {
           </div>
 
           {/* Enterprise Expenses Register Table */}
-          <div className={`border rounded-xl card-shadow overflow-hidden ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-          }`}>
+          <div className={`border rounded-xl card-shadow overflow-hidden ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+            }`}>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead>
-                  <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
-                    theme === 'dark' ? 'text-slate-400 bg-slate-900/60 border-slate-700' : 'text-slate-500 bg-slate-50 border-slate-200'
-                  }`}>
+                  <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 bg-slate-900/60 border-slate-700' : 'text-slate-500 bg-slate-50 border-slate-200'
+                    }`}>
                     <th className="py-3 px-3.5">Date</th>
                     <th className="py-3 px-3">Voucher #</th>
                     <th className="py-3 px-3">Category</th>
@@ -2854,9 +2785,7 @@ export const Reports = () => {
 
                         {/* 3. Category */}
                         <td className="py-3 px-3">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                            theme === 'dark' ? 'bg-rose-950/40 text-rose-300 border border-rose-800' : 'bg-rose-50 text-rose-700 border border-rose-200'
-                          }`}>
+                          <span className="font-semibold text-xs text-rose-600 dark:text-rose-400">
                             {exp.category}
                           </span>
                         </td>
@@ -2878,9 +2807,8 @@ export const Reports = () => {
 
                         {/* 7. Status */}
                         <td className="py-3 px-3 text-center">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>Paid</span>
+                          <span className="font-extrabold text-xs text-emerald-600 dark:text-emerald-400">
+                            Paid
                           </span>
                         </td>
 
@@ -2902,9 +2830,8 @@ export const Reports = () => {
             </div>
 
             {/* Table Footer with Pagination */}
-            <div className={`p-3 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium ${
-              theme === 'dark' ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50/70 border-slate-200 text-slate-500'
-            }`}>
+            <div className={`p-3 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50/70 border-slate-200 text-slate-500'
+              }`}>
               <div className="flex items-center gap-3">
                 <span>
                   Showing {filteredExpensesList.length === 0 ? 0 : (expPage - 1) * expPageSize + 1}–{Math.min(expPage * expPageSize, filteredExpensesList.length)} of {filteredExpensesList.length} entries
@@ -2914,9 +2841,8 @@ export const Reports = () => {
                   <select
                     value={expPageSize}
                     onChange={(e) => { setExpPageSize(Number(e.target.value)); setExpPage(1); }}
-                    className={`border rounded-lg px-2 py-0.5 text-xs font-bold outline-none cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
+                    className={`border rounded-lg px-2 py-0.5 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
                   >
                     <option value={10}>10</option>
                     <option value={25}>25</option>
@@ -2960,9 +2886,8 @@ export const Reports = () => {
 
 
           {/* Statement Filter Bar */}
-          <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-emerald-500" />
@@ -2994,9 +2919,8 @@ export const Reports = () => {
                     setPlDateFilter(e.target.value);
                     setPlPage(1);
                   }}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Dates</option>
                   <option value="Today">Today</option>
@@ -3018,9 +2942,8 @@ export const Reports = () => {
                     setPlProductFilter(e.target.value);
                     setPlPage(1);
                   }}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Products</option>
                   {products.map(p => (
@@ -3040,9 +2963,8 @@ export const Reports = () => {
                     setPlCategoryFilter(e.target.value);
                     setPlPage(1);
                   }}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Categories</option>
                   {(allCategories || ['General']).filter(c => c !== 'All').map(c => (
@@ -3062,9 +2984,8 @@ export const Reports = () => {
                     setPlTypeFilter(e.target.value);
                     setPlPage(1);
                   }}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Types</option>
                   <option value="Sale">Sale (Income)</option>
@@ -3085,9 +3006,8 @@ export const Reports = () => {
                     setPlPaymentFilter(e.target.value);
                     setPlPage(1);
                   }}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="All">All Modes</option>
                   <option value="Cash">Cash</option>
@@ -3111,9 +3031,8 @@ export const Reports = () => {
                       setPlPage(1);
                     }}
                     placeholder="Ref, item, party..."
-                    className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-bold outline-none focus:border-emerald-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
-                    }`}
+                    className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-bold outline-none focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                      }`}
                   />
                 </div>
               </div>
@@ -3131,9 +3050,8 @@ export const Reports = () => {
                       setPlStartDate(e.target.value);
                       setPlPage(1);
                     }}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -3145,9 +3063,8 @@ export const Reports = () => {
                       setPlEndDate(e.target.value);
                       setPlPage(1);
                     }}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -3159,9 +3076,8 @@ export const Reports = () => {
             {/* 5 Compact KPI Metric Cards (8 cols) */}
             <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
               {/* 1. Total Sales / Revenue */}
-              <div className={`p-3.5 rounded-2xl border card-shadow ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
+              <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}>
                 <div className="text-[10px] font-black uppercase text-slate-400">Total Sales / Revenue</div>
                 <div className="text-lg font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
                   +Rs. {plTotalRevenue.toLocaleString()}
@@ -3170,9 +3086,8 @@ export const Reports = () => {
               </div>
 
               {/* 2. Total Purchases (COGS) */}
-              <div className={`p-3.5 rounded-2xl border card-shadow ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
+              <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}>
                 <div className="text-[10px] font-black uppercase text-slate-400">Total Purchases (COGS)</div>
                 <div className="text-lg font-black font-mono mt-1 text-blue-600 dark:text-blue-400">
                   -Rs. {plTotalCOGS.toLocaleString()}
@@ -3181,9 +3096,8 @@ export const Reports = () => {
               </div>
 
               {/* 3. Gross Profit */}
-              <div className={`p-3.5 rounded-2xl border card-shadow ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
+              <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}>
                 <div className="text-[10px] font-black uppercase text-slate-400">Gross Profit</div>
                 <div className="text-lg font-black font-mono mt-1 text-slate-900 dark:text-white">
                   Rs. {plGrossProfit.toLocaleString()}
@@ -3194,9 +3108,8 @@ export const Reports = () => {
               </div>
 
               {/* 4. Shop Expenses */}
-              <div className={`p-3.5 rounded-2xl border card-shadow ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
+              <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}>
                 <div className="text-[10px] font-black uppercase text-slate-400">Shop Expenses</div>
                 <div className="text-lg font-black font-mono mt-1 text-rose-500">
                   -Rs. {plTotalExpenses.toLocaleString()}
@@ -3205,9 +3118,8 @@ export const Reports = () => {
               </div>
 
               {/* 5. Net Operating Profit */}
-              <div className={`p-3.5 rounded-2xl border card-shadow sm:col-span-2 ${
-                theme === 'dark' ? 'bg-emerald-950/30 border-emerald-500/40 text-white' : 'bg-emerald-50/70 border-emerald-200 text-slate-900'
-              }`}>
+              <div className={`p-3.5 rounded-2xl border card-shadow sm:col-span-2 ${theme === 'dark' ? 'bg-emerald-950/30 border-emerald-500/40 text-white' : 'bg-emerald-50/70 border-emerald-200 text-slate-900'
+                }`}>
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">Net Operating Profit</div>
@@ -3228,9 +3140,8 @@ export const Reports = () => {
             </div>
 
             {/* Statement Period Summary Card (4 cols) */}
-            <div className={`lg:col-span-4 p-4 rounded-2xl border card-shadow space-y-2.5 ${
-              theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-slate-50/90 border-slate-200 text-slate-900'
-            }`}>
+            <div className={`lg:col-span-4 p-4 rounded-2xl border card-shadow space-y-2.5 ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-slate-50/90 border-slate-200 text-slate-900'
+              }`}>
               <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 border-b pb-1.5 border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <span>Period Statement Summary</span>
                 <span className="text-[10px] font-bold text-emerald-600">{plDateFilter}</span>
@@ -3266,9 +3177,8 @@ export const Reports = () => {
           {/* ========================================================================= */}
           {/* MAIN BANK-STATEMENT STYLE TRANSACTION LEDGER */}
           {/* ========================================================================= */}
-          <div className={`border rounded-2xl card-shadow overflow-hidden ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`border rounded-2xl card-shadow overflow-hidden ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div>
                 <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
@@ -3288,9 +3198,8 @@ export const Reports = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className={`border-b text-[10px] font-black uppercase tracking-wider sticky top-0 ${
-                    theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-slate-400' : 'bg-slate-50/90 border-slate-200 text-slate-500'
-                  }`}>
+                  <tr className={`border-b text-[10px] font-black uppercase tracking-wider sticky top-0 ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-slate-400' : 'bg-slate-50/90 border-slate-200 text-slate-500'
+                    }`}>
                     <th className="py-3 px-3.5">Date</th>
                     <th className="py-3 px-3">Reference</th>
                     <th className="py-3 px-3">Product / Description</th>
@@ -3320,12 +3229,11 @@ export const Reports = () => {
 
                           {/* Reference */}
                           <td className="py-3 px-3 font-mono font-bold whitespace-nowrap">
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold ${
-                              tx.type === 'Sale' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' :
-                              tx.type === 'Purchase' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800' :
-                              tx.type === 'Expense' ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800' :
-                              'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800'
-                            }`}>
+                            <span className={`font-mono font-bold text-xs ${tx.type === 'Sale' ? 'text-emerald-600 dark:text-emerald-400' :
+                                tx.type === 'Purchase' ? 'text-blue-600 dark:text-blue-400' :
+                                  tx.type === 'Expense' ? 'text-rose-600 dark:text-rose-400' :
+                                    'text-purple-600 dark:text-purple-400'
+                              }`}>
                               {tx.ref}
                             </span>
                           </td>
@@ -3337,20 +3245,17 @@ export const Reports = () => {
                           </td>
 
                           {/* Category */}
-                          <td className="py-3 px-3 text-slate-500 font-medium">
-                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-900 text-[10px] font-bold border border-slate-200 dark:border-slate-700">
-                              {tx.category}
-                            </span>
+                          <td className="py-3 px-3 text-slate-600 dark:text-slate-400 font-semibold text-xs">
+                            {tx.category}
                           </td>
 
                           {/* Type */}
                           <td className="py-3 px-3 text-center whitespace-nowrap">
-                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                              tx.type === 'Sale' ? 'bg-emerald-500/10 text-emerald-600' :
-                              tx.type === 'Purchase' ? 'bg-blue-500/10 text-blue-600' :
-                              tx.type === 'Expense' ? 'bg-rose-500/10 text-rose-600' :
-                              'bg-purple-500/10 text-purple-600'
-                            }`}>
+                            <span className={`text-xs font-black uppercase ${tx.type === 'Sale' ? 'text-emerald-600' :
+                                tx.type === 'Purchase' ? 'text-blue-600' :
+                                  tx.type === 'Expense' ? 'text-rose-600' :
+                                    'text-purple-600'
+                              }`}>
                               {tx.type}
                             </span>
                           </td>
@@ -3361,9 +3266,8 @@ export const Reports = () => {
                           </td>
 
                           {/* Amount */}
-                          <td className={`py-3 px-3 text-right font-mono font-bold whitespace-nowrap ${
-                            isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                          }`}>
+                          <td className={`py-3 px-3 text-right font-mono font-bold whitespace-nowrap ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                            }`}>
                             {isPositive ? '+' : ''}Rs. {tx.amount.toLocaleString()}
                           </td>
 
@@ -3410,9 +3314,8 @@ export const Reports = () => {
           {/* ========================================================================= */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* 1. Product-Wise P&L Table */}
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
                   <Wheat className="w-4 h-4 text-emerald-500" />
@@ -3424,9 +3327,8 @@ export const Reports = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
-                      theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                    }`}>
+                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                      }`}>
                       <th className="py-2.5 px-2.5">Product</th>
                       <th className="py-2.5 px-2 text-center">Units Sold</th>
                       <th className="py-2.5 px-2 text-right">Sales</th>
@@ -3440,8 +3342,8 @@ export const Reports = () => {
                       <tr><td colSpan={6} className="py-6 text-center text-slate-400">No product sales records.</td></tr>
                     ) : (
                       productWisePnLData.map((p, idx) => (
-                        <tr 
-                          key={idx} 
+                        <tr
+                          key={idx}
                           onClick={() => {
                             setPlProductFilter(p.name);
                             setPlPage(1);
@@ -3477,9 +3379,8 @@ export const Reports = () => {
             </div>
 
             {/* 2. Category-Wise P&L Table */}
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
                   <Building className="w-4 h-4 text-blue-500" />
@@ -3491,9 +3392,8 @@ export const Reports = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
-                      theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                    }`}>
+                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                      }`}>
                       <th className="py-2.5 px-2.5">Category</th>
                       <th className="py-2.5 px-2 text-right">Sales</th>
                       <th className="py-2.5 px-2 text-right">Purchases</th>
@@ -3507,7 +3407,7 @@ export const Reports = () => {
                       <tr><td colSpan={6} className="py-6 text-center text-slate-400">No category breakdown data.</td></tr>
                     ) : (
                       categoryWisePnLData.map((c, idx) => (
-                        <tr 
+                        <tr
                           key={idx}
                           onClick={() => {
                             setPlCategoryFilter(c.category);
@@ -3551,9 +3451,8 @@ export const Reports = () => {
       {reportType === 'BalanceSheet' && (
         <div className="space-y-6">
           {/* Top Filter Bar - Single Clean Date Filter */}
-          <div className={`p-4 rounded-2xl border card-shadow space-y-3.5 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`p-4 rounded-2xl border card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -3577,9 +3476,8 @@ export const Reports = () => {
                   <select
                     value={bsDateFilter}
                     onChange={(e) => setBsDateFilter(e.target.value)}
-                    className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   >
                     <option value="Today">Today ({new Date().toLocaleDateString('en-GB')})</option>
                     <option value="Yesterday">Yesterday</option>
@@ -3595,9 +3493,8 @@ export const Reports = () => {
                     type="date"
                     value={bsCustomDate}
                     onChange={(e) => setBsCustomDate(e.target.value)}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 )}
 
@@ -3626,9 +3523,8 @@ export const Reports = () => {
           {/* 3 Main Metric Cards with Movement Badges */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* 1. TOTAL ASSETS */}
-            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${
-              theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200 text-slate-900'
-            }`}>
+            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200 text-slate-900'
+              }`}>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                   Total Business Assets
@@ -3647,9 +3543,8 @@ export const Reports = () => {
             </div>
 
             {/* 2. TOTAL LIABILITIES */}
-            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${
-              theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200 text-slate-900'
-            }`}>
+            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200 text-slate-900'
+              }`}>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                   Total Liabilities & Payables
@@ -3667,9 +3562,8 @@ export const Reports = () => {
             </div>
 
             {/* 3. NET BUSINESS WORTH */}
-            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${
-              theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-br from-indigo-50/40 to-white border-indigo-200 text-slate-900'
-            }`}>
+            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-br from-indigo-50/40 to-white border-indigo-200 text-slate-900'
+              }`}>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                   Net Business Worth (Equity)
@@ -3689,9 +3583,8 @@ export const Reports = () => {
           </div>
 
           {/* Visual Financial Summary — Net Worth Trend Line */}
-          <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-indigo-500" />
@@ -3724,14 +3617,14 @@ export const Reports = () => {
                 return (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group cursor-pointer">
                     <div className="flex items-end gap-1 w-full justify-center">
-                      <div 
-                        className="w-2.5 bg-emerald-500/80 hover:bg-emerald-500 rounded-t-sm transition-all" 
-                        style={{ height: `${assetHeight}px` }} 
+                      <div
+                        className="w-2.5 bg-emerald-500/80 hover:bg-emerald-500 rounded-t-sm transition-all"
+                        style={{ height: `${assetHeight}px` }}
                         title={`Assets: Rs. ${d.assets.toLocaleString()}`}
                       />
-                      <div 
-                        className="w-2.5 bg-indigo-500/80 hover:bg-indigo-500 rounded-t-sm transition-all" 
-                        style={{ height: `${nwHeight}px` }} 
+                      <div
+                        className="w-2.5 bg-indigo-500/80 hover:bg-indigo-500 rounded-t-sm transition-all"
+                        style={{ height: `${nwHeight}px` }}
                         title={`Net Worth: Rs. ${d.netWorth.toLocaleString()}`}
                       />
                     </div>
@@ -3747,9 +3640,8 @@ export const Reports = () => {
             {/* ========================================================================= */}
             {/* LEFT COLUMN: WHAT YOU OWN (ASSETS) */}
             {/* ========================================================================= */}
-            <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
                 <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <Building className="w-4 h-4" />
@@ -3762,10 +3654,9 @@ export const Reports = () => {
 
               <div className="space-y-3 text-xs">
                 {/* 1. Cash & Bank Equivalents */}
-                <div className={`border rounded-xl p-3 space-y-2 ${
-                  theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                }`}>
-                  <div 
+                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                  <div
                     onClick={() => toggleBsSection('cashBank')}
                     className="flex items-center justify-between cursor-pointer font-bold"
                   >
@@ -3812,10 +3703,9 @@ export const Reports = () => {
                 </div>
 
                 {/* 2. Customer Receivables */}
-                <div className={`border rounded-xl p-3 space-y-2 ${
-                  theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                }`}>
-                  <div 
+                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                  <div
                     onClick={() => toggleBsSection('receivables')}
                     className="flex items-center justify-between cursor-pointer font-bold"
                   >
@@ -3858,10 +3748,9 @@ export const Reports = () => {
                 </div>
 
                 {/* 3. Commodity Inventory Assets */}
-                <div className={`border rounded-xl p-3 space-y-2 ${
-                  theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                }`}>
-                  <div 
+                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                  <div
                     onClick={() => toggleBsSection('inventory')}
                     className="flex items-center justify-between cursor-pointer font-bold"
                   >
@@ -3914,9 +3803,8 @@ export const Reports = () => {
             {/* ========================================================================= */}
             {/* RIGHT COLUMN: WHAT YOU OWE & EQUITY (LIABILITIES & EQUITY) */}
             {/* ========================================================================= */}
-            <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
                 <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-rose-600 dark:text-rose-400">
                   <PieChart className="w-4 h-4" />
@@ -3929,10 +3817,9 @@ export const Reports = () => {
 
               <div className="space-y-3 text-xs">
                 {/* 1. Supplier Payables & Current Liabilities */}
-                <div className={`border rounded-xl p-3 space-y-2 ${
-                  theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                }`}>
-                  <div 
+                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                  <div
                     onClick={() => toggleBsSection('payables')}
                     className="flex items-center justify-between cursor-pointer font-bold"
                   >
@@ -3979,10 +3866,9 @@ export const Reports = () => {
                 </div>
 
                 {/* 2. Equity & Business Net Worth */}
-                <div className={`border rounded-xl p-3 space-y-2 ${
-                  theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                }`}>
-                  <div 
+                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                  <div
                     onClick={() => toggleBsSection('equity')}
                     className="flex items-center justify-between cursor-pointer font-bold"
                   >
@@ -4036,9 +3922,8 @@ export const Reports = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setBsActiveDrilldownModal(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-2xl w-full p-4 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] flex flex-col ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-2xl w-full p-4 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] flex flex-col ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700">
               <div>
                 <h3 className="text-sm font-black flex items-center gap-2">
@@ -4075,9 +3960,8 @@ export const Reports = () => {
                 value={bsDrilldownSearch}
                 onChange={(e) => setBsDrilldownSearch(e.target.value)}
                 placeholder="Search items, names, phone..."
-                className={`w-full pl-8 pr-3 py-1.5 border rounded-xl text-xs font-bold outline-none focus:border-indigo-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
-                }`}
+                className={`w-full pl-8 pr-3 py-1.5 border rounded-xl text-xs font-bold outline-none focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                  }`}
               />
             </div>
 

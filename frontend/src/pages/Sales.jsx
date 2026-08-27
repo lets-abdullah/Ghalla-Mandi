@@ -654,18 +654,15 @@ export const Sales = () => {
                       {/* 4. Commodity */}
                       <td className="py-3.5 px-4">
                         {s.cart && s.cart.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 max-w-xs">
+                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-xs leading-relaxed">
                             {s.cart.map((item, idx) => (
-                              <span
-                                key={idx}
-                                className="inline-flex items-center px-2 py-0.5 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold text-[11px] border border-brand-500/20 whitespace-nowrap"
-                              >
-                                {item.name} ({item.qty} {item.unitName || item.unit || t('kg')})
+                              <span key={idx}>
+                                {item.name} ({item.qty} {item.unitName || item.unit || t('kg')}){idx < s.cart.length - 1 ? ', ' : ''}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-slate-400 font-semibold">
+                          <span className="text-slate-600 dark:text-slate-300 font-semibold text-xs">
                             {typeof s.items === 'string'
                               ? s.items
                               : (Array.isArray(s.items) ? s.items.map(i => i.name || i.productName).join(', ') : t('products'))}
@@ -680,25 +677,25 @@ export const Sales = () => {
                         </div>
                       </td>
 
-                      {/* 6. Status Badges */}
+                      {/* 6. Status */}
                       <td className="py-3.5 px-4 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${status === 'Paid'
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`font-extrabold text-xs whitespace-nowrap ${status === 'Paid'
+                            ? 'text-emerald-600 dark:text-emerald-400'
                             : status === 'Partial'
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-rose-600 dark:text-rose-400'
                             }`}>
                             {status === 'Paid' ? 'Paid' : status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
                           </span>
 
-                          {/* Return Status Badge if partially or fully returned */}
+                          {/* Return Status if partially or fully returned */}
                           {(s.returnStatus || s.returnAmount > 0) && (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap border ${s.returnStatus === 'Fully Returned'
-                              ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
-                              : 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30'
+                            <span className={`font-bold text-[11px] whitespace-nowrap ${s.returnStatus === 'Fully Returned'
+                              ? 'text-purple-600 dark:text-purple-400'
+                              : 'text-orange-600 dark:text-orange-400'
                               }`}>
-                              {s.returnStatus || 'Partially Returned'}
+                              ({s.returnStatus || 'Partially Returned'})
                             </span>
                           )}
                         </div>

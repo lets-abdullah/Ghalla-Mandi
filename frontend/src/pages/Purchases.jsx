@@ -856,21 +856,17 @@ export const Purchases = () => {
                       </td>
 
                       {/* 4. Items */}
-                      <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
+                      <td className="py-3.5 px-4">
                         {p.cart && p.cart.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 max-w-xs">
+                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-xs leading-relaxed">
                             {p.cart.map((item, idx) => (
-                              <span
-                                key={idx}
-                                className={`px-1.5 py-0.5 rounded text-[11px] font-bold ${theme === 'dark' ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'
-                                  }`}
-                              >
-                                {item.name || item.productName} ({item.qty || item.enteredQty || 1} {item.unit || item.unitName || 'KG'})
+                              <span key={idx}>
+                                {item.name || item.productName} ({item.qty || item.enteredQty || 1} {item.unit || item.unitName || 'KG'}){idx < p.cart.length - 1 ? ', ' : ''}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-slate-500 text-xs">{typeof p.items === 'string' ? p.items : (Array.isArray(p.items) ? p.items.map(i => i.name || i.productName).join(', ') : 'Commodity Items')}</span>
+                          <span className="text-slate-600 dark:text-slate-300 font-semibold text-xs">{typeof p.items === 'string' ? p.items : (Array.isArray(p.items) ? p.items.map(i => i.name || i.productName).join(', ') : 'Commodity Items')}</span>
                         )}
                       </td>
 
@@ -883,22 +879,22 @@ export const Purchases = () => {
 
                       {/* 6. Status */}
                       <td className="py-3.5 px-4 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${status === 'Paid'
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`font-extrabold text-xs whitespace-nowrap ${status === 'Paid'
+                            ? 'text-emerald-600 dark:text-emerald-400'
                             : status === 'Partial'
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-rose-600 dark:text-rose-400'
                             }`}>
                             {status === 'Paid' ? 'Paid' : status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
                           </span>
 
                           {(p.returnStatus || (p.returnAmount > 0)) && (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap border ${p.returnStatus === 'Fully Returned'
-                              ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
-                              : 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30'
+                            <span className={`font-bold text-[11px] whitespace-nowrap ${p.returnStatus === 'Fully Returned'
+                              ? 'text-purple-600 dark:text-purple-400'
+                              : 'text-orange-600 dark:text-orange-400'
                               }`}>
-                              {p.returnStatus || 'Partially Returned'}
+                              ({p.returnStatus || 'Partially Returned'})
                             </span>
                           )}
                         </div>

@@ -832,22 +832,18 @@ export const Suppliers = () => {
                           <div className="text-[11px] text-slate-400">{s.city || 'Mandi'}</div>
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex flex-wrap gap-1 max-w-xs">
+                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-xs leading-relaxed">
                             {suppliedProds.length === 0 ? (
                               <span className="text-slate-400 italic">General</span>
                             ) : (
                               suppliedProds.slice(0, 3).map((prod, idx) => (
-                                <span
-                                  key={idx}
-                                  className={`px-2 py-0.5 rounded text-[10px] font-bold border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-brand-400' : 'bg-brand-50 text-brand-700 border-brand-200'
-                                    }`}
-                                >
-                                  {prod}
+                                <span key={idx}>
+                                  {prod}{idx < Math.min(suppliedProds.length, 3) - 1 ? ', ' : ''}
                                 </span>
                               ))
                             )}
                             {suppliedProds.length > 3 && (
-                              <span className="text-[10px] text-slate-400 font-bold">+{suppliedProds.length - 3} more</span>
+                              <span className="text-[10px] text-slate-400 font-bold ml-1">+{suppliedProds.length - 3} more</span>
                             )}
                           </div>
                         </td>
@@ -857,8 +853,7 @@ export const Suppliers = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${isAct ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
-                            }`}>
+                          <span className={`font-bold text-xs ${isAct ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
                             {isAct ? 'Active' : 'Inactive'}
                           </span>
                         </td>

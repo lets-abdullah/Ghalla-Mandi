@@ -655,11 +655,11 @@ export const Invoices = () => {
 
                       {/* 7. Status (Paid / Partially Paid / Unpaid) */}
                       <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${inv.status === 'Paid'
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                        <span className={`font-extrabold text-xs whitespace-nowrap ${inv.status === 'Paid'
+                          ? 'text-emerald-600 dark:text-emerald-400'
                           : inv.status === 'Partial'
-                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-rose-600 dark:text-rose-400'
                           }`}>
                           {inv.status === 'Paid' ? 'Paid' : inv.status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
                         </span>

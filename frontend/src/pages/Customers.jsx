@@ -629,12 +629,12 @@ export const Customers = () => {
                           </span>
                         </td>
 
-                        {/* 5. Status Badge */}
+                        {/* 5. Status */}
                         <td className="py-3 px-3 text-center">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${
+                          <span className={`font-bold text-xs ${
                             status === 'Active'
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                              : 'bg-slate-100 text-slate-500 border-slate-300 dark:bg-slate-700 dark:text-slate-400'
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-slate-400'
                           }`}>
                             {status}
                           </span>
