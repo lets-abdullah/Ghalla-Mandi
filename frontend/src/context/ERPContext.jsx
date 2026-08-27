@@ -890,10 +890,34 @@ export const ERPProvider = ({ children }) => {
           const prevReturn = Number(p.returnAmount || 0);
           const newReturnAmt = prevReturn + (Number(returnData.refundAmount) || 0);
           const origAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal || 0));
-          const isFull = newReturnAmt >= origAmt;
+          const totalReturnedItemsQty = (returnData.items || []).reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
+          const prevReturnedQty = Number(p.returnedQty || 0);
+          const newReturnedQty = prevReturnedQty + totalReturnedItemsQty;
+          const origQty = Number(p.qty || p.weight || p.itemsCount || (Array.isArray(p.cart) ? p.cart.reduce((s, i) => s + Number(i.qty || 1), 0) : 1));
+          const isFull = newReturnAmt >= (origAmt - 1) || (origQty > 0 && newReturnedQty >= origQty);
+
+          // Update item-level returned quantities in purchase's cart
+          const updatedCart = Array.isArray(p.cart) ? p.cart.map(cartItem => {
+            const returnedItem = (returnData.items || []).find(rItem => 
+              (rItem.productId && rItem.productId === (cartItem.productId || cartItem.id)) ||
+              (rItem.name && rItem.name === cartItem.name)
+            );
+            if (returnedItem) {
+              const currentReturned = Number(cartItem.returnedQty || 0);
+              return {
+                ...cartItem,
+                returnedQty: currentReturned + Number(returnedItem.qty || 0)
+              };
+            }
+            return cartItem;
+          }) : p.cart;
+
           return {
             ...p,
+            cart: updatedCart,
+            returnedQty: newReturnedQty,
             returnAmount: newReturnAmt,
+            returnStatus: isFull ? 'Fully Returned' : 'Partially Returned',
             status: isFull ? 'Returned' : 'Partial Return'
           };
         }

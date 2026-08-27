@@ -842,17 +842,27 @@ export const Purchases = () => {
                             )}
 
                             {/* Return Action Button */}
-                            <button
-                              onClick={() => {
-                                setSelectedReturnPurchase(p);
-                                setShowReturnModal(true);
-                              }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                              title="Return Purchase"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                              <span>Return Purchase</span>
-                            </button>
+                            {(p.returnStatus === 'Fully Returned' || (Number(p.returnAmount || 0) >= (total - 1) && total > 0)) ? (
+                              <span 
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
+                                title="This purchase is fully returned"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-purple-500" />
+                                <span>Fully Returned</span>
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setSelectedReturnPurchase(p);
+                                  setShowReturnModal(true);
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                                title="Return Purchase"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                <span>Return Purchase</span>
+                              </button>
+                            )}
 
                             <button
                               onClick={() => {
