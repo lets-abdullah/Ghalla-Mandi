@@ -5,7 +5,8 @@ import {
   Percent, CheckCircle2, DollarSign,
   CreditCard, Smartphone, Wallet, Edit3, Phone, MapPin,
   RefreshCw, Wheat, Check, PanelLeftClose, PanelLeftOpen, Maximize2,
-  Receipt, AlertCircle, FileText, ChevronDown, Filter, Building2
+  Receipt, AlertCircle, FileText, ChevronDown, Filter, Building2,
+  Landmark
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -68,6 +69,9 @@ export const CreateOrder = () => {
     creditLimit: '',
     paymentTerms: 'Cash / Credit',
     cnic: '',
+    bankName: '',
+    accountTitle: '',
+    accountNumber: '',
     notes: ''
   });
 
@@ -374,6 +378,9 @@ export const CreateOrder = () => {
         creditLimit: Number(newCustomerForm.creditLimit) || 0,
         paymentTerms: newCustomerForm.paymentTerms || 'Cash / Credit',
         cnic: newCustomerForm.cnic.trim(),
+        bankName: newCustomerForm.bankName.trim(),
+        accountTitle: newCustomerForm.accountTitle.trim(),
+        accountNumber: newCustomerForm.accountNumber.trim(),
         notes: newCustomerForm.notes.trim()
       });
 
@@ -393,6 +400,9 @@ export const CreateOrder = () => {
         creditLimit: '',
         paymentTerms: 'Cash / Credit',
         cnic: '',
+        bankName: '',
+        accountTitle: '',
+        accountNumber: '',
         notes: ''
       });
     } catch (err) {
@@ -1527,7 +1537,59 @@ export const CreateOrder = () => {
                   </div>
                 </div>
 
-                {/* 4. Identification & Notes */}
+                {/* 4. Bank Account Details */}
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                  <div className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <Landmark className="w-3.5 h-3.5" />
+                    <span>Bank Account Details (Optional)</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        Bank Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Meezan, HBL"
+                        value={newCustomerForm.bankName}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, bankName: e.target.value })}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        Account Title
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Title of Account"
+                        value={newCustomerForm.accountTitle}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, accountTitle: e.target.value })}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                        Account # / IBAN
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="PK36..."
+                        value={newCustomerForm.accountNumber}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, accountNumber: e.target.value })}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. Identification & Notes */}
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>

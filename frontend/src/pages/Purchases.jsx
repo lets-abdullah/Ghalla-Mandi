@@ -16,7 +16,10 @@ import {
   Scale,
   Sparkles,
   Check,
-  UserCheck
+  UserCheck,
+  User,
+  Landmark,
+  Hash
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -46,7 +49,7 @@ export const Purchases = () => {
   const [search, setSearch] = useState('');
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('All');
   const [selectedProductFilter, setSelectedProductFilter] = useState('All');
-  const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
+  const [dateFilter, setDateFilter] = useState('All Time'); // 'Today' | 'Yesterday' | 'Weekly' | 'Monthly' | 'Custom' | 'All Time'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -65,7 +68,7 @@ export const Purchases = () => {
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [productSuccessMsg, setProductSuccessMsg] = useState('');
 
-  // New Supplier Form State
+  // New Supplier Form State with Bank Details
   const [newSupplierForm, setNewSupplierForm] = useState({
     name: '',
     businessName: '',
@@ -73,6 +76,9 @@ export const Purchases = () => {
     city: '',
     address: '',
     openingBalance: 0,
+    bankName: '',
+    accountTitle: '',
+    accountNumber: '',
     suppliedProducts: [],
     notes: ''
   });
@@ -272,6 +278,9 @@ export const Purchases = () => {
         city: newSupplierForm.city.trim() || 'Local Mandi',
         address: newSupplierForm.address.trim(),
         openingBalance: Number(newSupplierForm.openingBalance) || 0,
+        bankName: newSupplierForm.bankName.trim(),
+        accountTitle: newSupplierForm.accountTitle.trim(),
+        accountNumber: newSupplierForm.accountNumber.trim(),
         suppliedProducts: newSupplierForm.suppliedProducts || [],
         status: 'Active',
         notes: newSupplierForm.notes.trim()
@@ -298,6 +307,9 @@ export const Purchases = () => {
         city: '',
         address: '',
         openingBalance: 0,
+        bankName: '',
+        accountTitle: '',
+        accountNumber: '',
         suppliedProducts: [],
         notes: ''
       });
@@ -1186,32 +1198,28 @@ export const Purchases = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 2. QUICK ADD NEW SUPPLIER MODAL (Layered on top of New Purchase dialog at z-[100]) */}
+      {/* 2. QUICK ADD SUPPLIER MODAL (Compact 2-Column Grid - No Desktop Scroll) */}
       {/* ========================================================================= */}
       {showAddSupplierModal && (
-        <div
-          onClick={(e) => { 
-            if (e.target === e.currentTarget) {
-              setShowAddSupplierModal(false); 
-            }
-          }}
-          className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+        <div 
+          onClick={() => setShowAddSupplierModal(false)}
+          className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
           style={{ zIndex: 100 }}
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border my-6 relative shadow-2xl ${
+            className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto relative shadow-2xl ${
               theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
                   <UserCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold">Add New Supplier</h3>
-                  <p className="text-[10px] text-slate-400 font-bold">Will automatically select in current purchase</p>
+                  <h3 className="text-base font-extrabold">Quick Add Supplier</h3>
+                  <p className="text-[10px] text-slate-400 font-bold">Save supplier and auto-select into current purchase record</p>
                 </div>
               </div>
 
@@ -1224,105 +1232,186 @@ export const Purchases = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveSupplier} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">
-                  Supplier / Contact Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  placeholder="e.g. Aslam Chaudhry, Haji Rafiq"
-                  value={newSupplierForm.name}
-                  onChange={(e) => setNewSupplierForm({ ...newSupplierForm, name: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
+            <form onSubmit={handleSaveSupplier} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                {/* LEFT COLUMN: Identity & Contact */}
+                <div className="space-y-3">
+                  <div className="text-[11px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Identity & Contact</span>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Business / Firm Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Aslam Grain Traders"
-                    value={newSupplierForm.businessName}
-                    onChange={(e) => setNewSupplierForm({ ...newSupplierForm, businessName: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Supplier / Contact Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        autoFocus
+                        placeholder="e.g. Aslam Chaudhry"
+                        value={newSupplierForm.name}
+                        onChange={(e) => setNewSupplierForm({ ...newSupplierForm, name: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Firm / Business Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Aslam Grain Traders"
+                        value={newSupplierForm.businessName}
+                        onChange={(e) => setNewSupplierForm({ ...newSupplierForm, businessName: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="03001234567"
+                        value={newSupplierForm.phone}
+                        onChange={(e) => setNewSupplierForm({ ...newSupplierForm, phone: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        City / Mandi
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Faisalabad"
+                        value={newSupplierForm.city}
+                        onChange={(e) => setNewSupplierForm({ ...newSupplierForm, city: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Full Address (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Shop #, Grain Market..."
+                      value={newSupplierForm.address}
+                      onChange={(e) => setNewSupplierForm({ ...newSupplierForm, address: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="03001234567"
-                    value={newSupplierForm.phone}
-                    onChange={(e) => setNewSupplierForm({ ...newSupplierForm, phone: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+                {/* RIGHT COLUMN: Financial & Bank Details */}
+                <div className="space-y-3">
+                  <div className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+                    <Landmark className="w-3.5 h-3.5" />
+                    <span>Financial & Bank Account Info</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Opening Balance (PKR)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="0"
+                      value={newSupplierForm.openingBalance}
+                      onChange={(e) => setNewSupplierForm({ ...newSupplierForm, openingBalance: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Bank Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Meezan, HBL"
+                        value={newSupplierForm.bankName}
+                        onChange={(e) => setNewSupplierForm({ ...newSupplierForm, bankName: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account Title
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Account Title"
+                        value={newSupplierForm.accountTitle}
+                        onChange={(e) => setNewSupplierForm({ ...newSupplierForm, accountTitle: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account # / IBAN
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="PK36..."
+                        value={newSupplierForm.accountNumber}
+                        onChange={(e) => setNewSupplierForm({ ...newSupplierForm, accountNumber: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Notes / Instructions
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Special Mandi notes or terms..."
+                      value={newSupplierForm.notes}
+                      onChange={(e) => setNewSupplierForm({ ...newSupplierForm, notes: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    City / Mandi
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Faisalabad"
-                    value={newSupplierForm.city}
-                    onChange={(e) => setNewSupplierForm({ ...newSupplierForm, city: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Opening Balance (PKR)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={newSupplierForm.openingBalance}
-                    onChange={(e) => setNewSupplierForm({ ...newSupplierForm, openingBalance: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">
-                  Full Address (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Shop #, Grain Market..."
-                  value={newSupplierForm.address}
-                  onChange={(e) => setNewSupplierForm({ ...newSupplierForm, address: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => setShowAddSupplierModal(false)}

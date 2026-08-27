@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Truck, ArrowLeft, Building2, Phone, MapPin, Package, Check, Plus, Search } from 'lucide-react';
+import { Truck, ArrowLeft, Building2, Phone, MapPin, Package, Check, Plus, Search, Landmark, Hash } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
@@ -15,9 +15,14 @@ export const AddSupplier = () => {
 
   const [form, setForm] = useState({
     name: '',
+    businessName: '',
     phone: '',
     city: 'Sargodha',
+    address: '',
     openingBalance: 0,
+    bankName: '',
+    accountTitle: '',
+    accountNumber: '',
     suppliedProductIds: []
   });
 
@@ -84,23 +89,40 @@ export const AddSupplier = () => {
             {t('supplierFirmName')}
           </h2>
 
-          {/* Firm Name */}
-          <div>
-            <label className="text-xs font-extrabold text-slate-400 block mb-1.5 uppercase tracking-wider">
-              {t('supplierFirmName')} *
-            </label>
-            <div className="relative">
-              <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Contact / Person Name */}
+            <div>
+              <label className="text-xs font-extrabold text-slate-400 block mb-1.5 uppercase tracking-wider">
+                Supplier / Contact Name *
+              </label>
               <input
                 type="text"
                 required
                 autoFocus
-                placeholder="e.g. Sargodha Traders"
+                placeholder="e.g. Aslam Chaudhry"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className={`w-full border rounded-xl pl-10 pr-3 py-2.5 text-xs font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               />
+            </div>
+
+            {/* Firm Name */}
+            <div>
+              <label className="text-xs font-extrabold text-slate-400 block mb-1.5 uppercase tracking-wider">
+                Business / Firm Name
+              </label>
+              <div className="relative">
+                <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="e.g. Sargodha Traders"
+                  value={form.businessName}
+                  onChange={(e) => setForm({ ...form, businessName: e.target.value })}
+                  className={`w-full border rounded-xl pl-10 pr-3 py-2.5 text-xs font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
             </div>
           </div>
 
@@ -117,7 +139,7 @@ export const AddSupplier = () => {
                   placeholder="03001234567"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className={`w-full border rounded-xl pl-10 pr-3 py-2.5 text-xs font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl pl-10 pr-3 py-2.5 text-xs font-mono font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 />
               </div>
@@ -136,6 +158,49 @@ export const AddSupplier = () => {
                   value={form.city}
                   onChange={(e) => setForm({ ...form, city: e.target.value })}
                   className={`w-full border rounded-xl pl-10 pr-3 py-2.5 text-xs font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Bank Account Details */}
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-700 space-y-3">
+            <div className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <Landmark className="w-4 h-4" />
+              <span>Bank Account Details</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Bank Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Meezan, HBL"
+                  value={form.bankName}
+                  onChange={(e) => setForm({ ...form, bankName: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Account Title</label>
+                <input
+                  type="text"
+                  placeholder="Title of Account"
+                  value={form.accountTitle}
+                  onChange={(e) => setForm({ ...form, accountTitle: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Account # / IBAN</label>
+                <input
+                  type="text"
+                  placeholder="PK36..."
+                  value={form.accountNumber}
+                  onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 />
               </div>

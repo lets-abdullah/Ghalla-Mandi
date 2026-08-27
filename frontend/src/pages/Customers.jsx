@@ -19,7 +19,9 @@ import {
   LayoutGrid,
   List,
   Mail,
-  FileText
+  FileText,
+  Landmark,
+  Hash
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -46,7 +48,7 @@ export const Customers = () => {
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [viewingCustomer, setViewingCustomer] = useState(null);
 
-  // Form state for New Regular Customer
+  // Form state for New Regular Customer with Bank Details
   const [form, setForm] = useState({
     name: '',
     businessName: '',
@@ -56,6 +58,10 @@ export const Customers = () => {
     city: '',
     address: '',
     customerType: 'Regular Customer',
+    openingBalance: 0,
+    bankName: '',
+    accountTitle: '',
+    accountNumber: '',
     status: 'Active',
     notes: ''
   });
@@ -147,7 +153,10 @@ export const Customers = () => {
         city: form.city.trim() || 'Local Mandi',
         address: form.address.trim(),
         customerType: form.customerType,
-        openingBalance: 0,
+        openingBalance: Number(form.openingBalance) || 0,
+        bankName: form.bankName.trim(),
+        accountTitle: form.accountTitle.trim(),
+        accountNumber: form.accountNumber.trim(),
         status: form.status || 'Active',
         notes: form.notes.trim()
       });
@@ -162,6 +171,10 @@ export const Customers = () => {
         city: '',
         address: '',
         customerType: 'Regular Customer',
+        openingBalance: 0,
+        bankName: '',
+        accountTitle: '',
+        accountNumber: '',
         status: 'Active',
         notes: ''
       });
@@ -187,6 +200,9 @@ export const Customers = () => {
         address: editingCustomer.address ? editingCustomer.address.trim() : '',
         customerType: editingCustomer.customerType || 'Regular Customer',
         balance: Number(editingCustomer.balance) || 0,
+        bankName: editingCustomer.bankName ? editingCustomer.bankName.trim() : '',
+        accountTitle: editingCustomer.accountTitle ? editingCustomer.accountTitle.trim() : '',
+        accountNumber: (editingCustomer.accountNumber || editingCustomer.iban) ? (editingCustomer.accountNumber || editingCustomer.iban).trim() : '',
         status: editingCustomer.status || 'Active',
         notes: editingCustomer.notes ? editingCustomer.notes.trim() : ''
       });
@@ -786,6 +802,32 @@ export const Customers = () => {
                     <span className="font-medium text-slate-800 dark:text-slate-200">{viewingCustomer.address}</span>
                   </div>
                 )}
+                {(viewingCustomer.bankName || viewingCustomer.accountNumber || viewingCustomer.accountTitle) && (
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-1.5">
+                    <div className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <Landmark className="w-3 h-3" />
+                      <span>Bank Account Details</span>
+                    </div>
+                    {viewingCustomer.bankName && (
+                      <div className="flex justify-between items-center text-slate-500">
+                        <span>Bank Name:</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{viewingCustomer.bankName}</span>
+                      </div>
+                    )}
+                    {viewingCustomer.accountTitle && (
+                      <div className="flex justify-between items-center text-slate-500">
+                        <span>Account Title:</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{viewingCustomer.accountTitle}</span>
+                      </div>
+                    )}
+                    {(viewingCustomer.accountNumber || viewingCustomer.iban) && (
+                      <div className="flex justify-between items-center text-slate-500">
+                        <span>Account # / IBAN:</span>
+                        <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingCustomer.accountNumber || viewingCustomer.iban}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {viewingCustomer.notes && (
                   <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-slate-400 italic">
                     Note: {viewingCustomer.notes}
@@ -825,20 +867,26 @@ export const Customers = () => {
       })()}
 
       {/* ========================================================================= */}
-      {/* 2. ADD REGULAR CUSTOMER MODAL (2-Column Form Layout on Desktop, 1-Column Responsive) */}
+      {/* 2. ADD REGULAR CUSTOMER MODAL (Compact 2-Column Grid - No Desktop Scroll) */}
       {/* ========================================================================= */}
       {showAddModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowAddModal(false); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-2xl w-full p-6 space-y-4 card-shadow border my-6 ${
+          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-base font-extrabold flex items-center gap-2">
-                <Plus className="w-5 h-5 text-brand-500" /> Add Regular Customer
-              </h3>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
+                  <User className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">Add New Customer</h3>
+                  <p className="text-[10px] text-slate-400 font-bold">Register customer account, credit info & bank details</p>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
@@ -849,139 +897,235 @@ export const Customers = () => {
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">
-              {/* Section 1: Customer Identity */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Customer Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Full Customer Name"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                {/* LEFT COLUMN: Customer & Contact Info */}
+                <div className="space-y-3">
+                  <div className="text-[11px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Customer & Contact Details</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Customer Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        autoFocus
+                        placeholder="Full Customer Name"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Business / Firm Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Company or Shop Name"
+                        value={form.businessName}
+                        onChange={(e) => setForm({ ...form, businessName: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="03001234567"
+                        value={form.phone}
+                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        WhatsApp Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="03001234567"
+                        value={form.whatsapp}
+                        onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        City / Mandi
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Faisalabad, Okara"
+                        value={form.city}
+                        onChange={(e) => setForm({ ...form, city: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Email Address (Optional)
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="customer@example.com"
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Full Address
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Shop # / Street / Market address"
+                      value={form.address}
+                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Business / Firm Name</label>
-                  <input
-                    type="text"
-                    placeholder="Company or Shop Name"
-                    value={form.businessName}
-                    onChange={(e) => setForm({ ...form, businessName: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+                {/* RIGHT COLUMN: Financial, Bank & Account Details */}
+                <div className="space-y-3">
+                  <div className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+                    <Landmark className="w-3.5 h-3.5" />
+                    <span>Financial & Bank Account Info</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Customer Type
+                      </label>
+                      <select
+                        value={form.customerType}
+                        onChange={(e) => setForm({ ...form, customerType: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        <option value="Regular Customer">Regular Customer</option>
+                        <option value="Walk-in Customer">Walk-in Customer</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Opening Balance (PKR)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder="0"
+                        value={form.openingBalance}
+                        onChange={(e) => setForm({ ...form, openingBalance: Number(e.target.value) })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Bank Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Meezan, HBL"
+                        value={form.bankName}
+                        onChange={(e) => setForm({ ...form, bankName: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account Title
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Title of Account"
+                        value={form.accountTitle}
+                        onChange={(e) => setForm({ ...form, accountTitle: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account # / IBAN
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="PK36MEZN..."
+                        value={form.accountNumber}
+                        onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Notes / Instructions
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Special Mandi terms, credit terms, notes..."
+                      value={form.notes}
+                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Section 2: Contact Numbers */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Phone Number</label>
-                  <input
-                    type="text"
-                    placeholder="03001234567"
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">WhatsApp Number</label>
-                  <input
-                    type="text"
-                    placeholder="03001234567"
-                    value={form.whatsapp}
-                    onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* Section 3: Email & City */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="customer@example.com"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">City / Mandi</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Faisalabad / Okara"
-                    value={form.city}
-                    onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* Section 4: Address & Customer Type */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Address</label>
-                  <input
-                    type="text"
-                    placeholder="Shop # / Street / Market address"
-                    value={form.address}
-                    onChange={(e) => setForm({ ...form, address: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Customer Type</label>
-                  <select
-                    value={form.customerType}
-                    onChange={(e) => setForm({ ...form, customerType: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    <option value="Regular Customer">Regular Customer</option>
-                    <option value="Walk-in Customer">Walk-in Customer</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Section 5: Notes */}
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Notes / Additional Info</label>
-                <input
-                  type="text"
-                  placeholder="Special instructions, credit terms, etc."
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
-
-              <div className="flex gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -995,7 +1139,7 @@ export const Customers = () => {
                   type="submit"
                   className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
                 >
-                  Save Regular Customer
+                  Save Customer
                 </button>
               </div>
             </form>
@@ -1004,20 +1148,26 @@ export const Customers = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 3. EDIT CUSTOMER MODAL */}
+      {/* 3. EDIT CUSTOMER MODAL (Compact 2-Column Grid - No Desktop Scroll) */}
       {/* ========================================================================= */}
       {editingCustomer && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setEditingCustomer(null); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-2xl w-full p-6 space-y-4 card-shadow border my-6 ${
+          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-base font-extrabold flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-blue-500" /> Edit Customer Profile
-              </h3>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">Edit Customer Profile</h3>
+                  <p className="text-[10px] text-slate-400 font-bold">Update customer identity, credit balance & bank accounts</p>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setEditingCustomer(null)}
@@ -1028,116 +1178,226 @@ export const Customers = () => {
             </div>
 
             <form onSubmit={handleUpdateSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Customer Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editingCustomer.name}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                {/* LEFT COLUMN: Customer & Contact Info */}
+                <div className="space-y-3">
+                  <div className="text-[11px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Customer & Contact Details</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Customer Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editingCustomer.name}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Business / Firm Name
+                      </label>
+                      <input
+                        type="text"
+                        value={editingCustomer.businessName || editingCustomer.shopName || ''}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, businessName: e.target.value, shopName: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        value={editingCustomer.phone || ''}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        WhatsApp Number
+                      </label>
+                      <input
+                        type="text"
+                        value={editingCustomer.whatsapp || ''}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, whatsapp: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        City / Mandi
+                      </label>
+                      <input
+                        type="text"
+                        value={editingCustomer.city || ''}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, city: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={editingCustomer.email || ''}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Full Address
+                    </label>
+                    <input
+                      type="text"
+                      value={editingCustomer.address || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Business / Firm Name</label>
-                  <input
-                    type="text"
-                    value={editingCustomer.businessName || editingCustomer.shopName || ''}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, businessName: e.target.value, shopName: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+                {/* RIGHT COLUMN: Financial, Bank & Account Details */}
+                <div className="space-y-3">
+                  <div className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+                    <Landmark className="w-3.5 h-3.5" />
+                    <span>Financial & Bank Account Info</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Customer Type
+                      </label>
+                      <select
+                        value={editingCustomer.customerType || 'Regular Customer'}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, customerType: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        <option value="Regular Customer">Regular Customer</option>
+                        <option value="Walk-in Customer">Walk-in Customer</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Current Balance (PKR)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={editingCustomer.balance || 0}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, balance: Number(e.target.value) })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Bank Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Meezan, HBL"
+                        value={editingCustomer.bankName || ''}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, bankName: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account Title
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Title of Account"
+                        value={editingCustomer.accountTitle || ''}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, accountTitle: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account # / IBAN
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="PK36MEZN..."
+                        value={editingCustomer.accountNumber || editingCustomer.iban || ''}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, accountNumber: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Notes / Instructions
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Special Mandi terms, credit terms, notes..."
+                      value={editingCustomer.notes || ''}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, notes: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Phone Number</label>
-                  <input
-                    type="text"
-                    value={editingCustomer.phone}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">WhatsApp Number</label>
-                  <input
-                    type="text"
-                    value={editingCustomer.whatsapp || ''}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, whatsapp: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Customer Type</label>
-                  <select
-                    value={editingCustomer.customerType || 'Regular Customer'}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, customerType: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    <option value="Regular Customer">Regular Customer</option>
-                    <option value="Walk-in Customer">Walk-in Customer</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">City / Mandi</label>
-                  <input
-                    type="text"
-                    value={editingCustomer.city || ''}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, city: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Address</label>
-                  <input
-                    type="text"
-                    value={editingCustomer.address || ''}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Account Status</label>
-                  <select
-                    value={editingCustomer.status || 'Active'}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, status: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => setEditingCustomer(null)}

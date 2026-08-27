@@ -402,10 +402,18 @@ export const ERPProvider = ({ children }) => {
     try {
       const payload = {
         name: customerData.name,
+        businessName: customerData.businessName || customerData.shopName || '',
         phone: customerData.phone || '',
-        city: customerData.city || 'Faisalabad',
+        whatsapp: customerData.whatsapp || '',
+        email: customerData.email || '',
+        city: customerData.city || 'Local Mandi',
+        address: customerData.address || '',
         customerType: customerData.customerType || 'Regular Party',
-        openingBalance: Number(customerData.openingBalance) || 0
+        openingBalance: Number(customerData.openingBalance) || 0,
+        bankName: customerData.bankName || '',
+        accountTitle: customerData.accountTitle || '',
+        accountNumber: customerData.accountNumber || customerData.iban || '',
+        notes: customerData.notes || ''
       };
 
       const res = await authFetch('/api/customers', {
@@ -414,8 +422,9 @@ export const ERPProvider = ({ children }) => {
       });
 
       if (res.success && res.customer) {
-        setCustomers(prev => [...prev, res.customer]);
-        return res.customer;
+        const fullCust = { ...payload, ...res.customer };
+        setCustomers(prev => [...prev, fullCust]);
+        return fullCust;
       }
       throw new Error(res.message || 'Failed to add customer');
     } catch (err) {
@@ -432,8 +441,8 @@ export const ERPProvider = ({ children }) => {
       });
 
       if (res.success && res.customer) {
-        setCustomers(prev => prev.map(c => c.id === id ? res.customer : c));
-        return res.customer;
+        setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updatedData, ...res.customer } : c));
+        return { ...updatedData, ...res.customer };
       }
       throw new Error(res.message || 'Failed to update customer');
     } catch (err) {
@@ -472,6 +481,9 @@ export const ERPProvider = ({ children }) => {
         address: supplierData.address || '',
         openingBalance: Number(supplierData.openingBalance) || 0,
         suppliedProducts: supplierData.suppliedProducts || [],
+        bankName: supplierData.bankName || '',
+        accountTitle: supplierData.accountTitle || '',
+        accountNumber: supplierData.accountNumber || supplierData.iban || '',
         status: supplierData.status || 'Active',
         notes: supplierData.notes || ''
       };

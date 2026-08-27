@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   UserCheck, 
   Search, 
@@ -22,12 +22,184 @@ import {
   ExternalLink,
   ChevronRight,
   ShoppingCart,
-  FolderPlus
+  FolderPlus,
+  Landmark,
+  Hash,
+  ChevronDown
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
+
+// Searchable Product Multi-Select Combobox Component
+const SuppliedProductsCombobox = ({
+  products = [],
+  selectedProducts = [],
+  onChange,
+  onAddNewProduct,
+  theme
+}) => {
+  const [query, setQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(query.toLowerCase()) ||
+    (p.category && p.category.toLowerCase().includes(query.toLowerCase()))
+  );
+
+  const toggleProduct = (name) => {
+    if (selectedProducts.includes(name)) {
+      onChange(selectedProducts.filter(n => n !== name));
+    } else {
+      onChange([...selectedProducts, name]);
+    }
+  };
+
+  const removeProduct = (name, e) => {
+    e.stopPropagation();
+    onChange(selectedProducts.filter(n => n !== name));
+  };
+
+  return (
+    <div className="space-y-1.5" ref={containerRef}>
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+          <span>Supplied Products / Commodities</span>
+          {selectedProducts.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 text-[10px] font-extrabold border border-brand-500/20">
+              {selectedProducts.length} selected
+            </span>
+          )}
+        </label>
+        {onAddNewProduct && (
+          <button
+            type="button"
+            onClick={onAddNewProduct}
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add New Product</span>
+          </button>
+        )}
+      </div>
+
+      {/* Search Bar Input with Dropdown Toggle */}
+      <div className="relative">
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search & select products / commodities..."
+            value={query}
+            onFocus={() => setIsOpen(true)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setIsOpen(true);
+            }}
+            className={`w-full border rounded-xl pl-8.5 pr-8 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
+              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+            }`}
+          />
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+          >
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+
+        {/* Dropdown Options List */}
+        {isOpen && (
+          <div className={`absolute left-0 right-0 top-full mt-1 z-50 rounded-2xl border shadow-xl max-h-40 overflow-y-auto p-1.5 space-y-0.5 ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            {filtered.length === 0 ? (
+              <div className="p-2.5 text-center text-xs text-slate-400">
+                No products found matching "{query}"
+                {onAddNewProduct && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      onAddNewProduct();
+                    }}
+                    className="block mx-auto mt-1 text-brand-500 font-bold hover:underline"
+                  >
+                    + Create new product
+                  </button>
+                )}
+              </div>
+            ) : (
+              filtered.map(p => {
+                const isSelected = selectedProducts.includes(p.name);
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => toggleProduct(p.name)}
+                    className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition ${
+                      isSelected
+                        ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold'
+                        : theme === 'dark' ? 'hover:bg-slate-700/60 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <span className="font-bold">{p.name}</span>
+                      <span className="text-[10px] text-slate-400 ml-1.5">({p.category || 'General'} • Rs. {p.sellingPrice})</span>
+                    </div>
+                    <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition ${
+                      isSelected ? 'bg-brand-500 border-brand-500 text-white' : 'border-slate-300 dark:border-slate-600'
+                    }`}>
+                      {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Selected Products Badges */}
+      {selectedProducts.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto pt-0.5">
+          {selectedProducts.map(name => (
+            <span
+              key={name}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl text-xs font-bold border transition ${
+                theme === 'dark'
+                  ? 'bg-brand-500/15 border-brand-500/30 text-brand-400'
+                  : 'bg-brand-50 border-brand-200 text-brand-700'
+              }`}
+            >
+              <span>{name}</span>
+              <button
+                type="button"
+                onClick={(e) => removeProduct(name, e)}
+                className="hover:text-rose-500 transition cursor-pointer"
+                title={`Remove ${name}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const Suppliers = () => {
   const { suppliers = [], products = [], categories = [], purchases = [], addSupplier, updateSupplier, deleteSupplier, addProduct, addCategory } = useERP();
@@ -72,7 +244,7 @@ export const Suppliers = () => {
     description: ''
   });
 
-  // Form for New Supplier
+  // Form for New Supplier with Bank Details
   const [form, setForm] = useState({
     name: '',
     businessName: '',
@@ -83,6 +255,9 @@ export const Suppliers = () => {
     address: '',
     openingBalance: 0,
     suppliedProducts: [],
+    bankName: '',
+    accountTitle: '',
+    accountNumber: '',
     status: 'Active',
     notes: ''
   });
@@ -127,6 +302,9 @@ export const Suppliers = () => {
         address: form.address.trim(),
         openingBalance: Math.max(0, Number(form.openingBalance) || 0),
         suppliedProducts: form.suppliedProducts || [],
+        bankName: form.bankName.trim(),
+        accountTitle: form.accountTitle.trim(),
+        accountNumber: form.accountNumber.trim(),
         status: form.status || 'Active',
         notes: form.notes.trim()
       });
@@ -142,6 +320,9 @@ export const Suppliers = () => {
         address: '',
         openingBalance: 0,
         suppliedProducts: [],
+        bankName: '',
+        accountTitle: '',
+        accountNumber: '',
         status: 'Active',
         notes: ''
       });
@@ -176,6 +357,9 @@ export const Suppliers = () => {
         address: editingSupplier.address?.trim() || '',
         balance: Math.max(0, Number(editingSupplier.balance) || 0),
         suppliedProducts: editingSupplier.suppliedProducts || [],
+        bankName: editingSupplier.bankName?.trim() || '',
+        accountTitle: editingSupplier.accountTitle?.trim() || '',
+        accountNumber: (editingSupplier.accountNumber || editingSupplier.iban)?.trim() || '',
         status: editingSupplier.status || 'Active',
         notes: editingSupplier.notes?.trim() || ''
       });
@@ -743,16 +927,15 @@ export const Suppliers = () => {
           </div>
         </div>
       )}
-
       {/* ========================================================================= */}
-      {/* 1. DETAILED ADD SUPPLIER MODAL (2-Column Responsive Layout) */}
+      {/* 1. DETAILED ADD SUPPLIER MODAL (Compact 2-Column Grid - No Desktop Scroll) */}
       {/* ========================================================================= */}
       {showAddModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowAddModal(false); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-2xl w-full p-6 space-y-4 card-shadow border my-6 ${
+          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
@@ -762,7 +945,7 @@ export const Suppliers = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold">Add New Supplier</h3>
-                  <p className="text-[10px] text-slate-400 font-bold">Register commodity procurement vendor profile</p>
+                  <p className="text-[10px] text-slate-400 font-bold">Register commodity vendor profile, bank details & supplied items</p>
                 </div>
               </div>
               <button
@@ -776,220 +959,251 @@ export const Suppliers = () => {
 
             {/* Product Success Notification Banner */}
             {productSuccessMsg && (
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
                 <Check className="w-4 h-4 shrink-0" />
                 <span>{productSuccessMsg}</span>
               </div>
             )}
 
-            <form onSubmit={handleCreateSubmit} className="space-y-3.5">
-              {/* Row 1: Name & Business Name */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Supplier / Contact Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    autoFocus
-                    placeholder="e.g. Muhammad Aslam"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+            <form onSubmit={handleCreateSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                {/* LEFT COLUMN: Vendor & Contact Details */}
+                <div className="space-y-3">
+                  <div className="text-[11px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>Vendor & Contact Info</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Supplier / Contact Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        autoFocus
+                        placeholder="e.g. Muhammad Aslam"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Business / Firm Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Aslam Grain Traders"
+                        value={form.businessName}
+                        onChange={(e) => setForm({ ...form, businessName: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="03001234567"
+                        value={form.phone}
+                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        WhatsApp Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="03001234567"
+                        value={form.whatsapp}
+                        onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        City / Mandi Location
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Faisalabad, Multan"
+                        value={form.city}
+                        onChange={(e) => setForm({ ...form, city: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Email Address (Optional)
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="supplier@example.com"
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Full Address
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Shop #, Grain Market, Station Road..."
+                      value={form.address}
+                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Business / Firm Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Aslam Grain Traders"
-                    value={form.businessName}
-                    onChange={(e) => setForm({ ...form, businessName: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
+                {/* RIGHT COLUMN: Financial, Bank & Commodities */}
+                <div className="space-y-3">
+                  <div className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+                    <Landmark className="w-3.5 h-3.5" />
+                    <span>Bank & Financial Details</span>
+                  </div>
 
-              {/* Row 2: Phone & WhatsApp */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="03001234567"
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Opening Balance (PKR)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder="0"
+                        value={form.openingBalance}
+                        onChange={(e) => setForm({ ...form, openingBalance: Number(e.target.value) })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    WhatsApp Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="03001234567"
-                    value={form.whatsapp}
-                    onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* Row 3: City & Email */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    City / Mandi
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Faisalabad, Sargodha, Chiniot"
-                    value={form.city}
-                    onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Email Address (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="supplier@example.com"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* Row 4: Address */}
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">
-                  Full Address
-                </label>
-                <input
-                  type="text"
-                  placeholder="Shop #, Grain Market, Station Road..."
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
-
-              {/* Supplied Products Multi-Select Chips + "+ Add New Product" */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-400">
-                    Supplied Products / Commodities
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddProductModal(true)}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add New Product</span>
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl border max-h-28 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700">
-                  {products.map(p => {
-                    const isSelected = form.suppliedProducts.includes(p.name);
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => toggleProductSelection(p.name, false)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                          isSelected
-                            ? 'bg-brand-500 text-white shadow-xs'
-                            : theme === 'dark' ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account Status
+                      </label>
+                      <select
+                        value={form.status}
+                        onChange={(e) => setForm({ ...form, status: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                         }`}
                       >
-                        {isSelected && <Check className="w-3 h-3" />}
-                        <span>{p.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                    </div>
+                  </div>
 
-              {/* Row 5: Status & Opening Balance */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Opening Payable Balance (PKR)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="0"
-                    value={form.openingBalance}
-                    onChange={(e) => setForm({ ...form, openingBalance: Number(e.target.value) })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Bank Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Meezan, HBL"
+                        value={form.bankName}
+                        onChange={(e) => setForm({ ...form, bankName: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account Title
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Title of Account"
+                        value={form.accountTitle}
+                        onChange={(e) => setForm({ ...form, accountTitle: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account # / IBAN
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="PK36MEZN..."
+                        value={form.accountNumber}
+                        onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Searchable Combobox for Supplied Products */}
+                  <SuppliedProductsCombobox
+                    products={products}
+                    selectedProducts={form.suppliedProducts}
+                    onChange={(newSelection) => setForm({ ...form, suppliedProducts: newSelection })}
+                    onAddNewProduct={() => setShowAddProductModal(true)}
+                    theme={theme}
                   />
-                </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Account Status
-                  </label>
-                  <select
-                    value={form.status}
-                    onChange={(e) => setForm({ ...form, status: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Notes / Terms (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Special Mandi terms, credit days, commission..."
+                      value={form.notes}
+                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Row 6: Notes */}
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">
-                  Notes / Terms (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Special Mandi terms, credit days, commission details..."
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -1013,14 +1227,14 @@ export const Suppliers = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 2. EDIT SUPPLIER MODAL */}
+      {/* 2. EDIT SUPPLIER MODAL (Compact 2-Column Grid - No Desktop Scroll) */}
       {/* ========================================================================= */}
       {editingSupplier && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setEditingSupplier(null); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-2xl w-full p-6 space-y-4 card-shadow border my-6 ${
+          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
@@ -1030,7 +1244,7 @@ export const Suppliers = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold">Edit Supplier Profile</h3>
-                  <p className="text-[10px] text-slate-400 font-bold">Update vendor details and supplied commodities</p>
+                  <p className="text-[10px] text-slate-400 font-bold">Update vendor details, bank accounts and supplied commodities</p>
                 </div>
               </div>
               <button
@@ -1044,204 +1258,241 @@ export const Suppliers = () => {
 
             {/* Product Success Notification Banner */}
             {productSuccessMsg && (
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
                 <Check className="w-4 h-4 shrink-0" />
                 <span>{productSuccessMsg}</span>
               </div>
             )}
 
-            <form onSubmit={handleUpdateSubmit} className="space-y-3.5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Supplier / Contact Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editingSupplier.name}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, name: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+            <form onSubmit={handleUpdateSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                {/* LEFT COLUMN: Vendor & Contact Details */}
+                <div className="space-y-3">
+                  <div className="text-[11px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>Vendor & Contact Info</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Supplier / Contact Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editingSupplier.name}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, name: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Business / Firm Name
+                      </label>
+                      <input
+                        type="text"
+                        value={editingSupplier.businessName || ''}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, businessName: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        value={editingSupplier.phone}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, phone: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        WhatsApp Number
+                      </label>
+                      <input
+                        type="text"
+                        value={editingSupplier.whatsapp || ''}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, whatsapp: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        City / Mandi
+                      </label>
+                      <input
+                        type="text"
+                        value={editingSupplier.city}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, city: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={editingSupplier.email || ''}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, email: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Full Address
+                    </label>
+                    <input
+                      type="text"
+                      value={editingSupplier.address || ''}
+                      onChange={(e) => setEditingSupplier({ ...editingSupplier, address: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Business / Firm Name
-                  </label>
-                  <input
-                    type="text"
-                    value={editingSupplier.businessName || ''}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, businessName: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
+                {/* RIGHT COLUMN: Financial, Bank & Commodities */}
+                <div className="space-y-3">
+                  <div className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
+                    <Landmark className="w-3.5 h-3.5" />
+                    <span>Bank & Financial Details</span>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    value={editingSupplier.phone}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, phone: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Current Balance (PKR)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={editingSupplier.balance || 0}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, balance: Number(e.target.value) })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    WhatsApp Number
-                  </label>
-                  <input
-                    type="text"
-                    value={editingSupplier.whatsapp || ''}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, whatsapp: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    City / Mandi
-                  </label>
-                  <input
-                    type="text"
-                    value={editingSupplier.city}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, city: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={editingSupplier.email || ''}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, email: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">
-                  Full Address
-                </label>
-                <input
-                  type="text"
-                  value={editingSupplier.address || ''}
-                  onChange={(e) => setEditingSupplier({ ...editingSupplier, address: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
-
-              {/* Supplied Products Multi-Select Chips + "+ Add New Product" */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-400">
-                    Supplied Products / Commodities
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddProductModal(true)}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add New Product</span>
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl border max-h-28 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700">
-                  {products.map(p => {
-                    const isSelected = (editingSupplier.suppliedProducts || []).includes(p.name);
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => toggleProductSelection(p.name, true)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                          isSelected
-                            ? 'bg-brand-500 text-white shadow-xs'
-                            : theme === 'dark' ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account Status
+                      </label>
+                      <select
+                        value={editingSupplier.status || 'Active'}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, status: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                         }`}
                       >
-                        {isSelected && <Check className="w-3 h-3" />}
-                        <span>{p.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Current Balance (PKR)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={editingSupplier.balance || 0}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, balance: Number(e.target.value) })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Bank Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Meezan, HBL"
+                        value={editingSupplier.bankName || ''}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, bankName: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account Title
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Title of Account"
+                        value={editingSupplier.accountTitle || ''}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, accountTitle: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                        Account # / IBAN
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="PK36MEZN..."
+                        value={editingSupplier.accountNumber || editingSupplier.iban || ''}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, accountNumber: e.target.value })}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Searchable Combobox for Supplied Products */}
+                  <SuppliedProductsCombobox
+                    products={products}
+                    selectedProducts={editingSupplier.suppliedProducts || []}
+                    onChange={(newSelection) => setEditingSupplier({ ...editingSupplier, suppliedProducts: newSelection })}
+                    onAddNewProduct={() => setShowAddProductModal(true)}
+                    theme={theme}
                   />
-                </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">
-                    Account Status
-                  </label>
-                  <select
-                    value={editingSupplier.status || 'Active'}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, status: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Notes / Terms (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={editingSupplier.notes || ''}
+                      onChange={(e) => setEditingSupplier({ ...editingSupplier, notes: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">
-                  Notes / Terms (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={editingSupplier.notes || ''}
-                  onChange={(e) => setEditingSupplier({ ...editingSupplier, notes: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => setEditingSupplier(null)}
@@ -1270,9 +1521,9 @@ export const Suppliers = () => {
       {viewingSupplier && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setViewingSupplier(null); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-xl w-full p-6 space-y-4 card-shadow border my-6 ${
+          <div className={`rounded-3xl max-w-xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
@@ -1303,76 +1554,116 @@ export const Suppliers = () => {
               </button>
             </div>
 
-            {/* Metrics overview */}
+            {/* Financial Details Row */}
             <div className="grid grid-cols-2 gap-3">
-              <div className={`p-3 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3 rounded-2xl border text-center ${
+                theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Payable Balance</div>
-                <div className={`text-lg font-black font-mono mt-0.5 ${(Number(viewingSupplier.balance) || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                  Rs. {(Number(viewingSupplier.balance) || 0).toLocaleString()}
+                <div className={`font-mono font-black text-sm mt-0.5 ${
+                  Number(viewingSupplier.balance || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'
+                }`}>
+                  Rs. {Number(viewingSupplier.balance || 0).toLocaleString()}
                 </div>
               </div>
 
-              <div className={`p-3 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                <div className="text-[10px] font-bold text-slate-400 uppercase">City / Location</div>
-                <div className="text-sm font-extrabold mt-1 text-slate-800 dark:text-slate-200">
-                  {viewingSupplier.city || 'Local Mandi'}
+              <div className={`p-3 rounded-2xl border text-center ${
+                theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Procured Invoices</div>
+                <div className="font-mono font-black text-sm text-slate-700 dark:text-slate-200 mt-0.5">
+                  {(purchases || []).filter(p => p.supplier === viewingSupplier.name || p.supplierId === viewingSupplier.id).length} Purchases
                 </div>
               </div>
             </div>
 
-            {/* Profile Contact Details */}
-            <div className={`p-4 rounded-2xl border text-xs space-y-2.5 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'}`}>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-bold">Phone Number:</span>
-                <span className="font-mono font-bold">{viewingSupplier.phone}</span>
+            {/* Contact, Location & Bank Info Card */}
+            <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${
+              theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+            }`}>
+              <div className="flex justify-between items-center text-slate-500">
+                <span>Phone / Mobile:</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingSupplier.phone || '-'}</span>
               </div>
               {viewingSupplier.whatsapp && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-bold">WhatsApp:</span>
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>WhatsApp:</span>
                   <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{viewingSupplier.whatsapp}</span>
                 </div>
               )}
               {viewingSupplier.email && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-bold">Email:</span>
-                  <span className="font-bold">{viewingSupplier.email}</span>
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Email:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{viewingSupplier.email}</span>
                 </div>
               )}
+              <div className="flex justify-between items-center text-slate-500">
+                <span>City / Mandi:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{viewingSupplier.city || 'Local Mandi'}</span>
+              </div>
               {viewingSupplier.address && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-bold">Address:</span>
-                  <span className="font-bold text-right max-w-xs">{viewingSupplier.address}</span>
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Address:</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">{viewingSupplier.address}</span>
                 </div>
               )}
-              {viewingSupplier.notes && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-bold">Notes:</span>
-                  <span className="font-medium text-slate-600 dark:text-slate-300 text-right max-w-xs">{viewingSupplier.notes}</span>
-                </div>
-              )}
-            </div>
 
-            {/* Supplied Commodities */}
-            <div>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                Supplied Commodities:
+              {/* Bank Details section if present */}
+              {(viewingSupplier.bankName || viewingSupplier.accountNumber || viewingSupplier.accountTitle) && (
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-1.5">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <Landmark className="w-3 h-3" />
+                    <span>Bank Account Details</span>
+                  </div>
+                  {viewingSupplier.bankName && (
+                    <div className="flex justify-between items-center text-slate-500">
+                      <span>Bank Name:</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{viewingSupplier.bankName}</span>
+                    </div>
+                  )}
+                  {viewingSupplier.accountTitle && (
+                    <div className="flex justify-between items-center text-slate-500">
+                      <span>Account Title:</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{viewingSupplier.accountTitle}</span>
+                    </div>
+                  )}
+                  {(viewingSupplier.accountNumber || viewingSupplier.iban) && (
+                    <div className="flex justify-between items-center text-slate-500">
+                      <span>Account # / IBAN:</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingSupplier.accountNumber || viewingSupplier.iban}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Supplied Products Chips */}
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Supplied Products:
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {(viewingSupplier.suppliedProducts || []).length === 0 ? (
+                    <span className="text-[11px] text-slate-400 italic">All general commodities</span>
+                  ) : (
+                    (viewingSupplier.suppliedProducts || []).map((prod, idx) => (
+                      <span
+                        key={idx}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${
+                          theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-brand-400' : 'bg-brand-50 text-brand-700 border-brand-200'
+                        }`}
+                      >
+                        {prod}
+                      </span>
+                    ))
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {(viewingSupplier.suppliedProducts || []).length === 0 ? (
-                  <span className="text-xs text-slate-400 italic">All general grains & commodities</span>
-                ) : (
-                  (viewingSupplier.suppliedProducts || []).map((prod, idx) => (
-                    <span
-                      key={idx}
-                      className={`px-2.5 py-1 rounded-xl text-xs font-bold border ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-brand-400' : 'bg-brand-50 text-brand-700 border-brand-200'
-                      }`}
-                    >
-                      {prod}
-                    </span>
-                  ))
-                )}
-              </div>
+
+              {viewingSupplier.notes && (
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-slate-400 italic">
+                  Note: {viewingSupplier.notes}
+                </div>
+              )}
             </div>
 
             {/* Quick Actions Linking: Ledger, Purchase, Invoices */}
