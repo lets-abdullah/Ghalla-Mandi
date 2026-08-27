@@ -4,11 +4,8 @@ import {
   BookOpen, 
   Printer, 
   Users, 
-  UserCheck, 
-  MapPin, 
-  Phone, 
+  User,
   DollarSign, 
-  Plus, 
   X, 
   Search, 
   Calendar, 
@@ -16,9 +13,9 @@ import {
   RefreshCw,
   ArrowDownLeft,
   ArrowUpRight,
-  RotateCcw,
   CheckCircle2,
-  FileSpreadsheet
+  Eye,
+  CreditCard
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -28,7 +25,7 @@ export const Ledger = () => {
   const { customers = [], suppliers = [], sales = [], purchases = [], paymentLogs = [], saleReturns = [], purchaseReturns = [], recordPayment } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   // Ledger mode: 'Customer' (default) or 'Supplier'
   const typeParam = searchParams.get('type');
@@ -36,16 +33,16 @@ export const Ledger = () => {
   const customerIdParam = searchParams.get('customerId');
 
   // Filters State
-  const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Party' | 'Walk-in Customer'
+  const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Customer' | 'Walk-in Customer'
   const [selectedPartyId, setSelectedPartyId] = useState(customerIdParam || 'All');
   const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'This Week' | 'This Month' | 'Custom'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [txTypeFilter, setTxTypeFilter] = useState('All'); // 'All' | 'Sales' | 'Payments' | 'Returns'
-  const [balanceFilter, setBalanceFilter] = useState('All'); // 'All' | 'Debit' | 'Credit' | 'Outstanding'
   const [search, setSearch] = useState('');
 
-  // Payment Recording Modal
+  // Modals state
+  const [viewingEntry, setViewingEntry] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
@@ -131,7 +128,9 @@ export const Ledger = () => {
       // Customer Ledger Transactions (Both Regular & Walk-in)
       (sales || []).forEach(s => {
         const custObj = customers.find(c => c.id === s.customerId || c.name === s.partyName);
-        const custType = custObj?.customerType || s.customerType || (s.partyName?.toLowerCase().includes('walk-in') ? 'Walk-in Customer' : 'Regular Party');
+        const isWalkin = (custObj?.customerType || s.customerType || '').toLowerCase().includes('walk-in') || 
+                         (s.partyName || '').toLowerCase().includes('walk-in');
+        const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
         const itemsSummary = Array.isArray(s.cart) && s.cart.length > 0 
           ? s.cart.map(i => `${i.name} (${i.qty} ${i.unitName || i.unit || 'KG'})`).join(', ')
           : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
@@ -174,7 +173,8 @@ export const Ledger = () => {
       // Additional Standalone Payment Logs
       (paymentLogs || []).filter(p => p.type === 'Customer').forEach(p => {
         const custObj = customers.find(c => c.id === p.partyId || c.name === p.partyName);
-        const custType = custObj?.customerType || 'Regular Party';
+        const isWalkin = (custObj?.customerType || '').toLowerCase().includes('walk-in');
+        const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
 
         entries.push({
           id: `pay-${p.id}`,
@@ -195,7 +195,8 @@ export const Ledger = () => {
       // Sale Returns
       (saleReturns || []).forEach(r => {
         const custObj = customers.find(c => c.id === r.customerId || c.name === r.customerName);
-        const custType = custObj?.customerType || 'Regular Party';
+        const isWalkin = (custObj?.customerType || '').toLowerCase().includes('walk-in');
+        const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
 
         entries.push({
           id: `ret-${r.id}`,
@@ -276,7 +277,7 @@ export const Ledger = () => {
       // 2. Customer Type Filter
       if (!isSupplier) {
         const isWalkin = (entry.customerType || '').toLowerCase().includes('walk-in');
-        if (customerTypeFilter === 'Regular Party' && isWalkin) return false;
+        if (customerTypeFilter === 'Regular Customer' && isWalkin) return false;
         if (customerTypeFilter === 'Walk-in Customer' && !isWalkin) return false;
       }
 
@@ -299,7 +300,7 @@ export const Ledger = () => {
 
       return true;
     }).map(entry => {
-      // Debit increases customer balance due, Credit decreases it
+      // Running balance increases with sales (debit) and decreases with payments (credit)
       runningBalance += (entry.debit - entry.credit);
       return {
         ...entry,
@@ -308,10 +309,10 @@ export const Ledger = () => {
     });
   }, [rawLedgerEntries, selectedPartyId, customerTypeFilter, dateFilterType, customStartDate, customEndDate, txTypeFilter, search, isSupplier]);
 
-  // Aggregate stats
-  const totalDebit = filteredLedger.reduce((sum, e) => sum + e.debit, 0);
-  const totalCredit = filteredLedger.reduce((sum, e) => sum + e.credit, 0);
-  const finalBalance = totalDebit - totalCredit;
+  // Aggregate stats (clean terminology, no Cr / Dr)
+  const totalSalesAmount = filteredLedger.reduce((sum, e) => sum + e.debit, 0);
+  const totalPaymentsAmount = filteredLedger.reduce((sum, e) => sum + e.credit, 0);
+  const balanceDue = Math.max(0, totalSalesAmount - totalPaymentsAmount);
 
   const isAnyFilterActive = (
     search !== '' ||
@@ -320,8 +321,7 @@ export const Ledger = () => {
     dateFilterType !== 'All' ||
     customStartDate !== '' ||
     customEndDate !== '' ||
-    txTypeFilter !== 'All' ||
-    balanceFilter !== 'All'
+    txTypeFilter !== 'All'
   );
 
   const resetAllFilters = () => {
@@ -332,7 +332,6 @@ export const Ledger = () => {
     setCustomStartDate('');
     setCustomEndDate('');
     setTxTypeFilter('All');
-    setBalanceFilter('All');
   };
 
   const handlePaymentSubmit = async (e) => {
@@ -366,10 +365,10 @@ export const Ledger = () => {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-brand-500" />
-            <span>{isSupplier ? 'Supplier Ledger Statements' : 'Sales & Customer Ledger'}</span>
+            <span>{isSupplier ? 'Supplier Ledger' : 'Customer Ledger'}</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Complete chronological record of all sales, counter payments, credit receipts & returns
+            Chronological transaction history of sales and payments
           </p>
         </div>
 
@@ -394,56 +393,56 @@ export const Ledger = () => {
         </div>
       </div>
 
-      {/* KPI Cards Row */}
+      {/* KPI Cards Row (Clean user-friendly labels without Cr/Dr) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Total Debit (Sales) */}
-        <div className={`border rounded-2xl p-5 card-shadow ${
+        {/* Total Sales */}
+        <div className={`border rounded-2xl p-4 card-shadow ${
           theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
         }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <ArrowUpRight className="w-4 h-4 text-blue-600" /> Total Debits (Sales)
+            <ArrowUpRight className="w-4 h-4 text-blue-600" /> Total Sales
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
-            Rs. {totalDebit.toLocaleString()}
+            Rs. {totalSalesAmount.toLocaleString()}
           </div>
-          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-1">
-            Total Billed Transactions
+          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-0.5">
+            Billed Transactions
           </div>
         </div>
 
-        {/* Total Credit (Payments) */}
-        <div className={`border rounded-2xl p-5 card-shadow ${
+        {/* Total Payments */}
+        <div className={`border rounded-2xl p-4 card-shadow ${
           theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
         }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <ArrowDownLeft className="w-4 h-4 text-emerald-600" /> Total Credits (Paid & Returns)
+            <ArrowDownLeft className="w-4 h-4 text-emerald-600" /> Total Payments
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
-            Rs. {totalCredit.toLocaleString()}
+            Rs. {totalPaymentsAmount.toLocaleString()}
           </div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">
-            Received Payments & Credits
+          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-0.5">
+            Received Payments
           </div>
         </div>
 
-        {/* Net Running Balance */}
-        <div className={`border rounded-2xl p-5 card-shadow ${
+        {/* Balance Due (Clean simple balance) */}
+        <div className={`border rounded-2xl p-4 card-shadow ${
           theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
         }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-amber-600" /> Net Statement Balance
+            <DollarSign className="w-4 h-4 text-amber-600" /> Balance Due
           </div>
-          <div className={`text-2xl font-black mt-1 font-mono ${finalBalance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'}`}>
-            Rs. {finalBalance.toLocaleString()} {finalBalance > 0 ? 'Dr (Due)' : 'Cr (Settled)'}
+          <div className={`text-2xl font-black mt-1 font-mono ${balanceDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'}`}>
+            {balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : 'Rs. 0 (Settled)'}
           </div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">
-            Current Outstanding
+          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-0.5">
+            {balanceDue > 0 ? 'Pending Settlement' : 'Account Clear'}
           </div>
         </div>
       </div>
 
       {/* Ledger Filter Toolbar */}
-      <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${
+      <div className={`border rounded-3xl p-4 card-shadow space-y-3.5 ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -461,16 +460,16 @@ export const Ledger = () => {
               }`}
             >
               <option value="All">All Types</option>
-              <option value="Regular Party">Regular Party</option>
-              <option value="Walk-in Customer">Walk-in Customer</option>
+              <option value="Regular Customer">Regular Customers</option>
+              <option value="Walk-in Customer">Walk-in Customers</option>
             </select>
           </div>
 
           {/* 2. Select Party */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Users className="w-3.5 h-3.5 text-blue-500" />
-              <span>Select Party</span>
+              <User className="w-3.5 h-3.5 text-blue-500" />
+              <span>Select Customer</span>
             </label>
             <select
               value={selectedPartyId}
@@ -479,7 +478,7 @@ export const Ledger = () => {
                 theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
             >
-              <option value="All">All Parties (Combined Ledger)</option>
+              <option value="All">All Customers</option>
               {(isSupplier ? suppliers : customers).map(p => (
                 <option key={p.id} value={p.id}>
                   {p.name} {p.city ? `(${p.city})` : ''}
@@ -523,9 +522,9 @@ export const Ledger = () => {
               }`}
             >
               <option value="All">All Transactions</option>
-              <option value="Sales">Sales (Debits)</option>
-              <option value="Payments">Payments (Credits)</option>
-              <option value="Returns">Returns (Credit Notes)</option>
+              <option value="Sales">Sales</option>
+              <option value="Payments">Payments</option>
+              <option value="Returns">Returns</option>
             </select>
           </div>
 
@@ -533,13 +532,13 @@ export const Ledger = () => {
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Search className="w-3.5 h-3.5 text-slate-400" />
-              <span>Search Ledger</span>
+              <span>Search Voucher</span>
             </label>
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search ref #, party, item..."
+                placeholder="Search ref #, customer..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
@@ -574,7 +573,7 @@ export const Ledger = () => {
             </div>
           ) : (
             <div className="text-xs text-slate-400 font-bold hidden sm:block">
-              Complete chronological audit trail with live running balance
+              Compact transaction ledger with instant detail lookup
             </div>
           )}
 
@@ -591,7 +590,7 @@ export const Ledger = () => {
         </div>
       </div>
 
-      {/* Main Ledger Table */}
+      {/* Main Compact Ledger Table (No Large Description Column, No Horizontal Scroll) */}
       <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
       }`}>
@@ -601,13 +600,13 @@ export const Ledger = () => {
               <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
                 theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
               }`}>
-                <th className="py-3.5 px-4">Date</th>
-                <th className="py-3.5 px-4">Party / Customer</th>
-                <th className="py-3.5 px-4">Voucher / Ref #</th>
-                <th className="py-3.5 px-4">Description / Details</th>
-                <th className="py-3.5 px-4 text-right">Sale (Debit)</th>
-                <th className="py-3.5 px-4 text-right">Payment (Credit)</th>
-                <th className="py-3.5 px-4 text-right font-black">Running Balance</th>
+                <th className="py-3 px-4">Date</th>
+                <th className="py-3 px-4">Customer</th>
+                <th className="py-3 px-3">Voucher #</th>
+                <th className="py-3 px-4 text-right">Sale</th>
+                <th className="py-3 px-4 text-right">Payment</th>
+                <th className="py-3 px-4 text-right font-black">Balance</th>
+                <th className="py-3 px-4 text-center">Action</th>
               </tr>
             </thead>
             <tbody className={`divide-y font-medium ${
@@ -626,13 +625,13 @@ export const Ledger = () => {
                       key={entry.id} 
                       className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
                     >
-                      {/* Date */}
-                      <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 font-mono text-xs">
+                      {/* 1. Date */}
+                      <td className="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono text-xs">
                         {entry.date}
                       </td>
 
-                      {/* Party */}
-                      <td className="py-3.5 px-4">
+                      {/* 2. Customer */}
+                      <td className="py-3 px-4">
                         <div className="font-extrabold text-slate-900 dark:text-white">
                           {entry.partyName}
                         </div>
@@ -645,18 +644,13 @@ export const Ledger = () => {
                         </span>
                       </td>
 
-                      {/* Voucher / Ref # */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-blue-600 dark:text-blue-400">
+                      {/* 3. Voucher # */}
+                      <td className="py-3 px-3 font-mono font-bold text-blue-600 dark:text-blue-400">
                         {entry.ref}
                       </td>
 
-                      {/* Description */}
-                      <td className="py-3.5 px-4 max-w-xs truncate text-slate-700 dark:text-slate-300">
-                        {entry.desc}
-                      </td>
-
-                      {/* Sale (Debit) */}
-                      <td className="py-3.5 px-4 text-right font-mono font-black">
+                      {/* 4. Sale */}
+                      <td className="py-3 px-4 text-right font-mono font-black">
                         {entry.debit > 0 ? (
                           <span className="text-blue-600 dark:text-blue-400">
                             Rs. {entry.debit.toLocaleString()}
@@ -666,8 +660,8 @@ export const Ledger = () => {
                         )}
                       </td>
 
-                      {/* Payment (Credit) */}
-                      <td className="py-3.5 px-4 text-right font-mono font-black">
+                      {/* 5. Payment */}
+                      <td className="py-3 px-4 text-right font-mono font-black">
                         {entry.credit > 0 ? (
                           <span className="text-emerald-600 dark:text-emerald-400">
                             Rs. {entry.credit.toLocaleString()}
@@ -677,11 +671,33 @@ export const Ledger = () => {
                         )}
                       </td>
 
-                      {/* Running Balance */}
-                      <td className="py-3.5 px-4 text-right font-mono font-black text-xs">
-                        <span className={entry.runningBalance > 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}>
-                          Rs. {Math.abs(entry.runningBalance).toLocaleString()} {entry.runningBalance > 0 ? 'Dr' : 'Cr'}
-                        </span>
+                      {/* 6. Running Balance (Simple Clean Format, No Dr/Cr) */}
+                      <td className="py-3 px-4 text-right font-mono font-black text-xs">
+                        {entry.runningBalance > 0 ? (
+                          <span className="text-amber-500">
+                            Rs. {entry.runningBalance.toLocaleString()} Due
+                          </span>
+                        ) : (
+                          <span className="text-emerald-600 dark:text-emerald-400">
+                            Rs. 0 (Settled)
+                          </span>
+                        )}
+                      </td>
+
+                      {/* 7. Action: View Ledger / Details */}
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => setViewingEntry(entry)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${
+                            theme === 'dark' 
+                              ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 
+                              : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
+                          }`}
+                          title="View Transaction Details"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>View Ledger</span>
+                        </button>
                       </td>
                     </tr>
                   );
@@ -691,6 +707,89 @@ export const Ledger = () => {
           </table>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* TRANSACTION DETAILS MODAL */}
+      {/* ========================================================================= */}
+      {viewingEntry && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setViewingEntry(null); }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">Ledger Voucher Details</h3>
+                  <p className="text-[11px] text-slate-400 font-bold">{viewingEntry.ref}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingEntry(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${
+              theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex justify-between items-center text-slate-500">
+                <span>Customer:</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">{viewingEntry.partyName}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-500">
+                <span>Date:</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingEntry.date}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-500">
+                <span>Transaction Type:</span>
+                <span className="font-bold text-brand-600">{viewingEntry.txType}</span>
+              </div>
+              <div className="flex justify-between items-start text-slate-500 pt-1 border-t border-slate-200 dark:border-slate-700">
+                <span>Description / Items:</span>
+                <span className="font-medium text-right max-w-xs text-slate-900 dark:text-white">{viewingEntry.desc}</span>
+              </div>
+
+              {viewingEntry.debit > 0 && (
+                <div className="flex justify-between items-center text-blue-600 font-black pt-1 border-t border-slate-200 dark:border-slate-700">
+                  <span>Sale Amount:</span>
+                  <span className="font-mono text-sm">Rs. {viewingEntry.debit.toLocaleString()}</span>
+                </div>
+              )}
+
+              {viewingEntry.credit > 0 && (
+                <div className="flex justify-between items-center text-emerald-600 font-black pt-1 border-t border-slate-200 dark:border-slate-700">
+                  <span>Payment Received:</span>
+                  <span className="font-mono text-sm">Rs. {viewingEntry.credit.toLocaleString()}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center font-black pt-1 border-t border-slate-200 dark:border-slate-700">
+                <span>Account Balance:</span>
+                <span className={`font-mono text-sm ${viewingEntry.runningBalance > 0 ? 'text-amber-500' : 'text-emerald-600'}`}>
+                  {viewingEntry.runningBalance > 0 ? `Rs. ${viewingEntry.runningBalance.toLocaleString()} Due` : 'Rs. 0 (Settled)'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setViewingEntry(null)}
+              className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Record Payment Modal */}
       {showPaymentModal && (
@@ -716,7 +815,7 @@ export const Ledger = () => {
 
             <form onSubmit={handlePaymentSubmit} className="space-y-3.5">
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Select Customer / Party *</label>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Select Customer *</label>
                 <select
                   required
                   value={paymentForm.partyId}
@@ -725,7 +824,7 @@ export const Ledger = () => {
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
                 >
-                  <option value="">-- Choose Party --</option>
+                  <option value="">-- Choose Customer --</option>
                   {(isSupplier ? suppliers : customers).map(p => (
                     <option key={p.id} value={p.id}>
                       {p.name} (Due: Rs. {(Number(p.balance) || 0).toLocaleString()})

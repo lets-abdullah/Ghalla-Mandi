@@ -273,19 +273,9 @@ export const Invoices = () => {
       if (statusFilter === 'Partial' && item.status !== 'Partial') return false;
       if (statusFilter === 'Pending' && item.status !== 'Pending') return false;
 
-      // 6. Return Filter
-      const hasReturns = (item.returnAmount > 0) || (
-        isPurchases 
-          ? (purchaseReturns || []).some(r => r.purchaseId === item.id || r.purchaseNo === item.invoiceNo)
-          : (saleReturns || []).some(r => r.saleId === item.id || r.invoiceNo === item.invoiceNo)
-      );
-
-      if (returnFilter === 'SalesOnly' && hasReturns) return false;
-      if (returnFilter === 'WithReturns' && !hasReturns) return false;
-
       return true;
     });
-  }, [activeInvoicesList, isPurchases, search, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter, returnFilter, saleReturns, purchaseReturns]);
+  }, [activeInvoicesList, isPurchases, search, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter]);
 
   // Aggregate Metrics based on Filtered Invoices
   const totalInvoicedVolume = filteredInvoices.reduce((acc, i) => acc + i.amountNum, 0);
@@ -300,8 +290,7 @@ export const Invoices = () => {
     customEndDate !== '' ||
     customerTypeFilter !== 'All' || 
     selectedCustomerId !== 'All' || 
-    statusFilter !== 'All' ||
-    returnFilter !== 'All'
+    statusFilter !== 'All'
   );
 
   const resetAllFilters = () => {
@@ -473,7 +462,7 @@ export const Invoices = () => {
       <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* 1. Date Filter */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
@@ -554,25 +543,6 @@ export const Invoices = () => {
               <option value="Paid">Fully Paid</option>
               <option value="Partial">Partial Paid</option>
               <option value="Pending">Unpaid / Due</option>
-            </select>
-          </div>
-
-          {/* 5. Returns Filter (Separate Option) */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <RotateCcw className="w-3.5 h-3.5 text-orange-500" />
-              <span>Sale Returns</span>
-            </label>
-            <select
-              value={returnFilter}
-              onChange={(e) => setReturnFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="All">All Transactions</option>
-              <option value="SalesOnly">Invoices Only (No Returns)</option>
-              <option value="WithReturns">Invoices with Returns</option>
             </select>
           </div>
         </div>

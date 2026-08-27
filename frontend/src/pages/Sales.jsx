@@ -706,7 +706,7 @@ export const Sales = () => {
                 }`}>
                   <th className="py-3.5 px-4">Sale ID</th>
                   <th className="py-3.5 px-4">Date</th>
-                  <th className="py-3.5 px-4">Buyer / Party</th>
+                  <th className="py-3.5 px-4">Buyer / Customer</th>
                   <th className="py-3.5 px-4">Commodity</th>
                   <th className="py-3.5 px-4 text-right">Amount</th>
                   <th className="py-3.5 px-4 text-center">Status</th>
@@ -747,7 +747,7 @@ export const Sales = () => {
                           {s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '-')}
                         </td>
 
-                        {/* 3. Buyer / Party */}
+                        {/* 3. Buyer / Customer */}
                         <td className="py-3.5 px-4">
                           <div className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
                             <span>{s.partyName}</span>
@@ -756,7 +756,7 @@ export const Sales = () => {
                                 ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300' 
                                 : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
                             }`}>
-                              {isWalkin ? 'Walk-in' : 'Regular Party'}
+                              {isWalkin ? 'Walk-in' : 'Regular'}
                             </span>
                           </div>
                         </td>

@@ -249,7 +249,7 @@ export const Sidebar = () => {
                       }`}
                     >
                       <CreditCard className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                      <span>Khata & Balance</span>
+                      <span>Khata</span>
                     </Link>
 
                     <Link
