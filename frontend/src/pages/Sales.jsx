@@ -15,7 +15,8 @@ import {
   Filter, 
   FileSpreadsheet,
   ArrowUpDown,
-  RefreshCw
+  RefreshCw,
+  Edit3
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
