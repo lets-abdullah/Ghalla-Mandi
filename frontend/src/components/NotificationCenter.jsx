@@ -1,0 +1,516 @@
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { 
+  Bell, 
+  Check, 
+  CheckCheck, 
+  ShoppingCart, 
+  Package, 
+  RotateCcw, 
+  CreditCard, 
+  DollarSign, 
+  AlertTriangle, 
+  ChevronRight, 
+  ExternalLink,
+  X,
+  Clock,
+  Filter
+} from 'lucide-react';
+import { useERP } from '../context/ERPContext';
+import { useTheme } from '../context/ThemeContext';
+import { useLocale } from '../context/LocaleContext';
+import { useNavigate } from 'react-router-dom';
+
+const STORAGE_KEY = 'mandi_erp_read_notifications_v1';
+
+export const NotificationCenter = () => {
+  const { 
+    products = [], 
+    sales = [], 
+    purchases = [], 
+    saleReturns = [], 
+    purchaseReturns = [], 
+    customers = [], 
+    suppliers = [], 
+    paymentLogs = [] 
+  } = useERP();
+  
+  const { theme } = useTheme();
+  const { t } = useLocale();
+  const navigate = useNavigate();
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('All'); // 'All' | 'Unread' | 'Stock' | 'Transactions' | 'Khata'
+  const [readIds, setReadIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const panelRef = useRef(null);
+
+  // Persist read IDs to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(readIds));
+    } catch (e) {
+      console.error('Failed to save read notifications', e);
+    }
+  }, [readIds]);
+
+  // Click outside to close
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Generate real-time dynamic notifications from actual ERP data
+  const notifications = useMemo(() => {
+    const list = [];
+
+    // 1. LOW STOCK & OUT OF STOCK NOTIFICATIONS
+    products.forEach((p) => {
+      const stock = Number(p.stockQty ?? p.stock ?? 0);
+      const min = Number(p.minStock ?? p.minstock ?? 10);
+      const unit = p.unit || 'KG';
+
+      if (stock <= 0) {
+        list.push({
+          id: `stock-out-${p.id}`,
+          category: 'Stock',
+          type: 'Out of Stock',
+          title: `${p.name} Out of Stock`,
+          message: `${p.name} (${p.category || 'General'}) is completely out of stock (0 ${unit}).`,
+          time: 'Urgent Alert',
+          timestamp: Date.now() + 10000,
+          severity: 'danger',
+          link: '/inventory',
+          icon: AlertTriangle
+        });
+      } else if (stock <= min) {
+        list.push({
+          id: `stock-low-${p.id}`,
+          category: 'Stock',
+          type: 'Low Stock',
+          title: `Low Stock: ${p.name}`,
+          message: `Only ${stock} ${unit} remaining in mandi storage (min required: ${min} ${unit}).`,
+          time: 'Storage Alert',
+          timestamp: Date.now() + 5000,
+          severity: 'warning',
+          link: '/inventory',
+          icon: AlertTriangle
+        });
+      }
+    });
+
+    // 2. SALE NOTIFICATIONS (Recent 5 sales)
+    [...sales].slice(0, 8).forEach((s) => {
+      const amt = Number(s.amount || s.grandTotal || 0);
+      const paid = Number(s.paidAmount || 0);
+      const isUnpaid = (amt - paid) > 0;
+      
+      list.push({
+        id: `sale-${s.id || s.invoiceNo}`,
+        category: 'Transactions',
+        type: 'Sale',
+        title: `Sale Invoice #${s.invoiceNo || 'INV'}`,
+        message: `Sale of Rs. ${amt.toLocaleString()} recorded for ${s.partyName || 'Customer'}.`,
+        time: s.date || 'Recent',
+        timestamp: s.created_at ? new Date(s.created_at).getTime() : Date.now(),
+        severity: 'success',
+        link: '/sales',
+        icon: ShoppingCart
+      });
+
+      if (isUnpaid && amt - paid >= 5000) {
+        list.push({
+          id: `sale-due-${s.id || s.invoiceNo}`,
+          category: 'Khata',
+          type: 'Khata',
+          title: `Credit Receivable #${s.invoiceNo || 'INV'}`,
+          message: `Rs. ${(amt - paid).toLocaleString()} outstanding due from ${s.partyName || 'Customer'}.`,
+          time: s.date || 'Recent',
+          timestamp: (s.created_at ? new Date(s.created_at).getTime() : Date.now()) - 500,
+          severity: 'warning',
+          link: `/ledger?type=Customer&customerId=${s.customerId || ''}`,
+          icon: CreditCard
+        });
+      }
+    });
+
+    // 3. PURCHASE NOTIFICATIONS (Recent 5 purchases)
+    [...purchases].slice(0, 8).forEach((p) => {
+      const amt = Number(p.amount || p.grandTotal || 0);
+      list.push({
+        id: `purchase-${p.id || p.purchaseNo}`,
+        category: 'Transactions',
+        type: 'Purchase',
+        title: `Procurement #${p.purchaseNo || 'PUR'}`,
+        message: `Arrival entry of Rs. ${amt.toLocaleString()} from ${p.supplierName || p.supplier || 'Supplier'}.`,
+        time: p.date || 'Recent',
+        timestamp: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
+        severity: 'info',
+        link: '/purchases',
+        icon: Package
+      });
+    });
+
+    // 4. SALE RETURN NOTIFICATIONS
+    [...saleReturns].slice(0, 5).forEach((r) => {
+      const amt = Number(r.refundAmount || 0);
+      list.push({
+        id: `salereturn-${r.id || r.returnNo}`,
+        category: 'Transactions',
+        type: 'Sale Return',
+        title: `Sale Return #${r.returnNo || 'RET'}`,
+        message: `Sale return voucher of Rs. ${amt.toLocaleString()} processed for ${r.customerName || 'Customer'}.`,
+        time: r.date || 'Recent',
+        timestamp: r.created_at ? new Date(r.created_at).getTime() : Date.now(),
+        severity: 'warning',
+        link: '/returns',
+        icon: RotateCcw
+      });
+    });
+
+    // 5. PURCHASE RETURN NOTIFICATIONS
+    [...purchaseReturns].slice(0, 5).forEach((r) => {
+      const amt = Number(r.refundAmount || 0);
+      list.push({
+        id: `purreturn-${r.id || r.returnNo}`,
+        category: 'Transactions',
+        type: 'Purchase Return',
+        title: `Purchase Return (Debit Note #${r.returnNo || 'PR'})`,
+        message: `Debit note of Rs. ${amt.toLocaleString()} adjusted with ${r.supplierName || 'Supplier'}.`,
+        time: r.date || 'Recent',
+        timestamp: r.created_at ? new Date(r.created_at).getTime() : Date.now(),
+        severity: 'warning',
+        link: '/returns',
+        icon: RotateCcw
+      });
+    });
+
+    // 6. KHATA / OUTSTANDING OVERDUE NOTIFICATIONS
+    customers.forEach((c) => {
+      const bal = Number(c.balance || 0);
+      if (bal >= 20000) {
+        list.push({
+          id: `cust-khata-${c.id}`,
+          category: 'Khata',
+          type: 'Khata',
+          title: `High Khata: ${c.name}`,
+          message: `${c.name} has an outstanding receivable balance of Rs. ${bal.toLocaleString()}.`,
+          time: 'Khata Alert',
+          timestamp: Date.now() - 10000,
+          severity: 'warning',
+          link: `/ledger?type=Customer&customerId=${c.id}`,
+          icon: CreditCard
+        });
+      }
+    });
+
+    suppliers.forEach((s) => {
+      const bal = Number(s.balance || 0);
+      if (bal >= 30000) {
+        list.push({
+          id: `sup-payable-${s.id}`,
+          category: 'Khata',
+          type: 'Khata',
+          title: `Supplier Payable: ${s.name}`,
+          message: `Rs. ${bal.toLocaleString()} payable balance pending for ${s.name}.`,
+          time: 'Payable Due',
+          timestamp: Date.now() - 20000,
+          severity: 'info',
+          link: `/ledger?type=Supplier&customerId=${s.id}`,
+          icon: DollarSign
+        });
+      }
+    });
+
+    // 7. PAYMENTS RECORDED
+    (paymentLogs || []).slice(0, 5).forEach((p, idx) => {
+      list.push({
+        id: `pay-${p.id || idx}`,
+        category: 'Khata',
+        type: 'Payment',
+        title: `Payment ${p.partyType === 'Supplier' ? 'Disbursed' : 'Received'}`,
+        message: `Payment of Rs. ${Number(p.amount || 0).toLocaleString()} recorded via ${p.paymentMode || 'Cash'}.`,
+        time: p.date || 'Recent',
+        timestamp: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
+        severity: 'success',
+        link: '/ledger',
+        icon: DollarSign
+      });
+    });
+
+    // Sort: unread first, then by timestamp descending
+    return list.sort((a, b) => b.timestamp - a.timestamp);
+  }, [products, sales, purchases, saleReturns, purchaseReturns, customers, suppliers, paymentLogs]);
+
+  // Unread count
+  const unreadCount = useMemo(() => {
+    return notifications.filter(n => !readIds.includes(n.id)).length;
+  }, [notifications, readIds]);
+
+  // Filtered notifications based on active tab
+  const filteredNotifications = useMemo(() => {
+    if (activeTab === 'Unread') {
+      return notifications.filter(n => !readIds.includes(n.id));
+    }
+    if (activeTab === 'Stock') {
+      return notifications.filter(n => n.category === 'Stock');
+    }
+    if (activeTab === 'Transactions') {
+      return notifications.filter(n => n.category === 'Transactions');
+    }
+    if (activeTab === 'Khata') {
+      return notifications.filter(n => n.category === 'Khata');
+    }
+    return notifications;
+  }, [notifications, activeTab, readIds]);
+
+  // Mark single notification as read
+  const handleMarkAsRead = (id, e) => {
+    if (e) e.stopPropagation();
+    setReadIds(prev => prev.includes(id) ? prev : [...prev, id]);
+  };
+
+  // Mark all as read
+  const handleMarkAllAsRead = () => {
+    const allIds = notifications.map(n => n.id);
+    setReadIds(allIds);
+  };
+
+  // Notification click handler: mark read and navigate
+  const handleNotificationClick = (item) => {
+    handleMarkAsRead(item.id);
+    setIsOpen(false);
+    if (item.link) {
+      navigate(item.link);
+    }
+  };
+
+  // Severity color styles
+  const getSeverityBadge = (severity) => {
+    switch (severity) {
+      case 'danger':
+        return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+      case 'warning':
+        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+      case 'success':
+        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+      default:
+        return 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border-brand-500/20';
+    }
+  };
+
+  const getIconBadge = (severity) => {
+    switch (severity) {
+      case 'danger':
+        return 'bg-rose-500 text-white';
+      case 'warning':
+        return 'bg-amber-500 text-white';
+      case 'success':
+        return 'bg-emerald-500 text-white';
+      default:
+        return 'bg-brand-500 text-white';
+    }
+  };
+
+  return (
+    <div className="relative" ref={panelRef}>
+      {/* Navbar Bell Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition cursor-pointer flex items-center justify-center"
+        title="All Notifications"
+      >
+        <Bell className="w-4 h-4" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center animate-pulse shadow-xs">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {/* Notification Center Dropdown Panel */}
+      {isOpen && (
+        <div 
+          className={`absolute right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] rounded-2xl border card-shadow shadow-2xl z-50 overflow-hidden transition-all ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}
+          style={{ zIndex: 1000 }}
+        >
+          {/* Header */}
+          <div className="p-3.5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
+                <Bell className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black flex items-center gap-1.5">
+                  All Notifications
+                  {unreadCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-bold">
+                      {unreadCount} new
+                    </span>
+                  )}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1">
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 px-1.5 py-1 rounded cursor-pointer"
+                  title="Mark all as read"
+                >
+                  <CheckCheck className="w-3.5 h-3.5" />
+                  <span>Mark Read</span>
+                </button>
+              )}
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Category Tabs */}
+          <div className="px-3 pt-2 pb-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-900/30">
+            {['All', 'Unread', 'Stock', 'Transactions', 'Khata'].map((tab) => {
+              const isActive = activeTab === tab;
+              const count = tab === 'Unread' 
+                ? unreadCount 
+                : tab === 'All' 
+                  ? notifications.length 
+                  : notifications.filter(n => n.category === tab).length;
+
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold whitespace-nowrap transition cursor-pointer flex items-center gap-1 ${
+                    isActive
+                      ? 'bg-brand-500 text-white shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                  }`}
+                >
+                  <span>{tab}</span>
+                  <span className={`text-[9px] px-1 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Notification List */}
+          <div className="max-h-80 sm:max-h-96 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60">
+            {filteredNotifications.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 space-y-2">
+                <Bell className="w-8 h-8 mx-auto stroke-[1.5] text-slate-300 dark:text-slate-600" />
+                <p className="text-xs font-bold">No notifications found.</p>
+              </div>
+            ) : (
+              filteredNotifications.map((item) => {
+                const isRead = readIds.includes(item.id);
+                const IconComponent = item.icon || Bell;
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleNotificationClick(item)}
+                    className={`p-3 transition-colors cursor-pointer flex items-start gap-2.5 group relative hover:bg-slate-50 dark:hover:bg-slate-700/40 ${
+                      !isRead ? (theme === 'dark' ? 'bg-slate-900/40' : 'bg-brand-50/25') : ''
+                    }`}
+                  >
+                    {/* Unread Indicator Bar */}
+                    {!isRead && (
+                      <span className="absolute left-0 top-3 bottom-3 w-1 bg-brand-500 rounded-r" />
+                    )}
+
+                    {/* Icon */}
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs mt-0.5 ${getIconBadge(item.severity)}`}>
+                      <IconComponent className="w-3.5 h-3.5" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${getSeverityBadge(item.severity)}`}>
+                            {item.type}
+                          </span>
+                          <span className={`text-xs font-extrabold truncate ${!isRead ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}`}>
+                            {item.title}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-bold shrink-0">
+                          {item.time}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug line-clamp-2">
+                        {item.message}
+                      </p>
+                    </div>
+
+                    {/* Mark Read Check or Action Arrow */}
+                    <div className="shrink-0 flex items-center gap-1 self-center opacity-70 group-hover:opacity-100">
+                      {!isRead ? (
+                        <button
+                          onClick={(e) => handleMarkAsRead(item.id, e)}
+                          className="p-1 rounded-md hover:bg-brand-500/10 text-brand-600 dark:text-brand-400 transition"
+                          title="Mark as read"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-brand-500 transition" />
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-2.5 border-t border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/50 flex items-center justify-between text-xs">
+            <span className="text-[10px] text-slate-400 font-bold">
+              {notifications.length} total event alerts
+            </span>
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                navigate('/reports');
+              }}
+              className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>Audit Reports</span>
+              <ExternalLink className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default NotificationCenter;
