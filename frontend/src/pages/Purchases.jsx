@@ -627,7 +627,7 @@ export const Purchases = () => {
             }`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <ShoppingCart className="w-4 h-4 text-blue-600" /> {t('totalPurchasesVolume')}
+            <ShoppingCart className="w-4 h-4 text-blue-600" /> {t('totalPurchases')}
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
             Rs. {totalNetPurchases.toLocaleString()}
@@ -797,156 +797,158 @@ export const Purchases = () => {
         )}
       </div>
 
-      {/* Main Table View */}
-      {filterType === 'Returns' ? (
-        /* Purchase Returns Table */
-        <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                  <th className="py-3 px-4">Return #</th>
-                  <th className="py-3 px-4">Orig. Purchase</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Supplier</th>
-                  <th className="py-3 px-4">Returned Item</th>
-                  <th className="py-3 px-4 text-center">Refund Mode</th>
-                  <th className="py-3 px-4 text-right">Refund Amount</th>
+      {/* Main Purchase Table */}
+      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        }`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+            <thead>
+              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                }`}>
+                <th className="py-3 px-4">Purchase #</th>
+                <th className="py-3 px-4">Date</th>
+                <th className="py-3 px-4">Supplier</th>
+                <th className="py-3 px-4">Items</th>
+                <th className="py-3 px-4 text-right">Amount</th>
+                <th className="py-3 px-4 text-center">Status</th>
+                <th className="py-3 px-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+              }`}>
+              {filteredPurchases.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                    {t('noPurchasesFound') || 'No purchases found matching your selected criteria.'}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                {(purchaseReturns || []).length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
-                      No purchase returns processed yet.
-                    </td>
-                  </tr>
-                ) : (
-                  (purchaseReturns || []).map(ret => (
-                    <tr key={ret.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}>
-                      <td className="py-3 px-4 font-mono font-bold text-rose-500">{ret.returnNo}</td>
-                      <td className="py-3 px-4 font-mono text-slate-500">{ret.purchaseNo}</td>
-                      <td className="py-3 px-4 text-slate-400">{ret.date}</td>
-                      <td className="py-3 px-4 font-bold">{ret.supplierName}</td>
-                      <td className="py-3 px-4 text-slate-400">
-                        {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Item'}
+              ) : (
+                filteredPurchases.map(p => {
+                  const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
+                  const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
+                  const retAmt = Number(p.returnAmount ?? 0);
+                  const due = Math.max(0, total - paid - retAmt);
+                  const status = due === 0 && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
+
+                  return (
+                    <tr key={p.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
+                      }`}>
+                      {/* 1. Purchase # */}
+                      <td className="py-3.5 px-4 font-mono font-black text-brand-500 text-xs">
+                        {p.purchaseNo || p.purchaseno}
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${ret.refundMode === 'Cash' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
-                          {ret.refundMode === 'Cash' ? 'Cash' : 'Khata'}
-                        </span>
+
+                      {/* 2. Date */}
+                      <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-xs font-mono font-medium">
+                        {p.date || (p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : '-'))}
                       </td>
-                      <td className="py-3 px-4 text-right font-black font-mono text-rose-600 dark:text-rose-400">
-                        Rs. {Number(ret.refundAmount || 0).toLocaleString()}
+
+                      {/* 3. Supplier */}
+                      <td className="py-3.5 px-4">
+                        <div className="font-extrabold text-xs text-slate-900 dark:text-white">
+                          {p.supplier || p.supplierName || p.suppliername}
+                        </div>
+                      </td>
+
+                      {/* 4. Items */}
+                      <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">
+                        {p.cart && p.cart.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {p.cart.map((item, idx) => (
+                              <span
+                                key={idx}
+                                className={`px-1.5 py-0.5 rounded text-[11px] font-bold ${
+                                  theme === 'dark' ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'
+                                }`}
+                              >
+                                {item.name || item.productName} ({item.qty || item.enteredQty || 1} {item.unit || item.unitName || 'KG'})
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-500 text-xs">{typeof p.items === 'string' ? p.items : (Array.isArray(p.items) ? p.items.map(i => i.name || i.productName).join(', ') : 'Commodity Items')}</span>
+                        )}
+                      </td>
+
+                      {/* 5. Amount */}
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
+                          Rs. {total.toLocaleString()}
+                        </div>
+                      </td>
+
+                      {/* 6. Status */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${status === 'Paid'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                            : status === 'Partial'
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                            }`}>
+                            {status === 'Paid' ? 'Paid' : status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
+                          </span>
+
+                          {(p.returnStatus || (p.returnAmount > 0)) && (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap border ${p.returnStatus === 'Fully Returned'
+                                ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
+                                : 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30'
+                              }`}>
+                              {p.returnStatus || 'Partially Returned'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* 7. Actions */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {due > 0 ? (
+                            <button
+                              onClick={() => openPayModal(p)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-98 cursor-pointer"
+                              title="Pay Supplier Balance"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              <span>Pay</span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Paid
+                            </span>
+                          )}
+
+                          {(p.returnStatus === 'Fully Returned' || (Number(p.returnAmount || 0) >= (total - 1) && total > 0)) ? (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
+                              title="This purchase is fully returned"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-purple-500" />
+                              <span>Returned</span>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSelectedReturnPurchase(p);
+                                setShowReturnModal(true);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                              title="Return Purchase"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Return</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-      ) : (
-        /* Purchase Table */
-        <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
-              <thead>
-                <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                  }`}>
-                  <th className="py-3 px-4">Purchase #</th>
-                  <th className="py-3 px-4">Supplier</th>
-                  <th className="py-3 px-4">Items</th>
-                  <th className="py-3 px-4 text-right">Total</th>
-                  <th className="py-3 px-4 text-right">Paid</th>
-                  <th className="py-3 px-4 text-right">Due</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
-                }`}>
-                {filteredPurchases.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
-                      {t('noPurchasesFound')}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredPurchases.map(p => {
-                    const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
-                    const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
-                    const due = Math.max(0, total - paid);
-                    const status = due === 0 && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
-
-                    return (
-                      <tr key={p.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
-                        }`}>
-                        <td className="py-3 px-4 font-mono font-bold text-brand-500">{p.purchaseNo || p.purchaseno}</td>
-                        <td className="py-3 px-4 font-bold">{p.supplier || p.supplierName || p.suppliername}</td>
-                        <td className="py-3 px-4 text-slate-400">{typeof p.items === 'string' ? p.items : (Array.isArray(p.items) ? p.items.map(i => i.name || i.productName).join(', ') : 'Commodity Items')}</td>
-                        <td className="py-3 px-4 text-right font-extrabold">Rs. {total.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-right font-bold text-emerald-500">Rs. {paid.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-right font-bold text-rose-500">Rs. {due.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${status === 'Paid'
-                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30'
-                            : status === 'Partial'
-                              ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30'
-                              : 'bg-rose-500/10 text-rose-500 border border-rose-500/30'
-                            }`}>
-                            {status === 'Paid' ? t('paid') : status === 'Partial' ? t('partial') : t('pending')}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            {due > 0 ? (
-                              <button
-                                onClick={() => openPayModal(p)}
-                                className="px-3 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-bold transition shadow-xs active:scale-98 flex items-center gap-1 cursor-pointer"
-                              >
-                                {t('payBalance')}
-                              </button>
-                            ) : (
-                              <span className="text-[11px] font-bold text-emerald-500 inline-flex items-center gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5" /> {t('fullyPaid')}
-                              </span>
-                            )}
-
-                            {/* Return Action Button */}
-                            {(p.returnStatus === 'Fully Returned' || (Number(p.returnAmount || 0) >= (total - 1) && total > 0)) ? (
-                              <span
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
-                                title="This purchase is fully returned"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5 text-purple-500" />
-                                <span>Fully Returned</span>
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setSelectedReturnPurchase(p);
-                                  setShowReturnModal(true);
-                                }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                                title="Return Purchase"
-                              >
-                                <RotateCcw className="w-3.5 h-3.5" />
-                                <span>Return Purchase</span>
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* ========================================================================= */}
       {/* 1. MAIN NEW PURCHASE MODAL (Base Layer: z-50) */}
