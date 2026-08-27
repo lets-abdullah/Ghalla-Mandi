@@ -417,8 +417,9 @@ export const Sales = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <DollarSign className="w-4 h-4 text-blue-600" />
-            <span>{t('cashReceived') || 'Cash Received'}</span>
+            <span>{t('cashReceived') || 'CASH RECEIVED'}</span>
           </div>
+
           <div className="text-2xl font-black mt-1.5 font-mono text-blue-600 dark:text-blue-400">
             Rs. {totalFilteredCashReceived.toLocaleString()}
           </div>

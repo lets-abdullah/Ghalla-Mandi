@@ -661,7 +661,7 @@ export const Purchases = () => {
             <Clock className="w-4 h-4 text-rose-600" /> {t('outstandingPayables')}
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
-            Rs. {totalOutstanding.toLocaleString()}
+            Rs. {totalOutstandingPayable.toLocaleString()}
           </div>
         </div>
 
