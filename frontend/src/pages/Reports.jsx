@@ -41,6 +41,32 @@ export const Reports = () => {
     setExpandedSuppliers(prev => ({ ...prev, [supName]: !prev[supName] }));
   };
 
+  // Multi-dimensional P&L Statement Filters
+  const [plDateFilter, setPlDateFilter] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
+  const [plStartDate, setPlStartDate] = useState('');
+  const [plEndDate, setPlEndDate] = useState('');
+  const [plProductFilter, setPlProductFilter] = useState('All');
+  const [plCategoryFilter, setPlCategoryFilter] = useState('All');
+  const [plTypeFilter, setPlTypeFilter] = useState('All'); // 'All' | 'Sale' | 'Purchase' | 'Expense' | 'Return'
+  const [plPaymentFilter, setPlPaymentFilter] = useState('All'); // 'All' | 'Cash' | 'Credit' | 'Bank'
+  const [plPartyFilter, setPlPartyFilter] = useState('All');
+  const [plSearch, setPlSearch] = useState('');
+  const [plPage, setPlPage] = useState(1);
+  const plPageSize = 25;
+
+  const handleResetPlFilters = () => {
+    setPlDateFilter('All');
+    setPlStartDate('');
+    setPlEndDate('');
+    setPlProductFilter('All');
+    setPlCategoryFilter('All');
+    setPlTypeFilter('All');
+    setPlPaymentFilter('All');
+    setPlPartyFilter('All');
+    setPlSearch('');
+    setPlPage(1);
+  };
+
   // Live expenses persisted in local storage per user/shop session
   const [expenses, setExpenses] = useState(() => {
     try {
@@ -551,6 +577,402 @@ export const Reports = () => {
   const totalEquity = useMemo(() => totalAssets - totalLiabilities, [totalAssets, totalLiabilities]);
 
   // =========================================================================
+  // 4. PROFIT & LOSS FINANCIAL STATEMENT JOURNAL & ANALYTICS
+  // =========================================================================
+  const plJournalTransactions = useMemo(() => {
+    const journal = [];
+
+    // 1. Sales (Income)
+    (sales || []).forEach(s => {
+      let sDateObj = new Date();
+      if (s.created_at) {
+        sDateObj = new Date(s.created_at);
+      } else if (s.date && s.date.includes('/')) {
+        const parts = s.date.split('/');
+        if (parts.length === 3) sDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+      }
+
+      const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : [{ name: s.productName || 'Commodity Sale', qty: s.qty || 1, unit: s.unit || 'KG' }]);
+      const pNames = cart.map(it => it.name).filter(Boolean).join(', ') || s.productName || 'Commodity Sale';
+      const pCategories = cart.map(it => {
+        const pObj = (products || []).find(p => p.name?.toLowerCase() === (it.name || '').toLowerCase());
+        return pObj?.category || 'General';
+      });
+      const primaryCat = pCategories[0] || 'General';
+      const totalQty = cart.reduce((sum, it) => sum + Number(it.qty || it.enteredQty || 1), 0);
+      const unit = cart[0]?.unit || s.unit || 'KG';
+      const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
+
+      journal.push({
+        id: `sale-${s.id || s.invoiceNo}`,
+        dateStr: s.date || sDateObj.toLocaleDateString('en-GB'),
+        dateObj: sDateObj,
+        ref: s.invoiceNo ? `SALE-${s.invoiceNo}` : 'Sale Invoice',
+        product: pNames,
+        category: primaryCat,
+        type: 'Sale',
+        isIncome: true,
+        qty: `${totalQty} ${unit}`,
+        rawQty: totalQty,
+        amount: grossAmt,
+        party: s.partyName || s.customerName || 'Customer Party',
+        mode: s.paymentMode || (s.paidAmount >= grossAmt ? 'Cash' : 'Credit')
+      });
+    });
+
+    // 2. Purchases (COGS / Stock Cost)
+    (purchases || []).forEach(p => {
+      let pDateObj = new Date();
+      if (p.created_at) {
+        pDateObj = new Date(p.created_at);
+      } else if (p.date && p.date.includes('/')) {
+        const parts = p.date.split('/');
+        if (parts.length === 3) pDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+      }
+
+      const cart = Array.isArray(p.cart) && p.cart.length > 0 ? p.cart : (Array.isArray(p.items) ? p.items : [{ name: p.productName || 'Commodity', qty: p.qty || 1, unit: p.unit || 'KG' }]);
+      const pNames = cart.map(it => it.name).filter(Boolean).join(', ') || p.productName || 'Procured Stock';
+      const pCategories = cart.map(it => {
+        const pObj = (products || []).find(prod => prod.name?.toLowerCase() === (it.name || '').toLowerCase());
+        return pObj?.category || 'General';
+      });
+      const primaryCat = pCategories[0] || 'General';
+      const totalQty = cart.reduce((sum, it) => sum + Number(it.qty || it.enteredQty || 1), 0);
+      const unit = cart[0]?.unit || p.unit || 'KG';
+      const grossAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
+
+      journal.push({
+        id: `pur-${p.id || p.purchaseNo}`,
+        dateStr: p.date || pDateObj.toLocaleDateString('en-GB'),
+        dateObj: pDateObj,
+        ref: p.purchaseNo ? `PUR-${p.purchaseNo}` : 'Purchase Bill',
+        product: pNames,
+        category: primaryCat,
+        type: 'Purchase',
+        isIncome: false,
+        qty: `${totalQty} ${unit}`,
+        rawQty: totalQty,
+        amount: -grossAmt,
+        party: p.supplierName || p.supplier || 'Supplier Firm',
+        mode: p.paymentMode || (p.paidAmount >= grossAmt ? 'Cash' : 'Credit')
+      });
+    });
+
+    // 3. Shop Expenses
+    (expenses || []).forEach(e => {
+      let eDateObj = new Date();
+      if (e.date && e.date.includes('/')) {
+        const parts = e.date.split('/');
+        if (parts.length === 3) eDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+      }
+
+      journal.push({
+        id: `exp-${e.id || e.ref}`,
+        dateStr: e.date || eDateObj.toLocaleDateString('en-GB'),
+        dateObj: eDateObj,
+        ref: e.ref || `EXP-${e.id}`,
+        product: e.desc || e.category || 'Shop Expense',
+        category: e.category || 'Shop Expense',
+        type: 'Expense',
+        isIncome: false,
+        qty: '—',
+        rawQty: 0,
+        amount: -Number(e.amount || 0),
+        party: 'Shop Operations',
+        mode: e.mode || 'Cash'
+      });
+    });
+
+    // 4. Sale Returns
+    (saleReturns || []).forEach(r => {
+      let rDateObj = new Date();
+      if (r.created_at) {
+        rDateObj = new Date(r.created_at);
+      } else if (r.date && r.date.includes('/')) {
+        const parts = r.date.split('/');
+        if (parts.length === 3) rDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+      }
+
+      const it = (r.items || [])[0] || {};
+      const refAmt = Number(r.refundAmount || 0);
+
+      journal.push({
+        id: `sr-${r.id || r.returnNo}`,
+        dateStr: r.date || rDateObj.toLocaleDateString('en-GB'),
+        dateObj: rDateObj,
+        ref: r.returnNo ? `SR-${r.returnNo}` : 'Sale Return',
+        product: it.name || 'Returned Commodity',
+        category: 'Sale Return',
+        type: 'Sale Return',
+        isIncome: false,
+        qty: it.qty ? `${it.qty} ${it.unit || 'KG'}` : '—',
+        rawQty: Number(it.qty || 0),
+        amount: -refAmt,
+        party: r.customerName || 'Customer Party',
+        mode: r.refundMode || 'Ledger'
+      });
+    });
+
+    // 5. Purchase Returns
+    (purchaseReturns || []).forEach(r => {
+      let rDateObj = new Date();
+      if (r.created_at) {
+        rDateObj = new Date(r.created_at);
+      } else if (r.date && r.date.includes('/')) {
+        const parts = r.date.split('/');
+        if (parts.length === 3) rDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+      }
+
+      const it = (r.items || [])[0] || {};
+      const refAmt = Number(r.refundAmount || 0);
+
+      journal.push({
+        id: `pr-${r.id || r.returnNo}`,
+        dateStr: r.date || rDateObj.toLocaleDateString('en-GB'),
+        dateObj: rDateObj,
+        ref: r.returnNo ? `PR-${r.returnNo}` : 'Debit Note',
+        product: it.name || 'Returned Commodity',
+        category: 'Purchase Return',
+        type: 'Purchase Return',
+        isIncome: true,
+        qty: it.qty ? `${it.qty} ${it.unit || 'KG'}` : '—',
+        rawQty: Number(it.qty || 0),
+        amount: refAmt,
+        party: r.supplierName || 'Supplier Firm',
+        mode: r.refundMode || 'Ledger'
+      });
+    });
+
+    // Sort Chronological Ascending (Oldest First) to calculate cumulative running P&L
+    journal.sort((a, b) => a.dateObj - b.dateObj);
+
+    let running = 0;
+    journal.forEach(item => {
+      running += item.amount;
+      item.runningPnL = running;
+    });
+
+    // Return reversed (Newest First) for statement presentation
+    return [...journal].reverse();
+  }, [sales, purchases, expenses, saleReturns, purchaseReturns, products]);
+
+  // Filtered P&L Journal based on active statement filters
+  const filteredPlJournal = useMemo(() => {
+    return plJournalTransactions.filter(item => {
+      // 1. Date Filter
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const txDay = new Date(item.dateObj);
+      txDay.setHours(0, 0, 0, 0);
+
+      if (plDateFilter === 'Today' && txDay.getTime() !== today.getTime()) return false;
+      if (plDateFilter === 'Yesterday') {
+        const yest = new Date(today);
+        yest.setDate(yest.getDate() - 1);
+        if (txDay.getTime() !== yest.getTime()) return false;
+      }
+      if (plDateFilter === 'This Week') {
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - 7);
+        if (txDay < startOfWeek || txDay > new Date()) return false;
+      }
+      if (plDateFilter === 'This Month') {
+        if (txDay.getFullYear() !== today.getFullYear() || txDay.getMonth() !== today.getMonth()) return false;
+      }
+      if (plDateFilter === 'Custom') {
+        if (plStartDate && plEndDate) {
+          const start = new Date(plStartDate);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(plEndDate);
+          end.setHours(23, 59, 59, 999);
+          if (txDay < start || txDay > end) return false;
+        } else if (plStartDate) {
+          const start = new Date(plStartDate);
+          start.setHours(0, 0, 0, 0);
+          if (txDay < start) return false;
+        } else if (plEndDate) {
+          const end = new Date(plEndDate);
+          end.setHours(23, 59, 59, 999);
+          if (txDay > end) return false;
+        }
+      }
+
+      // 2. Product Filter
+      if (plProductFilter !== 'All' && !item.product.toLowerCase().includes(plProductFilter.toLowerCase())) {
+        return false;
+      }
+
+      // 3. Category Filter
+      if (plCategoryFilter !== 'All' && item.category.toLowerCase() !== plCategoryFilter.toLowerCase()) {
+        return false;
+      }
+
+      // 4. Type Filter
+      if (plTypeFilter !== 'All') {
+        if (plTypeFilter === 'Sale' && item.type !== 'Sale') return false;
+        if (plTypeFilter === 'Purchase' && item.type !== 'Purchase') return false;
+        if (plTypeFilter === 'Expense' && item.type !== 'Expense') return false;
+        if (plTypeFilter === 'Return' && !item.type.includes('Return')) return false;
+      }
+
+      // 5. Payment Mode Filter
+      if (plPaymentFilter !== 'All' && !item.mode.toLowerCase().includes(plPaymentFilter.toLowerCase())) {
+        return false;
+      }
+
+      // 6. Party Filter
+      if (plPartyFilter !== 'All' && item.party.toLowerCase() !== plPartyFilter.toLowerCase()) {
+        return false;
+      }
+
+      // 7. Search
+      if (plSearch.trim()) {
+        const q = plSearch.toLowerCase().trim();
+        const rMatch = item.ref.toLowerCase().includes(q);
+        const pMatch = item.product.toLowerCase().includes(q);
+        const cMatch = item.category.toLowerCase().includes(q);
+        const partyMatch = item.party.toLowerCase().includes(q);
+        if (!rMatch && !pMatch && !cMatch && !partyMatch) return false;
+      }
+
+      return true;
+    });
+  }, [plJournalTransactions, plDateFilter, plStartDate, plEndDate, plProductFilter, plCategoryFilter, plTypeFilter, plPaymentFilter, plPartyFilter, plSearch]);
+
+  // P&L Statement Metrics
+  const plTotalRevenue = useMemo(() => {
+    return filteredPlJournal.filter(t => t.isIncome).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  }, [filteredPlJournal]);
+
+  const plTotalCOGS = useMemo(() => {
+    return filteredPlJournal.filter(t => t.type === 'Purchase').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  }, [filteredPlJournal]);
+
+  const plGrossProfit = useMemo(() => plTotalRevenue - plTotalCOGS, [plTotalRevenue, plTotalCOGS]);
+  const plGrossMargin = useMemo(() => plTotalRevenue > 0 ? ((plGrossProfit / plTotalRevenue) * 100).toFixed(2) : '0.00', [plGrossProfit, plTotalRevenue]);
+
+  const plTotalExpenses = useMemo(() => {
+    return filteredPlJournal.filter(t => t.type === 'Expense' || t.type === 'Sale Return').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  }, [filteredPlJournal]);
+
+  const plNetProfit = useMemo(() => plGrossProfit - plTotalExpenses, [plGrossProfit, plTotalExpenses]);
+  const plNetMargin = useMemo(() => plTotalRevenue > 0 ? ((plNetProfit / plTotalRevenue) * 100).toFixed(2) : '0.00', [plNetProfit, plTotalRevenue]);
+
+  const plTotalInflow = plTotalRevenue;
+  const plTotalOutflow = plTotalCOGS + plTotalExpenses;
+
+  // Pagination for Bank Statement
+  const totalPlPages = Math.max(1, Math.ceil(filteredPlJournal.length / plPageSize));
+  const paginatedPlJournal = useMemo(() => {
+    const start = (plPage - 1) * plPageSize;
+    return filteredPlJournal.slice(start, start + plPageSize);
+  }, [filteredPlJournal, plPage, plPageSize]);
+
+  // Product-Wise P&L Analysis
+  const productWisePnLData = useMemo(() => {
+    const map = {};
+    (products || []).forEach(p => {
+      map[p.name.toLowerCase()] = {
+        name: p.name,
+        category: p.category || 'General',
+        unitsSold: 0,
+        unit: p.unit || 'KG',
+        salesRevenue: 0,
+        purchasePrice: Number(p.purchasePrice || 0),
+        cogs: 0,
+        grossProfit: 0,
+        margin: '0.0'
+      };
+    });
+
+    filteredSalesList.forEach(s => {
+      const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : [{ name: s.productName || 'Commodity', qty: s.qty || 1, total: s.grossAmt }]);
+      cart.forEach(it => {
+        const key = (it.name || '').toLowerCase();
+        const qty = Number(it.qty || it.enteredQty || 1);
+        const rev = Number(it.total || it.totalAmount || (qty * (it.price || it.rate || 0)));
+
+        if (!map[key]) {
+          map[key] = {
+            name: it.name || 'Commodity',
+            category: 'General',
+            unitsSold: 0,
+            unit: it.unit || 'KG',
+            salesRevenue: 0,
+            purchasePrice: 0,
+            cogs: 0,
+            grossProfit: 0,
+            margin: '0.0'
+          };
+        }
+        map[key].unitsSold += qty;
+        map[key].salesRevenue += rev;
+      });
+    });
+
+    return Object.values(map).filter(p => p.unitsSold > 0 || p.salesRevenue > 0).map(p => {
+      const cogs = p.unitsSold * p.purchasePrice;
+      const gp = p.salesRevenue - cogs;
+      const margin = p.salesRevenue > 0 ? ((gp / p.salesRevenue) * 100).toFixed(1) : '0.0';
+      return {
+        ...p,
+        cogs,
+        grossProfit: gp,
+        margin
+      };
+    }).sort((a, b) => b.grossProfit - a.grossProfit);
+  }, [products, filteredSalesList]);
+
+  // Category-Wise P&L Analysis
+  const categoryWisePnLData = useMemo(() => {
+    const map = {};
+    (allCategories || ['All', 'General']).filter(c => c !== 'All').forEach(cat => {
+      map[cat.toLowerCase()] = {
+        category: cat,
+        sales: 0,
+        purchases: 0,
+        expenses: 0,
+        netProfit: 0,
+        margin: '0.0'
+      };
+    });
+
+    filteredPlJournal.forEach(item => {
+      const catKey = (item.category || 'General').toLowerCase();
+      if (!map[catKey]) {
+        map[catKey] = {
+          category: item.category || 'General',
+          sales: 0,
+          purchases: 0,
+          expenses: 0,
+          netProfit: 0,
+          margin: '0.0'
+        };
+      }
+
+      if (item.type === 'Sale' || item.type === 'Purchase Return') {
+        map[catKey].sales += Math.abs(item.amount);
+      } else if (item.type === 'Purchase') {
+        map[catKey].purchases += Math.abs(item.amount);
+      } else {
+        map[catKey].expenses += Math.abs(item.amount);
+      }
+    });
+
+    return Object.values(map).filter(c => c.sales > 0 || c.purchases > 0 || c.expenses > 0).map(c => {
+      const net = c.sales - c.purchases - c.expenses;
+      const margin = c.sales > 0 ? ((net / c.sales) * 100).toFixed(1) : '0.0';
+      return {
+        ...c,
+        netProfit: net,
+        margin
+      };
+    }).sort((a, b) => b.netProfit - a.netProfit);
+  }, [allCategories, filteredPlJournal]);
+
+  const hasActivePlFilters = plDateFilter !== 'All' || plProductFilter !== 'All' || plCategoryFilter !== 'All' || plTypeFilter !== 'All' || plPaymentFilter !== 'All' || plPartyFilter !== 'All' || plSearch.trim() !== '' || plStartDate || plEndDate;
+
+  // =========================================================================
   // EXPORT CSV HANDLER (100% Unit Accurate)
   // =========================================================================
   const exportReportCSV = () => {
@@ -579,6 +1001,27 @@ export const Reports = () => {
       csvData += `Supplier,Products Count,Qty Sold,Orders Count,Total Sales (Rs.),Contribution (%)\n`;
       supplierWiseSalesData.forEach(sup => {
         csvData += `"${sup.supplierName}",${sup.productsCount},${sup.totalQty},${sup.orderCount},${sup.totalSales},${sup.pctContribution}%\n`;
+      });
+    } else if (reportType === 'ProfitLoss') {
+      csvData += `--- PROFIT & LOSS STATEMENT SUMMARY ---\n`;
+      csvData += `Total Sales / Revenue,Rs. ${plTotalRevenue}\nTotal Purchases (COGS),Rs. ${plTotalCOGS}\nGross Profit,Rs. ${plGrossProfit} (${plGrossMargin}%)\nShop Expenses,Rs. ${plTotalExpenses}\nNet Profit,Rs. ${plNetProfit} (${plNetMargin}%)\n\n`;
+
+      csvData += `--- 1. ITEMIZE TRANSACTION STATEMENT JOURNAL ---\n`;
+      csvData += `Date,Reference,Product/Item,Category,Type,Qty,Amount (Rs.),Running P&L (Rs.)\n`;
+      filteredPlJournal.forEach(tx => {
+        csvData += `"${tx.dateStr}","${tx.ref}","${tx.product}","${tx.category}","${tx.type}","${tx.qty}",${tx.amount},${tx.runningPnL}\n`;
+      });
+
+      csvData += `\n--- 2. PRODUCT-WISE P&L ANALYSIS ---\n`;
+      csvData += `Product,Category,Units Sold,Sales (Rs.),Purchase Cost (Rs.),Gross Profit (Rs.),Margin (%)\n`;
+      productWisePnLData.forEach(p => {
+        csvData += `"${p.name}","${p.category}",${p.unitsSold},${p.salesRevenue},${p.cogs},${p.grossProfit},${p.margin}%\n`;
+      });
+
+      csvData += `\n--- 3. CATEGORY-WISE P&L ANALYSIS ---\n`;
+      csvData += `Category,Sales (Rs.),Purchases (Rs.),Expenses (Rs.),Net Profit (Rs.),Margin (%)\n`;
+      categoryWisePnLData.forEach(c => {
+        csvData += `"${c.category}",${c.sales},${c.purchases},${c.expenses},${c.netProfit},${c.margin}%\n`;
       });
     } else if (reportType === 'Expenses') {
       csvData += `Date,Voucher Ref,Category,Description,Payment Mode,Amount (Rs.)\n`;
@@ -1705,94 +2148,632 @@ export const Reports = () => {
       )}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 4. PROFIT & LOSS STATEMENT */}
+      {/* 4. PROFIT & LOSS STATEMENT (BANK-STATEMENT STYLE FINANCIAL JOURNAL) */}
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'ProfitLoss' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div
-              onClick={() => navigate('/sales')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-                }`}
-              title="Click to view Sales"
-            >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">1. Total Sales</div>
-              <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalSalesGross.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">From Customer Sales</div>
-            </div>
-
-            <div
-              onClick={() => navigate('/purchases')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-br from-blue-50/40 to-white border-blue-200/60'
-                }`}
-              title="Click to view Purchases"
-            >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">2. Total Purchases</div>
-              <div className="text-2xl font-black mt-1.5 text-blue-600 dark:text-blue-400 font-mono">Rs. {cogs.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Stock Purchase Cost</div>
-            </div>
-
-            <div
-              onClick={() => setShowAddExpenseModal(true)}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
-                }`}
-              title="Click to view or add Expenses"
-            >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Shop Expenses</div>
-              <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalExpensesAmount.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Labour, Bills & Rent</div>
-            </div>
-
-            <div
-              className={`p-5 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/50' : 'bg-gradient-to-br from-emerald-50 to-white border-emerald-300'
-                }`}
-            >
-              <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">4. Net Profit</div>
-              <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">
-                Rs. {netOperatingProfit.toLocaleString()}
+          {/* Statement Header & Period Presets */}
+          <div className={`p-4 rounded-2xl border card-shadow flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div>
+              <div className="flex items-center gap-2">
+                <PieChart className="w-5 h-5 text-emerald-500" />
+                <h2 className="text-base font-black tracking-tight">
+                  Financial Profit & Loss Statement
+                </h2>
               </div>
-              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">Sales − Purchases − Expenses</div>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                Itemized transaction journal with cumulative running P&L ledger
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'All', label: 'All Time' },
+                { id: 'Today', label: 'Today' },
+                { id: 'This Week', label: 'This Week' },
+                { id: 'This Month', label: 'This Month' },
+                { id: 'Custom', label: 'Custom' }
+              ].map(preset => (
+                <button
+                  key={preset.id}
+                  onClick={() => {
+                    setPlDateFilter(preset.id);
+                    setPlPage(1);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                    plDateFilter === preset.id
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/60 dark:text-slate-400'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Income Statement Table */}
-          <div className={`border rounded-2xl p-6 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <PieChart className="w-4 h-4 text-emerald-600" />
-              <span>Profit & Loss Breakdown</span>
-            </h3>
-
-            <div className="space-y-3 text-xs font-bold">
-              <div className="p-3.5 rounded-xl bg-emerald-50/60 dark:bg-slate-900/60 border border-emerald-200/60 dark:border-slate-700 flex justify-between items-center">
-                <div>
-                  <span className="text-slate-900 dark:text-white font-bold block text-sm">1. Total Sales</span>
-                  <span className="text-[11px] text-slate-500 font-medium">Money earned from selling goods to customers</span>
-                </div>
-                <span className="font-mono text-base font-bold text-emerald-600 dark:text-emerald-400">Rs. {totalSalesGross.toLocaleString()}</span>
+          {/* Statement Filter Bar */}
+          <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-emerald-500" />
+                <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                  Statement Filter System
+                </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-blue-50/60 dark:bg-slate-900/60 border border-blue-200/60 dark:border-slate-700 flex justify-between items-center">
-                <div>
-                  <span className="text-slate-900 dark:text-white font-bold block text-sm">2. Minus: Purchases</span>
-                  <span className="text-[11px] text-slate-500 font-medium">Money spent on buying stock from suppliers</span>
-                </div>
-                <span className="font-mono text-base font-bold text-blue-600 dark:text-blue-400">- Rs. {cogs.toLocaleString()}</span>
+              {hasActivePlFilters && (
+                <button
+                  onClick={handleResetPlFilters}
+                  className="text-[11px] font-bold text-rose-500 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                  <span>Reset Statement Filters</span>
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-2.5 items-center">
+              {/* 1. Date Range */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Date Range
+                </label>
+                <select
+                  value={plDateFilter}
+                  onChange={(e) => {
+                    setPlDateFilter(e.target.value);
+                    setPlPage(1);
+                  }}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Dates</option>
+                  <option value="Today">Today</option>
+                  <option value="Yesterday">Yesterday</option>
+                  <option value="This Week">This Week</option>
+                  <option value="This Month">This Month</option>
+                  <option value="Custom">Custom Range</option>
+                </select>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-rose-50/60 dark:bg-slate-900/60 border border-rose-200/60 dark:border-slate-700 flex justify-between items-center">
-                <div>
-                  <span className="text-slate-900 dark:text-white font-bold block text-sm">3. Minus: Shop Expenses</span>
-                  <span className="text-[11px] text-slate-500 font-medium">Labour, loading, rent, bills & bags</span>
-                </div>
-                <span className="font-mono text-base font-bold text-rose-600 dark:text-rose-400">- Rs. {totalExpensesAmount.toLocaleString()}</span>
+              {/* 2. Product */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Product / Item
+                </label>
+                <select
+                  value={plProductFilter}
+                  onChange={(e) => {
+                    setPlProductFilter(e.target.value);
+                    setPlPage(1);
+                  }}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Products</option>
+                  {products.map(p => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
               </div>
 
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:bg-slate-900 border border-emerald-300 dark:border-slate-700 flex items-center justify-between font-bold text-base text-slate-900 dark:text-white shadow-2xs">
-                <div>
-                  <span className="block text-lg text-emerald-800 dark:text-emerald-300">Net Profit</span>
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Money left after all costs are removed</span>
+              {/* 3. Category */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Category
+                </label>
+                <select
+                  value={plCategoryFilter}
+                  onChange={(e) => {
+                    setPlCategoryFilter(e.target.value);
+                    setPlPage(1);
+                  }}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Categories</option>
+                  {(allCategories || ['General']).filter(c => c !== 'All').map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 4. Transaction Type */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Type
+                </label>
+                <select
+                  value={plTypeFilter}
+                  onChange={(e) => {
+                    setPlTypeFilter(e.target.value);
+                    setPlPage(1);
+                  }}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Types</option>
+                  <option value="Sale">Sale (Income)</option>
+                  <option value="Purchase">Purchase (Stock Cost)</option>
+                  <option value="Expense">Shop Expense</option>
+                  <option value="Return">Returns</option>
+                </select>
+              </div>
+
+              {/* 5. Payment Mode */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Payment Mode
+                </label>
+                <select
+                  value={plPaymentFilter}
+                  onChange={(e) => {
+                    setPlPaymentFilter(e.target.value);
+                    setPlPage(1);
+                  }}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Modes</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Credit">Credit (Khata)</option>
+                  <option value="Bank">Bank / Online</option>
+                </select>
+              </div>
+
+              {/* 6. Search Bar */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Search Statement
+                </label>
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={plSearch}
+                    onChange={(e) => {
+                      setPlSearch(e.target.value);
+                      setPlPage(1);
+                    }}
+                    placeholder="Ref, item, party..."
+                    className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-bold outline-none focus:border-emerald-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                    }`}
+                  />
                 </div>
-                <span className="text-2xl font-mono text-emerald-700 dark:text-emerald-300 font-black">Rs. {netOperatingProfit.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Custom Date Pickers */}
+            {plDateFilter === 'Custom' && (
+              <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-400">From Date:</span>
+                  <input
+                    type="date"
+                    value={plStartDate}
+                    onChange={(e) => {
+                      setPlStartDate(e.target.value);
+                      setPlPage(1);
+                    }}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-400">To Date:</span>
+                  <input
+                    type="date"
+                    value={plEndDate}
+                    onChange={(e) => {
+                      setPlEndDate(e.target.value);
+                      setPlPage(1);
+                    }}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Compact Financial Statement Summary & Reconciliation Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+            {/* 5 Compact KPI Metric Cards (8 cols) */}
+            <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {/* 1. Total Sales / Revenue */}
+              <div className={`p-3.5 rounded-2xl border card-shadow ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+                <div className="text-[10px] font-black uppercase text-slate-400">Total Sales / Revenue</div>
+                <div className="text-lg font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
+                  +Rs. {plTotalRevenue.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium mt-0.5">Customer sales & returns</div>
+              </div>
+
+              {/* 2. Total Purchases (COGS) */}
+              <div className={`p-3.5 rounded-2xl border card-shadow ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+                <div className="text-[10px] font-black uppercase text-slate-400">Total Purchases (COGS)</div>
+                <div className="text-lg font-black font-mono mt-1 text-blue-600 dark:text-blue-400">
+                  -Rs. {plTotalCOGS.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium mt-0.5">Procurement cost</div>
+              </div>
+
+              {/* 3. Gross Profit */}
+              <div className={`p-3.5 rounded-2xl border card-shadow ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+                <div className="text-[10px] font-black uppercase text-slate-400">Gross Profit</div>
+                <div className="text-lg font-black font-mono mt-1 text-slate-900 dark:text-white">
+                  Rs. {plGrossProfit.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
+                  Margin: {plGrossMargin}%
+                </div>
+              </div>
+
+              {/* 4. Shop Expenses */}
+              <div className={`p-3.5 rounded-2xl border card-shadow ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+                <div className="text-[10px] font-black uppercase text-slate-400">Shop Expenses</div>
+                <div className="text-lg font-black font-mono mt-1 text-rose-500">
+                  -Rs. {plTotalExpenses.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium mt-0.5">Operational overheads</div>
+              </div>
+
+              {/* 5. Net Operating Profit */}
+              <div className={`p-3.5 rounded-2xl border card-shadow sm:col-span-2 ${
+                theme === 'dark' ? 'bg-emerald-950/30 border-emerald-500/40 text-white' : 'bg-emerald-50/70 border-emerald-200 text-slate-900'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">Net Operating Profit</div>
+                    <div className="text-xl font-black font-mono mt-0.5 text-emerald-700 dark:text-emerald-300">
+                      Rs. {plNetProfit.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white font-black text-xs font-mono">
+                      {plNetMargin}% Net Margin
+                    </span>
+                    <div className="text-[10px] text-slate-400 font-medium mt-1">
+                      Sales − Purchases − Expenses
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Statement Period Summary Card (4 cols) */}
+            <div className={`lg:col-span-4 p-4 rounded-2xl border card-shadow space-y-2.5 ${
+              theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-slate-50/90 border-slate-200 text-slate-900'
+            }`}>
+              <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 border-b pb-1.5 border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                <span>Period Statement Summary</span>
+                <span className="text-[10px] font-bold text-emerald-600">{plDateFilter}</span>
+              </div>
+
+              <div className="space-y-1.5 text-xs font-semibold">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Opening Balance:</span>
+                  <span className="font-mono text-slate-600 dark:text-slate-300">Rs. 0</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Total Inflow (Revenue):</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                    +Rs. {plTotalInflow.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Total Outflow (Costs):</span>
+                  <span className="font-mono text-rose-500 font-bold">
+                    -Rs. {plTotalOutflow.toLocaleString()}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-sm font-black">
+                  <span>Net Statement P&L:</span>
+                  <span className={`font-mono ${plNetProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                    Rs. {plNetProfit.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* MAIN BANK-STATEMENT STYLE TRANSACTION LEDGER */}
+          {/* ========================================================================= */}
+          <div className={`border rounded-2xl card-shadow overflow-hidden ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+                  <span>Itemized Transaction Statement Journal</span>
+                </h3>
+                <span className="text-[11px] text-slate-400 font-medium">
+                  Financial running balance ledger sorted chronologically
+                </span>
+              </div>
+
+              <div className="text-xs text-slate-400 font-bold">
+                Showing {filteredPlJournal.length > 0 ? (plPage - 1) * plPageSize + 1 : 0}–{Math.min(plPage * plPageSize, filteredPlJournal.length)} of {filteredPlJournal.length} transactions
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className={`border-b text-[10px] font-black uppercase tracking-wider sticky top-0 ${
+                    theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-slate-400' : 'bg-slate-50/90 border-slate-200 text-slate-500'
+                  }`}>
+                    <th className="py-3 px-3.5">Date</th>
+                    <th className="py-3 px-3">Reference</th>
+                    <th className="py-3 px-3">Product / Description</th>
+                    <th className="py-3 px-3">Category</th>
+                    <th className="py-3 px-3 text-center">Type</th>
+                    <th className="py-3 px-3 text-center">Qty</th>
+                    <th className="py-3 px-3 text-right">Amount</th>
+                    <th className="py-3 px-3.5 text-right font-black text-slate-900 dark:text-white">Running P&L</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                  {paginatedPlJournal.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-slate-400">
+                        No financial transactions match the selected filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedPlJournal.map((tx) => {
+                      const isPositive = tx.amount >= 0;
+                      return (
+                        <tr key={tx.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
+                          {/* Date */}
+                          <td className="py-3 px-3.5 text-slate-600 dark:text-slate-300 font-mono text-[11px] whitespace-nowrap">
+                            {tx.dateStr}
+                          </td>
+
+                          {/* Reference */}
+                          <td className="py-3 px-3 font-mono font-bold whitespace-nowrap">
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold ${
+                              tx.type === 'Sale' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' :
+                              tx.type === 'Purchase' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800' :
+                              tx.type === 'Expense' ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800' :
+                              'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800'
+                            }`}>
+                              {tx.ref}
+                            </span>
+                          </td>
+
+                          {/* Product / Description */}
+                          <td className="py-3 px-3 font-bold text-slate-900 dark:text-white max-w-xs truncate">
+                            <div>{tx.product}</div>
+                            <div className="text-[10px] text-slate-400 font-medium">{tx.party} • {tx.mode}</div>
+                          </td>
+
+                          {/* Category */}
+                          <td className="py-3 px-3 text-slate-500 font-medium">
+                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-900 text-[10px] font-bold border border-slate-200 dark:border-slate-700">
+                              {tx.category}
+                            </span>
+                          </td>
+
+                          {/* Type */}
+                          <td className="py-3 px-3 text-center whitespace-nowrap">
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              tx.type === 'Sale' ? 'bg-emerald-500/10 text-emerald-600' :
+                              tx.type === 'Purchase' ? 'bg-blue-500/10 text-blue-600' :
+                              tx.type === 'Expense' ? 'bg-rose-500/10 text-rose-600' :
+                              'bg-purple-500/10 text-purple-600'
+                            }`}>
+                              {tx.type}
+                            </span>
+                          </td>
+
+                          {/* Qty */}
+                          <td className="py-3 px-3 text-center font-mono font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                            {tx.qty}
+                          </td>
+
+                          {/* Amount */}
+                          <td className={`py-3 px-3 text-right font-mono font-bold whitespace-nowrap ${
+                            isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                          }`}>
+                            {isPositive ? '+' : ''}Rs. {tx.amount.toLocaleString()}
+                          </td>
+
+                          {/* Running P&L */}
+                          <td className="py-3 px-3.5 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
+                            Rs. {tx.runningPnL.toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPlPages > 1 && (
+              <div className="p-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs">
+                <button
+                  onClick={() => setPlPage(p => Math.max(1, p - 1))}
+                  disabled={plPage === 1}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Previous Page
+                </button>
+
+                <div className="font-bold text-slate-500">
+                  Page {plPage} of {totalPlPages}
+                </div>
+
+                <button
+                  onClick={() => setPlPage(p => Math.min(totalPlPages, p + 1))}
+                  disabled={plPage === totalPlPages}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Next Page
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ========================================================================= */}
+          {/* PRODUCT-WISE & CATEGORY-WISE P&L ANALYTICS */}
+          {/* ========================================================================= */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* 1. Product-Wise P&L Table */}
+            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                  <Wheat className="w-4 h-4 text-emerald-500" />
+                  <span>Product-Wise Profit & Loss</span>
+                </h3>
+                <span className="text-[10px] text-slate-400 font-medium">Click row to filter</span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
+                      theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                    }`}>
+                      <th className="py-2.5 px-2.5">Product</th>
+                      <th className="py-2.5 px-2 text-center">Units Sold</th>
+                      <th className="py-2.5 px-2 text-right">Sales</th>
+                      <th className="py-2.5 px-2 text-right">Cost (COGS)</th>
+                      <th className="py-2.5 px-2 text-right font-black">Gross Profit</th>
+                      <th className="py-2.5 px-2.5 text-right">Margin %</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                    {productWisePnLData.length === 0 ? (
+                      <tr><td colSpan={6} className="py-6 text-center text-slate-400">No product sales records.</td></tr>
+                    ) : (
+                      productWisePnLData.map((p, idx) => (
+                        <tr 
+                          key={idx} 
+                          onClick={() => {
+                            setPlProductFilter(p.name);
+                            setPlPage(1);
+                          }}
+                          className={`cursor-pointer transition ${theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-emerald-50/50'}`}
+                          title="Click to filter statement to this product"
+                        >
+                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">
+                            <div>{p.name}</div>
+                            <div className="text-[9px] text-slate-400">{p.category}</div>
+                          </td>
+                          <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-600 dark:text-slate-300">
+                            {p.unitsSold} {p.unit}
+                          </td>
+                          <td className="py-2.5 px-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            Rs. {p.salesRevenue.toLocaleString()}
+                          </td>
+                          <td className="py-2.5 px-2 text-right font-mono text-slate-500">
+                            Rs. {p.cogs.toLocaleString()}
+                          </td>
+                          <td className="py-2.5 px-2 text-right font-mono font-black text-slate-900 dark:text-white">
+                            Rs. {p.grossProfit.toLocaleString()}
+                          </td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {p.margin}%
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 2. Category-Wise P&L Table */}
+            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                  <Building className="w-4 h-4 text-blue-500" />
+                  <span>Category-Wise Profit & Loss</span>
+                </h3>
+                <span className="text-[10px] text-slate-400 font-medium">Click row to filter</span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
+                      theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                    }`}>
+                      <th className="py-2.5 px-2.5">Category</th>
+                      <th className="py-2.5 px-2 text-right">Sales</th>
+                      <th className="py-2.5 px-2 text-right">Purchases</th>
+                      <th className="py-2.5 px-2 text-right">Expenses</th>
+                      <th className="py-2.5 px-2 text-right font-black">Net Profit</th>
+                      <th className="py-2.5 px-2.5 text-right">Margin %</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                    {categoryWisePnLData.length === 0 ? (
+                      <tr><td colSpan={6} className="py-6 text-center text-slate-400">No category breakdown data.</td></tr>
+                    ) : (
+                      categoryWisePnLData.map((c, idx) => (
+                        <tr 
+                          key={idx}
+                          onClick={() => {
+                            setPlCategoryFilter(c.category);
+                            setPlPage(1);
+                          }}
+                          className={`cursor-pointer transition ${theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-blue-50/50'}`}
+                          title="Click to filter statement to this category"
+                        >
+                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">
+                            {c.category}
+                          </td>
+                          <td className="py-2.5 px-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            Rs. {c.sales.toLocaleString()}
+                          </td>
+                          <td className="py-2.5 px-2 text-right font-mono text-blue-600 dark:text-blue-400">
+                            Rs. {c.purchases.toLocaleString()}
+                          </td>
+                          <td className="py-2.5 px-2 text-right font-mono text-rose-500">
+                            Rs. {c.expenses.toLocaleString()}
+                          </td>
+                          <td className="py-2.5 px-2 text-right font-mono font-black text-slate-900 dark:text-white">
+                            Rs. {c.netProfit.toLocaleString()}
+                          </td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {c.margin}%
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
