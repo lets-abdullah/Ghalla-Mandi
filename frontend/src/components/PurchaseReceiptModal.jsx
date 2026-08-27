@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Printer, Download, Truck, X, Building2, CheckCircle2, Loader2, ShieldCheck, Scale } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import html2pdf from 'html2pdf.js';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
@@ -310,30 +310,35 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
     }
   };
 
-  // Download Purchase Voucher as high-resolution PNG image
-  const handleDownload = async () => {
+  // Download Purchase Voucher as High Quality A4 PDF Document
+  const handleDownloadPDF = async () => {
     const voucherElement = document.getElementById('purchase-voucher-printable-area');
     if (!voucherElement) return;
 
     try {
       setIsDownloading(true);
 
-      const canvas = await html2canvas(voucherElement, {
-        scale: 3, // High-resolution export
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        logging: false
-      });
+      const opt = {
+        margin: [10, 10, 10, 10], // top, left, bottom, right in mm
+        filename: `Purchase_Voucher_${cleanPurchaseNo.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          logging: false,
+          backgroundColor: '#ffffff'
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait' 
+        }
+      };
 
-      const imageURI = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = imageURI;
-      link.download = `Purchase_Voucher_${cleanPurchaseNo.replace('#', '')}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      await html2pdf().set(opt).from(voucherElement).save();
     } catch (err) {
-      console.error('Failed to download purchase voucher image:', err);
+      console.error('Failed to download purchase voucher PDF:', err);
+      alert('Failed to generate PDF. Please try using the Print button to Save as PDF.');
     } finally {
       setIsDownloading(false);
     }
@@ -481,20 +486,20 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
           </button>
 
           <button
-            onClick={handleDownload}
+            onClick={handleDownloadPDF}
             disabled={isDownloading}
-            className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer"
-            title="Download purchase voucher as PNG Image"
+            className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer"
+            title="Download purchase voucher as A4 PDF file"
           >
             {isDownloading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Downloading...</span>
+                <span>Generating PDF...</span>
               </>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                <span>{t('downloadReceiptBtn') || 'Download'}</span>
+                <span>Download PDF (A4)</span>
               </>
             )}
           </button>
