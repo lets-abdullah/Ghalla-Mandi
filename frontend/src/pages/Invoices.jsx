@@ -1,6 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { FileText, Search, Printer, ArrowUpRight, ArrowDownLeft, DollarSign, ShoppingBag, ShoppingCart, Clock } from 'lucide-react';
+import { 
+  FileText, 
+  Search, 
+  Printer, 
+  DollarSign, 
+  ShoppingBag, 
+  ShoppingCart, 
+  Clock,
+  Calendar,
+  Users,
+  User,
+  Filter,
+  RotateCcw,
+  RefreshCw,
+  Eye,
+  Download
+} from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
@@ -8,101 +24,296 @@ import { ReceiptModal } from '../components/ReceiptModal';
 import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
 
 export const Invoices = () => {
-  const { sales, purchases, suppliers } = useERP();
+  const { sales = [], purchases = [], customers = [], suppliers = [], saleReturns = [], purchaseReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const typeParam = searchParams.get('type');
-  const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Pending'
-  const [selectedSaleReceipt, setSelectedSaleReceipt] = useState(null);
-  const [selectedPurchaseReceipt, setSelectedPurchaseReceipt] = useState(null);
-
-  const salesInvoices = (sales || []).map(s => {
-    const rawAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.grandtotal !== undefined ? s.grandtotal : 0)));
-    const paidAmt = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : (s.status === 'Paid' ? rawAmt : 0)));
-    return {
-      id: s.id,
-      invoiceNo: s.invoiceNo || s.invoiceno || '',
-      partyName: s.partyName || s.partyname || s.customerName || 'Customer',
-      date: s.date || 'N/A',
-      amountNum: rawAmt,
-      amount: rawAmt,
-      paidAmount: paidAmt,
-      paymentMode: s.paymentMode || (paidAmt >= rawAmt ? 'Cash' : paidAmt > 0 ? 'Partial Cash' : 'Khata (Udhaar)'),
-      status: s.status || (paidAmt >= rawAmt && rawAmt > 0 ? 'Paid' : paidAmt > 0 ? 'Partial' : 'Pending'),
-      itemsCount: s.itemsCount || (s.cart ? s.cart.length : 1),
-      cart: s.cart,
-      type: 'Sale'
-    };
-  });
-
-  const purchaseInvoices = (purchases || []).map(p => {
-    const rawAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
-    const paidAmt = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : ((p.status || p.paymentStatus) === 'Paid' ? rawAmt : 0)));
-    const supObj = suppliers.find(s => s.name === (p.supplier || p.supplierName) || s.id === p.supplierId);
-    
-    const itemsList = Array.isArray(p.cart) && p.cart.length > 0 ? p.cart : (Array.isArray(p.items) && p.items.length > 0 ? p.items : []);
-    const firstItem = itemsList[0] || {};
-    const itemUnit = firstItem.unit || firstItem.unitName || firstItem.enteredUnit || p.unit || p.unitName || t('kg');
-    const productName = firstItem.name || firstItem.productName || (typeof p.items === 'string' ? p.items : (p.productName || t('products')));
-    const qty = Number(firstItem.qty || firstItem.enteredQty || p.qty || 1);
-    const rate = Number(firstItem.rate || firstItem.price || firstItem.ratePerEnteredUnit || p.rate || p.purchasePrice || (qty ? Math.round(rawAmt / qty) : rawAmt));
-
-    return {
-      id: p.id,
-      invoiceNo: p.purchaseNo || p.purchaseno || '',
-      partyName: p.supplier || p.supplierName || p.suppliername || 'Supplier',
-      supplierPhone: supObj?.phone || '',
-      supplierCity: supObj?.city || '',
-      supplierBalance: Number(supObj?.balance || 0),
-      productName,
-      qty,
-      unit: itemUnit,
-      rate,
-      date: p.date || 'N/A',
-      amountNum: rawAmt,
-      amount: rawAmt,
-      paidAmount: paidAmt,
-      paymentMode: p.paymentMode || (paidAmt >= rawAmt ? 'Cash' : paidAmt > 0 ? 'Partial Cash' : 'Supplier Credit (Khata)'),
-      status: p.status || p.paymentStatus || (paidAmt >= rawAmt && rawAmt > 0 ? 'Paid' : paidAmt > 0 ? 'Partial' : 'Pending'),
-      itemsCount: itemsList.length || 1,
-      cart: itemsList.length > 0 ? itemsList.map(it => ({
-        name: it.name || it.productName || 'Commodity Item',
-        qty: Number(it.qty || it.enteredQty || 1),
-        unit: it.unit || it.unitName || it.enteredUnit || itemUnit,
-        unitName: it.unitName || it.unit || it.enteredUnit || itemUnit,
-        rate: Number(it.rate || it.price || it.ratePerEnteredUnit || 0),
-        price: Number(it.price || it.rate || it.ratePerEnteredUnit || 0),
-        total: Number(it.total || it.totalAmount || 0)
-      })) : null,
-      type: 'Purchase'
-    };
-  });
-
   const isPurchases = typeParam && typeParam.toLowerCase() === 'purchases';
   const activeTab = isPurchases ? 'Purchases' : 'Sales';
 
-  const totalSalesInvoiced = salesInvoices.reduce((acc, i) => acc + i.amountNum, 0);
-  const totalSalesPaid = salesInvoices.reduce((acc, i) => acc + i.paidAmount, 0);
-  const totalPurchasesInvoiced = purchaseInvoices.reduce((acc, i) => acc + i.amountNum, 0);
-  const totalPurchasesPaid = purchaseInvoices.reduce((acc, i) => acc + i.paidAmount, 0);
+  // 5-Filter State System (Identical to Sales Page)
+  const [search, setSearch] = useState('');
+  const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Party' | 'Walk-in Customer'
+  const [selectedCustomerId, setSelectedCustomerId] = useState('All'); // 'All' | specific customer id or name
+  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Pending'
+  const [returnFilter, setReturnFilter] = useState('All'); // 'All' | 'SalesOnly' | 'WithReturns' | 'ReturnsOnly'
 
-  const list = isPurchases ? purchaseInvoices : salesInvoices;
+  // Modals state
+  const [selectedSaleReceipt, setSelectedSaleReceipt] = useState(null);
+  const [selectedPurchaseReceipt, setSelectedPurchaseReceipt] = useState(null);
 
-  const filtered = list.filter(item => {
-    const matchesSearch =
-      item.invoiceNo.toLowerCase().includes(search.toLowerCase()) ||
-      item.partyName.toLowerCase().includes(search.toLowerCase());
+  // Keyboard Escape listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (selectedSaleReceipt) setSelectedSaleReceipt(null);
+        else if (selectedPurchaseReceipt) setSelectedPurchaseReceipt(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedSaleReceipt, selectedPurchaseReceipt]);
 
-    if (!matchesSearch) return false;
-    if (filterType === 'All') return true;
-    if (filterType === 'Paid') return item.status === 'Paid';
-    if (filterType === 'Partial') return item.status === 'Partial';
-    if (filterType === 'Pending') return item.status !== 'Paid';
-    return item.status === filterType;
-  });
+  // Robust Date Parser helper
+  const parseInvoiceDate = (dateStr, createdAtStr) => {
+    if (createdAtStr) {
+      const d = new Date(createdAtStr);
+      if (!isNaN(d.getTime())) return d;
+    }
+    if (!dateStr) return null;
+
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        const d = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const y = parseInt(parts[2], 10);
+        return new Date(y, m, d);
+      }
+    } else if (dateStr.includes('-')) {
+      const parts = dateStr.split('T')[0].split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        return new Date(y, m, d);
+      }
+    }
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Date Filter matcher
+  const matchDateFilter = (item) => {
+    if (dateFilterType === 'All') return true;
+
+    const itemDate = parseInvoiceDate(item.date, item.created_at);
+    if (!itemDate) return true;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const itemDay = new Date(itemDate);
+    itemDay.setHours(0, 0, 0, 0);
+
+    if (dateFilterType === 'Today') {
+      return itemDay.getTime() === today.getTime();
+    }
+
+    if (dateFilterType === 'Yesterday') {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return itemDay.getTime() === yesterday.getTime();
+    }
+
+    if (dateFilterType === 'This Week') {
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - 7);
+      return itemDay >= startOfWeek && itemDay <= new Date();
+    }
+
+    if (dateFilterType === 'This Month') {
+      return (
+        itemDay.getFullYear() === today.getFullYear() &&
+        itemDay.getMonth() === today.getMonth()
+      );
+    }
+
+    if (dateFilterType === 'Custom') {
+      if (customStartDate && customEndDate) {
+        const start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+        return itemDay >= start && itemDay <= end;
+      } else if (customStartDate) {
+        const start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+        return itemDay >= start;
+      } else if (customEndDate) {
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+        return itemDay <= end;
+      }
+      return true;
+    }
+
+    return true;
+  };
+
+  // Format Sales Invoices List
+  const salesInvoices = useMemo(() => {
+    return (sales || []).map(s => {
+      const rawAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.grandtotal !== undefined ? s.grandtotal : 0)));
+      const paidAmt = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : (s.status === 'Paid' ? rawAmt : 0)));
+      const retAmt = Number(s.returnAmount || 0);
+      const remainingDue = Math.max(0, rawAmt - paidAmt - retAmt);
+      const isPaid = paidAmt >= (rawAmt - retAmt) && rawAmt > 0;
+      const status = isPaid ? 'Paid' : paidAmt > 0 ? 'Partial' : 'Pending';
+
+      return {
+        id: s.id,
+        invoiceNo: s.invoiceNo || s.invoiceno || '',
+        partyName: s.partyName || s.partyname || s.customerName || 'Walk-in Customer',
+        customerId: s.customerId || null,
+        customerType: s.customerType || (s.partyName?.toLowerCase().includes('walk-in') ? 'Walk-in Customer' : 'Regular Party'),
+        customerPhone: s.customerPhone || '',
+        customerCity: s.customerCity || '',
+        date: s.date || 'N/A',
+        created_at: s.created_at,
+        amountNum: rawAmt,
+        amount: rawAmt,
+        paidAmount: paidAmt,
+        dueAmount: remainingDue,
+        returnAmount: retAmt,
+        paymentMode: s.paymentMode || (isPaid ? 'Cash' : paidAmt > 0 ? 'Partial Cash' : 'Khata (Udhaar)'),
+        status: status,
+        itemsCount: s.itemsCount || (s.cart ? s.cart.length : 1),
+        cart: s.cart,
+        items: s.items,
+        note: s.note || s.saleNote || '',
+        type: 'Sale'
+      };
+    });
+  }, [sales]);
+
+  // Format Purchase Invoices List
+  const purchaseInvoices = useMemo(() => {
+    return (purchases || []).map(p => {
+      const rawAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
+      const paidAmt = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : ((p.status || p.paymentStatus) === 'Paid' ? rawAmt : 0)));
+      const retAmt = Number(p.returnAmount || 0);
+      const remainingDue = Math.max(0, rawAmt - paidAmt - retAmt);
+      const supObj = suppliers.find(s => s.name === (p.supplier || p.supplierName) || s.id === p.supplierId);
+      
+      const itemsList = Array.isArray(p.cart) && p.cart.length > 0 ? p.cart : (Array.isArray(p.items) && p.items.length > 0 ? p.items : []);
+      const firstItem = itemsList[0] || {};
+      const itemUnit = firstItem.unit || firstItem.unitName || firstItem.enteredUnit || p.unit || p.unitName || t('kg');
+      const productName = firstItem.name || firstItem.productName || (typeof p.items === 'string' ? p.items : (p.productName || t('products')));
+      const qty = Number(firstItem.qty || firstItem.enteredQty || p.qty || 1);
+      const rate = Number(firstItem.rate || firstItem.price || firstItem.ratePerEnteredUnit || p.rate || p.purchasePrice || (qty ? Math.round(rawAmt / qty) : rawAmt));
+      const isPaid = paidAmt >= (rawAmt - retAmt) && rawAmt > 0;
+      const status = isPaid ? 'Paid' : paidAmt > 0 ? 'Partial' : 'Pending';
+
+      return {
+        id: p.id,
+        invoiceNo: p.purchaseNo || p.purchaseno || '',
+        partyName: p.supplier || p.supplierName || p.suppliername || 'Supplier',
+        supplierId: p.supplierId || supObj?.id || null,
+        supplierPhone: supObj?.phone || '',
+        supplierCity: supObj?.city || '',
+        supplierBalance: Number(supObj?.balance || 0),
+        productName,
+        qty,
+        unit: itemUnit,
+        rate,
+        date: p.date || 'N/A',
+        created_at: p.created_at,
+        amountNum: rawAmt,
+        amount: rawAmt,
+        paidAmount: paidAmt,
+        dueAmount: remainingDue,
+        returnAmount: retAmt,
+        paymentMode: p.paymentMode || (isPaid ? 'Cash' : paidAmt > 0 ? 'Partial Cash' : 'Supplier Credit (Khata)'),
+        status: status,
+        itemsCount: itemsList.length || 1,
+        cart: itemsList.length > 0 ? itemsList.map(it => ({
+          name: it.name || it.productName || 'Commodity Item',
+          qty: Number(it.qty || it.enteredQty || 1),
+          unit: it.unit || it.unitName || it.enteredUnit || itemUnit,
+          unitName: it.unitName || it.unit || it.enteredUnit || itemUnit,
+          rate: Number(it.rate || it.price || it.ratePerEnteredUnit || 0),
+          price: Number(it.price || it.rate || it.ratePerEnteredUnit || 0),
+          total: Number(it.total || it.totalAmount || 0)
+        })) : null,
+        type: 'Purchase'
+      };
+    });
+  }, [purchases, suppliers, t]);
+
+  const activeInvoicesList = isPurchases ? purchaseInvoices : salesInvoices;
+
+  // Filtered Invoices based on the exact 5-filter system
+  const filteredInvoices = useMemo(() => {
+    return activeInvoicesList.filter(item => {
+      // 1. Text Search
+      const q = search.toLowerCase().trim();
+      if (q) {
+        const invMatch = item.invoiceNo.toLowerCase().includes(q);
+        const partyMatch = item.partyName.toLowerCase().includes(q);
+        const noteMatch = (item.note || '').toLowerCase().includes(q);
+        if (!invMatch && !partyMatch && !noteMatch) return false;
+      }
+
+      // 2. Date Filter
+      if (!matchDateFilter(item)) return false;
+
+      // 3. Customer Type Filter (Sales only)
+      if (!isPurchases) {
+        const isWalkin = (item.customerType || '').toLowerCase().includes('walk-in') || 
+                         (item.partyName || '').toLowerCase().includes('walk-in');
+        if (customerTypeFilter === 'Regular Party' && isWalkin) return false;
+        if (customerTypeFilter === 'Walk-in Customer' && !isWalkin) return false;
+      }
+
+      // 4. Specific Party Filter
+      if (selectedCustomerId !== 'All') {
+        const idMatch = (item.customerId === selectedCustomerId) || (item.supplierId === selectedCustomerId);
+        const nameMatch = item.partyName.toLowerCase() === selectedCustomerId.toLowerCase();
+        if (!idMatch && !nameMatch) return false;
+      }
+
+      // 5. Payment Status Filter
+      if (statusFilter === 'Paid' && item.status !== 'Paid') return false;
+      if (statusFilter === 'Partial' && item.status !== 'Partial') return false;
+      if (statusFilter === 'Pending' && item.status !== 'Pending') return false;
+
+      // 6. Return Filter
+      const hasReturns = (item.returnAmount > 0) || (
+        isPurchases 
+          ? (purchaseReturns || []).some(r => r.purchaseId === item.id || r.purchaseNo === item.invoiceNo)
+          : (saleReturns || []).some(r => r.saleId === item.id || r.invoiceNo === item.invoiceNo)
+      );
+
+      if (returnFilter === 'SalesOnly' && hasReturns) return false;
+      if (returnFilter === 'WithReturns' && !hasReturns) return false;
+
+      return true;
+    });
+  }, [activeInvoicesList, isPurchases, search, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter, returnFilter, saleReturns, purchaseReturns]);
+
+  // Aggregate Metrics based on Filtered Invoices
+  const totalInvoicedVolume = filteredInvoices.reduce((acc, i) => acc + i.amountNum, 0);
+  const totalPaidAmount = filteredInvoices.reduce((acc, i) => acc + i.paidAmount, 0);
+  const totalPendingDue = filteredInvoices.reduce((acc, i) => acc + i.dueAmount, 0);
+
+  // Check if any filter is active
+  const isAnyFilterActive = (
+    search !== '' || 
+    dateFilterType !== 'All' ||
+    customStartDate !== '' ||
+    customEndDate !== '' ||
+    customerTypeFilter !== 'All' || 
+    selectedCustomerId !== 'All' || 
+    statusFilter !== 'All' ||
+    returnFilter !== 'All'
+  );
+
+  const resetAllFilters = () => {
+    setSearch('');
+    setDateFilterType('All');
+    setCustomStartDate('');
+    setCustomEndDate('');
+    setCustomerTypeFilter('All');
+    setSelectedCustomerId('All');
+    setStatusFilter('All');
+    setReturnFilter('All');
+  };
 
   const openReceiptModal = (inv) => {
     if (inv.type === 'Sale') {
@@ -110,6 +321,8 @@ export const Invoices = () => {
         orderId: inv.invoiceNo,
         date: inv.date,
         customerName: inv.partyName,
+        customerPhone: inv.customerPhone,
+        customerCity: inv.customerCity,
         items: inv.cart && inv.cart.length > 0 ? inv.cart.map(item => ({
           name: item.name,
           qty: item.qty,
@@ -127,7 +340,7 @@ export const Invoices = () => {
         grandTotal: Number(inv.amount || 0),
         paidAmount: Number(inv.paidAmount || 0),
         paymentMethod: inv.paymentMode || 'Cash',
-        saleNote: 'Sales Tax Invoice'
+        saleNote: inv.note || 'Official Sales Tax Invoice'
       });
     } else {
       const purchaseReceiptItems = inv.cart && Array.isArray(inv.cart) && inv.cart.length > 0 ? inv.cart.map(item => ({
@@ -171,23 +384,29 @@ export const Invoices = () => {
             ) : (
               <FileText className="w-6 h-6 text-brand-500" />
             )}
-            {isPurchases ? (t('purchaseInvoices') || 'Purchase Invoices') : (t('saleInvoices') || 'Sale Invoices')}
+            <span>{isPurchases ? (t('purchaseInvoices') || 'Purchase Invoices') : (t('saleInvoices') || 'Sales Invoices')}</span>
           </h1>
+          <p className="text-xs text-slate-400 font-bold mt-0.5">
+            {isPurchases ? 'Document records of inward supplier goods procurement vouchers' : 'Official sales tax invoice records and printable customer memos'}
+          </p>
         </div>
 
         <button
           onClick={() => window.print()}
-          className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-            }`}
+          className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+          }`}
         >
-          <Printer className="w-4 h-4" /> {t('Print Receipt')}
+          <Printer className="w-4 h-4" /> 
+          <span>{t('Print List') || 'Print List'}</span>
         </button>
       </div>
 
-      {/* KPI Cards Row */}
+      {/* KPI Cards Row (Real-time Filter-Aware) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 1. Total Invoiced Volume */}
         <div
-          onClick={() => setFilterType('All')}
+          onClick={() => { setStatusFilter('All'); setReturnFilter('All'); }}
           className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
             theme === 'dark'
               ? isPurchases ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-slate-800 border-emerald-500/30 text-white'
@@ -197,18 +416,19 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             {isPurchases ? <ShoppingCart className="w-4 h-4 text-blue-600" /> : <ShoppingBag className="w-4 h-4 text-emerald-600" />}
-            {isPurchases ? t('totalPurchasesVolume') : t('totalSalesVolume')}
+            <span>{isPurchases ? t('totalPurchasesVolume') || 'Total Purchases Volume' : t('totalSalesVolume') || 'Total Invoiced Volume'}</span>
           </div>
           <div className={`text-2xl font-black mt-1.5 font-mono ${isPurchases ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-            Rs. {(isPurchases ? totalPurchasesInvoiced : totalSalesInvoiced).toLocaleString()}
+            Rs. {totalInvoicedVolume.toLocaleString()}
           </div>
           <div className="text-xs text-slate-400 font-medium mt-1">
-            {(isPurchases ? purchaseInvoices.length : salesInvoices.length)} {t('invoices')} • View All
+            {filteredInvoices.length} {t('invoices')} • {isAnyFilterActive ? 'Filtered Results' : 'All-time Volume'}
           </div>
         </div>
 
+        {/* 2. Paid Amount */}
         <div
-          onClick={() => setFilterType('Paid')}
+          onClick={() => setStatusFilter('Paid')}
           className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
             theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
           }`}
@@ -216,28 +436,30 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <DollarSign className="w-4 h-4 text-emerald-600" />
-            {isPurchases ? (t('totalPaidOut') || 'Total Paid to Suppliers') : (t('totalReceivedPayment') || 'Total Cash Received')}
+            <span>{isPurchases ? (t('totalPaidOut') || 'Total Paid to Suppliers') : (t('totalReceivedPayment') || 'Total Cash Received')}</span>
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">
-            Rs. {(isPurchases ? totalPurchasesPaid : totalSalesPaid).toLocaleString()}
+            Rs. {totalPaidAmount.toLocaleString()}
           </div>
           <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">
             {t('paid')} • Filter Paid Invoices
           </div>
         </div>
 
+        {/* 3. Pending Khata / Due */}
         <div
-          onClick={() => setFilterType('Pending')}
+          onClick={() => setStatusFilter('Pending')}
           className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
             theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200/60'
           }`}
           title="Click to filter pending due invoices"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-amber-600" /> {t('pending') || 'Pending Balance'}
+            <Clock className="w-4 h-4 text-amber-600" />
+            <span>{t('pending') || 'Pending Balance'}</span>
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-amber-600 dark:text-amber-400">
-            {(isPurchases ? purchaseInvoices.filter(i => i.status !== 'Paid').length : salesInvoices.filter(i => i.status !== 'Paid').length)} {t('invoices')}
+            Rs. {totalPendingDue.toLocaleString()}
           </div>
           <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">
             Filter Unpaid Invoices
@@ -245,119 +467,309 @@ export const Invoices = () => {
         </div>
       </div>
 
-      {/* Search Header Container */}
-      <div className={`border rounded-2xl p-4 card-shadow flex flex-col md:flex-row gap-4 justify-between items-center transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
-        <div className="text-xs font-black text-slate-500 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-brand-500"></span>
-          <span>{isPurchases ? 'All Purchase Procurement Invoices' : 'All Customer Sales Tax Invoices'} ({filtered.length})</span>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          {/* Status Dropdown */}
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className={`w-full sm:w-44 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-            }`}
-          >
-            <option value="All">All Statuses</option>
-            <option value="Paid">Fully Paid</option>
-            <option value="Partial">Partial Paid</option>
-            <option value="Pending">Unpaid / Khata Due</option>
-          </select>
-
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder={isPurchases ? "Filter invoice no or supplier firm..." : "Filter invoice no or customer party..."}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
+      {/* ========================================================================= */}
+      {/* 5-FILTER TOOLBAR (EXACT SAME FILTERS AS SALES PAGE) */}
+      {/* ========================================================================= */}
+      <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${
+        theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      }`}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* 1. Date Filter */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-brand-500" />
+              <span>Date Filter</span>
+            </label>
+            <select
+              value={dateFilterType}
+              onChange={(e) => setDateFilterType(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
                 theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
-            />
+            >
+              <option value="All">All Dates</option>
+              <option value="Today">Today</option>
+              <option value="Yesterday">Yesterday</option>
+              <option value="This Week">This Week</option>
+              <option value="This Month">This Month</option>
+              <option value="Custom">Custom Date Range</option>
+            </select>
+          </div>
+
+          {/* 2. Customer Type */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Users className="w-3.5 h-3.5 text-blue-500" />
+              <span>{isPurchases ? 'Party Type' : 'Customer Type'}</span>
+            </label>
+            <select
+              value={customerTypeFilter}
+              onChange={(e) => setCustomerTypeFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All {isPurchases ? 'Suppliers' : 'Customer Types'}</option>
+              {!isPurchases && <option value="Regular Party">Regular Parties</option>}
+              {!isPurchases && <option value="Walk-in Customer">Walk-in Customers</option>}
+            </select>
+          </div>
+
+          {/* 3. Select Party */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <User className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Select Party</span>
+            </label>
+            <select
+              value={selectedCustomerId}
+              onChange={(e) => setSelectedCustomerId(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Individual Parties</option>
+              {(isPurchases ? suppliers : customers).map(party => (
+                <option key={party.id} value={party.id}>
+                  {party.name} {party.city ? `(${party.city})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 4. Payment Status */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-amber-500" />
+              <span>Payment Status</span>
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Paid">Fully Paid</option>
+              <option value="Partial">Partial Paid</option>
+              <option value="Pending">Unpaid / Due</option>
+            </select>
+          </div>
+
+          {/* 5. Returns Filter (Separate Option) */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <RotateCcw className="w-3.5 h-3.5 text-orange-500" />
+              <span>Sale Returns</span>
+            </label>
+            <select
+              value={returnFilter}
+              onChange={(e) => setReturnFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Transactions</option>
+              <option value="SalesOnly">Invoices Only (No Returns)</option>
+              <option value="WithReturns">Invoices with Returns</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Row 2: Custom Date Pickers (if Custom is chosen) + Search Bar + Reset */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/80">
+          {/* Custom Date Pickers */}
+          {dateFilterType === 'Custom' ? (
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                  title="From Date"
+                />
+              </div>
+              <span className="text-xs text-slate-400 font-bold">to</span>
+              <div>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                  title="To Date"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400 font-bold hidden sm:block">
+              Filter invoices by date range, customer type, party, payment status, and returns
+            </div>
+          )}
+
+          {/* Search Box & Reset Button */}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="relative w-full sm:w-72">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder={isPurchases ? "Filter invoice # or supplier..." : "Filter invoice # or customer..."}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              />
+            </div>
+
+            {isAnyFilterActive && (
+              <button
+                type="button"
+                onClick={resetAllFilters}
+                className="px-3 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
+                title="Reset All Filters"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Invoices Table */}
-      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
+      {/* ========================================================================= */}
+      {/* INVOICES TABLE (CLEAN, FOCUSED: VIEW & PRINT ACTIONS ONLY) */}
+      {/* ========================================================================= */}
+      <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
+        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+      }`}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap">
+          <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
             <thead>
-              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                }`}>
-                <th className="py-3.5 px-4">{activeTab === 'Sales' ? 'Invoice #' : 'Purchase #'}</th>
-                <th className="py-3.5 px-4">{activeTab === 'Sales' ? 'Customer' : 'Supplier'}</th>
-                <th className="py-3.5 px-4">Items</th>
+              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
+                theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+              }`}>
+                <th className="py-3.5 px-4">{isPurchases ? 'Purchase #' : 'Invoice #'}</th>
                 <th className="py-3.5 px-4">Date</th>
-                <th className="py-3.5 px-4 text-right">Total</th>
-                <th className="py-3.5 px-4 text-right">Due</th>
+                <th className="py-3.5 px-4">Buyer / Party</th>
+                <th className="py-3.5 px-4 text-right">Amount</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
                 <th className="py-3.5 px-4 text-center">Action</th>
               </tr>
             </thead>
-            <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
-              }`}>
-              {filtered.length === 0 ? (
+            <tbody className={`divide-y font-medium ${
+              theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+            }`}>
+              {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
-                    {t('noInvoicesFound')}
+                  <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
+                    {t('noInvoicesFound') || 'No invoices found matching your selected date and filter criteria.'}
                   </td>
                 </tr>
               ) : (
-                filtered.map(inv => {
-                  const paid = Number(inv.paidAmount !== undefined ? inv.paidAmount : (inv.status === 'Paid' ? inv.amount : 0));
+                filteredInvoices.map(inv => {
+                  const paid = Number(inv.paidAmount || 0);
                   const total = Number(inv.amount || 0);
-                  const due = Math.max(0, total - paid);
+                  const due = Number(inv.dueAmount || 0);
+                  const isWalkin = (inv.customerType || '').toLowerCase().includes('walk-in') || 
+                                   (inv.partyName || '').toLowerCase().includes('walk-in');
 
                   return (
-                    <tr key={inv.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
-                      }`}>
-                      <td className="py-3.5 px-4 font-mono font-bold text-blue-600 dark:text-blue-400">{inv.invoiceNo}</td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">{inv.partyName}</td>
-                      <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200">
-                        {inv.cart && inv.cart.length > 0 ? (
-                          inv.cart.map(i => `${i.name} (${i.qty} ${i.unitName || i.unit || 'KG'})`).join(', ')
+                    <tr 
+                      key={inv.id} 
+                      className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                    >
+                      {/* 1. Invoice # */}
+                      <td className="py-3.5 px-4 font-mono font-black text-brand-500 text-xs">
+                        {inv.invoiceNo}
+                      </td>
+
+                      {/* 2. Date */}
+                      <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-xs font-mono font-medium">
+                        {inv.date}
+                      </td>
+
+                      {/* 3. Buyer / Party */}
+                      <td className="py-3.5 px-4">
+                        <div className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <span>{inv.partyName}</span>
+                          {!isPurchases && (
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                              isWalkin 
+                                ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300' 
+                                : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
+                            }`}>
+                              {isWalkin ? 'Walk-in' : 'Regular Party'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* 4. Amount (Total / Paid / Due) */}
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
+                          Rs. {total.toLocaleString()}
+                        </div>
+                        {due > 0 ? (
+                          <div className="text-[10px] font-mono text-amber-500 font-bold">
+                            Due: Rs. {due.toLocaleString()}
+                          </div>
                         ) : (
-                          <span className="text-slate-600 dark:text-slate-300">{inv.productName || (typeof inv.items === 'string' ? inv.items : (Array.isArray(inv.items) ? inv.items.map(i => i.name || i.productName).join(', ') : 'Items'))}</span>
+                          <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                            Paid: Rs. {paid.toLocaleString()}
+                          </div>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">{inv.date}</td>
-                      <td className="py-3.5 px-4 text-right font-black text-xs">Rs. {total.toLocaleString()}</td>
-                      <td className="py-3.5 px-4 text-right font-extrabold text-xs">
-                        <span className={due > 0 ? 'text-rose-500 font-black' : 'text-slate-400'}>
-                          Rs. {due.toLocaleString()}
-                        </span>
-                      </td>
+
+                      {/* 5. Status Badge */}
                       <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-extrabold whitespace-nowrap border ${inv.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' :
-                          inv.status === 'Partial' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' :
-                            'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                          }`}>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${
+                          inv.status === 'Paid'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                            : inv.status === 'Partial'
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                        }`}>
                           {inv.status === 'Paid' ? t('paid') : inv.status === 'Partial' ? t('partial') : t('pending')}
                         </span>
                       </td>
+
+                      {/* 6. Actions: View | Print / Download */}
                       <td className="py-3.5 px-4 text-center">
-                        <button
-                          onClick={() => openReceiptModal(inv)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shadow-2xs ${activeTab === 'Sales'
-                            ? theme === 'dark'
-                              ? 'bg-slate-700 hover:bg-slate-600 text-brand-400 border border-slate-600'
-                              : 'bg-brand-50 hover:bg-brand-100 text-brand-600 border border-brand-200'
-                            : theme === 'dark'
-                              ? 'bg-slate-700 hover:bg-slate-600 text-emerald-400 border border-slate-600'
-                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* View Button */}
+                          <button
+                            onClick={() => openReceiptModal(inv)}
+                            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shadow-2xs border ${
+                              theme === 'dark' 
+                                ? 'bg-slate-700 hover:bg-slate-600 text-brand-400 border-slate-600' 
+                                : 'bg-brand-50 hover:bg-brand-100 text-brand-600 border-brand-200'
                             }`}
-                          title={t('Print Receipt')}
-                        >
-                          <Printer className="w-3.5 h-3.5" />
-                          <span>{t('Print Receipt')}</span>
-                        </button>
+                            title="View Invoice Details"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>View</span>
+                          </button>
+
+                          {/* Print / Download Button */}
+                          <button
+                            onClick={() => openReceiptModal(inv)}
+                            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shadow-2xs border ${
+                              theme === 'dark' 
+                                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' 
+                                : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                            }`}
+                            title="Print / Download Receipt"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                            <span>Print</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -390,4 +802,3 @@ export const Invoices = () => {
 };
 
 export default Invoices;
-

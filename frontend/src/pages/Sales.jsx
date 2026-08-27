@@ -12,11 +12,12 @@ import {
   RotateCcw, 
   Calendar, 
   Users, 
+  User,
   Filter, 
-  FileSpreadsheet,
-  ArrowUpDown,
-  RefreshCw,
-  Edit3
+  FileSpreadsheet, 
+  RefreshCw, 
+  Edit3,
+  Eye
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -33,14 +34,13 @@ export const Sales = () => {
 
   // Search & Filters State
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Pending' | 'Returns'
-  const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Party' | 'Walk-in Customer'
-  const [selectedCustomerId, setSelectedCustomerId] = useState('All'); // 'All' | specific customer id or name
-  
-  // Date Filter State
   const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Party' | 'Walk-in Customer'
+  const [selectedCustomerId, setSelectedCustomerId] = useState('All'); // 'All' | specific customer id
+  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Pending'
+  const [returnFilter, setReturnFilter] = useState('All'); // 'All' | 'SalesOnly' | 'WithReturns' | 'ReturnsOnly'
 
   // Modals state
   const [activeReceiptModal, setActiveReceiptModal] = useState(null);
@@ -64,11 +64,12 @@ export const Sales = () => {
         else if (activeReceiptModal) setActiveReceiptModal(null);
         else if (showDailyReportModal) setShowDailyReportModal(false);
         else if (showReturnModal) setShowReturnModal(false);
+        else if (editingSale) setEditingSale(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [paymentModalSale, activeReceiptModal, showDailyReportModal, showReturnModal]);
+  }, [paymentModalSale, activeReceiptModal, showDailyReportModal, showReturnModal, editingSale]);
 
   // Robust Date Parser helper for any sale record
   const parseSaleDate = (dateStr, createdAtStr) => {
@@ -204,9 +205,33 @@ export const Sales = () => {
       if (statusFilter === 'Partial' && status !== 'Partial') return false;
       if (statusFilter === 'Pending' && status !== 'Pending') return false;
 
+      // 6. Return Filter
+      const hasReturns = Number(s.returnAmount || 0) > 0 || (saleReturns || []).some(r => r.saleId === s.id || r.invoiceNo === s.invoiceNo);
+      if (returnFilter === 'SalesOnly' && hasReturns) return false;
+      if (returnFilter === 'WithReturns' && !hasReturns) return false;
+
       return true;
     });
-  }, [sales, search, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter]);
+  }, [sales, saleReturns, search, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter, returnFilter]);
+
+  // Filtered Sale Returns (for when Processed Returns Only is selected)
+  const filteredSaleReturns = useMemo(() => {
+    return (saleReturns || []).filter(r => {
+      const q = search.toLowerCase().trim();
+      if (q) {
+        const retMatch = (r.returnNo || '').toLowerCase().includes(q);
+        const invMatch = (r.invoiceNo || '').toLowerCase().includes(q);
+        const custMatch = (r.customerName || '').toLowerCase().includes(q);
+        if (!retMatch && !invMatch && !custMatch) return false;
+      }
+      if (selectedCustomerId !== 'All') {
+        const matchesId = r.customerId && r.customerId === selectedCustomerId;
+        const matchesName = (r.customerName || '').toLowerCase() === selectedCustomerId.toLowerCase();
+        if (!matchesId && !matchesName) return false;
+      }
+      return true;
+    });
+  }, [saleReturns, search, selectedCustomerId]);
 
   // Aggregate Metrics based on Filtered Sales
   const totalFilteredSalesVolume = filteredSales.reduce(
@@ -227,22 +252,24 @@ export const Sales = () => {
   // Check if any filter is active
   const isAnyFilterActive = (
     search !== '' || 
-    statusFilter !== 'All' || 
-    customerTypeFilter !== 'All' || 
-    selectedCustomerId !== 'All' || 
     dateFilterType !== 'All' ||
     customStartDate !== '' ||
-    customEndDate !== ''
+    customEndDate !== '' ||
+    customerTypeFilter !== 'All' || 
+    selectedCustomerId !== 'All' || 
+    statusFilter !== 'All' ||
+    returnFilter !== 'All'
   );
 
   const resetAllFilters = () => {
     setSearch('');
-    setStatusFilter('All');
-    setCustomerTypeFilter('All');
-    setSelectedCustomerId('All');
     setDateFilterType('All');
     setCustomStartDate('');
     setCustomEndDate('');
+    setCustomerTypeFilter('All');
+    setSelectedCustomerId('All');
+    setStatusFilter('All');
+    setReturnFilter('All');
   };
 
   const openPaymentModal = (sale) => {
@@ -297,6 +324,35 @@ export const Sales = () => {
     }
   };
 
+  const openReceiptForSale = (s) => {
+    const receiptData = {
+      orderId: s.invoiceNo,
+      date: s.date,
+      customerName: s.partyName,
+      customerPhone: s.customerPhone || '',
+      customerCity: s.customerCity || '',
+      items: s.cart && s.cart.length > 0 ? s.cart.map(item => ({
+        name: item.name,
+        qty: item.qty,
+        unit: item.unitName || item.unit || t('kg'),
+        price: Number(item.rate || item.price || 0)
+      })) : [{
+        name: s.items || t('products'),
+        qty: s.itemsCount || 1,
+        unit: t('item'),
+        price: Number(s.amount || 0)
+      }],
+      subtotal: Number(s.amount || 0),
+      discount: 0,
+      tax: 0,
+      grandTotal: Number(s.amount || 0),
+      paidAmount: Number(s.paidAmount !== undefined ? s.paidAmount : (s.status === 'Paid' ? s.amount : 0)),
+      paymentMethod: s.paymentMode || (Number(s.paidAmount) >= Number(s.amount) ? 'Cash' : Number(s.paidAmount) > 0 ? 'Partial Cash' : 'Khata (Udhaar)'),
+      saleNote: s.note || ''
+    };
+    setActiveReceiptModal(receiptData);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header with Action Buttons */}
@@ -304,10 +360,10 @@ export const Sales = () => {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <Receipt className="w-6 h-6 text-brand-500" />
-            <span>{t('salesInvoicesTab') || 'Sales Invoices & History'}</span>
+            <span>{t('salesInvoicesTab') || 'Sales'}</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Complete records of sales, counter receipts, khata receivables & returns
+            Complete sale transaction records with Edit & Return workflows
           </p>
         </div>
 
@@ -352,7 +408,7 @@ export const Sales = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* 1. Total Sales Volume */}
         <div
-          onClick={() => setStatusFilter('All')}
+          onClick={() => { setStatusFilter('All'); setReturnFilter('All'); }}
           className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
             theme === 'dark' 
               ? 'bg-slate-800 border-emerald-500/30 text-white' 
@@ -368,7 +424,7 @@ export const Sales = () => {
             Rs. {totalFilteredSalesVolume.toLocaleString()}
           </div>
           <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">
-            {filteredSales.length} {t('invoices') || 'Invoices'} • {isAnyFilterActive ? 'Filtered Results' : 'All-time Volume'}
+            {filteredSales.length} {t('invoices') || 'Sales'} • {isAnyFilterActive ? 'Filtered Results' : 'All-time Volume'}
           </div>
         </div>
 
@@ -418,13 +474,13 @@ export const Sales = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* ADVANCED FILTER TOOLBAR (ALL ENGLISH DROPDOWNS) */}
+      {/* 5-FILTER TOOLBAR (DATE, CUSTOMER TYPE, PARTY, PAYMENT STATUS, SALE RETURNS) */}
       {/* ========================================================================= */}
       <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* 1. Date Range Dropdown */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* 1. Date Filter */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-brand-500" />
@@ -446,7 +502,7 @@ export const Sales = () => {
             </select>
           </div>
 
-          {/* 2. Customer Type Dropdown */}
+          {/* 2. Customer Type */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-blue-500" />
@@ -465,10 +521,10 @@ export const Sales = () => {
             </select>
           </div>
 
-          {/* 3. Specific Customer Party Dropdown */}
+          {/* 3. Select Party */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Users className="w-3.5 h-3.5 text-indigo-500" />
+              <User className="w-3.5 h-3.5 text-indigo-500" />
               <span>Select Party</span>
             </label>
             <select
@@ -487,7 +543,7 @@ export const Sales = () => {
             </select>
           </div>
 
-          {/* 4. Payment Status Dropdown */}
+          {/* 4. Payment Status */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-amber-500" />
@@ -503,8 +559,27 @@ export const Sales = () => {
               <option value="All">All Statuses</option>
               <option value="Paid">Fully Paid</option>
               <option value="Partial">Partial Paid</option>
-              <option value="Pending">Unpaid / Due Khata</option>
-              <option value="Returns">Sale Returns ({saleReturns.length})</option>
+              <option value="Pending">Unpaid / Due</option>
+            </select>
+          </div>
+
+          {/* 5. Sale Returns (Separate Filter) */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <RotateCcw className="w-3.5 h-3.5 text-orange-500" />
+              <span>Sale Returns</span>
+            </label>
+            <select
+              value={returnFilter}
+              onChange={(e) => setReturnFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Transactions</option>
+              <option value="SalesOnly">Sales Only (No Returns)</option>
+              <option value="WithReturns">Sales with Returns</option>
+              <option value="ReturnsOnly">Processed Returns ({saleReturns.length})</option>
             </select>
           </div>
         </div>
@@ -540,7 +615,7 @@ export const Sales = () => {
             </div>
           ) : (
             <div className="text-xs text-slate-400 font-bold hidden sm:block">
-              Filter sales history by date range, customer type, and payment status
+              Filter sales by date range, customer type, party, payment status, and returns
             </div>
           )}
 
@@ -550,7 +625,7 @@ export const Sales = () => {
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search invoice #, customer or item..."
+                placeholder="Search sale ID, buyer, commodity..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
@@ -575,9 +650,9 @@ export const Sales = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* TABLE VIEW (SALES INVOICES OR SALE RETURNS) */}
+      {/* SALES TABLE VIEW (OR PROCESSED RETURNS VIEW) */}
       {/* ========================================================================= */}
-      {statusFilter === 'Returns' ? (
+      {returnFilter === 'ReturnsOnly' ? (
         /* Sale Returns History Table */
         <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
@@ -585,7 +660,7 @@ export const Sales = () => {
           <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
             <h3 className="font-black text-sm flex items-center gap-2">
               <RotateCcw className="w-4 h-4 text-orange-500" />
-              <span>Processed Customer Sale Returns ({saleReturns.length})</span>
+              <span>Processed Customer Sale Returns ({filteredSaleReturns.length})</span>
             </h3>
           </div>
           <div className="overflow-x-auto">
@@ -596,29 +671,29 @@ export const Sales = () => {
                 }`}>
                   <th className="py-3.5 px-4">Return #</th>
                   <th className="py-3.5 px-4">Date</th>
-                  <th className="py-3.5 px-4">Customer</th>
-                  <th className="py-3.5 px-4">Original Invoice #</th>
-                  <th className="py-3.5 px-4">Item Returned</th>
+                  <th className="py-3.5 px-4">Buyer / Party</th>
+                  <th className="py-3.5 px-4">Original Sale ID</th>
+                  <th className="py-3.5 px-4">Commodity Returned</th>
                   <th className="py-3.5 px-4 text-center">Refund Mode</th>
                   <th className="py-3.5 px-4 text-right">Refund Amount</th>
                 </tr>
               </thead>
               <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                {saleReturns.length === 0 ? (
+                {filteredSaleReturns.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-slate-400">
-                      No sale returns recorded yet.
+                      No processed sale returns match the filter.
                     </td>
                   </tr>
                 ) : (
-                  saleReturns.map(ret => (
+                  filteredSaleReturns.map(ret => (
                     <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
                       <td className="py-3.5 px-4 font-mono font-bold text-orange-600 dark:text-orange-400">{ret.returnNo}</td>
                       <td className="py-3.5 px-4 text-slate-500">{ret.date}</td>
                       <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">{ret.customerName}</td>
                       <td className="py-3.5 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">{ret.invoiceNo}</td>
                       <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200">
-                        {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Item'}
+                        {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Commodity Item'}
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${
@@ -640,7 +715,7 @@ export const Sales = () => {
           </div>
         </div>
       ) : (
-        /* Regular Sales Invoices Table */
+        /* Regular Sales Table */
         <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
@@ -650,15 +725,13 @@ export const Sales = () => {
                 <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
                   theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                  <th className="py-3.5 px-4">Invoice #</th>
+                  <th className="py-3.5 px-4">Sale ID</th>
                   <th className="py-3.5 px-4">Date</th>
-                  <th className="py-3.5 px-4">Customer / Party</th>
-                  <th className="py-3.5 px-4">Commodity Items</th>
-                  <th className="py-3.5 px-4 text-right">Total Bill</th>
-                  <th className="py-3.5 px-4 text-right">Paid</th>
-                  <th className="py-3.5 px-4 text-right">Remaining Due</th>
+                  <th className="py-3.5 px-4">Buyer / Party</th>
+                  <th className="py-3.5 px-4">Commodity</th>
+                  <th className="py-3.5 px-4 text-right">Amount</th>
                   <th className="py-3.5 px-4 text-center">Status</th>
-                  <th className="py-3.5 px-4 text-center">Action</th>
+                  <th className="py-3.5 px-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className={`divide-y font-medium ${
@@ -666,7 +739,7 @@ export const Sales = () => {
               }`}>
                 {filteredSales.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-slate-400 text-xs">
+                    <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
                       {t('noSalesFoundForFilters') || 'No sales found matching your selected date and filter criteria.'}
                     </td>
                   </tr>
@@ -674,8 +747,9 @@ export const Sales = () => {
                   filteredSales.map(s => {
                     const paid = Number(s.paidAmount || 0);
                     const total = Number(s.amount || s.grandTotal || 0);
-                    const due = Math.max(0, total - paid);
-                    const status = paid >= total && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+                    const retAmt = Number(s.returnAmount || 0);
+                    const due = Math.max(0, total - paid - retAmt);
+                    const status = paid >= (total - retAmt) && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
                     const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') || 
                                      (s.partyName || '').toLowerCase().includes('walk-in');
 
@@ -684,17 +758,17 @@ export const Sales = () => {
                         key={s.id} 
                         className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
                       >
-                        {/* Invoice No */}
+                        {/* 1. Sale ID */}
                         <td className="py-3.5 px-4 font-mono font-black text-brand-500 text-xs">
                           {s.invoiceNo}
                         </td>
 
-                        {/* Date */}
+                        {/* 2. Date */}
                         <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-xs font-mono font-medium">
                           {s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '-')}
                         </td>
 
-                        {/* Customer */}
+                        {/* 3. Buyer / Party */}
                         <td className="py-3.5 px-4">
                           <div className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
                             <span>{s.partyName}</span>
@@ -708,7 +782,7 @@ export const Sales = () => {
                           </div>
                         </td>
 
-                        {/* Items */}
+                        {/* 4. Commodity */}
                         <td className="py-3.5 px-4">
                           {s.cart && s.cart.length > 0 ? (
                             <div className="flex flex-wrap gap-1 max-w-xs">
@@ -730,24 +804,23 @@ export const Sales = () => {
                           )}
                         </td>
 
-                        {/* Total Amount */}
-                        <td className="py-3.5 px-4 text-right font-black font-mono text-xs">
-                          Rs. {total.toLocaleString()}
+                        {/* 5. Amount (Total / Paid / Due) */}
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
+                            Rs. {total.toLocaleString()}
+                          </div>
+                          {due > 0 ? (
+                            <div className="text-[10px] font-mono text-amber-500 font-bold">
+                              Due: Rs. {due.toLocaleString()}
+                            </div>
+                          ) : (
+                            <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                              Paid: Rs. {paid.toLocaleString()}
+                            </div>
+                          )}
                         </td>
 
-                        {/* Paid Amount */}
-                        <td className="py-3.5 px-4 text-right font-bold font-mono text-xs text-emerald-600 dark:text-emerald-400">
-                          Rs. {paid.toLocaleString()}
-                        </td>
-
-                        {/* Due Amount */}
-                        <td className="py-3.5 px-4 text-right font-extrabold font-mono text-xs">
-                          <span className={due > 0 ? 'text-amber-500 font-black' : 'text-slate-400'}>
-                            Rs. {due.toLocaleString()}
-                          </span>
-                        </td>
-
-                        {/* Payment Status Badge */}
+                        {/* 6. Status Badge */}
                         <td className="py-3.5 px-4 text-center">
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${
                             status === 'Paid'
@@ -760,88 +833,57 @@ export const Sales = () => {
                           </span>
                         </td>
 
-                        {/* Action Buttons */}
+                        {/* 7. Actions: View | Edit | Return Sale */}
                         <td className="py-3.5 px-4 text-center">
                           <div className="flex items-center justify-center gap-1.5">
-                            {/* Receive Payment Button (if due > 0) */}
-                            {due > 0 ? (
-                              <button
-                                onClick={() => openPaymentModal(s)}
-                                className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
-                                title="Receive Payment"
-                              >
-                                <DollarSign className="w-3.5 h-3.5" />
-                                <span>{t('Received') || 'Receive'}</span>
-                              </button>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                                <Check className="w-3 h-3" /> Paid
-                              </span>
-                            )}
+                            {/* View Action */}
+                            <button
+                              onClick={() => openReceiptForSale(s)}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${
+                                theme === 'dark' 
+                                  ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 
+                                  : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
+                              }`}
+                              title="View Sale Receipt / Invoice"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>View</span>
+                            </button>
 
-                            {/* Edit Sale Button */}
+                            {/* Edit Action */}
                             <button
                               onClick={() => setEditingSale(s)}
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                              title="Edit Sale / Add Items"
+                              title="Edit Sale / Update Items"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                               <span>Edit</span>
                             </button>
 
-                            {/* Return Button */}
+                            {/* Return Sale Action */}
                             <button
                               onClick={() => {
                                 setSelectedReturnSale(s);
                                 setShowReturnModal(true);
                               }}
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                              title="Process Return"
+                              title="Process Return for this Sale"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
                               <span>Return</span>
                             </button>
 
-                            {/* Print Receipt Button */}
-                            <button
-                              onClick={() => {
-                                const receiptData = {
-                                  orderId: s.invoiceNo,
-                                  date: s.date,
-                                  customerName: s.partyName,
-                                  customerPhone: s.customerPhone || '',
-                                  customerCity: s.customerCity || '',
-                                  items: s.cart && s.cart.length > 0 ? s.cart.map(item => ({
-                                    name: item.name,
-                                    qty: item.qty,
-                                    unit: item.unitName || item.unit || t('kg'),
-                                    price: Number(item.rate || item.price || 0)
-                                  })) : [{
-                                    name: s.items || t('products'),
-                                    qty: s.itemsCount || 1,
-                                    unit: t('item'),
-                                    price: Number(s.amount || 0)
-                                  }],
-                                  subtotal: Number(s.amount || 0),
-                                  discount: 0,
-                                  tax: 0,
-                                  grandTotal: Number(s.amount || 0),
-                                  paidAmount: Number(s.paidAmount !== undefined ? s.paidAmount : (s.status === 'Paid' ? s.amount : 0)),
-                                  paymentMethod: s.paymentMode || (Number(s.paidAmount) >= Number(s.amount) ? 'Cash' : Number(s.paidAmount) > 0 ? 'Partial Cash' : 'Khata (Udhaar)'),
-                                  saleNote: s.note || ''
-                                };
-                                setActiveReceiptModal(receiptData);
-                              }}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${
-                                theme === 'dark' 
-                                  ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 
-                                  : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
-                              }`}
-                              title={t('Print Receipt')}
-                            >
-                              <Printer className="w-3.5 h-3.5" />
-                              <span>Receipt</span>
-                            </button>
+                            {/* Quick Receive Payment (if due > 0) */}
+                            {due > 0 && (
+                              <button
+                                onClick={() => openPaymentModal(s)}
+                                className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
+                                title="Receive Outstanding Payment"
+                              >
+                                <DollarSign className="w-3 h-3" />
+                                <span>{t('Received') || 'Pay'}</span>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -995,7 +1037,7 @@ export const Sales = () => {
         </div>
       )}
 
-      {/* 3. Receipt Modal */}
+      {/* 3. Receipt / View Modal */}
       {activeReceiptModal && (
         <ReceiptModal
           isOpen={!!activeReceiptModal}
