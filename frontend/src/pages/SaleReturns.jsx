@@ -51,8 +51,9 @@ export const SaleReturns = () => {
           </button>
 
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => navigate('/sales')}
             className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-orange-500/20 cursor-pointer active:scale-98"
+            title="Go to Sales to pick a sale to return"
           >
             <Plus className="w-4 h-4" />
             <span>Process Sale Return</span>

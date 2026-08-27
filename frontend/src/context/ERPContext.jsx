@@ -784,11 +784,29 @@ export const ERPProvider = ({ children }) => {
           const prevReturn = Number(s.returnAmount || 0);
           const newReturnAmt = prevReturn + (Number(returnData.refundAmount) || 0);
           const origAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal || 0));
-          const isFull = newReturnAmt >= origAmt;
+          const isFull = newReturnAmt >= (origAmt - 1); // tolerance for float rounding
+
+          // Update item-level returned quantities in sale's cart
+          const updatedCart = Array.isArray(s.cart) ? s.cart.map(cartItem => {
+            const returnedItem = (returnData.items || []).find(rItem => 
+              (rItem.productId && rItem.productId === (cartItem.productId || cartItem.id)) ||
+              (rItem.name && rItem.name === cartItem.name)
+            );
+            if (returnedItem) {
+              const currentReturned = Number(cartItem.returnedQty || 0);
+              return {
+                ...cartItem,
+                returnedQty: currentReturned + Number(returnedItem.qty || 0)
+              };
+            }
+            return cartItem;
+          }) : s.cart;
+
           return {
             ...s,
+            cart: updatedCart,
             returnAmount: newReturnAmt,
-            status: isFull ? 'Returned' : 'Partial Return'
+            returnStatus: isFull ? 'Fully Returned' : 'Partially Returned'
           };
         }
         return s;

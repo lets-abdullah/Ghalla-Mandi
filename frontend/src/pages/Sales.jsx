@@ -360,35 +360,14 @@ export const Sales = () => {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <Receipt className="w-6 h-6 text-brand-500" />
-            <span>{t('salesInvoicesTab') || 'Sales'}</span>
+            <span>{t('sales') || 'Sales'}</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Complete sale transaction records with Edit & Return workflows
+            Complete sales transaction history with View, Edit & Return workflows
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Daily Sales Report Button */}
-          <button
-            onClick={() => setShowDailyReportModal(true)}
-            className="flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-black text-xs px-3.5 py-2.5 rounded-xl shadow-md shadow-brand-500/20 transition cursor-pointer active:scale-98"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>{t('dailySalesReport') || 'Daily Sales Report'}</span>
-          </button>
-
-          {/* Process Return Button */}
-          <button
-            onClick={() => {
-              setSelectedReturnSale(null);
-              setShowReturnModal(true);
-            }}
-            className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-md shadow-orange-500/20 transition cursor-pointer active:scale-98"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Process Sale Return</span>
-          </button>
-
           {/* Print Current Filtered List */}
           <button
             onClick={() => window.print()}
@@ -820,20 +799,33 @@ export const Sales = () => {
                           )}
                         </td>
 
-                        {/* 6. Status Badge */}
+                        {/* 6. Status Badges */}
                         <td className="py-3.5 px-4 text-center">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${
-                            status === 'Paid'
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                              : status === 'Partial'
-                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                          }`}>
-                            {status === 'Paid' ? t('paid') : status === 'Partial' ? t('partial') : t('pending')}
-                          </span>
+                          <div className="flex flex-col items-center gap-1">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${
+                              status === 'Paid'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                : status === 'Partial'
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                            }`}>
+                              {status === 'Paid' ? t('paid') : status === 'Partial' ? t('partial') : t('pending')}
+                            </span>
+
+                            {/* Return Status Badge if partially or fully returned */}
+                            {(s.returnStatus || s.returnAmount > 0) && (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap border ${
+                                s.returnStatus === 'Fully Returned'
+                                  ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
+                                  : 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30'
+                              }`}>
+                                {s.returnStatus || 'Partially Returned'}
+                              </span>
+                            )}
+                          </div>
                         </td>
 
-                        {/* 7. Actions: View | Edit | Return Sale */}
+                        {/* 7. Actions: Strictly View | Edit | Return Sale */}
                         <td className="py-3.5 px-4 text-center">
                           <div className="flex items-center justify-center gap-1.5">
                             {/* View Action */}
@@ -844,7 +836,7 @@ export const Sales = () => {
                                   ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 
                                   : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
                               }`}
-                              title="View Sale Receipt / Invoice"
+                              title="View Sale Details"
                             >
                               <Eye className="w-3.5 h-3.5" />
                               <span>View</span>
@@ -854,7 +846,7 @@ export const Sales = () => {
                             <button
                               onClick={() => setEditingSale(s)}
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                              title="Edit Sale / Update Items"
+                              title="Edit Sale / Modify Items"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                               <span>Edit</span>
@@ -867,23 +859,11 @@ export const Sales = () => {
                                 setShowReturnModal(true);
                               }}
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                              title="Process Return for this Sale"
+                              title="Return Sale (Partial or Full)"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
-                              <span>Return</span>
+                              <span>Return Sale</span>
                             </button>
-
-                            {/* Quick Receive Payment (if due > 0) */}
-                            {due > 0 && (
-                              <button
-                                onClick={() => openPaymentModal(s)}
-                                className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
-                                title="Receive Outstanding Payment"
-                              >
-                                <DollarSign className="w-3 h-3" />
-                                <span>{t('Received') || 'Pay'}</span>
-                              </button>
-                            )}
                           </div>
                         </td>
                       </tr>
