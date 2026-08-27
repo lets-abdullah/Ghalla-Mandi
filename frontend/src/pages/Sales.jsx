@@ -158,26 +158,7 @@ export const Sales = () => {
   // Filtered Sales Array
   const filteredSales = useMemo(() => {
     return (sales || []).filter(s => {
-      // 1. Text Search (Invoice #, Party Name, Cart Items, Notes)
-      const q = search.toLowerCase().trim();
-      if (q) {
-        const invMatch = (s.invoiceNo || s.invoiceno || '').toLowerCase().includes(q);
-        const partyMatch = (s.partyName || s.partyname || s.customerName || '').toLowerCase().includes(q);
-        const noteMatch = (s.note || s.saleNote || '').toLowerCase().includes(q);
-
-        let itemMatch = false;
-        if (Array.isArray(s.cart)) {
-          itemMatch = s.cart.some(item => (item.name || '').toLowerCase().includes(q));
-        } else if (typeof s.items === 'string') {
-          itemMatch = s.items.toLowerCase().includes(q);
-        }
-
-        if (!invMatch && !partyMatch && !noteMatch && !itemMatch) {
-          return false;
-        }
-      }
-
-      // 2. Date Filter
+      // 1. Date Filter
       if (!matchDateFilter(s)) return false;
 
       // 3. Customer Type Filter

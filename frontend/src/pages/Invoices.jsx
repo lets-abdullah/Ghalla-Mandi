@@ -38,7 +38,6 @@ export const Invoices = () => {
   const isPurchases = typeParam && typeParam.toLowerCase() === 'purchases';
 
   // Filters
-  const [search, setSearch] = useState('');
   const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -214,21 +213,13 @@ export const Invoices = () => {
   // Filtered List
   const filteredInvoices = useMemo(() => {
     return rawList.filter(item => {
-      // 1. Search filter
-      const matchesSearch =
-        item.invoiceNo.toLowerCase().includes(search.toLowerCase()) ||
-        item.partyName.toLowerCase().includes(search.toLowerCase()) ||
-        (item.paymentMode || '').toLowerCase().includes(search.toLowerCase());
-
-      if (!matchesSearch) return false;
-
-      // 2. Party Filter
+      // 1. Party Filter
       if (selectedPartyId !== 'All') {
         const matchesParty = item.partyId === selectedPartyId || item.partyName.toLowerCase() === selectedPartyId.toLowerCase();
         if (!matchesParty) return false;
       }
 
-      // 3. Product Filter
+      // 2. Product Filter
       if (selectedProductFilter !== 'All') {
         let hasProduct = false;
         if (Array.isArray(item.cart)) {
@@ -241,10 +232,10 @@ export const Invoices = () => {
         if (!hasProduct) return false;
       }
 
-      // 4. Date Filter
+      // 3. Date Filter
       if (!matchDateFilter(item)) return false;
 
-      // 5. Status Filter
+      // 4. Status Filter
       if (statusFilter !== 'All') {
         if (statusFilter === 'Paid' && item.status !== 'Paid') return false;
         if (statusFilter === 'Partial' && item.status !== 'Partial') return false;
@@ -257,7 +248,7 @@ export const Invoices = () => {
       const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
       return timeB - timeA;
     });
-  }, [rawList, search, selectedPartyId, selectedProductFilter, dateFilterType, customStartDate, customEndDate, statusFilter]);
+  }, [rawList, selectedPartyId, selectedProductFilter, dateFilterType, customStartDate, customEndDate, statusFilter]);
 
   // Summary Metrics
   const totalBilledVolume = useMemo(() => {
@@ -273,14 +264,12 @@ export const Invoices = () => {
   }, [filteredInvoices]);
 
   const isAnyFilterActive =
-    search !== '' ||
     dateFilterType !== 'All' ||
     selectedPartyId !== 'All' ||
     selectedProductFilter !== 'All' ||
     statusFilter !== 'All';
 
   const resetAllFilters = () => {
-    setSearch('');
     setDateFilterType('All');
     setCustomStartDate('');
     setCustomEndDate('');
@@ -431,24 +420,8 @@ export const Invoices = () => {
       {/* Filter Toolbar */}
       <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* 1. Search */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Search className="w-3.5 h-3.5 text-brand-500" />
-              <span>Search Document</span>
-            </label>
-            <input
-              type="text"
-              placeholder={isPurchases ? "Search voucher #..." : "Search invoice #..."}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-            />
-          </div>
-
-          {/* 2. Select Party */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* 1. Select Party */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <User className="w-3.5 h-3.5 text-blue-500" />
