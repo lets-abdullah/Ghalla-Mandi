@@ -779,8 +779,8 @@ export const Ledger = () => {
                           {entry.partyName}
                         </div>
                         <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold ${(entry.customerType || '').toLowerCase().includes('walk-in')
-                            ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                            : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
+                          ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                          : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
                           }`}>
                           {entry.customerType}
                         </span>
@@ -831,8 +831,8 @@ export const Ledger = () => {
                         <button
                           onClick={() => setViewingEntry(entry)}
                           className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${theme === 'dark'
-                              ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400'
-                              : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
+                            ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400'
+                            : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
                             }`}
                           title="View Transaction Details"
                         >
@@ -961,7 +961,7 @@ export const Ledger = () => {
                   className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 >
-                  <option value="">-- Choose Customer --</option>
+                  <option value="">Choose Customer</option>
                   {(isSupplier ? suppliers : customers).map(p => (
                     <option key={p.id} value={p.id}>
                       {p.name} (Due: Rs. {(Number(p.balance) || 0).toLocaleString()})
