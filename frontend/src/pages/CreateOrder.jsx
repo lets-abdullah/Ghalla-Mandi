@@ -3,7 +3,7 @@ import {
   Search, ShoppingCart, Plus, Minus, Trash2, X,
   LayoutGrid, List, User, UserPlus,
   Percent, CheckCircle2, DollarSign,
-  CreditCard, Smartphone, Wallet, Edit3,
+  CreditCard, Smartphone, Wallet, Edit3, Phone, MapPin,
   RefreshCw, Wheat, Check, PanelLeftClose, PanelLeftOpen, Maximize2,
   Receipt, AlertCircle, FileText, ChevronDown, Filter, Building2
 } from 'lucide-react';

@@ -5,7 +5,8 @@ import {
   Receipt, Users, UserCheck, BookOpen, FileText,
   BarChart3, Settings, Wheat, LogOut, Headphones, MessageSquare, Phone, X, PlusCircle,
   ChevronLeft, ChevronRight, ChevronDown, Circle,
-  TrendingUp, TrendingDown, DollarSign, RotateCcw, Scale, PieChart, Building, FileSpreadsheet
+  TrendingUp, TrendingDown, DollarSign, RotateCcw, Scale, PieChart, Building, FileSpreadsheet,
+  CreditCard
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
