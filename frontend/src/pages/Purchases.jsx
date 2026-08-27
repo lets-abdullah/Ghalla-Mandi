@@ -274,6 +274,11 @@ export const Purchases = () => {
       return;
     }
 
+    if (newSupplierForm.phone.trim() && newSupplierForm.phone.replace(/\D/g, '').length !== 11) {
+      alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
+      return;
+    }
+
     setIsCreatingSupplier(true);
     try {
       const createdSup = await addSupplier({
@@ -1214,10 +1219,12 @@ export const Purchases = () => {
                         Phone Number
                       </label>
                       <input
-                        type="text"
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
                         placeholder="03001234567"
                         value={newSupplierForm.phone}
-                        onChange={(e) => setNewSupplierForm({ ...newSupplierForm, phone: e.target.value })}
+                        onChange={(e) => setNewSupplierForm({ ...newSupplierForm, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                         className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                           }`}
                       />

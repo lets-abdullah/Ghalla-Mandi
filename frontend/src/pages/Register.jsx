@@ -41,8 +41,8 @@ export const Register = () => {
 
     if (formData.mobile.trim()) {
       const cleanDigits = formData.mobile.replace(/\D/g, '');
-      if (cleanDigits.length < 10 || cleanDigits.length > 11) {
-        setErrorMsg(t('registerErrorPhone'));
+      if (cleanDigits.length !== 11) {
+        setErrorMsg(t('registerErrorPhone') || 'Phone number must be exactly 11 digits (e.g. 03001234567).');
         return;
       }
     }

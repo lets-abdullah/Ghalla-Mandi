@@ -277,12 +277,13 @@ export const Suppliers = () => {
       return;
     }
 
-    if (form.phone.trim()) {
-      const cleanDigits = form.phone.replace(/\D/g, '');
-      if (cleanDigits.length < 10 || cleanDigits.length > 11) {
-        alert(t('phoneNumberValidationAlert'));
-        return;
-      }
+    if (form.phone.trim() && form.phone.replace(/\D/g, '').length !== 11) {
+      alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
+      return;
+    }
+    if (form.whatsapp.trim() && form.whatsapp.replace(/\D/g, '').length !== 11) {
+      alert('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
+      return;
     }
 
     setIsSubmitting(true);
@@ -332,12 +333,13 @@ export const Suppliers = () => {
     e.preventDefault();
     if (!editingSupplier || !editingSupplier.name.trim()) return;
 
-    if (editingSupplier.phone.trim()) {
-      const cleanDigits = editingSupplier.phone.replace(/\D/g, '');
-      if (cleanDigits.length < 10 || cleanDigits.length > 11) {
-        alert(t('phoneNumberValidationAlert'));
-        return;
-      }
+    if (editingSupplier.phone && editingSupplier.phone !== 'N/A' && editingSupplier.phone.replace(/\D/g, '').length !== 11) {
+      alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
+      return;
+    }
+    if (editingSupplier.whatsapp && editingSupplier.whatsapp.replace(/\D/g, '').length !== 11) {
+      alert('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
+      return;
     }
 
     setIsSubmitting(true);
@@ -975,10 +977,12 @@ export const Suppliers = () => {
                         Phone Number
                       </label>
                       <input
-                        type="text"
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
                         placeholder="03001234567"
                         value={form.phone}
-                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                         className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                           }`}
                       />
@@ -989,10 +993,12 @@ export const Suppliers = () => {
                         WhatsApp Number
                       </label>
                       <input
-                        type="text"
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
                         placeholder="03001234567"
                         value={form.whatsapp}
-                        onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                        onChange={(e) => setForm({ ...form, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                         className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                           }`}
                       />
@@ -1256,9 +1262,12 @@ export const Suppliers = () => {
                         Phone Number
                       </label>
                       <input
-                        type="text"
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
+                        placeholder="03001234567"
                         value={editingSupplier.phone}
-                        onChange={(e) => setEditingSupplier({ ...editingSupplier, phone: e.target.value })}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                         className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                           }`}
                       />
@@ -1269,9 +1278,12 @@ export const Suppliers = () => {
                         WhatsApp Number
                       </label>
                       <input
-                        type="text"
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
+                        placeholder="03001234567"
                         value={editingSupplier.whatsapp || ''}
-                        onChange={(e) => setEditingSupplier({ ...editingSupplier, whatsapp: e.target.value })}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                         className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                           }`}
                       />

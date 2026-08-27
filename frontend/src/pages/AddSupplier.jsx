@@ -56,6 +56,11 @@ export const AddSupplier = () => {
     e.preventDefault();
     if (!form.name.trim()) return;
 
+    if (form.phone.trim() && form.phone.replace(/\D/g, '').length !== 11) {
+      alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
+      return;
+    }
+
     addSupplier(form);
     navigate('/suppliers');
   };
@@ -135,10 +140,12 @@ export const AddSupplier = () => {
               <div className="relative">
                 <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={11}
                   placeholder="03001234567"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                   className={`w-full border rounded-xl pl-10 pr-3 py-2.5 text-xs font-mono font-bold outline-none focus:border-brand-500 transition ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 />

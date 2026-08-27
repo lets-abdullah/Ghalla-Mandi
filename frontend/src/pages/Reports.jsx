@@ -1831,10 +1831,10 @@ export const Reports = () => {
                         {/* 8. Status */}
                         <td className="py-3 px-3 text-center">
                           <span className={`font-extrabold text-xs ${item.status === 'In Stock'
-                              ? 'text-emerald-600 dark:text-emerald-400'
-                              : item.status === 'Low Stock'
-                                ? 'text-amber-600 dark:text-amber-400'
-                                : 'text-rose-600 dark:text-rose-400'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : item.status === 'Low Stock'
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-rose-600 dark:text-rose-400'
                             }`}>
                             {item.status}
                           </span>
@@ -3230,9 +3230,9 @@ export const Reports = () => {
                           {/* Reference */}
                           <td className="py-3 px-3 font-mono font-bold whitespace-nowrap">
                             <span className={`font-mono font-bold text-xs ${tx.type === 'Sale' ? 'text-emerald-600 dark:text-emerald-400' :
-                                tx.type === 'Purchase' ? 'text-blue-600 dark:text-blue-400' :
-                                  tx.type === 'Expense' ? 'text-rose-600 dark:text-rose-400' :
-                                    'text-purple-600 dark:text-purple-400'
+                              tx.type === 'Purchase' ? 'text-blue-600 dark:text-blue-400' :
+                                tx.type === 'Expense' ? 'text-rose-600 dark:text-rose-400' :
+                                  'text-purple-600 dark:text-purple-400'
                               }`}>
                               {tx.ref}
                             </span>
@@ -3252,9 +3252,9 @@ export const Reports = () => {
                           {/* Type */}
                           <td className="py-3 px-3 text-center whitespace-nowrap">
                             <span className={`text-xs font-black uppercase ${tx.type === 'Sale' ? 'text-emerald-600' :
-                                tx.type === 'Purchase' ? 'text-blue-600' :
-                                  tx.type === 'Expense' ? 'text-rose-600' :
-                                    'text-purple-600'
+                              tx.type === 'Purchase' ? 'text-blue-600' :
+                                tx.type === 'Expense' ? 'text-rose-600' :
+                                  'text-purple-600'
                               }`}>
                               {tx.type}
                             </span>
@@ -3464,9 +3464,6 @@ export const Reports = () => {
                     As of {bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                  Audited financial position • Liquid Assets, Receivables, Inventory vs Payables & Capital
-                </p>
               </div>
 
               {/* Single Clean Date Filter Dropdown & Controls */}

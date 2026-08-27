@@ -77,13 +77,18 @@ export const Khata = () => {
   const handleSaveKhataEdit = async (e) => {
     e.preventDefault();
     if (!editingKhataCust) return;
+    if (editForm.phone && editForm.phone.trim() && editForm.phone.replace(/\D/g, '').length !== 11) {
+      alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
+      return;
+    }
+
     try {
       setIsSavingEdit(true);
       if (updateCustomer) {
         await updateCustomer(editingKhataCust.id, {
           name: editForm.name,
           businessName: editForm.businessName,
-          phone: editForm.phone,
+          phone: editForm.phone ? editForm.phone.trim() : 'N/A',
           city: editForm.city,
           balance: Number(editForm.balance) || 0,
           customerType: editForm.customerType
@@ -856,10 +861,12 @@ export const Khata = () => {
                 <div>
                   <label className="text-xs font-bold text-slate-400 block mb-1">Phone Number</label>
                   <input
-                    type="text"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={11}
                     value={editForm.phone}
-                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    placeholder="0300-0000000"
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                    placeholder="03001234567"
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                       theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}

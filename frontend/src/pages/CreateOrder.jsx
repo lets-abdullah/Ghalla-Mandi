@@ -365,6 +365,15 @@ export const CreateOrder = () => {
       return;
     }
 
+    if (newCustomerForm.phone.trim() && newCustomerForm.phone.replace(/\D/g, '').length !== 11) {
+      alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
+      return;
+    }
+    if (newCustomerForm.whatsapp.trim() && newCustomerForm.whatsapp.replace(/\D/g, '').length !== 11) {
+      alert('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
+      return;
+    }
+
     try {
       const created = await addCustomer({
         name: newCustomerForm.name.trim(),
@@ -1418,10 +1427,12 @@ export const CreateOrder = () => {
                         Phone / Mobile *
                       </label>
                       <input
-                        type="text"
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
                         placeholder="03001234567"
                         value={newCustomerForm.phone}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: e.target.value })}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                         className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                           theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                         }`}
@@ -1433,10 +1444,12 @@ export const CreateOrder = () => {
                         WhatsApp / Alt Phone
                       </label>
                       <input
-                        type="text"
-                        placeholder="03217654321"
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
+                        placeholder="03001234567"
                         value={newCustomerForm.whatsapp}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, whatsapp: e.target.value })}
+                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                         className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                           theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                         }`}

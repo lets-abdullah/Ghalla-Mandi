@@ -137,7 +137,7 @@ export const Settings = () => {
     hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPassword)
   };
 
-  const isPasswordValid = 
+  const isPasswordValid =
     passwordCriteria.minLength &&
     passwordCriteria.hasUpper &&
     passwordCriteria.hasLower &&
@@ -209,9 +209,9 @@ export const Settings = () => {
       if (!passwordCriteria.hasNumber) missing.push('1 number (0-9)');
       if (!passwordCriteria.hasSpecial) missing.push('1 special character (!@#$%^&*)');
 
-      setStatusMsg({ 
-        type: 'error', 
-        text: `Password requirements missing: ${missing.join(', ')}.` 
+      setStatusMsg({
+        type: 'error',
+        text: `Password requirements missing: ${missing.join(', ')}.`
       });
       return;
     }
@@ -246,6 +246,16 @@ export const Settings = () => {
 
     if (!shopName.trim()) {
       setStatusMsg({ type: 'error', text: 'Shop / Business Name is required.' });
+      return;
+    }
+
+    if (businessPhone.trim() && businessPhone.replace(/\D/g, '').length !== 11) {
+      setStatusMsg({ type: 'error', text: 'Business phone number must be exactly 11 digits (e.g. 03001234567).' });
+      return;
+    }
+
+    if (businessWhatsapp.trim() && businessWhatsapp.replace(/\D/g, '').length !== 11) {
+      setStatusMsg({ type: 'error', text: 'Business WhatsApp number must be exactly 11 digits (e.g. 03001234567).' });
       return;
     }
 
@@ -317,19 +327,18 @@ export const Settings = () => {
 
       {/* Dynamic Status Alert Banner */}
       {statusMsg.text && (
-        <div className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-3 border shadow-sm transition-all animate-fade-in ${
-          statusMsg.type === 'success'
+        <div className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-3 border shadow-sm transition-all animate-fade-in ${statusMsg.type === 'success'
             ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
             : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
-        }`}>
+          }`}>
           {statusMsg.type === 'success' ? (
             <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500" />
           ) : (
             <AlertCircle className="w-5 h-5 shrink-0 text-rose-500" />
           )}
           <span className="flex-1">{statusMsg.text}</span>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => setStatusMsg({ type: '', text: '' })}
             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
           >
@@ -343,11 +352,10 @@ export const Settings = () => {
         <button
           type="button"
           onClick={() => { setActiveTab('profile'); setStatusMsg({ type: '', text: '' }); }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${
-            activeTab === 'profile'
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${activeTab === 'profile'
               ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
+            }`}
         >
           <User className="w-4 h-4" />
           <span>Personal Details</span>
@@ -356,11 +364,10 @@ export const Settings = () => {
         <button
           type="button"
           onClick={() => { setActiveTab('security'); setStatusMsg({ type: '', text: '' }); }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${
-            activeTab === 'security'
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${activeTab === 'security'
               ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
+            }`}
         >
           <ShieldCheck className="w-4 h-4" />
           <span>Password & Security</span>
@@ -369,11 +376,10 @@ export const Settings = () => {
         <button
           type="button"
           onClick={() => { setActiveTab('shop'); setStatusMsg({ type: '', text: '' }); }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${
-            activeTab === 'shop'
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${activeTab === 'shop'
               ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-          }`}
+            }`}
         >
           <Store className="w-4 h-4" />
           <span>Shop & Mandi Profile</span>
@@ -384,9 +390,8 @@ export const Settings = () => {
       {/* TAB 1: PERSONAL DETAILS (Change Your Details) */}
       {/* ========================================================================= */}
       {activeTab === 'profile' && (
-        <div className={`border rounded-3xl p-6 md:p-8 card-shadow space-y-6 transition-colors ${
-          isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
+        <div className={`border rounded-3xl p-6 md:p-8 card-shadow space-y-6 transition-colors ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
           {/* Profile Picture Header */}
           <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-slate-100 dark:border-slate-700">
             <div className="relative group">
@@ -413,7 +418,7 @@ export const Settings = () => {
             <div className="space-y-1.5 text-center sm:text-left">
               <h3 className="font-extrabold text-lg text-slate-900 dark:text-white">Profile Picture</h3>
               <p className="text-xs text-slate-400 font-medium">PNG, JPG, or WebP up to 2MB. Square ratio recommended.</p>
-              
+
               <div className="flex flex-wrap items-center gap-2 pt-1 justify-center sm:justify-start">
                 <input
                   type="file"
@@ -458,9 +463,8 @@ export const Settings = () => {
                     placeholder="Enter your full name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                      isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -478,9 +482,8 @@ export const Settings = () => {
                     maxLength={11}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                      isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -498,9 +501,8 @@ export const Settings = () => {
                     placeholder="name@business.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                      isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -518,9 +520,8 @@ export const Settings = () => {
                     maxLength={15}
                     value={cnic}
                     onChange={(e) => setCnic(formatCnic(e.target.value))}
-                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                      isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -537,9 +538,8 @@ export const Settings = () => {
                     placeholder="Street, Area, Tehsil, District"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                      isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -556,9 +556,8 @@ export const Settings = () => {
                     placeholder="e.g. Multan, Faisalabad Mandi"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                      isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -583,9 +582,8 @@ export const Settings = () => {
       {/* TAB 2: PASSWORD & SECURITY (Strict Mandatory 5-Point Validation) */}
       {/* ========================================================================= */}
       {activeTab === 'security' && (
-        <div className={`border rounded-3xl p-6 md:p-8 card-shadow space-y-6 transition-colors ${
-          isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
+        <div className={`border rounded-3xl p-6 md:p-8 card-shadow space-y-6 transition-colors ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
           {/* Section Header */}
           <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-700">
             <div className="w-9 h-9 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
@@ -593,9 +591,6 @@ export const Settings = () => {
             </div>
             <div>
               <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Password & Security</h3>
-              <p className="text-xs text-slate-400 font-medium">
-                Mandatory enterprise security policy: 1 uppercase, 1 lowercase, 1 number, 1 special character, min 8 characters
-              </p>
             </div>
           </div>
 
@@ -613,9 +608,8 @@ export const Settings = () => {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Enter current password"
-                  className={`w-full border rounded-2xl pl-10 pr-10 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                    isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-2xl pl-10 pr-10 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
                 <button
                   type="button"
@@ -640,9 +634,8 @@ export const Settings = () => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Enter strong password (e.g. Mandi@2026)"
-                  className={`w-full border rounded-2xl pl-10 pr-10 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                    isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-2xl pl-10 pr-10 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
                 <button
                   type="button"
@@ -664,9 +657,8 @@ export const Settings = () => {
                     {[1, 2, 3, 4, 5].map((level) => (
                       <div
                         key={level}
-                        className={`rounded-full transition-all duration-300 ${
-                          strengthScore >= level ? strength.color : 'bg-slate-200 dark:bg-slate-700'
-                        }`}
+                        className={`rounded-full transition-all duration-300 ${strengthScore >= level ? strength.color : 'bg-slate-200 dark:bg-slate-700'
+                          }`}
                       />
                     ))}
                   </div>
@@ -674,9 +666,8 @@ export const Settings = () => {
               )}
 
               {/* MUST Password Requirements Checklist */}
-              <div className={`mt-3.5 p-3.5 rounded-2xl border space-y-2 ${
-                isDark ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-              }`}>
+              <div className={`mt-3.5 p-3.5 rounded-2xl border space-y-2 ${isDark ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                }`}>
                 <div className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-brand-500" />
                   <span>Mandatory Password Rules (MUST satisfy all):</span>
@@ -684,60 +675,50 @@ export const Settings = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold">
                   {/* Rule 1: Min 8 chars */}
-                  <div className={`flex items-center gap-2 transition-colors ${
-                    passwordCriteria.minLength ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
-                  }`}>
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-                      passwordCriteria.minLength ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                  <div className={`flex items-center gap-2 transition-colors ${passwordCriteria.minLength ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
                     }`}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${passwordCriteria.minLength ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                      }`}>
                       {passwordCriteria.minLength ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3 stroke-[2]" />}
                     </div>
                     <span>Minimum 8 Characters</span>
                   </div>
 
                   {/* Rule 2: 1 Uppercase */}
-                  <div className={`flex items-center gap-2 transition-colors ${
-                    passwordCriteria.hasUpper ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
-                  }`}>
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-                      passwordCriteria.hasUpper ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                  <div className={`flex items-center gap-2 transition-colors ${passwordCriteria.hasUpper ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
                     }`}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${passwordCriteria.hasUpper ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                      }`}>
                       {passwordCriteria.hasUpper ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3 stroke-[2]" />}
                     </div>
                     <span>1 Uppercase Letter (A-Z)</span>
                   </div>
 
                   {/* Rule 3: 1 Lowercase */}
-                  <div className={`flex items-center gap-2 transition-colors ${
-                    passwordCriteria.hasLower ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
-                  }`}>
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-                      passwordCriteria.hasLower ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                  <div className={`flex items-center gap-2 transition-colors ${passwordCriteria.hasLower ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
                     }`}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${passwordCriteria.hasLower ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                      }`}>
                       {passwordCriteria.hasLower ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3 stroke-[2]" />}
                     </div>
                     <span>1 Lowercase Letter (a-z)</span>
                   </div>
 
                   {/* Rule 4: 1 Number */}
-                  <div className={`flex items-center gap-2 transition-colors ${
-                    passwordCriteria.hasNumber ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
-                  }`}>
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-                      passwordCriteria.hasNumber ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                  <div className={`flex items-center gap-2 transition-colors ${passwordCriteria.hasNumber ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
                     }`}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${passwordCriteria.hasNumber ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                      }`}>
                       {passwordCriteria.hasNumber ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3 stroke-[2]" />}
                     </div>
                     <span>1 Number (0-9)</span>
                   </div>
 
                   {/* Rule 5: 1 Special Character */}
-                  <div className={`flex items-center gap-2 sm:col-span-2 transition-colors ${
-                    passwordCriteria.hasSpecial ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
-                  }`}>
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-                      passwordCriteria.hasSpecial ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                  <div className={`flex items-center gap-2 sm:col-span-2 transition-colors ${passwordCriteria.hasSpecial ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
                     }`}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${passwordCriteria.hasSpecial ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                      }`}>
                       {passwordCriteria.hasSpecial ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3 stroke-[2]" />}
                     </div>
                     <span>1 Special Symbol (!@#$%^&*()_+...)</span>
@@ -759,9 +740,8 @@ export const Settings = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter new password"
-                  className={`w-full border rounded-2xl pl-10 pr-10 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                    isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-2xl pl-10 pr-10 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
                 <button
                   type="button"
@@ -806,9 +786,8 @@ export const Settings = () => {
       {/* TAB 3: SHOP & MANDI PROFILE (Rich Mandi Business Identity & Settings) */}
       {/* ========================================================================= */}
       {activeTab === 'shop' && (
-        <div className={`border rounded-3xl p-6 md:p-8 card-shadow space-y-8 transition-colors ${
-          isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
+        <div className={`border rounded-3xl p-6 md:p-8 card-shadow space-y-8 transition-colors ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
           {/* Section Header */}
           <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-700">
             <div className="w-9 h-9 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
@@ -844,9 +823,8 @@ export const Settings = () => {
                       placeholder="e.g. Shaheen Grain Commission Agent"
                       value={shopName}
                       onChange={(e) => setShopName(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -861,9 +839,8 @@ export const Settings = () => {
                     <select
                       value={businessType}
                       onChange={(e) => setBusinessType(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     >
                       <option value="Commission Agent (Aarthi / آڑھتی)">Commission Agent (Aarthi / آڑھتی)</option>
                       <option value="Grain Wholesaler (تھوک ڈیلر)">Grain Wholesaler (تھوک ڈیلر)</option>
@@ -886,9 +863,8 @@ export const Settings = () => {
                       placeholder="e.g. Shop # 42, Block B"
                       value={shopNo}
                       onChange={(e) => setShopNo(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -905,9 +881,8 @@ export const Settings = () => {
                       placeholder="e.g. Ghalla Mandi Multan, Grain Market Okara"
                       value={mandiName}
                       onChange={(e) => setMandiName(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -924,9 +899,8 @@ export const Settings = () => {
                       placeholder="e.g. Gate # 2, Block C"
                       value={mandiGate}
                       onChange={(e) => setMandiGate(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -943,9 +917,8 @@ export const Settings = () => {
                       placeholder="e.g. MC-MUL-2026-482"
                       value={licenseNo}
                       onChange={(e) => setLicenseNo(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -962,9 +935,8 @@ export const Settings = () => {
                       placeholder="e.g. 1234567-8"
                       value={ntnNumber}
                       onChange={(e) => setNtnNumber(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -981,9 +953,8 @@ export const Settings = () => {
                       placeholder="e.g. 32-77-8761-001-19"
                       value={strnNumber}
                       onChange={(e) => setStrnNumber(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1006,13 +977,14 @@ export const Settings = () => {
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
-                      type="text"
-                      placeholder="061-6512345"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={11}
+                      placeholder="03001234567"
                       value={businessPhone}
-                      onChange={(e) => setBusinessPhone(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      onChange={(e) => setBusinessPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1025,13 +997,14 @@ export const Settings = () => {
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
-                      type="text"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={11}
                       placeholder="03001234567"
                       value={businessWhatsapp}
-                      onChange={(e) => setBusinessWhatsapp(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      onChange={(e) => setBusinessWhatsapp(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1048,9 +1021,8 @@ export const Settings = () => {
                       placeholder="shaheen@mandi.pk"
                       value={businessEmail}
                       onChange={(e) => setBusinessEmail(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1067,9 +1039,8 @@ export const Settings = () => {
                       placeholder="e.g. Shop # 42, Block B, New Ghalla Mandi, Vehari Road, Multan"
                       value={businessAddress}
                       onChange={(e) => setBusinessAddress(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1086,9 +1057,8 @@ export const Settings = () => {
                       placeholder="e.g. Multan"
                       value={shopCity}
                       onChange={(e) => setShopCity(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1108,9 +1078,8 @@ export const Settings = () => {
                       placeholder="2.0"
                       value={defaultCommission}
                       onChange={(e) => setDefaultCommission(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1128,9 +1097,8 @@ export const Settings = () => {
                       placeholder="25"
                       value={defaultLabourRate}
                       onChange={(e) => setDefaultLabourRate(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1147,9 +1115,8 @@ export const Settings = () => {
                       placeholder="e.g. Wheat, Basmati Rice, Maize, Mustard"
                       value={primaryCommodities}
                       onChange={(e) => setPrimaryCommodities(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1176,9 +1143,8 @@ export const Settings = () => {
                       placeholder="e.g. Meezan Bank, HBL, Bank of Punjab"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1195,9 +1161,8 @@ export const Settings = () => {
                       placeholder="e.g. Ghalla Mandi Branch (0123)"
                       value={branchName}
                       onChange={(e) => setBranchName(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1214,9 +1179,8 @@ export const Settings = () => {
                       placeholder="e.g. Shaheen Traders Commission Agent"
                       value={accountTitle}
                       onChange={(e) => setAccountTitle(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1233,9 +1197,8 @@ export const Settings = () => {
                       placeholder="e.g. PK36MEZN0001234567890101"
                       value={accountNumber}
                       onChange={(e) => setAccountNumber(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1250,9 +1213,8 @@ export const Settings = () => {
                     <select
                       value={taxStatus}
                       onChange={(e) => setTaxStatus(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer ${
-                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     >
                       <option value="Active Taxpayer (Filer)">Active Taxpayer (Filer)</option>
                       <option value="Non-Filer">Non-Filer</option>
