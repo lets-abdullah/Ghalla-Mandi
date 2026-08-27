@@ -17,14 +17,15 @@ import {
   LayoutGrid,
   List,
   MapPin,
-  Phone
+  Phone,
+  Edit3
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const Khata = () => {
-  const { customers = [], sales = [], saleReturns = [], recordPayment } = useERP();
+  const { customers = [], sales = [], saleReturns = [], recordPayment, updateCustomer } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -47,6 +48,54 @@ export const Khata = () => {
   const [paymentMode, setPaymentMode] = useState('Cash');
   const [paymentNote, setPaymentNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Edit Khata Customer State
+  const [editingKhataCust, setEditingKhataCust] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    businessName: '',
+    phone: '',
+    city: '',
+    balance: 0,
+    customerType: 'Regular Customer'
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const handleOpenEditModal = (item) => {
+    const fullCust = customers.find(c => c.id === item.id) || item;
+    setEditingKhataCust(item);
+    setEditForm({
+      name: fullCust.name || item.name || '',
+      businessName: fullCust.businessName || fullCust.shopName || item.businessName || '',
+      phone: fullCust.phone || item.phone || '',
+      city: fullCust.city || item.city || '',
+      balance: Number(fullCust.balance !== undefined ? fullCust.balance : item.balance) || 0,
+      customerType: fullCust.customerType || item.customerType || 'Regular Customer'
+    });
+  };
+
+  const handleSaveKhataEdit = async (e) => {
+    e.preventDefault();
+    if (!editingKhataCust) return;
+    try {
+      setIsSavingEdit(true);
+      if (updateCustomer) {
+        await updateCustomer(editingKhataCust.id, {
+          name: editForm.name,
+          businessName: editForm.businessName,
+          phone: editForm.phone,
+          city: editForm.city,
+          balance: Number(editForm.balance) || 0,
+          customerType: editForm.customerType
+        });
+      }
+      setEditingKhataCust(null);
+    } catch (err) {
+      alert(err.message || 'Failed to update Khata account');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Sync with URL param
   useEffect(() => {
@@ -449,13 +498,21 @@ export const Khata = () => {
                     </div>
 
                     <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenEditModal(item)}
+                        className="p-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer"
+                        title="Edit Customer / Khata Account"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+
                       {item.balance > 0 ? (
                         <button
                           onClick={() => openReceiveModal(item)}
                           className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
                           title="Receive Payment"
                         >
-                          <DollarSign className="w-3.5 h-3.5" />
+                          <CreditCard className="w-3.5 h-3.5" />
                           <span>Receive</span>
                         </button>
                       ) : (
@@ -569,9 +626,19 @@ export const Khata = () => {
                           </span>
                         </td>
 
-                        {/* Actions: Receive Payment | View Ledger */}
+                        {/* Actions: Edit | Receive Payment | View Ledger */}
                         <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center gap-1.5">
+                            {/* Edit Khata Account */}
+                            <button
+                              onClick={() => handleOpenEditModal(item)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                              title="Edit Khata / Customer Details"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+
                             {/* Receive Payment */}
                             {item.balance > 0 ? (
                               <button
@@ -579,7 +646,7 @@ export const Khata = () => {
                                 className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
                                 title="Receive Payment for this Khata"
                               >
-                                <DollarSign className="w-3.5 h-3.5" />
+                                <CreditCard className="w-3.5 h-3.5" />
                                 <span>Receive</span>
                               </button>
                             ) : (
@@ -718,6 +785,144 @@ export const Khata = () => {
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>{isSubmitting ? 'Saving...' : 'Save Payment'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Khata Account Modal */}
+      {editingKhataCust && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setEditingKhataCust(null); }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
+          <div className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">Edit Khata Account</h3>
+                  <p className="text-[11px] text-slate-400 font-bold">Update customer details and balance</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingKhataCust(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveKhataEdit} className="space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Customer Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Business / Shop Name</label>
+                  <input
+                    type="text"
+                    value={editForm.businessName}
+                    onChange={(e) => setEditForm({ ...editForm, businessName: e.target.value })}
+                    placeholder="e.g. Mumtaz Store"
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    placeholder="0300-0000000"
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">City / Mandi</label>
+                  <input
+                    type="text"
+                    value={editForm.city}
+                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                    placeholder="e.g. Local Mandi"
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Customer Type</label>
+                  <select
+                    value={editForm.customerType}
+                    onChange={(e) => setEditForm({ ...editForm, customerType: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="Regular Customer">Regular Party</option>
+                    <option value="Walk-in Customer">Walk-in Party</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Account Balance (Rs.)</label>
+                  <input
+                    type="number"
+                    value={editForm.balance}
+                    onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })}
+                    placeholder="0"
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono text-amber-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/80">
+                <button
+                  type="button"
+                  onClick={() => setEditingKhataCust(null)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isSavingEdit ? 'Saving...' : 'Save Changes'}</span>
                 </button>
               </div>
             </form>
