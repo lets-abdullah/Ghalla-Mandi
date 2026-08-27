@@ -14,7 +14,8 @@ import {
   FolderPlus,
   Tag,
   Scale,
-  Sparkles
+  Sparkles,
+  Check
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -53,6 +54,7 @@ export const Purchases = () => {
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [productSuccessMsg, setProductSuccessMsg] = useState('');
 
   // New Product Form State
   const [newProductForm, setNewProductForm] = useState({
@@ -86,21 +88,26 @@ export const Purchases = () => {
     paymentMode: 'Cash'
   });
 
-  // Keyboard Escape listener
+  // Keyboard Escape listener - closes ONLY the topmost active modal
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (showAddCategoryModal) setShowAddCategoryModal(false);
-        else if (showAddProductModal) setShowAddProductModal(false);
-        else if (showModal) setShowModal(false);
-        else if (payModalPurchase) setPayModalPurchase(null);
+        if (showAddCategoryModal) {
+          setShowAddCategoryModal(false);
+        } else if (showAddProductModal) {
+          setShowAddProductModal(false);
+        } else if (payModalPurchase) {
+          setPayModalPurchase(null);
+        } else if (showModal) {
+          setShowModal(false);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showAddCategoryModal, showAddProductModal, showModal, payModalPurchase]);
 
-  // Keep form.productId and form.supplierId valid
+  // Keep initial defaults if form is empty on first load
   useEffect(() => {
     if (!form.supplierId && suppliers.length > 0) {
       setForm(prev => ({
@@ -116,7 +123,7 @@ export const Purchases = () => {
         rate: products[0].purchasePrice || 0
       }));
     }
-  }, [suppliers, products, form.supplierId, form.productId]);
+  }, [suppliers, products]);
 
   // Available products catalog
   const availableProducts = products;
@@ -126,7 +133,7 @@ export const Purchases = () => {
   // Calculate live totals for the new purchase form
   const calculatedTotal = Math.max(0, (Number(form.enteredQty) || 0) * (Number(form.rate) || 0));
 
-  // 1. Quick Add Category Handler
+  // 1. Quick Add Category Handler (Does NOT close or reset Purchase or Product forms)
   const handleSaveCategory = async (e) => {
     e.preventDefault();
     const catName = newCategoryForm.name.trim();
@@ -137,7 +144,6 @@ export const Purchases = () => {
 
     const duplicate = categories.some(c => c.name.toLowerCase() === catName.toLowerCase());
     if (duplicate) {
-      alert(`Category "${catName}" already exists. Automatically selecting it.`);
       setNewProductForm(prev => ({ ...prev, category: catName }));
       setShowAddCategoryModal(false);
       return;
@@ -157,6 +163,7 @@ export const Purchases = () => {
         category: assignedCategoryName
       }));
 
+      // Close ONLY the Category popup and return immediately to the Product form
       setShowAddCategoryModal(false);
       setNewCategoryForm({ name: '', description: '' });
     } catch (err) {
@@ -167,7 +174,7 @@ export const Purchases = () => {
     }
   };
 
-  // 2. Quick Add Product Handler
+  // 2. Quick Add Product Handler (Does NOT close or reset Purchase form)
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     const prodName = newProductForm.name.trim();
@@ -195,15 +202,19 @@ export const Purchases = () => {
         description: newProductForm.description.trim()
       });
 
-      // Auto-select newly created product in the New Purchase Form
+      // Auto-select newly created product in the active New Purchase Form while strictly keeping all entered data (supplier, enteredQty) intact!
       if (createdProd && createdProd.id) {
         setForm(prev => ({
           ...prev,
           productId: createdProd.id,
-          rate: pPrice > 0 ? pPrice : prev.rate
+          rate: pPrice > 0 ? pPrice : (Number(createdProd.purchasePrice) || prev.rate)
         }));
       }
 
+      setProductSuccessMsg(`✓ "${prodName}" saved and selected in purchase!`);
+      setTimeout(() => setProductSuccessMsg(''), 4000);
+
+      // Close ONLY the Product popup and return immediately to the SAME New Purchase form
       setShowAddProductModal(false);
       setNewProductForm({
         name: '',
@@ -742,11 +753,16 @@ export const Purchases = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* MAIN NEW PURCHASE MODAL */}
+      {/* 1. MAIN NEW PURCHASE MODAL */}
       {/* ========================================================================= */}
       {showModal && (
         <div
-          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+          onClick={(e) => { 
+            // Only close if user clicked directly on this backdrop AND no child modal is active
+            if (e.target === e.currentTarget && !showAddProductModal && !showAddCategoryModal) {
+              setShowModal(false); 
+            }
+          }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
         >
           <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
@@ -765,6 +781,14 @@ export const Purchases = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Success notification banner if product was just created */}
+            {productSuccessMsg && (
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0" />
+                <span>{productSuccessMsg}</span>
+              </div>
+            )}
 
             <form onSubmit={handleRecordSubmit} className="space-y-4">
               {/* Supplier Selection */}
@@ -816,11 +840,11 @@ export const Purchases = () => {
                         return;
                       }
                       const prod = products.find(p => p.id === e.target.value);
-                      setForm({
-                        ...form,
+                      setForm(prev => ({
+                        ...prev,
                         productId: e.target.value,
-                        rate: prod ? (prod.purchasePrice || 0) : form.rate
-                      });
+                        rate: prod ? (prod.purchasePrice || 0) : prev.rate
+                      }));
                     }}
                     className={`flex-1 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
@@ -912,11 +936,16 @@ export const Purchases = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* QUICK ADD NEW PRODUCT MODAL (Opened directly inside New Purchase) */}
+      {/* 2. QUICK ADD NEW PRODUCT MODAL (Layered over New Purchase dialog at z-60) */}
       {/* ========================================================================= */}
       {showAddProductModal && (
         <div
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAddProductModal(false); }}
+          onClick={(e) => { 
+            // Clicking backdrop closes ONLY this product modal, leaving purchase form open
+            if (e.target === e.currentTarget && !showAddCategoryModal) {
+              setShowAddProductModal(false); 
+            }
+          }}
           className="fixed inset-0 z-60 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
         >
           <div className={`rounded-3xl max-w-lg w-full p-6 space-y-4 card-shadow border my-6 ${
@@ -929,7 +958,7 @@ export const Purchases = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold">Add New Product</h3>
-                  <p className="text-[10px] text-slate-400 font-bold">Create product & auto-select in purchase</p>
+                  <p className="text-[10px] text-slate-400 font-bold">Will automatically select in current purchase</p>
                 </div>
               </div>
 
@@ -1131,11 +1160,16 @@ export const Purchases = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* QUICK ADD NEW CATEGORY MODAL (Opened from New Product Modal) */}
+      {/* 3. QUICK ADD NEW CATEGORY MODAL (Layered over Product dialog at z-70) */}
       {/* ========================================================================= */}
       {showAddCategoryModal && (
         <div
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAddCategoryModal(false); }}
+          onClick={(e) => { 
+            // Clicking backdrop closes ONLY category modal, leaving product form open
+            if (e.target === e.currentTarget) {
+              setShowAddCategoryModal(false); 
+            }
+          }}
           className="fixed inset-0 z-70 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4"
         >
           <div className={`rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow border ${
@@ -1148,7 +1182,7 @@ export const Purchases = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold">Add New Category</h3>
-                  <p className="text-[10px] text-slate-400 font-bold">Instant category assignment</p>
+                  <p className="text-[10px] text-slate-400 font-bold">Auto-selects in product form</p>
                 </div>
               </div>
               <button
