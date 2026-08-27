@@ -408,9 +408,6 @@ export const Sales = () => {
           <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">
             Rs. {totalFilteredSalesVolume.toLocaleString()}
           </div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">
-            {filteredSales.length} {t('invoices') || 'Sales'} • {isAnyFilterActive ? 'Filtered Results' : 'All-time Volume'}
-          </div>
         </div>
 
         {/* 2. Cash Received */}
@@ -429,9 +426,6 @@ export const Sales = () => {
           <div className="text-2xl font-black mt-1.5 font-mono text-blue-600 dark:text-blue-400">
             Rs. {totalFilteredCashReceived.toLocaleString()}
           </div>
-          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-1">
-            Direct Payments Collected
-          </div>
         </div>
 
         {/* 3. Pending Khata / Receivable */}
@@ -449,9 +443,6 @@ export const Sales = () => {
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-amber-600 dark:text-amber-400">
             Rs. {totalFilteredOutstandingDue.toLocaleString()}
-          </div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">
-            Pending in Customer Khata
           </div>
         </div>
       </div>

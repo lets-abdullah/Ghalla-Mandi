@@ -390,9 +390,6 @@ export const Invoices = () => {
           <div className={`text-2xl font-black mt-1.5 font-mono ${isPurchases ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand-600 dark:text-brand-400'}`}>
             Rs. {totalBilledVolume.toLocaleString()}
           </div>
-          <div className="text-xs text-slate-400 font-medium mt-1">
-            {filteredInvoices.length} {isPurchases ? 'vouchers' : 'invoices'} listed
-          </div>
         </div>
 
         {/* 2. Settled Payments */}
@@ -409,9 +406,6 @@ export const Invoices = () => {
           <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">
             Rs. {totalSettledAmount.toLocaleString()}
           </div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">
-            Settled & Verified
-          </div>
         </div>
 
         {/* 3. Pending Khata / Due */}
@@ -427,9 +421,6 @@ export const Invoices = () => {
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-amber-600 dark:text-amber-400">
             Rs. {totalOutstandingDue.toLocaleString()}
-          </div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">
-            Pending Khata Balance
           </div>
         </div>
       </div>
