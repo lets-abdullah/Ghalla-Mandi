@@ -398,7 +398,7 @@ export const Suppliers = () => {
       </div>
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div
           onClick={() => { setStatusFilter('All'); setSelectedProductFilter('All'); }}
           className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${

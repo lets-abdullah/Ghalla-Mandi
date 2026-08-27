@@ -441,7 +441,7 @@ export const Ledger = () => {
       </div>
 
       {/* KPI Cards Row (Clean user-friendly labels without Cr/Dr) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Sales */}
         <div className={`border rounded-2xl p-4 card-shadow ${
           theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'

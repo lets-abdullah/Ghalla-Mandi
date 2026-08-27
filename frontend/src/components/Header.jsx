@@ -11,7 +11,7 @@ export const Header = () => {
   const { t } = useLocale();
   const { user, shop, logout } = useAuth();
   const { theme } = useTheme();
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { isCollapsed, isMobile, toggleSidebar, toggleMobileMenu } = useSidebar();
   const navigate = useNavigate();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -41,53 +41,68 @@ export const Header = () => {
   };
 
   return (
-    <header className={`h-16 shrink-0 border-b px-4 md:px-6 flex items-center justify-between sticky top-0 z-20 shadow-2xs transition-colors ${
+    <header className={`h-14 md:h-16 shrink-0 border-b px-3 md:px-6 flex items-center justify-between sticky top-0 z-20 shadow-2xs transition-colors ${
       theme === 'dark' ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
     }`}>
-      {/* Sidebar Toggle & Title */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={toggleSidebar}
-          className={`p-2 rounded-xl border transition cursor-pointer ${
-            theme === 'dark' ? 'border-slate-800 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'
-          }`}
-          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-        >
-          {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-        </button>
+      {/* Left: Sidebar Toggle & App Brand */}
+      <div className="flex items-center gap-2 md:gap-3">
+        {/* Mobile: Hamburger to open mobile drawer */}
+        {isMobile ? (
+          <button
+            onClick={toggleMobileMenu}
+            className={`p-2 rounded-xl border transition cursor-pointer ${
+              theme === 'dark' ? 'border-slate-800 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'
+            }`}
+            title="Open Menu"
+            aria-label="Open navigation menu"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+        ) : (
+          /* Desktop: Collapse/Expand toggle */
+          <button
+            onClick={toggleSidebar}
+            className={`p-2 rounded-xl border transition cursor-pointer ${
+              theme === 'dark' ? 'border-slate-800 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'
+            }`}
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+          </button>
+        )}
 
-        <Link to="/dashboard" className="flex items-center gap-2.5 cursor-pointer group" title={t('dashboard')}>
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0 group-hover:scale-105 transition-all">
-            <Wheat className="w-4 h-4 stroke-[2.5]" />
+        <Link to="/dashboard" className="flex items-center gap-2 cursor-pointer group" title={t('dashboard')}>
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0 group-hover:scale-105 transition-all">
+            <Wheat className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[2.5]" />
           </div>
-          <h1 className="text-base sm:text-lg font-black tracking-tight group-hover:text-emerald-600 transition-colors">
+          <h1 className="text-sm sm:text-base md:text-lg font-black tracking-tight group-hover:text-emerald-600 transition-colors">
             {t('dashboard')}
           </h1>
         </Link>
       </div>
 
       {/* Right Controls */}
-      <div className="ml-auto flex items-center gap-2 sm:gap-3">
-        {/* All Notifications Center */}
+      <div className="ml-auto flex items-center gap-1.5 sm:gap-2 md:gap-3">
+        {/* Notification Center */}
         <NotificationCenter />
 
-        {/* Active Shop Badge */}
-        <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 border rounded-xl text-xs font-bold shadow-2xs ${
+        {/* Active Shop Badge — hidden on small mobile */}
+        <div className={`hidden sm:flex items-center gap-2 px-2.5 md:px-3 py-1.5 border rounded-xl text-xs font-bold shadow-2xs ${
           theme === 'dark' ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
         }`}>
-          <Store className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span>{shop?.name || t('mandiTrader')}</span>
+          <Store className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-600 dark:text-emerald-400" />
+          <span className="max-w-[100px] md:max-w-none truncate">{shop?.name || t('mandiTrader')}</span>
         </div>
 
         {/* User Profile & Menu */}
         <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className={`flex items-center gap-2.5 pl-2 border-l transition cursor-pointer ${
+            className={`flex items-center gap-2 pl-2 border-l transition cursor-pointer ${
               theme === 'dark' ? 'border-slate-800 hover:opacity-80' : 'border-slate-200 hover:opacity-80'
             }`}
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 text-white font-black flex items-center justify-center text-xs shadow-md shadow-brand-500/25">
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 text-white font-black flex items-center justify-center text-xs shadow-md shadow-brand-500/25">
               {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="hidden md:block text-left">

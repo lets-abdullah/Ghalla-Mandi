@@ -240,7 +240,7 @@ export const Khata = () => {
       </div>
 
       {/* Summary KPI Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Sales Volume */}
         <div
           onClick={() => { setBalanceStatusFilter('All'); setCustomerTypeFilter('All'); }}

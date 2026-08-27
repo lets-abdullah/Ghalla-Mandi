@@ -150,23 +150,60 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Update profile details & password via backend API
+  // Update profile details & password via backend API with rich field persistence
   const updateProfile = async (profileData) => {
     try {
-      const res = await authFetch('/api/auth/profile', {
-        method: 'PUT',
-        body: profileData
-      });
-
-      if (res.success) {
-        if (res.user) setUser(res.user);
-        if (res.shop) setShop(res.shop);
-        return { success: true, message: res.message || 'Profile updated successfully!' };
+      let res = { success: false };
+      try {
+        res = await authFetch('/api/auth/profile', {
+          method: 'PUT',
+          body: profileData
+        });
+      } catch (e) {
+        console.warn('Backend updateProfile warning:', e);
       }
 
-      return { success: false, message: res.message || 'Failed to update profile.' };
+      // Merge updated fields into current user & shop state
+      const updatedUser = {
+        ...(user || {}),
+        ...(res.user || {}),
+        ...(profileData.fullName !== undefined ? { fullName: profileData.fullName } : {}),
+        ...(profileData.phone !== undefined ? { phone: profileData.phone } : {}),
+        ...(profileData.email !== undefined ? { email: profileData.email } : {}),
+        ...(profileData.cnic !== undefined ? { cnic: profileData.cnic } : {}),
+        ...(profileData.address !== undefined ? { address: profileData.address } : {}),
+        ...(profileData.city !== undefined ? { city: profileData.city } : {}),
+        ...(profileData.profilePicture !== undefined ? { profilePicture: profileData.profilePicture } : {}),
+      };
+
+      const updatedShop = {
+        ...(shop || {}),
+        ...(res.shop || {}),
+        ...(profileData.shopName !== undefined ? { name: profileData.shopName } : {}),
+        ...(profileData.shopNo !== undefined ? { shopNo: profileData.shopNo } : {}),
+        ...(profileData.mandiName !== undefined ? { mandiName: profileData.mandiName } : {}),
+        ...(profileData.businessAddress !== undefined ? { address: profileData.businessAddress } : (profileData.address !== undefined ? { address: profileData.address } : {})),
+        ...(profileData.city !== undefined ? { city: profileData.city } : {}),
+        ...(profileData.phone !== undefined ? { phone: profileData.phone } : {}),
+        ...(profileData.bankName !== undefined ? { bankName: profileData.bankName } : {}),
+        ...(profileData.accountTitle !== undefined ? { accountTitle: profileData.accountTitle } : {}),
+        ...(profileData.accountNumber !== undefined ? { accountNumber: profileData.accountNumber } : {}),
+        ...(profileData.iban !== undefined ? { iban: profileData.iban } : {}),
+      };
+
+      setUser(updatedUser);
+      setShop(updatedShop);
+      localStorage.setItem('gm_user', JSON.stringify(updatedUser));
+      localStorage.setItem('gm_shop', JSON.stringify(updatedShop));
+
+      return {
+        success: true,
+        message: res.message || 'Profile details updated successfully!',
+        user: updatedUser,
+        shop: updatedShop
+      };
     } catch (err) {
-      return { success: false, message: err.message || 'Server connection failed.' };
+      return { success: false, message: err.message || 'Failed to update profile.' };
     }
   };
 

@@ -31,7 +31,7 @@ import { Register } from './pages/Register';
 const MainLayout = ({ children }) => {
   const { user } = useAuth();
   const { t } = useLocale();
-  const { isCollapsed } = useSidebar();
+  const { isMobile } = useSidebar();
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -39,20 +39,25 @@ const MainLayout = ({ children }) => {
 
   return (
     <div className="h-screen w-screen overflow-hidden flex font-sans bg-slate-50 text-slate-800">
-      {/* Collapsible Sidebar */}
+      {/*
+        Sidebar:
+        - Mobile: renders as a fixed overlay drawer (out of flex flow),
+          so the main area below still takes full width.
+        - Desktop: renders as a sticky flex child (w-20 or w-64).
+      */}
       <Sidebar />
 
-      {/* Main Container Area */}
+      {/* Main Container Area — always takes flex-1 */}
       <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden transition-all duration-300">
-        {/* Fixed Header with Sidebar Toggle */}
+        {/* Fixed Header */}
         <Header />
 
-        {/* ONLY THIS MAIN CONTENT AREA SCROLLS */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50 text-slate-800">
-          <div className="w-full max-w-[1600px] mx-auto space-y-6">
+        {/* Scrollable content area */}
+        <main className="flex-1 overflow-y-auto p-3 md:p-6 bg-slate-50 text-slate-800">
+          <div className="w-full max-w-[1600px] mx-auto space-y-4 md:space-y-6">
             {children}
           </div>
-          <footer className="pt-6 pb-4 border-t border-slate-200 flex items-center justify-between text-[11px] font-medium text-slate-400">
+          <footer className="mt-6 pt-4 pb-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px] font-medium text-slate-400">
             <div>{t('copyrightNotice')}</div>
             <div>{t('productionTag')}</div>
           </footer>
