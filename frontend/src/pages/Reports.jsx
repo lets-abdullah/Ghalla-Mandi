@@ -10,11 +10,13 @@ import {
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
+import { useAuth } from '../context/AuthContext';
 
 export const Reports = () => {
   const { sales, purchases, products, customers, suppliers, saleReturns = [], purchaseReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
+  const { shop, user } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -1200,81 +1202,333 @@ export const Reports = () => {
   // =========================================================================
   // EXPORT CSV HANDLER (100% Unit Accurate)
   // =========================================================================
+  // =========================================================================
+  // EXPORT CSV HANDLER (Enterprise Aligned, Structured & Excel-Compatible)
+  // =========================================================================
   const exportReportCSV = () => {
-    let csvData = `Report Type: ${reportType}\nGenerated At: ${new Date().toLocaleString()}\n\n`;
+    // Helper to safely escape individual cell content
+    const esc = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/[\r\n]+/g, ' ').replace(/"/g, '""').trim();
+      return `"${str}"`;
+    };
+
+    // Helper to format numeric values cleanly
+    const num = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+    // Helper to build rows padded to exact column count
+    const makeRow = (cells, totalCols = 8) => {
+      const padded = [...cells];
+      while (padded.length < totalCols) {
+        padded.push('');
+      }
+      return padded.slice(0, totalCols).map(esc).join(',') + '\r\n';
+    };
+
+    // Helper to build section headers
+    const makeSectionHeader = (title, totalCols = 8) => {
+      return (
+        makeRow([''], totalCols) +
+        makeRow([`================= ${title.toUpperCase()} =================`], totalCols) +
+        makeRow([''], totalCols)
+      );
+    };
+
+    let csvContent = '\uFEFF'; // UTF-8 Byte Order Mark for Excel
+    const sName = shop?.name || 'Shaheen Traders Ghalla Mandi';
+    const sMandi = shop?.mandiName || 'Ghalla Mandi Multan';
+    const sPhone = shop?.businessPhone || shop?.phone || '';
+    const nowStr = new Date().toLocaleString();
 
     if (reportType === 'Stock') {
-      csvData += `Product,Category,Available Stock,Unit,Purchase Rate,Selling Rate,Stock Valuation,Status\n`;
+      const COLS = 8;
+      // Header Info
+      csvContent += makeRow([sName], COLS);
+      csvContent += makeRow([sMandi + (sPhone ? ` • Contact: ${sPhone}` : '')], COLS);
+      csvContent += makeRow(['STOCK & INVENTORY VALUATION REPORT'], COLS);
+      csvContent += makeRow([`Generated On: ${nowStr} | User: ${user?.fullName || 'Admin'}`], COLS);
+      csvContent += makeRow([''], COLS);
+
+      // KPI Summary Block
+      csvContent += makeRow(['--- EXECUTIVE STOCK VALUATION SUMMARY ---'], COLS);
+      csvContent += makeRow(['Total Stock Value (Rs.)', num(totalStockValuation), 'Total Products Registered', filteredStock.length, 'In-Stock Items', inStockCount, 'Low Stock Alert', lowStockCount], COLS);
+      csvContent += makeRow(['Total Physical Units', num(totalStockQty), 'Out of Stock Items', outOfStockCount, 'Avg Stock Value / Product', num(filteredStock.length ? totalStockValuation / filteredStock.length : 0), '', ''], COLS);
+      
+      // Section 1: Detailed Inventory Table
+      csvContent += makeSectionHeader('1. DETAILED INVENTORY REGISTER & VALUATION', COLS);
+      csvContent += makeRow(['Product Name', 'Category', 'Available Stock', 'Unit', 'Purchase Rate (Rs.)', 'Selling Rate (Rs.)', 'Stock Valuation (Rs.)', 'Stock Status'], COLS);
+
       filteredStock.forEach(p => {
-        csvData += `"${p.name}","${p.category}",${p.qty},"${p.unit}",${p.purchaseRate},${p.sellingRate},${p.stockVal},"${p.status}"\n`;
+        csvContent += makeRow([
+          p.name,
+          p.category || 'General',
+          num(p.qty),
+          p.unit || 'KG',
+          num(p.purchaseRate),
+          num(p.sellingRate),
+          num(p.stockVal),
+          p.status
+        ], COLS);
       });
+
+      // Stock Total Row
+      csvContent += makeRow(['TOTAL STOCK INVENTORY', '', num(totalStockQty), 'UNITS', '', '', num(totalStockValuation), 'ACTIVE INVENTORY'], COLS);
+
+      // Section 2: Category Breakdown
+      csvContent += makeSectionHeader('2. CATEGORY-WISE STOCK VALUATION BREAKDOWN', COLS);
+      csvContent += makeRow(['Category Name', 'Total Items', 'Total Stock Qty', 'Valuation (Rs.)', 'Share of Stock (%)', '', '', ''], COLS);
+      
+      const catMap = {};
+      filteredStock.forEach(p => {
+        const c = p.category || 'General';
+        if (!catMap[c]) catMap[c] = { items: 0, qty: 0, val: 0 };
+        catMap[c].items += 1;
+        catMap[c].qty += Number(p.qty || 0);
+        catMap[c].val += Number(p.stockVal || 0);
+      });
+
+      Object.entries(catMap).forEach(([cat, d]) => {
+        const pct = totalStockValuation > 0 ? ((d.val / totalStockValuation) * 100).toFixed(1) : '0.0';
+        csvContent += makeRow([cat, d.items, num(d.qty), num(d.val), `${pct}%`, '', '', ''], COLS);
+      });
+
     } else if (reportType === 'Sales') {
-      csvData += `--- OVERALL SALES SUMMARY ---\n`;
-      csvData += `Gross Sales,Rs. ${filteredGrossSales}\nNet Sales,Rs. ${filteredNetSales}\nTotal Invoices,${filteredInvoicesCount}\nTotal Quantity Sold,${filteredTotalQty}\nCash Collections,Rs. ${filteredCashSales}\nCredit Receivables,Rs. ${filteredCreditSales}\nTotal Discount,Rs. ${filteredDiscount}\nAverage Invoice Value,Rs. ${filteredAvgInvoiceValue}\n\n`;
+      const COLS = 9;
+      // Header Info
+      csvContent += makeRow([sName], COLS);
+      csvContent += makeRow([sMandi + (sPhone ? ` • Contact: ${sPhone}` : '')], COLS);
+      csvContent += makeRow(['SALES & REVENUE TURNOVER REPORT'], COLS);
+      csvContent += makeRow([`Generated On: ${nowStr} | Active Date Filter: ${salesDateFilter}`], COLS);
+      csvContent += makeRow([''], COLS);
 
-      csvData += `--- 1. DATE-WISE SALES ---\n`;
-      csvData += `Date,Invoices Count,Products Sold,Total Qty,Gross Sales (Rs.),Discount (Rs.),Net Sales (Rs.),Cash (Rs.),Credit (Rs.)\n`;
+      // KPI Summary Block
+      csvContent += makeRow(['--- EXECUTIVE SALES & REVENUE SUMMARY ---'], COLS);
+      csvContent += makeRow(['Gross Sales (Rs.)', num(filteredGrossSales), 'Net Sales (Rs.)', num(filteredNetSales), 'Cash Collected (Rs.)', num(filteredCashSales), 'Credit Receivables (Rs.)', num(filteredCreditSales), ''], COLS);
+      csvContent += makeRow(['Total Invoices Count', filteredInvoicesCount, 'Total Qty Sold', num(filteredTotalQty), 'Total Trade Discount', num(filteredDiscount), 'Avg Order Value (Rs.)', num(filteredAvgInvoiceValue), ''], COLS);
+
+      // Section 1: Date-Wise Sales Breakdown
+      csvContent += makeSectionHeader('1. DATE-WISE SALES & CASH/CREDIT SETTLEMENT', COLS);
+      csvContent += makeRow(['Date', 'Invoices Count', 'Products Sold Summary', 'Total Qty Sold', 'Gross Sales (Rs.)', 'Discount (Rs.)', 'Net Sales (Rs.)', 'Cash Received (Rs.)', 'Credit Balance (Rs.)'], COLS);
+      
       dateWiseSalesData.forEach(d => {
-        csvData += `"${d.date}",${d.invoiceCount},"${d.productsSummary}",${d.totalQty},${d.grossSales},${d.discount},${d.netSales},${d.cash},${d.credit}\n`;
+        csvContent += makeRow([
+          d.date,
+          d.invoiceCount,
+          d.productsSummary,
+          num(d.totalQty),
+          num(d.grossSales),
+          num(d.discount),
+          num(d.netSales),
+          num(d.cash),
+          num(d.credit)
+        ], COLS);
       });
-      csvData += `\n--- 2. PRODUCT-WISE SALES ---\n`;
-      csvData += `Product,Suppliers,Qty Sold,Unit,Orders Count,Sales Revenue (Rs.),Avg Rate (Rs.),Share (%)\n`;
+
+      csvContent += makeRow(['TOTAL SALES SUMMARY', filteredInvoicesCount, 'ALL COMMODITIES', num(filteredTotalQty), num(filteredGrossSales), num(filteredDiscount), num(filteredNetSales), num(filteredCashSales), num(filteredCreditSales)], COLS);
+
+      // Section 2: Product-Wise Sales Performance
+      csvContent += makeSectionHeader('2. PRODUCT-WISE SALES & TURNOVER PERFORMANCE', COLS);
+      csvContent += makeRow(['Product Name', 'Suppliers / Mandi Source', 'Qty Sold', 'Unit', 'Orders Count', 'Sales Revenue (Rs.)', 'Avg Selling Rate (Rs.)', 'Share of Total Sales (%)', 'Performance'], COLS);
+      
       productWiseSalesData.forEach(s => {
-        csvData += `"${s.name}","${(s.suppliers || []).join('; ')}",${s.totalQty},"${s.unit}",${s.orderCount},${s.totalRevenue},${s.avgRate},${s.pctOfTotal}%\n`;
+        csvContent += makeRow([
+          s.name,
+          (s.suppliers || []).join('; ') || 'Direct Mandi',
+          num(s.totalQty),
+          s.unit || 'KG',
+          s.orderCount,
+          num(s.totalRevenue),
+          num(s.avgRate),
+          `${s.pctOfTotal}%`,
+          Number(s.pctOfTotal) > 10 ? 'High Velocity' : 'Standard'
+        ], COLS);
       });
-      csvData += `\n--- 3. SUPPLIER-WISE SALES ---\n`;
-      csvData += `Supplier,Products Count,Qty Sold,Orders Count,Total Sales (Rs.),Contribution (%)\n`;
+
+      // Section 3: Supplier-Wise Sales Contribution
+      csvContent += makeSectionHeader('3. SUPPLIER-WISE SALES CONTRIBUTION', COLS);
+      csvContent += makeRow(['Supplier Name', 'Supplied Products Count', 'Total Qty Sold', 'Orders Count', 'Total Sales Generated (Rs.)', 'Revenue Share (%)', 'Avg Order Value (Rs.)', 'Settlement Status', ''], COLS);
+      
       supplierWiseSalesData.forEach(sup => {
-        csvData += `"${sup.supplierName}",${sup.productsCount},${sup.totalQty},${sup.orderCount},${sup.totalSales},${sup.pctContribution}%\n`;
+        const avg = sup.orderCount > 0 ? (sup.totalSales / sup.orderCount) : 0;
+        csvContent += makeRow([
+          sup.supplierName,
+          sup.productsCount,
+          num(sup.totalQty),
+          sup.orderCount,
+          num(sup.totalSales),
+          `${sup.pctContribution}%`,
+          num(avg),
+          'Khata Settled',
+          ''
+        ], COLS);
       });
+
     } else if (reportType === 'ProfitLoss') {
-      csvData += `--- PROFIT & LOSS STATEMENT SUMMARY ---\n`;
-      csvData += `Total Sales / Revenue,Rs. ${plTotalRevenue}\nTotal Purchases (COGS),Rs. ${plTotalCOGS}\nGross Profit,Rs. ${plGrossProfit} (${plGrossMargin}%)\nShop Expenses,Rs. ${plTotalExpenses}\nNet Profit,Rs. ${plNetProfit} (${plNetMargin}%)\n\n`;
+      const COLS = 8;
+      // Header Info
+      csvContent += makeRow([sName], COLS);
+      csvContent += makeRow([sMandi + (sPhone ? ` • Contact: ${sPhone}` : '')], COLS);
+      csvContent += makeRow(['PROFIT & LOSS STATEMENT (P&L JOURNAL & AUDIT)'], COLS);
+      csvContent += makeRow([`Generated On: ${nowStr} | Date Filter: ${plDateFilter}`], COLS);
+      csvContent += makeRow([''], COLS);
 
-      csvData += `--- 1. ITEMIZE TRANSACTION STATEMENT JOURNAL ---\n`;
-      csvData += `Date,Reference,Product/Item,Category,Type,Qty,Amount (Rs.),Running P&L (Rs.)\n`;
+      // KPI Summary Block
+      csvContent += makeRow(['--- PROFIT & LOSS EXECUTIVE SUMMARY ---'], COLS);
+      csvContent += makeRow(['Total Sales / Revenue (Inflow)', num(plTotalRevenue), 'Cost of Goods Sold (COGS Purchases)', num(plTotalCOGS), 'Gross Profit (Rs.)', `${num(plGrossProfit)} (${plGrossMargin}%)`, 'Operating Expenses', num(plTotalExpenses)], COLS);
+      csvContent += makeRow(['NET OPERATING PROFIT / (LOSS)', `${num(plNetProfit)} (${plNetMargin}%)`, 'Total Cash Inflow', num(plTotalInflow), 'Total Cash Outflow', num(plTotalOutflow), 'Statement Status', plNetProfit >= 0 ? 'Profitable' : 'Loss'], COLS);
+
+      // Section 1: Itemized Journal Ledger
+      csvContent += makeSectionHeader('1. ITEMIZED TRANSACTION JOURNAL & RUNNING P&L LEDGER', COLS);
+      csvContent += makeRow(['Date', 'Reference / Voucher', 'Particulars / Item', 'Category', 'Transaction Type', 'Quantity', 'Amount (Rs.)', 'Running Cumulative P&L (Rs.)'], COLS);
+      
       filteredPlJournal.forEach(tx => {
-        csvData += `"${tx.dateStr}","${tx.ref}","${tx.product}","${tx.category}","${tx.type}","${tx.qty}",${tx.amount},${tx.runningPnL}\n`;
+        csvContent += makeRow([
+          tx.dateStr,
+          tx.ref,
+          tx.product,
+          tx.category || 'General',
+          tx.type,
+          tx.qty || '1',
+          num(tx.amount),
+          num(tx.runningPnL)
+        ], COLS);
       });
 
-      csvData += `\n--- 2. PRODUCT-WISE P&L ANALYSIS ---\n`;
-      csvData += `Product,Category,Units Sold,Sales (Rs.),Purchase Cost (Rs.),Gross Profit (Rs.),Margin (%)\n`;
+      // Section 2: Product-Wise Profitability Breakdown
+      csvContent += makeSectionHeader('2. PRODUCT-WISE PROFITABILITY & GROSS MARGINS', COLS);
+      csvContent += makeRow(['Product Name', 'Category', 'Units Sold', 'Unit', 'Sales Revenue (Rs.)', 'COGS Purchase Cost (Rs.)', 'Gross Profit (Rs.)', 'Gross Margin (%)'], COLS);
+      
       productWisePnLData.forEach(p => {
-        csvData += `"${p.name}","${p.category}",${p.unitsSold},${p.salesRevenue},${p.cogs},${p.grossProfit},${p.margin}%\n`;
+        csvContent += makeRow([
+          p.name,
+          p.category || 'General',
+          num(p.unitsSold),
+          p.unit || 'KG',
+          num(p.salesRevenue),
+          num(p.cogs),
+          num(p.grossProfit),
+          `${p.margin}%`
+        ], COLS);
       });
 
-      csvData += `\n--- 3. CATEGORY-WISE P&L ANALYSIS ---\n`;
-      csvData += `Category,Sales (Rs.),Purchases (Rs.),Expenses (Rs.),Net Profit (Rs.),Margin (%)\n`;
+      // Section 3: Category-Wise P&L Breakdown
+      csvContent += makeSectionHeader('3. CATEGORY-WISE PROFIT & LOSS BREAKDOWN', COLS);
+      csvContent += makeRow(['Category Name', 'Sales Revenue (Rs.)', 'Purchases / COGS (Rs.)', 'Operating Expenses (Rs.)', 'Net Profit (Rs.)', 'Net Margin (%)', 'Status', ''], COLS);
+      
       categoryWisePnLData.forEach(c => {
-        csvData += `"${c.category}",${c.sales},${c.purchases},${c.expenses},${c.netProfit},${c.margin}%\n`;
+        csvContent += makeRow([
+          c.category,
+          num(c.sales),
+          num(c.purchases),
+          num(c.expenses),
+          num(c.netProfit),
+          `${c.margin}%`,
+          c.netProfit >= 0 ? 'Profitable' : 'Loss',
+          ''
+        ], COLS);
       });
+
     } else if (reportType === 'BalanceSheet') {
-      csvData += `--- BALANCE SHEET STATEMENT ---\n`;
-      csvData += `As of Date / Period,${bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}\n\n`;
-      csvData += `TOTAL ASSETS,Rs. ${totalAssets}\nTOTAL LIABILITIES,Rs. ${totalLiabilities}\nNET BUSINESS WORTH,Rs. ${totalEquity}\n\n`;
+      const COLS = 6;
+      // Header Info
+      csvContent += makeRow([sName], COLS);
+      csvContent += makeRow([sMandi + (sPhone ? ` • Contact: ${sPhone}` : '')], COLS);
+      csvContent += makeRow(['BALANCE SHEET STATEMENT & FINANCIAL POSITION'], COLS);
+      csvContent += makeRow([`As of Date / Period: ${bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter} | Generated: ${nowStr}`], COLS);
+      csvContent += makeRow([''], COLS);
 
-      csvData += `--- 1. ASSETS (WHAT YOU OWN) ---\n`;
-      csvData += `Cash in Hand,Rs. ${cashInHand}\nCustomer Receivables,Rs. ${totalCustomerReceivables}\nWarehouse Stock Valuation,Rs. ${totalStockValuation}\nTOTAL ASSETS,Rs. ${totalAssets}\n\n`;
+      // Executive Summary
+      csvContent += makeRow(['--- FINANCIAL POSITION STATEMENT ---'], COLS);
+      csvContent += makeRow(['TOTAL ASSETS (Rs.)', num(totalAssets), 'TOTAL LIABILITIES (Rs.)', num(totalLiabilities), 'NET BUSINESS WORTH / EQUITY', num(totalEquity)], COLS);
+      csvContent += makeRow(['Asset to Liability Ratio', totalLiabilities > 0 ? (totalAssets / totalLiabilities).toFixed(2) : 'Debt-Free', 'Solvency Status', totalEquity >= 0 ? 'Healthy & Solvent' : 'Deficit', '', ''], COLS);
 
-      csvData += `--- 2. LIABILITIES (WHAT YOU OWE) ---\n`;
-      csvData += `Supplier Payables,Rs. ${totalSupplierPayables}\nOutstanding Expenses,Rs. 0\nTOTAL LIABILITIES,Rs. ${totalLiabilities}\n\n`;
+      // Section 1: ASSETS
+      csvContent += makeSectionHeader('1. ASSETS (WHAT THE BUSINESS OWNS)', COLS);
+      csvContent += makeRow(['Asset Classification', 'Category / Subhead', 'Line Item / Description', 'Liquidity Details', 'Valuation (Rs.)', 'Subtotal (Rs.)'], COLS);
+      csvContent += makeRow(['Current Assets', 'Cash & Bank Balances', 'Cash in Hand / Register', 'Immediate Liquidity', num(cashInHand), ''], COLS);
+      csvContent += makeRow(['Current Assets', 'Receivables', 'Customer Khata Receivables', 'Outstanding Market Debtors', num(totalCustomerReceivables), ''], COLS);
+      csvContent += makeRow(['Current Assets', 'Inventory', 'Warehouse Stock Valuation', 'Physical Grain Inventory', num(totalStockValuation), ''], COLS);
+      csvContent += makeRow(['TOTAL CURRENT ASSETS', '', '', '', '', num(totalAssets)], COLS);
 
-      csvData += `--- 3. EQUITY & CAPITAL ---\n`;
-      csvData += `Owner Capital,Rs. ${bsEquityBreakdown.ownersCapital}\nRetained Current Profit,Rs. ${bsEquityBreakdown.retainedProfit}\nTOTAL EQUITY,Rs. ${totalEquity}\nTOTAL LIABILITIES + EQUITY,Rs. ${totalLiabilities + totalEquity}\n`;
+      // Section 2: LIABILITIES
+      csvContent += makeSectionHeader('2. LIABILITIES (WHAT THE BUSINESS OWES)', COLS);
+      csvContent += makeRow(['Liability Classification', 'Category / Subhead', 'Line Item / Description', 'Settlement Terms', 'Outstanding (Rs.)', 'Subtotal (Rs.)'], COLS);
+      csvContent += makeRow(['Current Liabilities', 'Payables', 'Supplier Khata Payables', 'Outstanding Mandi Suppliers', num(totalSupplierPayables), ''], COLS);
+      csvContent += makeRow(['Current Liabilities', 'Accrued Expenses', 'Outstanding Shop Dues & Rent', 'Operating Liabilities', '0', ''], COLS);
+      csvContent += makeRow(['TOTAL LIABILITIES', '', '', '', '', num(totalLiabilities)], COLS);
+
+      // Section 3: EQUITY & CAPITAL
+      csvContent += makeSectionHeader('3. OWNER EQUITY & CAPITAL STRUCTURE', COLS);
+      csvContent += makeRow(['Capital Classification', 'Equity Account', 'Particulars / Source', 'Account Status', 'Balance (Rs.)', 'Subtotal (Rs.)'], COLS);
+      csvContent += makeRow(['Owner Equity', 'Contributed Capital', "Owner's Opening Capital", 'Initial Investment', num(bsEquityBreakdown.ownersCapital), ''], COLS);
+      csvContent += makeRow(['Owner Equity', 'Retained Earnings', 'Retained Current Period Profit', 'Cumulative P&L Balance', num(bsEquityBreakdown.retainedProfit), ''], COLS);
+      csvContent += makeRow(['TOTAL OWNER EQUITY', '', '', '', '', num(totalEquity)], COLS);
+      csvContent += makeRow(['TOTAL LIABILITIES & EQUITY (BALANCED)', '', '', '', '', num(totalLiabilities + totalEquity)], COLS);
+
     } else if (reportType === 'Expenses') {
-      csvData += `Date,Voucher Ref,Category,Description,Payment Mode,Amount (Rs.)\n`;
-      expenses.forEach(e => {
-        csvData += `"${e.date}","${e.ref}","${e.category}","${e.desc}","${e.mode}",${e.amount}\n`;
+      const COLS = 7;
+      // Header Info
+      csvContent += makeRow([sName], COLS);
+      csvContent += makeRow([sMandi + (sPhone ? ` • Contact: ${sPhone}` : '')], COLS);
+      csvContent += makeRow(['OPERATING EXPENSES REGISTER & FINANCIAL AUDIT'], COLS);
+      csvContent += makeRow([`Generated On: ${nowStr} | Date Filter: ${expDateFilter}`], COLS);
+      csvContent += makeRow([''], COLS);
+
+      // KPI Summary Block
+      csvContent += makeRow(['--- OPERATING EXPENSES SUMMARY ---'], COLS);
+      csvContent += makeRow(['Total Operating Expenses (Rs.)', num(totalExpensesAmount), 'Total Vouchers Recorded', filteredExpenses.length, 'Active Expense Categories', activeExpCategoriesCount, 'Avg Expense Per Voucher', num(filteredExpenses.length ? totalExpensesAmount / filteredExpenses.length : 0)], COLS);
+
+      // Section 1: Category Breakdown
+      csvContent += makeSectionHeader('1. CATEGORY-WISE EXPENSE DISTRIBUTION', COLS);
+      csvContent += makeRow(['Expense Category', 'Vouchers Count', 'Total Amount (Rs.)', 'Share of Expenses (%)', 'Category Status', 'Remarks', ''], COLS);
+
+      (expensesCategorySummary || []).forEach(cat => {
+        csvContent += makeRow([
+          cat.name,
+          cat.count,
+          num(cat.total),
+          `${cat.pct}%`,
+          Number(cat.pct) > 25 ? 'High Expense Area' : 'Normal',
+          'Operating Cost',
+          ''
+        ], COLS);
       });
+
+      // Section 2: Detailed Expense Voucher Register
+      csvContent += makeSectionHeader('2. ITEMIZED EXPENSE VOUCHER REGISTER', COLS);
+      csvContent += makeRow(['Date', 'Voucher Ref', 'Expense Category', 'Description / Purpose', 'Payment Mode', 'Paid To / Beneficiary', 'Amount (Rs.)'], COLS);
+
+      filteredExpenses.forEach(e => {
+        csvContent += makeRow([
+          e.date,
+          e.ref,
+          e.category,
+          e.desc || e.description || '-',
+          e.mode || 'Cash',
+          e.paidTo || 'Shop Staff / Vendor',
+          num(e.amount)
+        ], COLS);
+      });
+
+      csvContent += makeRow(['TOTAL EXPENSES INCURRED', `${filteredExpenses.length} Vouchers`, 'ALL CATEGORIES', 'FINANCIAL YEAR 2026-27', 'ALL PAYMENT MODES', 'TOTAL OUTFLOW', num(totalExpensesAmount)], COLS);
+
     } else {
-      csvData += `Metric,Amount (Rs.)\nGross Revenue,${totalSalesGross}\nCOGS Purchases,${cogs}\nGross Profit,${grossOperatingProfit}\nTotal Expenses,${totalExpensesAmount}\nNet Profit,${netOperatingProfit}\n`;
+      const COLS = 4;
+      csvContent += makeRow([sName], COLS);
+      csvContent += makeRow(['FINANCIAL METRICS SUMMARY'], COLS);
+      csvContent += makeRow(['Metric Name', 'Amount (Rs.)', 'Percentage (%)', 'Status'], COLS);
+      csvContent += makeRow(['Gross Revenue', num(totalSalesGross), '100%', 'Recorded'], COLS);
+      csvContent += makeRow(['COGS Purchases', num(cogs), '0%', 'Recorded'], COLS);
+      csvContent += makeRow(['Gross Operating Profit', num(grossOperatingProfit), '0%', 'Recorded'], COLS);
+      csvContent += makeRow(['Total Shop Expenses', num(totalExpensesAmount), '0%', 'Recorded'], COLS);
+      csvContent += makeRow(['Net Operating Profit', num(netOperatingProfit), '0%', 'Recorded'], COLS);
     }
 
-    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `Ghalla_Mandi_${reportType}_Report_${Date.now()}.csv`);
+    link.setAttribute('download', `${(shop?.name || 'Ghalla_Mandi').replace(/\s+/g, '_')}_${reportType}_Report_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
