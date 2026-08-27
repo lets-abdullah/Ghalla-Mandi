@@ -1,46 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Package, Warehouse, ShoppingCart, ShoppingBag,
+  LayoutDashboard, Package, Warehouse, ShoppingCart,
   Receipt, Users, UserCheck, BookOpen, FileText,
   BarChart3, Settings, Wheat, LogOut, Headphones, MessageSquare, Phone, X, PlusCircle,
-  ChevronLeft, ChevronRight, ChevronDown, Circle,
-  TrendingUp, TrendingDown, DollarSign, RotateCcw, Scale, PieChart, Building, FileSpreadsheet,
+  ChevronLeft, ChevronRight, ChevronDown,
+  TrendingUp, DollarSign, RotateCcw, PieChart, Building,
   CreditCard
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
+import { useTheme } from '../context/ThemeContext';
 
 export const Sidebar = () => {
   const { t, locale } = useLocale();
   const { logout } = useAuth();
+  const { theme } = useTheme();
   const { isCollapsed, isMobile, isMobileOpen, toggleSidebar, closeMobileMenu } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
   const [showSupportModal, setShowSupportModal] = useState(false);
 
   const isRTL = locale === 'ur';
+  const isDark = theme === 'dark';
 
-  // Auto-close mobile drawer on navigation
+  // Auto-close mobile drawer whenever route changes
   useEffect(() => {
-    if (isMobile) closeMobileMenu();
-  }, [location.pathname, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (isMobile) {
+      closeMobileMenu();
+    }
+  }, [location.pathname, location.search, isMobile, closeMobileMenu]);
 
-  // Check which sub-menus should be highlighted / active
+  // Check active navigation areas
   const isSalesActive =
-    ['/sales', '/customers', '/khata'].includes(location.pathname) ||
+    ['/sales', '/customers', '/khata', '/sale-returns'].includes(location.pathname) ||
     (location.pathname === '/invoices' && (location.search.includes('Sales') || location.search.includes('sales') || !location.search)) ||
     (location.pathname === '/ledger' && (location.search.includes('Customer') || location.search.includes('customer') || !location.search));
 
   const isPurchasesActive =
-    ['/purchases', '/suppliers'].includes(location.pathname) ||
+    ['/purchases', '/suppliers', '/purchase-returns', '/suppliers/new'].includes(location.pathname) ||
     (location.pathname === '/invoices' && (location.search.includes('Purchases') || location.search.includes('purchases'))) ||
     (location.pathname === '/ledger' && (location.search.includes('Supplier') || location.search.includes('supplier')));
 
   const isReportsActive = location.pathname === '/reports';
 
-  // Collapsible dropdown states (open by default or when active)
+  // Collapsible dropdown states
   const [salesOpen, setSalesOpen] = useState(true);
   const [purchasesOpen, setPurchasesOpen] = useState(true);
   const [reportsOpen, setReportsOpen] = useState(true);
@@ -58,8 +63,15 @@ export const Sidebar = () => {
   }, [location.pathname, location.search, isReportsActive]);
 
   const handleLogout = () => {
+    if (isMobile) closeMobileMenu();
     logout();
     navigate('/login');
+  };
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      closeMobileMenu();
+    }
   };
 
   // Helper to check exact active match for sub-items with search params
@@ -70,23 +82,21 @@ export const Sidebar = () => {
     return location.pathname === path;
   };
 
-  // On mobile: always render the full sidebar (not collapsed icon mode)
+  // On mobile: always show full text inside drawer
   const effectivelyCollapsed = isMobile ? false : isCollapsed;
 
-  // ─── Sidebar inner content (shared between mobile & desktop) ───
-  const sidebarContent = (
-    <aside className={`
-      ${isMobile
-        ? 'w-72 fixed top-0 left-0 h-full z-50 shadow-2xl'
-        : `${effectivelyCollapsed ? 'w-20' : 'w-64'} sticky top-0 shrink-0 z-30`
-      }
-      bg-white border-r border-slate-200 h-screen flex flex-col justify-between p-3.5 select-none overflow-y-auto transition-all duration-300
+  // ─── Sidebar Inner Content ───
+  const sidebarInner = (
+    <div className={`
+      w-full h-full flex flex-col justify-between p-3.5 select-none overflow-y-auto transition-colors
+      ${isDark ? 'bg-slate-900 border-r border-slate-800 text-white' : 'bg-white border-r border-slate-200 text-slate-800'}
     `}>
       {/* Brand Header */}
       <div>
         <div className={`flex items-center ${effectivelyCollapsed ? 'justify-center' : 'justify-between'} mb-6 pt-1`}>
           <Link
             to="/dashboard"
+            onClick={handleLinkClick}
             className={`flex items-center gap-3 overflow-hidden cursor-pointer group ${effectivelyCollapsed ? 'justify-center' : ''}`}
             title={t('dashboard')}
           >
@@ -95,22 +105,27 @@ export const Sidebar = () => {
             </div>
             {!effectivelyCollapsed && (
               <div className="overflow-hidden">
-                <h1 className="font-black text-slate-900 text-sm tracking-tight leading-none uppercase truncate group-hover:text-emerald-600 transition-colors">
+                <h1 className="font-black text-slate-900 dark:text-white text-sm tracking-tight leading-none uppercase truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                   {t('appName')}
                 </h1>
-                <p className="text-[11px] text-slate-500 font-medium mt-1 truncate">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 truncate">
                   {t('appSub')}
                 </p>
               </div>
             )}
           </Link>
 
-          {/* Mobile: X close button */}
+          {/* Mobile: Cross (X) button with distinct click handler */}
           {isMobile && (
             <button
-              onClick={closeMobileMenu}
-              className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                closeMobileMenu();
+              }}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 transition cursor-pointer"
               title="Close Menu"
+              aria-label="Close navigation menu"
             >
               <X className="w-5 h-5" />
             </button>
@@ -119,8 +134,9 @@ export const Sidebar = () => {
           {/* Desktop: Collapse Toggle Button */}
           {!isMobile && !effectivelyCollapsed && (
             <button
+              type="button"
               onClick={toggleSidebar}
-              className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+              className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer"
               title="Collapse Sidebar"
             >
               {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -132,8 +148,9 @@ export const Sidebar = () => {
         {!isMobile && effectivelyCollapsed && (
           <div className="flex justify-center mb-4">
             <button
+              type="button"
               onClick={toggleSidebar}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer"
               title="Expand Sidebar"
             >
               {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -146,11 +163,12 @@ export const Sidebar = () => {
           {/* 1. Dashboard */}
           <NavLink
             to="/dashboard"
+            onClick={handleLinkClick}
             title={effectivelyCollapsed ? t('dashboard') : undefined}
             className={({ isActive }) =>
               `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
                 ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`
             }
           >
@@ -166,11 +184,12 @@ export const Sidebar = () => {
           {/* 2. Create Order (POS) */}
           <NavLink
             to="/create-order"
+            onClick={handleLinkClick}
             title={effectivelyCollapsed ? t('createOrder') : undefined}
             className={({ isActive }) =>
               `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
                 ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`
             }
           >
@@ -187,11 +206,12 @@ export const Sidebar = () => {
           {effectivelyCollapsed ? (
             <NavLink
               to="/sales"
+              onClick={handleLinkClick}
               title={t('sales')}
               className={({ isActive }) =>
                 `flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all relative group ${isSalesActive
                   ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 }`
               }
             >
@@ -206,8 +226,8 @@ export const Sidebar = () => {
                 type="button"
                 onClick={() => setSalesOpen(!salesOpen)}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isSalesActive
-                  ? 'bg-brand-500/10 text-brand-600 font-black'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -222,9 +242,10 @@ export const Sidebar = () => {
                 <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
                   <Link
                     to="/sales"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/sales')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <Receipt className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -233,9 +254,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/customers"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/customers')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <Users className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -244,9 +266,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/invoices?type=Sales"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/invoices', 'Sales')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <FileText className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -255,9 +278,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/ledger?type=Customer"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Customer')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -266,9 +290,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/khata"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/khata')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <CreditCard className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -277,9 +302,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/sale-returns"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/sale-returns')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -294,11 +320,12 @@ export const Sidebar = () => {
           {effectivelyCollapsed ? (
             <NavLink
               to="/purchases"
+              onClick={handleLinkClick}
               title={t('purchases')}
               className={({ isActive }) =>
                 `flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all relative group ${isPurchasesActive
                   ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 }`
               }
             >
@@ -313,8 +340,8 @@ export const Sidebar = () => {
                 type="button"
                 onClick={() => setPurchasesOpen(!purchasesOpen)}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isPurchasesActive
-                  ? 'bg-brand-500/10 text-brand-600 font-black'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -329,9 +356,10 @@ export const Sidebar = () => {
                 <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
                   <Link
                     to="/purchases"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchases')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <ShoppingCart className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -340,9 +368,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/suppliers"
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/suppliers')
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/suppliers') || isSubActive('/suppliers/new')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <UserCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -351,9 +380,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/invoices?type=Purchases"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/invoices', 'Purchases')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <FileText className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -362,9 +392,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/ledger?type=Supplier"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Supplier')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -373,9 +404,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/purchase-returns"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchase-returns')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -389,11 +421,12 @@ export const Sidebar = () => {
           {/* 5. Products */}
           <NavLink
             to="/products"
+            onClick={handleLinkClick}
             title={effectivelyCollapsed ? t('products') : undefined}
             className={({ isActive }) =>
               `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
                 ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`
             }
           >
@@ -409,11 +442,12 @@ export const Sidebar = () => {
           {/* 6. Inventory */}
           <NavLink
             to="/inventory"
+            onClick={handleLinkClick}
             title={effectivelyCollapsed ? t('inventory') : undefined}
             className={({ isActive }) =>
               `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
                 ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`
             }
           >
@@ -430,11 +464,12 @@ export const Sidebar = () => {
           {effectivelyCollapsed ? (
             <NavLink
               to="/reports"
+              onClick={handleLinkClick}
               title={t('reports')}
               className={({ isActive }) =>
                 `flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all relative group ${isReportsActive
                   ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 }`
               }
             >
@@ -449,8 +484,8 @@ export const Sidebar = () => {
                 type="button"
                 onClick={() => setReportsOpen(!reportsOpen)}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isReportsActive
-                  ? 'bg-brand-500/10 text-brand-600 font-black'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -465,9 +500,10 @@ export const Sidebar = () => {
                 <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
                   <Link
                     to="/reports?type=Stock"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Stock') || (location.pathname === '/reports' && (!location.search || location.search === '?type=Stock'))
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <Warehouse className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -476,9 +512,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/reports?type=Sales"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Sales')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <TrendingUp className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -487,9 +524,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/reports?type=Expenses"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Expenses')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <DollarSign className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -498,9 +536,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/reports?type=ProfitLoss"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'ProfitLoss')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <PieChart className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -509,9 +548,10 @@ export const Sidebar = () => {
 
                   <Link
                     to="/reports?type=BalanceSheet"
+                    onClick={handleLinkClick}
                     className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'BalanceSheet')
                       ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <Building className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
@@ -525,11 +565,12 @@ export const Sidebar = () => {
           {/* 8. Settings */}
           <NavLink
             to="/settings"
+            onClick={handleLinkClick}
             title={effectivelyCollapsed ? t('settings') : undefined}
             className={({ isActive }) =>
               `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
                 ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
               }`
             }
           >
@@ -545,16 +586,17 @@ export const Sidebar = () => {
       </div>
 
       {/* Contact Support & Sign Out */}
-      <div className="space-y-2.5 pt-3 border-t border-slate-100">
+      <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
         {/* Support Widget */}
         {!effectivelyCollapsed ? (
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50/60 border border-emerald-200/80 rounded-2xl p-3 text-center shadow-2xs">
-            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-1 shadow-2xs">
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50/60 dark:from-emerald-950/30 dark:to-teal-950/20 border border-emerald-200/80 dark:border-emerald-800/40 rounded-2xl p-3 text-center shadow-2xs">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center mx-auto mb-1 shadow-2xs">
               <Headphones className="w-4 h-4" />
             </div>
-            <h4 className="text-xs font-bold text-slate-800">{t('needHelp')}</h4>
-            <p className="text-[10px] text-slate-500 mb-2">{t('dedicatedSupport')}</p>
+            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">{t('needHelp')}</h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2">{t('dedicatedSupport')}</p>
             <button
+              type="button"
               onClick={() => setShowSupportModal(true)}
               className="w-full py-1.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
             >
@@ -564,8 +606,9 @@ export const Sidebar = () => {
           </div>
         ) : (
           <button
+            type="button"
             onClick={() => setShowSupportModal(true)}
-            className="w-full p-2.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center transition cursor-pointer relative group shadow-2xs"
+            className="w-full p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center transition cursor-pointer relative group shadow-2xs"
             title={t('contactSupport')}
           >
             <Headphones className="w-4 h-4" />
@@ -577,8 +620,9 @@ export const Sidebar = () => {
 
         {/* Logout Button */}
         <button
+          type="button"
           onClick={handleLogout}
-          className={`w-full flex items-center ${effectivelyCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'} rounded-2xl text-xs font-black text-rose-600 hover:bg-rose-50 transition cursor-pointer relative group`}
+          className={`w-full flex items-center ${effectivelyCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'} rounded-2xl text-xs font-black text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer relative group`}
           title={effectivelyCollapsed ? t('signOut') : undefined}
         >
           <LogOut className="w-4 h-4 shrink-0" />
@@ -590,40 +634,61 @@ export const Sidebar = () => {
           )}
         </button>
       </div>
-    </aside>
+    </div>
   );
 
   return (
     <>
-      {/* Mobile: Backdrop + Drawer */}
-      {isMobile && (
-        <>
-          {/* Backdrop overlay */}
+      {/* ─── Mobile Drawer (Overlay Mode) ─── */}
+      {isMobile ? (
+        <div className="relative z-50">
+          {/* Backdrop Blur Overlay */}
           <div
-            className={`fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-300 ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
             onClick={closeMobileMenu}
+            className={`fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-300 ${
+              isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            }`}
             aria-hidden="true"
           />
-          {/* Drawer — slides in from left */}
-          <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            {sidebarContent}
-          </div>
-        </>
+
+          {/* Drawer Panel Container — Starts OFF-SCREEN on mobile */}
+          <aside
+            className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] h-full shadow-2xl transition-transform duration-300 ease-in-out z-50 ${
+              isMobileOpen ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'
+            }`}
+          >
+            {sidebarInner}
+          </aside>
+        </div>
+      ) : (
+        /* ─── Desktop Fixed Mode ─── */
+        <aside className={`${effectivelyCollapsed ? 'w-20' : 'w-64'} sticky top-0 shrink-0 h-screen z-30 transition-all duration-300`}>
+          {sidebarInner}
+        </aside>
       )}
 
-      {/* Desktop: Normal sidebar in document flow */}
-      {!isMobile && sidebarContent}
-
-      {/* Support Modal */}
+      {/* Support Helpline Modal */}
       {showSupportModal && (
-        <div className="fixed inset-0 z-[60] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 card-shadow space-y-4 border border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div 
+          onClick={() => setShowSupportModal(false)}
+          className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`rounded-3xl max-w-sm w-full p-6 card-shadow space-y-4 border ${
+              isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
               <div className="flex items-center gap-2">
                 <Headphones className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-extrabold text-slate-900 text-base">{t('contactMandiSupport')}</h3>
+                <h3 className="font-extrabold text-base">{t('contactMandiSupport')}</h3>
               </div>
-              <button onClick={() => setShowSupportModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <button 
+                type="button" 
+                onClick={() => setShowSupportModal(false)} 
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -633,12 +698,14 @@ export const Sidebar = () => {
                 href="https://wa.me/923001234567?text=Hello%2C%20I%20need%20help%20with%20Ghallah%20Mandi%20ERP."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-emerald-50 hover:border-emerald-200 transition-colors"
+                className={`p-3 rounded-2xl border flex items-center gap-3 cursor-pointer transition-colors ${
+                  isDark ? 'bg-slate-900 border-slate-700 hover:bg-emerald-950/40 hover:border-emerald-700' : 'bg-slate-50 border-slate-200 hover:bg-emerald-50 hover:border-emerald-200'
+                }`}
               >
                 <Phone className="w-4 h-4 text-emerald-600" />
                 <div>
-                  <div className="font-bold text-slate-900">{t('supportHelpline')}</div>
-                  <div className="text-slate-500 font-mono">+92 300 1234567</div>
+                  <div className="font-bold">{t('supportHelpline')}</div>
+                  <div className="text-slate-400 font-mono">+92 300 1234567</div>
                 </div>
               </a>
 
@@ -646,12 +713,14 @@ export const Sidebar = () => {
                 href="https://mail.google.com/mail/?view=cm&fs=1&to=support@ghallamandi.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                className={`p-3 rounded-2xl border flex items-center gap-3 cursor-pointer transition-colors ${
+                  isDark ? 'bg-slate-900 border-slate-700 hover:bg-blue-950/40 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:bg-blue-50 hover:border-blue-200'
+                }`}
               >
                 <MessageSquare className="w-4 h-4 text-brand-600" />
                 <div>
-                  <div className="font-bold text-slate-900">{t('emailAssistance')}</div>
-                  <div className="text-slate-500 font-mono">support@ghallamandi.com</div>
+                  <div className="font-bold">{t('emailAssistance')}</div>
+                  <div className="text-slate-400 font-mono">support@ghallamandi.com</div>
                 </div>
               </a>
             </div>

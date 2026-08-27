@@ -49,20 +49,22 @@ export const Header = () => {
         {/* Mobile: Hamburger to open mobile drawer */}
         {isMobile ? (
           <button
+            type="button"
             onClick={toggleMobileMenu}
-            className={`p-2 rounded-xl border transition cursor-pointer ${
-              theme === 'dark' ? 'border-slate-800 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'
+            className={`p-2 sm:p-2.5 rounded-xl border transition cursor-pointer flex items-center justify-center ${
+              theme === 'dark' ? 'border-slate-800 hover:bg-slate-800 text-slate-200' : 'border-slate-200 hover:bg-slate-100 text-slate-700'
             }`}
             title="Open Menu"
             aria-label="Open navigation menu"
           >
-            <Menu className="w-4 h-4" />
+            <Menu className="w-5 h-5" />
           </button>
         ) : (
           /* Desktop: Collapse/Expand toggle */
           <button
+            type="button"
             onClick={toggleSidebar}
-            className={`p-2 rounded-xl border transition cursor-pointer ${
+            className={`p-2 rounded-xl border transition cursor-pointer flex items-center justify-center ${
               theme === 'dark' ? 'border-slate-800 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-600'
             }`}
             title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
