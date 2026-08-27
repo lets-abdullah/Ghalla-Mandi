@@ -197,11 +197,17 @@ export const Sales = () => {
       // 5. Payment Status Filter
       const paid = Number(s.paidAmount ?? s.paidamount ?? 0);
       const total = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? 0);
+      const retAmt = Number(s.returnAmount ?? 0);
+      const isReturned = (s.status === 'Returned') || s.isReturned || (retAmt > 0) || (s.returnStatus && s.returnStatus !== 'None') || (saleReturns || []).some(r => r.saleId === s.id || r.invoiceNo === s.invoiceNo);
       const status = paid >= total && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
 
-      if (statusFilter === 'Paid' && status !== 'Paid') return false;
-      if (statusFilter === 'Partial' && status !== 'Partial') return false;
-      if (statusFilter === 'Pending' && status !== 'Pending') return false;
+      if (statusFilter === 'Returned') {
+        if (!isReturned) return false;
+      } else {
+        if (statusFilter === 'Paid' && status !== 'Paid') return false;
+        if (statusFilter === 'Partial' && status !== 'Partial') return false;
+        if (statusFilter === 'Pending' && status !== 'Pending') return false;
+      }
 
       return true;
     }).sort((a, b) => {
@@ -519,6 +525,7 @@ export const Sales = () => {
               <option value="Paid">Fully Paid</option>
               <option value="Partial">Partial Paid</option>
               <option value="Pending">Unpaid / Due</option>
+              <option value="Returned">Returned Sales</option>
             </select>
           </div>
         </div>

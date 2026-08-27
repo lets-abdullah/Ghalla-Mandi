@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ShoppingCart, 
-  Search, 
-  Plus, 
-  Printer, 
-  CheckCircle2, 
-  Clock, 
-  DollarSign, 
-  X, 
+import {
+  ShoppingCart,
+  Search,
+  Plus,
+  Printer,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  X,
   RotateCcw,
   Package,
   FolderPlus,
@@ -28,13 +28,13 @@ import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
 import { PurchaseReturnModal } from '../components/PurchaseReturnModal';
 
 export const Purchases = () => {
-  const { 
-    suppliers = [], 
-    products = [], 
-    categories = [], 
-    purchases = [], 
-    purchaseReturns = [], 
-    createPurchase, 
+  const {
+    suppliers = [],
+    products = [],
+    categories = [],
+    purchases = [],
+    purchaseReturns = [],
+    createPurchase,
     recordPayment,
     addProduct,
     addCategory,
@@ -534,8 +534,8 @@ export const Purchases = () => {
 
     // 2. Supplier Filter
     if (selectedSupplierFilter !== 'All') {
-      const supMatch = (p.supplierId === selectedSupplierFilter) || 
-                       ((p.supplier || p.supplierName || '').toLowerCase() === selectedSupplierFilter.toLowerCase());
+      const supMatch = (p.supplierId === selectedSupplierFilter) ||
+        ((p.supplier || p.supplierName || '').toLowerCase() === selectedSupplierFilter.toLowerCase());
       if (!supMatch) return false;
     }
 
@@ -546,13 +546,13 @@ export const Purchases = () => {
       if (p.productName && p.productName.toLowerCase() === selectedProductFilter.toLowerCase()) containsProd = true;
       if (typeof p.items === 'string' && p.items.toLowerCase().includes(selectedProductFilter.toLowerCase())) containsProd = true;
       if (Array.isArray(p.cart)) {
-        containsProd = p.cart.some(item => 
+        containsProd = p.cart.some(item =>
           (item.name || item.productName || '').toLowerCase() === selectedProductFilter.toLowerCase() ||
           item.productId === selectedProductFilter
         );
       }
       if (Array.isArray(p.items)) {
-        containsProd = containsProd || p.items.some(item => 
+        containsProd = containsProd || p.items.some(item =>
           (item.name || item.productName || '').toLowerCase() === selectedProductFilter.toLowerCase() ||
           item.productId === selectedProductFilter
         );
@@ -566,11 +566,17 @@ export const Purchases = () => {
     // 5. Payment / Status Filter
     const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
     const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
+    const retAmt = Number(p.returnAmount ?? 0);
+    const isReturned = (p.status === 'Returned') || p.isReturned || (retAmt > 0) || (purchaseReturns || []).some(r => r.purchaseId === p.id || r.purchaseNo === p.purchaseNo);
     const status = paid >= total && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
 
-    if (filterType === 'Paid' && status !== 'Paid') return false;
-    if (filterType === 'Partial' && status !== 'Partial') return false;
-    if (filterType === 'Due' && status !== 'Due') return false;
+    if (filterType === 'Returns' || filterType === 'Returned') {
+      if (!isReturned) return false;
+    } else {
+      if (filterType === 'Paid' && status !== 'Paid') return false;
+      if (filterType === 'Partial' && status !== 'Partial') return false;
+      if (filterType === 'Due' && status !== 'Due') return false;
+    }
 
     return true;
   }).sort((a, b) => {
@@ -599,7 +605,7 @@ export const Purchases = () => {
             className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
           >
-            <Printer className="w-4 h-4" /> 
+            <Printer className="w-4 h-4" />
             <span>Print List</span>
           </button>
 
@@ -608,7 +614,7 @@ export const Purchases = () => {
             className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Record Inward Purchase</span>
+            <span>Record New Purchase</span>
           </button>
         </div>
       </div>
@@ -669,9 +675,8 @@ export const Purchases = () => {
       </div>
 
       {/* Unified Filter Toolbar: [Search] [Supplier] [Product] [Date] [Status] */}
-      <div className={`p-4 rounded-3xl border card-shadow space-y-3 ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-      }`}>
+      <div className={`p-4 rounded-3xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+        }`}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* 1. Search */}
           <div>
@@ -684,9 +689,8 @@ export const Purchases = () => {
               placeholder="Search #, supplier, items..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             />
           </div>
 
@@ -699,9 +703,8 @@ export const Purchases = () => {
             <select
               value={selectedSupplierFilter}
               onChange={(e) => setSelectedSupplierFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Suppliers</option>
               {suppliers.map(s => (
@@ -719,9 +722,8 @@ export const Purchases = () => {
             <select
               value={selectedProductFilter}
               onChange={(e) => setSelectedProductFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Products</option>
               {products.map(p => (
@@ -739,9 +741,8 @@ export const Purchases = () => {
             <select
               value={dateFilterType}
               onChange={(e) => setDateFilterType(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Dates</option>
               <option value="Today">Today</option>
@@ -761,9 +762,8 @@ export const Purchases = () => {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Statuses</option>
               <option value="Paid">Fully Paid</option>
@@ -782,18 +782,16 @@ export const Purchases = () => {
               type="date"
               value={customStartDate}
               onChange={(e) => setCustomStartDate(e.target.value)}
-              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             />
             <span className="text-xs text-slate-400 font-bold">to</span>
             <input
               type="date"
               value={customEndDate}
               onChange={(e) => setCustomEndDate(e.target.value)}
-              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             />
           </div>
         )}
@@ -918,7 +916,7 @@ export const Purchases = () => {
 
                             {/* Return Action Button */}
                             {(p.returnStatus === 'Fully Returned' || (Number(p.returnAmount || 0) >= (total - 1) && total > 0)) ? (
-                              <span 
+                              <span
                                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
                                 title="This purchase is fully returned"
                               >
@@ -955,19 +953,19 @@ export const Purchases = () => {
       {/* ========================================================================= */}
       {showModal && (
         <div
-          onClick={(e) => { 
+          onClick={(e) => {
             // Only close if user clicked directly on this backdrop AND no child modal is active
             if (e.target === e.currentTarget && !showAddProductModal && !showAddCategoryModal) {
-              setShowModal(false); 
+              setShowModal(false);
             }
           }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
           style={{ zIndex: 50 }}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
             className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}
+              }`}
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
               <h3 className="text-base font-extrabold flex items-center gap-2">
@@ -1136,16 +1134,15 @@ export const Purchases = () => {
       {/* 2. QUICK ADD SUPPLIER MODAL (Compact 2-Column Grid - No Desktop Scroll) */}
       {/* ========================================================================= */}
       {showAddSupplierModal && (
-        <div 
+        <div
           onClick={() => setShowAddSupplierModal(false)}
           className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
           style={{ zIndex: 100 }}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
-            className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}
+            className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
@@ -1188,9 +1185,8 @@ export const Purchases = () => {
                         placeholder="e.g. Aslam Chaudhry"
                         value={newSupplierForm.name}
                         onChange={(e) => setNewSupplierForm({ ...newSupplierForm, name: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1203,9 +1199,8 @@ export const Purchases = () => {
                         placeholder="e.g. Aslam Grain Traders"
                         value={newSupplierForm.businessName}
                         onChange={(e) => setNewSupplierForm({ ...newSupplierForm, businessName: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1220,9 +1215,8 @@ export const Purchases = () => {
                         placeholder="03001234567"
                         value={newSupplierForm.phone}
                         onChange={(e) => setNewSupplierForm({ ...newSupplierForm, phone: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1235,9 +1229,8 @@ export const Purchases = () => {
                         placeholder="e.g. Faisalabad"
                         value={newSupplierForm.city}
                         onChange={(e) => setNewSupplierForm({ ...newSupplierForm, city: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1251,9 +1244,8 @@ export const Purchases = () => {
                       placeholder="Shop #, Grain Market..."
                       value={newSupplierForm.address}
                       onChange={(e) => setNewSupplierForm({ ...newSupplierForm, address: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1276,9 +1268,8 @@ export const Purchases = () => {
                       placeholder="0"
                       value={newSupplierForm.openingBalance}
                       onChange={(e) => setNewSupplierForm({ ...newSupplierForm, openingBalance: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
 
@@ -1292,9 +1283,8 @@ export const Purchases = () => {
                         placeholder="e.g. Meezan, HBL"
                         value={newSupplierForm.bankName}
                         onChange={(e) => setNewSupplierForm({ ...newSupplierForm, bankName: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1307,9 +1297,8 @@ export const Purchases = () => {
                         placeholder="Account Title"
                         value={newSupplierForm.accountTitle}
                         onChange={(e) => setNewSupplierForm({ ...newSupplierForm, accountTitle: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1322,9 +1311,8 @@ export const Purchases = () => {
                         placeholder="PK36..."
                         value={newSupplierForm.accountNumber}
                         onChange={(e) => setNewSupplierForm({ ...newSupplierForm, accountNumber: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1338,9 +1326,8 @@ export const Purchases = () => {
                       placeholder="Special Mandi notes or terms..."
                       value={newSupplierForm.notes}
                       onChange={(e) => setNewSupplierForm({ ...newSupplierForm, notes: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1350,9 +1337,8 @@ export const Purchases = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddSupplierModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>
@@ -1381,20 +1367,19 @@ export const Purchases = () => {
       {/* ========================================================================= */}
       {showAddProductModal && (
         <div
-          onClick={(e) => { 
+          onClick={(e) => {
             // Clicking backdrop closes ONLY this product modal, leaving purchase form open
             if (e.target === e.currentTarget && !showAddCategoryModal) {
-              setShowAddProductModal(false); 
+              setShowAddProductModal(false);
             }
           }}
           className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
           style={{ zIndex: 100 }}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
-            className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}
+            className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
@@ -1429,9 +1414,8 @@ export const Purchases = () => {
                   placeholder="e.g. Super Basmati Rice, Wheat 1121"
                   value={newProductForm.name}
                   onChange={(e) => setNewProductForm({ ...newProductForm, name: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1454,9 +1438,8 @@ export const Purchases = () => {
                 <select
                   value={newProductForm.category}
                   onChange={(e) => setNewProductForm({ ...newProductForm, category: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   {categories.map(c => (
                     <option key={c.id || c.name} value={c.name}>{c.name}</option>
@@ -1473,9 +1456,8 @@ export const Purchases = () => {
                   <select
                     value={newProductForm.unit}
                     onChange={(e) => setNewProductForm({ ...newProductForm, unit: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   >
                     <option value="KG">Kilogram (KG)</option>
                     <option value="Maund">Maund / Mann (من)</option>
@@ -1496,9 +1478,8 @@ export const Purchases = () => {
                     placeholder="e.g. PRD-101"
                     value={newProductForm.code}
                     onChange={(e) => setNewProductForm({ ...newProductForm, code: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -1516,9 +1497,8 @@ export const Purchases = () => {
                     placeholder="0"
                     value={newProductForm.purchasePrice}
                     onChange={(e) => setNewProductForm({ ...newProductForm, purchasePrice: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
 
@@ -1533,9 +1513,8 @@ export const Purchases = () => {
                     placeholder="0"
                     value={newProductForm.sellingPrice}
                     onChange={(e) => setNewProductForm({ ...newProductForm, sellingPrice: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -1550,9 +1529,8 @@ export const Purchases = () => {
                   placeholder="Grade, moisture level, harvest season, etc."
                   value={newProductForm.description}
                   onChange={(e) => setNewProductForm({ ...newProductForm, description: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1560,9 +1538,8 @@ export const Purchases = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddProductModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>
@@ -1591,20 +1568,19 @@ export const Purchases = () => {
       {/* ========================================================================= */}
       {showAddCategoryModal && (
         <div
-          onClick={(e) => { 
+          onClick={(e) => {
             // Clicking backdrop closes ONLY category modal, leaving product form open
             if (e.target === e.currentTarget) {
-              setShowAddCategoryModal(false); 
+              setShowAddCategoryModal(false);
             }
           }}
           className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
           style={{ zIndex: 110 }}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
-            className={`rounded-3xl max-w-sm w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}
+            className={`rounded-3xl max-w-sm w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
           >
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
@@ -1637,9 +1613,8 @@ export const Purchases = () => {
                   placeholder="e.g. Pulses, Oilseeds, Basmati Grains"
                   value={newCategoryForm.name}
                   onChange={(e) => setNewCategoryForm({ ...newCategoryForm, name: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1652,9 +1627,8 @@ export const Purchases = () => {
                   placeholder="Brief description of this commodity category"
                   value={newCategoryForm.description}
                   onChange={(e) => setNewCategoryForm({ ...newCategoryForm, description: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1662,9 +1636,8 @@ export const Purchases = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddCategoryModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>

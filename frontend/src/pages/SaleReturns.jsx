@@ -1,19 +1,57 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RotateCcw, Search, Plus, Printer, CheckCircle2, DollarSign, Package, Clock } from 'lucide-react';
+import { RotateCcw, Search, Plus, Printer, CheckCircle2, DollarSign, Package, Clock, Edit3, X } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { SaleReturnModal } from '../components/SaleReturnModal';
 
 export const SaleReturns = () => {
-  const { saleReturns = [] } = useERP();
+  const { saleReturns = [], updateSaleReturn } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+
+  // Edit Return State
+  const [editingReturn, setEditingReturn] = useState(null);
+  const [editForm, setEditForm] = useState({
+    refundAmount: 0,
+    refundMode: 'Cash',
+    reason: ''
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const handleOpenEdit = (ret) => {
+    setEditingReturn(ret);
+    setEditForm({
+      refundAmount: Number(ret.refundAmount || 0),
+      refundMode: ret.refundMode || 'Cash',
+      reason: ret.reason || ''
+    });
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingReturn) return;
+    try {
+      setIsSavingEdit(true);
+      if (updateSaleReturn) {
+        await updateSaleReturn(editingReturn.id, {
+          refundAmount: Number(editForm.refundAmount) || 0,
+          refundMode: editForm.refundMode,
+          reason: editForm.reason
+        });
+      }
+      setEditingReturn(null);
+    } catch (err) {
+      alert(err.message || 'Failed to update sale return');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   const filteredReturns = saleReturns.filter(ret => {
     const matchSearch =
@@ -61,31 +99,19 @@ export const SaleReturns = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div
-          onClick={() => navigate('/sales')}
-          className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-orange-500/30' : 'bg-gradient-to-b from-orange-50/50 to-white border-orange-200/80'}`}
-          title="Click to view Sales Invoices"
-        >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Returns Value</div>
+      {/* Summary KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={`p-5 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Returned Sales</div>
           <div className="text-2xl font-black mt-1.5 text-orange-600 dark:text-orange-400 font-mono">Rs. {totalRefundAmount.toLocaleString()}</div>
         </div>
 
-        <div
-          onClick={() => setSearch('Cash')}
-          className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}
-          title="Click to filter Cash Refunds"
-        >
+        <div className={`p-5 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Payouts</div>
           <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalCashRefunds.toLocaleString()}</div>
         </div>
 
-        <div
-          onClick={() => navigate('/ledger?type=Customer')}
-          className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'}`}
-          title="Click to view Customer Khata Ledgers"
-        >
+        <div className={`p-5 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Khata Dues Deducted</div>
           <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">Rs. {totalKhataAdjustments.toLocaleString()}</div>
         </div>
@@ -126,12 +152,13 @@ export const SaleReturns = () => {
                 <th className="py-3 px-4">Item</th>
                 <th className="py-3 px-4 text-center">Mode</th>
                 <th className="py-3 px-4 text-right">Amount</th>
+                <th className="py-3 px-4 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
               {filteredReturns.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
                     <Package className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
                     No sale returns recorded yet.
                   </td>
@@ -146,15 +173,21 @@ export const SaleReturns = () => {
                     <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200">
                       {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Item'}
                     </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${
-                        ret.refundMode === 'Cash' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700 border border-slate-200'
-                      }`}>
-                        {ret.refundMode === 'Cash' ? 'Cash' : 'Khata'}
-                      </span>
+                    <td className="py-3 px-4 text-center font-bold text-xs text-slate-700 dark:text-slate-300">
+                      {ret.refundMode === 'Cash' ? 'Cash' : 'Khata'}
                     </td>
                     <td className="py-3 px-4 text-right font-black font-mono text-orange-600 dark:text-orange-400">
                       Rs. {Number(ret.refundAmount || 0).toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => handleOpenEdit(ret)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                        title="Edit Return Details"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -163,6 +196,100 @@ export const SaleReturns = () => {
           </table>
         </div>
       </div>
+
+      {/* Edit Sale Return Modal */}
+      {editingReturn && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setEditingReturn(null); }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
+          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center font-bold">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">Edit Sale Return</h3>
+                  <p className="text-[11px] text-slate-400 font-bold font-mono">{editingReturn.returnNo} - {editingReturn.customerName}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingReturn(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Refund Amount (Rs.) *</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={editForm.refundAmount}
+                  onChange={(e) => setEditForm({ ...editForm, refundAmount: e.target.value })}
+                  className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-orange-500 font-mono ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Refund Mode</label>
+                <select
+                  value={editForm.refundMode}
+                  onChange={(e) => setEditForm({ ...editForm, refundMode: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-orange-500 cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="Cash">Cash on Counter</option>
+                  <option value="Ledger">Khata / Customer Balance Adjustment</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Return Reason / Notes</label>
+                <input
+                  type="text"
+                  value={editForm.reason}
+                  onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
+                  placeholder="e.g. Quality issue, customer return"
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-orange-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/80">
+                <button
+                  type="button"
+                  onClick={() => setEditingReturn(null)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="w-1/2 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-orange-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isSavingEdit ? 'Saving...' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Sale Return Modal */}
       {showModal && (

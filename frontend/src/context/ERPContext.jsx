@@ -995,6 +995,16 @@ export const ERPProvider = ({ children }) => {
     }
   };
 
+  const updateSaleReturn = async (id, updatedData) => {
+    setSaleReturns(prev => prev.map(r => r.id === id ? { ...r, ...updatedData } : r));
+    return true;
+  };
+
+  const updatePurchaseReturn = async (id, updatedData) => {
+    setPurchaseReturns(prev => prev.map(r => r.id === id ? { ...r, ...updatedData } : r));
+    return true;
+  };
+
   return (
     <ERPContext.Provider value={{
       categories,
@@ -1028,7 +1038,9 @@ export const ERPProvider = ({ children }) => {
       createSale,
       updateSale,
       recordSaleReturn,
-      recordPurchaseReturn
+      updateSaleReturn,
+      recordPurchaseReturn,
+      updatePurchaseReturn
     }}>
       {children}
     </ERPContext.Provider>
