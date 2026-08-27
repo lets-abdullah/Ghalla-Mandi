@@ -662,20 +662,11 @@ export const Sales = () => {
                           )}
                         </td>
 
-                        {/* 5. Amount (Total / Paid / Due) */}
+                        {/* 5. Amount (Total Price Only) */}
                         <td className="py-3.5 px-4 text-right">
                           <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
                             Rs. {total.toLocaleString()}
                           </div>
-                          {due > 0 ? (
-                            <div className="text-[10px] font-mono text-amber-500 font-bold">
-                              Due: Rs. {due.toLocaleString()}
-                            </div>
-                          ) : (
-                            <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                              Paid: Rs. {paid.toLocaleString()}
-                            </div>
-                          )}
                         </td>
 
                         {/* 6. Status Badges */}
@@ -687,7 +678,7 @@ export const Sales = () => {
                                   ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
                                   : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
                               }`}>
-                              {status === 'Paid' ? t('paid') : status === 'Partial' ? t('partial') : t('pending')}
+                              {status === 'Paid' ? 'Paid' : status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
                             </span>
 
                             {/* Return Status Badge if partially or fully returned */}

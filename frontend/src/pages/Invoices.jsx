@@ -580,18 +580,19 @@ export const Invoices = () => {
                 }`}>
                 <th className="py-3.5 px-4">{isPurchases ? 'Voucher #' : 'Invoice #'}</th>
                 <th className="py-3.5 px-4">Billing Date</th>
-                <th className="py-3.5 px-4">{isPurchases ? 'Supplier / Vendor' : 'Billed Customer'}</th>
-                <th className="py-3.5 px-4">Payment Terms</th>
-                <th className="py-3.5 px-4 text-right">Net Amount</th>
-                <th className="py-3.5 px-4 text-center">Clearance Status</th>
-                <th className="py-3.5 px-4 text-center">Formal Documents</th>
+                <th className="py-3.5 px-4">{isPurchases ? 'Supplier / Vendor' : 'Customer'}</th>
+                <th className="py-3.5 px-4">Payment Mode</th>
+                <th className="py-3.5 px-4 text-right">Amount</th>
+                <th className="py-3.5 px-4 text-right">Paid</th>
+                <th className="py-3.5 px-4 text-center">Status</th>
+                <th className="py-3.5 px-4 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
               }`}>
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={8} className="py-12 text-center text-slate-400 text-xs">
                     No billing records found matching your selected filters.
                   </td>
                 </tr>
@@ -599,7 +600,6 @@ export const Invoices = () => {
                 filteredInvoices.map(inv => {
                   const paid = Number(inv.paidAmount || 0);
                   const total = Number(inv.amount || 0);
-                  const due = Number(inv.dueAmount || 0);
 
                   return (
                     <tr
@@ -628,30 +628,28 @@ export const Invoices = () => {
                         )}
                       </td>
 
-                      {/* 4. Payment Terms */}
+                      {/* 4. Payment Mode */}
                       <td className="py-3.5 px-4">
                         <span className="font-bold text-xs text-slate-600 dark:text-slate-300">
                           {inv.paymentMode}
                         </span>
                       </td>
 
-                      {/* 5. Net Amount */}
+                      {/* 5. Amount (Total Invoice Amount) */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
                           Rs. {total.toLocaleString()}
                         </div>
-                        {due > 0 ? (
-                          <div className="text-[10px] font-mono text-amber-500 font-bold">
-                            Due: Rs. {due.toLocaleString()}
-                          </div>
-                        ) : (
-                          <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                            Paid: Rs. {paid.toLocaleString()}
-                          </div>
-                        )}
                       </td>
 
-                      {/* 6. Clearance Status Badge */}
+                      {/* 6. Paid (Paid so far) */}
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="font-black font-mono text-xs text-emerald-600 dark:text-emerald-400">
+                          Rs. {paid.toLocaleString()}
+                        </div>
+                      </td>
+
+                      {/* 7. Status (Paid / Partially Paid / Unpaid) */}
                       <td className="py-3.5 px-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${inv.status === 'Paid'
                           ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
@@ -659,11 +657,11 @@ export const Invoices = () => {
                             ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
                             : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
                           }`}>
-                          {inv.status === 'Paid' ? 'Paid' : inv.status === 'Partial' ? 'Partial Paid' : 'Unpaid (Due)'}
+                          {inv.status === 'Paid' ? 'Paid' : inv.status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
                         </span>
                       </td>
 
-                      {/* 7. Document Actions: View / Print A4 */}
+                      {/* 8. Actions: View / Print A4 */}
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
