@@ -21,7 +21,8 @@ import {
   List, 
   ExternalLink,
   ChevronRight,
-  ShoppingCart
+  ShoppingCart,
+  FolderPlus
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -29,7 +30,7 @@ import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
 
 export const Suppliers = () => {
-  const { suppliers = [], products = [], purchases = [], addSupplier, updateSupplier, deleteSupplier } = useERP();
+  const { suppliers = [], products = [], categories = [], purchases = [], addSupplier, updateSupplier, deleteSupplier, addProduct, addCategory } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -46,6 +47,30 @@ export const Suppliers = () => {
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [viewingSupplier, setViewingSupplier] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Quick Add Product & Category State
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [productSuccessMsg, setProductSuccessMsg] = useState('');
+
+  // New Product Form State
+  const [newProductForm, setNewProductForm] = useState({
+    name: '',
+    category: categories[0]?.name || 'Grains & Cereals',
+    unit: 'KG',
+    code: '',
+    purchasePrice: '',
+    sellingPrice: '',
+    description: ''
+  });
+
+  // New Category Form State
+  const [newCategoryForm, setNewCategoryForm] = useState({
+    name: '',
+    description: ''
+  });
 
   // Form for New Supplier
   const [form, setForm] = useState({
@@ -176,6 +201,100 @@ export const Suppliers = () => {
         ? current.filter(p => p !== prodName)
         : [...current, prodName];
       setForm({ ...form, suppliedProducts: updated });
+    }
+  };
+
+  // Quick Add Category Handler for Supplier Screen
+  const handleSaveCategory = async (e) => {
+    e.preventDefault();
+    const catName = newCategoryForm.name.trim();
+    if (!catName) {
+      alert('Category name is required.');
+      return;
+    }
+
+    setIsCreatingCategory(true);
+    try {
+      await addCategory({
+        name: catName,
+        description: newCategoryForm.description.trim()
+      });
+
+      setNewProductForm(prev => ({
+        ...prev,
+        category: catName
+      }));
+
+      setShowAddCategoryModal(false);
+      setNewCategoryForm({ name: '', description: '' });
+    } catch (err) {
+      console.error('Failed to create category:', err);
+      alert(err.message || 'Failed to save category.');
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
+
+  // Quick Add Product Handler for Supplier Screen
+  const handleSaveProduct = async (e) => {
+    e.preventDefault();
+    const prodName = newProductForm.name.trim();
+    if (!prodName) {
+      alert('Product name is required.');
+      return;
+    }
+
+    const catName = newProductForm.category || (categories[0]?.name || 'Grains & Cereals');
+    const pPrice = Math.max(0, Number(newProductForm.purchasePrice) || 0);
+    const sPrice = Math.max(0, Number(newProductForm.sellingPrice) || pPrice);
+
+    setIsCreatingProduct(true);
+    try {
+      const createdProd = await addProduct({
+        name: prodName,
+        category: catName,
+        code: newProductForm.code.trim(),
+        unit: newProductForm.unit || 'KG',
+        defaultUnit: newProductForm.unit || 'KG',
+        purchasePrice: pPrice,
+        sellingPrice: sPrice,
+        stockQty: 0,
+        minStock: 10,
+        description: newProductForm.description.trim()
+      });
+
+      // Automatically check and link this newly created product in the active Supplier form
+      if (editingSupplier) {
+        setEditingSupplier(prev => ({
+          ...prev,
+          suppliedProducts: prev.suppliedProducts ? [...new Set([...prev.suppliedProducts, prodName])] : [prodName]
+        }));
+      } else {
+        setForm(prev => ({
+          ...prev,
+          suppliedProducts: prev.suppliedProducts ? [...new Set([...prev.suppliedProducts, prodName])] : [prodName]
+        }));
+      }
+
+      setProductSuccessMsg(`✓ Product "${prodName}" saved and linked to supplier!`);
+      setTimeout(() => setProductSuccessMsg(''), 4000);
+
+      // Close ONLY Product modal and stay on active Supplier form
+      setShowAddProductModal(false);
+      setNewProductForm({
+        name: '',
+        category: categories[0]?.name || 'Grains & Cereals',
+        unit: 'KG',
+        code: '',
+        purchasePrice: '',
+        sellingPrice: '',
+        description: ''
+      });
+    } catch (err) {
+      console.error('Failed to create product:', err);
+      alert(err.message || 'Failed to save product.');
+    } finally {
+      setIsCreatingProduct(false);
     }
   };
 
@@ -655,6 +774,14 @@ export const Suppliers = () => {
               </button>
             </div>
 
+            {/* Product Success Notification Banner */}
+            {productSuccessMsg && (
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0" />
+                <span>{productSuccessMsg}</span>
+              </div>
+            )}
+
             <form onSubmit={handleCreateSubmit} className="space-y-3.5">
               {/* Row 1: Name & Business Name */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -773,11 +900,21 @@ export const Suppliers = () => {
                 />
               </div>
 
-              {/* Supplied Products Multi-Select Chips */}
+              {/* Supplied Products Multi-Select Chips + "+ Add New Product" */}
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">
-                  Supplied Products / Commodities
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-400">
+                    Supplied Products / Commodities
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddProductModal(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add New Product</span>
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl border max-h-28 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700">
                   {products.map(p => {
                     const isSelected = form.suppliedProducts.includes(p.name);
@@ -905,6 +1042,14 @@ export const Suppliers = () => {
               </button>
             </div>
 
+            {/* Product Success Notification Banner */}
+            {productSuccessMsg && (
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0" />
+                <span>{productSuccessMsg}</span>
+              </div>
+            )}
+
             <form onSubmit={handleUpdateSubmit} className="space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -1011,11 +1156,21 @@ export const Suppliers = () => {
                 />
               </div>
 
-              {/* Supplied Products Multi-Select Chips */}
+              {/* Supplied Products Multi-Select Chips + "+ Add New Product" */}
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">
-                  Supplied Products / Commodities
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-400">
+                    Supplied Products / Commodities
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddProductModal(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add New Product</span>
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl border max-h-28 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700">
                   {products.map(p => {
                     const isSelected = (editingSupplier.suppliedProducts || []).includes(p.name);
@@ -1261,6 +1416,336 @@ export const Suppliers = () => {
                 <span>Invoices</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. QUICK ADD NEW PRODUCT MODAL (Layered on top of Supplier dialog at z-[100]) */}
+      {/* ========================================================================= */}
+      {showAddProductModal && (
+        <div
+          onClick={(e) => { 
+            // Clicking backdrop closes ONLY this product modal, leaving supplier form open
+            if (e.target === e.currentTarget && !showAddCategoryModal) {
+              setShowAddProductModal(false); 
+            }
+          }}
+          className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          style={{ zIndex: 100 }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`rounded-3xl max-w-lg w-full p-6 space-y-4 card-shadow border my-6 relative shadow-2xl ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
+                  <Package className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">Add New Product</h3>
+                  <p className="text-[10px] text-slate-400 font-bold">Will automatically link to this supplier</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAddProductModal(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProduct} className="space-y-3.5">
+              {/* Product Name */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="e.g. Super Basmati Rice, Wheat 1121"
+                  value={newProductForm.name}
+                  onChange={(e) => setNewProductForm({ ...newProductForm, name: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              {/* Category Selection + "+ Add New Category" button */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-400">
+                    Category *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCategoryModal(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                  >
+                    <FolderPlus className="w-3.5 h-3.5" />
+                    <span>+ Add New Category</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={newProductForm.category}
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new_cat__') {
+                        setShowAddCategoryModal(true);
+                        return;
+                      }
+                      setNewProductForm({ ...newProductForm, category: e.target.value });
+                    }}
+                    className={`flex-1 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    {categories.map(c => (
+                      <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                    ))}
+                    <option value="__add_new_cat__" className="text-brand-600 font-bold">+ Add New Category...</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCategoryModal(true)}
+                    className="p-2 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white transition cursor-pointer"
+                    title="Add New Category"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Unit & Optional Product Code */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    Standard Unit *
+                  </label>
+                  <select
+                    value={newProductForm.unit}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, unit: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="KG">Kilogram (KG)</option>
+                    <option value="Maund">Maund / Mann (من)</option>
+                    <option value="Bag">Bag / Bori (بوری)</option>
+                    <option value="Gram">Gram (g)</option>
+                    <option value="Liter">Liter (L)</option>
+                    <option value="Quintal">Quintal (100 KG)</option>
+                    <option value="Ton">Ton (1000 KG)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    Product Code (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. PRD-101"
+                    value={newProductForm.code}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, code: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Default Purchase Rate & Selling Rate */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    Purchase Rate (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="0"
+                    value={newProductForm.purchasePrice}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, purchasePrice: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    Selling Rate (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="0"
+                    value={newProductForm.sellingPrice}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, sellingPrice: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Grade, moisture level, harvest season, etc."
+                  value={newProductForm.description}
+                  onChange={(e) => setNewProductForm({ ...newProductForm, description: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setShowAddProductModal(false)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingProduct}
+                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {isCreatingProduct ? (
+                    <span>Saving...</span>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Save Product</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5. QUICK ADD NEW CATEGORY MODAL (Layered on top of Product dialog at z-[110]) */}
+      {/* ========================================================================= */}
+      {showAddCategoryModal && (
+        <div
+          onClick={(e) => { 
+            // Clicking backdrop closes ONLY category modal, leaving product form open
+            if (e.target === e.currentTarget) {
+              setShowAddCategoryModal(false); 
+            }
+          }}
+          className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+          style={{ zIndex: 110 }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow border relative shadow-2xl ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold">
+                  <FolderPlus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">Add New Category</h3>
+                  <p className="text-[10px] text-slate-400 font-bold">Auto-selects in product form</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddCategoryModal(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategory} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  Category Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="e.g. Pulses, Oilseeds, Basmati Grains"
+                  value={newCategoryForm.name}
+                  onChange={(e) => setNewCategoryForm({ ...newCategoryForm, name: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Brief description of this commodity category"
+                  value={newCategoryForm.description}
+                  onChange={(e) => setNewCategoryForm({ ...newCategoryForm, description: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingCategory}
+                  className="w-1/2 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-amber-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {isCreatingCategory ? (
+                    <span>Saving...</span>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Save Category</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

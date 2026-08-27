@@ -34,7 +34,8 @@ export const Purchases = () => {
     createPurchase, 
     recordPayment,
     addProduct,
-    addCategory
+    addCategory,
+    addSupplier
   } = useERP();
 
   const { theme } = useTheme();
@@ -55,12 +56,26 @@ export const Purchases = () => {
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Quick Inline Modals State for Product & Category Creation
+  // Quick Inline Modals State for Supplier, Product & Category Creation
+  const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [productSuccessMsg, setProductSuccessMsg] = useState('');
+
+  // New Supplier Form State
+  const [newSupplierForm, setNewSupplierForm] = useState({
+    name: '',
+    businessName: '',
+    phone: '',
+    city: '',
+    address: '',
+    openingBalance: 0,
+    suppliedProducts: [],
+    notes: ''
+  });
 
   // New Product Form State
   const [newProductForm, setNewProductForm] = useState({
@@ -236,6 +251,61 @@ export const Purchases = () => {
       alert(err.message || 'Failed to save product.');
     } finally {
       setIsCreatingProduct(false);
+    }
+  };
+
+  // 3. Quick Add Supplier Handler (Does NOT close or reset Purchase form)
+  const handleSaveSupplier = async (e) => {
+    e.preventDefault();
+    const supName = newSupplierForm.name.trim();
+    if (!supName) {
+      alert('Supplier name is required.');
+      return;
+    }
+
+    setIsCreatingSupplier(true);
+    try {
+      const createdSup = await addSupplier({
+        name: supName,
+        businessName: newSupplierForm.businessName.trim(),
+        phone: newSupplierForm.phone.trim() || 'N/A',
+        city: newSupplierForm.city.trim() || 'Local Mandi',
+        address: newSupplierForm.address.trim(),
+        openingBalance: Number(newSupplierForm.openingBalance) || 0,
+        suppliedProducts: newSupplierForm.suppliedProducts || [],
+        status: 'Active',
+        notes: newSupplierForm.notes.trim()
+      });
+
+      // Auto-select newly created supplier in active New Purchase Form
+      if (createdSup && createdSup.id) {
+        setForm(prev => ({
+          ...prev,
+          supplierId: createdSup.id,
+          supplierName: createdSup.name
+        }));
+      }
+
+      setProductSuccessMsg(`✓ Supplier "${supName}" saved & selected in purchase!`);
+      setTimeout(() => setProductSuccessMsg(''), 4000);
+
+      // Close ONLY the Supplier popup and return immediately to the SAME New Purchase form
+      setShowAddSupplierModal(false);
+      setNewSupplierForm({
+        name: '',
+        businessName: '',
+        phone: '',
+        city: '',
+        address: '',
+        openingBalance: 0,
+        suppliedProducts: [],
+        notes: ''
+      });
+    } catch (err) {
+      console.error('Failed to create supplier:', err);
+      alert(err.message || 'Failed to save supplier.');
+    } finally {
+      setIsCreatingSupplier(false);
     }
   };
 
@@ -976,28 +1046,55 @@ export const Purchases = () => {
             )}
 
             <form onSubmit={handleRecordSubmit} className="space-y-4">
-              {/* Supplier Selection */}
+              {/* Supplier Selection with "+ Add New Supplier" button */}
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">
-                  {t('supplierFirmName')} *
-                </label>
-                <select
-                  value={form.supplierId}
-                  onChange={(e) => {
-                    const sup = suppliers.find(s => s.id === e.target.value);
-                    setForm({
-                      ...form,
-                      supplierId: e.target.value,
-                      supplierName: sup ? sup.name : ''
-                    });
-                  }}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  {suppliers.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    {t('supplierFirmName')} *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSupplierModal(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add New Supplier</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={form.supplierId}
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new_sup__') {
+                        setShowAddSupplierModal(true);
+                        return;
+                      }
+                      const sup = suppliers.find(s => s.id === e.target.value);
+                      setForm({
+                        ...form,
+                        supplierId: e.target.value,
+                        supplierName: sup ? sup.name : ''
+                      });
+                    }}
+                    className={`flex-1 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  >
+                    {suppliers.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
+                    ))}
+                    <option value="__add_new_sup__" className="text-brand-600 font-bold">+ Add New Supplier...</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSupplierModal(true)}
+                    className="p-2 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white transition cursor-pointer"
+                    title="Add New Supplier"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Product Selection with "+ Add New Product" button */}
@@ -1121,7 +1218,174 @@ export const Purchases = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 2. QUICK ADD NEW PRODUCT MODAL (Layered on top of New Purchase dialog at z-[100]) */}
+      {/* 2. QUICK ADD NEW SUPPLIER MODAL (Layered on top of New Purchase dialog at z-[100]) */}
+      {/* ========================================================================= */}
+      {showAddSupplierModal && (
+        <div
+          onClick={(e) => { 
+            if (e.target === e.currentTarget) {
+              setShowAddSupplierModal(false); 
+            }
+          }}
+          className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          style={{ zIndex: 100 }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border my-6 relative shadow-2xl ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
+                  <UserCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">Add New Supplier</h3>
+                  <p className="text-[10px] text-slate-400 font-bold">Will automatically select in current purchase</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAddSupplierModal(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSupplier} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  Supplier / Contact Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="e.g. Aslam Chaudhry, Haji Rafiq"
+                  value={newSupplierForm.name}
+                  onChange={(e) => setNewSupplierForm({ ...newSupplierForm, name: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    Business / Firm Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Aslam Grain Traders"
+                    value={newSupplierForm.businessName}
+                    onChange={(e) => setNewSupplierForm({ ...newSupplierForm, businessName: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="03001234567"
+                    value={newSupplierForm.phone}
+                    onChange={(e) => setNewSupplierForm({ ...newSupplierForm, phone: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    City / Mandi
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Faisalabad"
+                    value={newSupplierForm.city}
+                    onChange={(e) => setNewSupplierForm({ ...newSupplierForm, city: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    Opening Balance (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={newSupplierForm.openingBalance}
+                    onChange={(e) => setNewSupplierForm({ ...newSupplierForm, openingBalance: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  Full Address (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Shop #, Grain Market..."
+                  value={newSupplierForm.address}
+                  onChange={(e) => setNewSupplierForm({ ...newSupplierForm, address: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setShowAddSupplierModal(false)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingSupplier}
+                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {isCreatingSupplier ? (
+                    <span>Saving...</span>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Save Supplier</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 3. QUICK ADD NEW PRODUCT MODAL (Layered on top of New Purchase dialog at z-[100]) */}
       {/* ========================================================================= */}
       {showAddProductModal && (
         <div
