@@ -23,6 +23,7 @@ import { useLocale } from '../context/LocaleContext';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { SaleReturnModal } from '../components/SaleReturnModal';
 import { DailySalesReportModal } from '../components/DailySalesReportModal';
+import { EditSaleModal } from '../components/EditSaleModal';
 
 export const Sales = () => {
   const { sales = [], saleReturns = [], customers = [], recordPayment } = useERP();
@@ -45,6 +46,7 @@ export const Sales = () => {
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedReturnSale, setSelectedReturnSale] = useState(null);
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
+  const [editingSale, setEditingSale] = useState(null);
 
   // Payment Received Modal state
   const [paymentModalSale, setPaymentModalSale] = useState(null);
@@ -776,6 +778,16 @@ export const Sales = () => {
                               </span>
                             )}
 
+                            {/* Edit Sale Button */}
+                            <button
+                              onClick={() => setEditingSale(s)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                              title="Edit Sale / Add Items"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+
                             {/* Return Button */}
                             <button
                               onClick={() => {
@@ -1000,6 +1012,15 @@ export const Sales = () => {
             setSelectedReturnSale(null);
           }}
           selectedSale={selectedReturnSale}
+        />
+      )}
+
+      {/* 5. Edit Sale Modal */}
+      {editingSale && (
+        <EditSaleModal
+          isOpen={!!editingSale}
+          onClose={() => setEditingSale(null)}
+          sale={editingSale}
         />
       )}
     </div>

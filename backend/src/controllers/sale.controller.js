@@ -166,3 +166,107 @@ export const getSaleById = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+export const updateSale = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { customerName, customerId, items, paidAmount = 0, discount = 0, tax = 0, paymentMethod = 'Cash' } = req.body;
+
+    const existingSale = await Sale.findById(id);
+    if (!existingSale) {
+      return res.status(404).json({ success: false, message: 'Sale invoice not found' });
+    }
+
+    // 1. Restore previous stock from existing sale cart
+    const oldCart = Array.isArray(existingSale.cart) ? existingSale.cart : [];
+    for (const oldItem of oldCart) {
+      const prod = await Product.findById(oldItem.productId);
+      if (prod) {
+        const itemUnit = oldItem.unitName || oldItem.unit || prod.unit || 'KG';
+        const qtyInKg = convertToKg(Number(oldItem.qty || 1), itemUnit);
+        const baseProductFactor = convertToKg(1, prod.unit || 'KG') || 1;
+        const restoredBaseQty = qtyInKg / baseProductFactor;
+
+        await Product.findByIdAndUpdate(prod.id, {
+          stockQty: Number(prod.stockQty) + restoredBaseQty
+        });
+      }
+    }
+
+    // 2. Process new cart items & deduct updated stock
+    let subtotal = 0;
+    let totalProfit = 0;
+    const processedCart = [];
+
+    for (const item of items) {
+      const product = await Product.findById(item.productId);
+      if (!product) {
+        return res.status(404).json({ success: false, message: `Product not found: ${item.name || item.productName}` });
+      }
+
+      const qty = Number(item.qty || item.enteredQty) || 1;
+      const rate = Number(item.rate || item.ratePerEnteredUnit || product.sellingPrice) || 0;
+      const itemTotal = qty * rate;
+      subtotal += itemTotal;
+
+      const unitProfit = rate - Number(product.purchasePrice || 0);
+      totalProfit += unitProfit * qty;
+
+      const itemUnit = item.unitName || item.unit || product.unit || 'KG';
+      const qtyInKg = convertToKg(qty, itemUnit);
+      const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
+      const baseQtyDeducted = qtyInKg / baseProductFactor;
+
+      const newStock = Math.max(0, Number(product.stockQty) - baseQtyDeducted);
+      await Product.findByIdAndUpdate(product.id, { stockQty: newStock });
+
+      processedCart.push({
+        productId: product.id,
+        name: product.name,
+        qty,
+        rate,
+        unitName: product.unit || 'KG',
+        totalAmount: itemTotal
+      });
+    }
+
+    const grandTotal = Math.max(0, subtotal - Number(discount) + Number(tax));
+    const paid = Number(paidAmount) || 0;
+    const status = paid >= grandTotal ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+
+    let activePartyName = customerName || existingSale.partyName || 'Walk-in Customer';
+    let targetCustId = customerId !== undefined ? customerId : existingSale.customerId;
+
+    // 3. Customer balance adjustment
+    if (targetCustId) {
+      const cust = await Customer.findById(targetCustId);
+      if (cust) {
+        activePartyName = cust.name;
+        const oldUnpaid = Math.max(0, Number(existingSale.amount || 0) - Number(existingSale.paidAmount || 0));
+        const newUnpaid = Math.max(0, grandTotal - paid);
+        const balanceDiff = newUnpaid - oldUnpaid;
+
+        if (balanceDiff !== 0) {
+          await Customer.findByIdAndUpdate(cust.id, { balance: Number(cust.balance) + balanceDiff });
+        }
+      }
+    }
+
+    const updatedSale = await Sale.findByIdAndUpdate(id, {
+      partyName: activePartyName,
+      customerId: targetCustId,
+      customerType: targetCustId ? 'Regular Party' : 'Walk-in Customer',
+      amount: grandTotal,
+      paidAmount: paid,
+      profit: Math.round(totalProfit),
+      status,
+      itemsCount: processedCart.length,
+      cart: processedCart
+    });
+
+    return res.json({ success: true, sale: updatedSale });
+  } catch (err) {
+    console.error('Update Sale Error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

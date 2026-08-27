@@ -880,6 +880,54 @@ export const ERPProvider = ({ children }) => {
     return newReturn;
   };
 
+  // 12. Update Existing Sale POS Invoice
+  const updateSale = async (id, saleData) => {
+    const items = (saleData.cart || saleData.items || []).map(item => ({
+      productId: item.productId || item.id,
+      name: item.name,
+      qty: Number(item.qty || item.enteredQty) || 1,
+      rate: Number(item.rate || item.price || item.ratePerEnteredUnit) || 0,
+      unitName: item.unitName || item.unit || 'KG'
+    }));
+
+    const payload = {
+      customerName: saleData.customerName || saleData.partyName || 'Walk-in Customer',
+      customerId: saleData.customerId !== undefined ? saleData.customerId : null,
+      items,
+      paidAmount: Number(saleData.paidAmount) || 0,
+      discount: Number(saleData.discount) || 0,
+      tax: Number(saleData.tax) || 0,
+      paymentMethod: saleData.paymentMethod || saleData.paymentMode || 'Cash'
+    };
+
+    try {
+      const res = await authFetch(`/api/sales/${id}`, {
+        method: 'PUT',
+        body: payload
+      });
+
+      if (res.success && res.sale) {
+        const norm = normalizeSale(res.sale);
+        setSales(prev => prev.map(s => s.id === id ? norm : s));
+
+        const [prodRes, custRes, movRes] = await Promise.all([
+          authFetch('/api/products'),
+          authFetch('/api/customers'),
+          authFetch('/api/inventory/movements')
+        ]);
+        if (prodRes.success) setProducts(prodRes.products || []);
+        if (custRes.success) setCustomers(custRes.customers || []);
+        if (movRes.success) setStockMovements(movRes.movements || []);
+
+        return norm;
+      }
+      throw new Error(res.message || 'Failed to update sale');
+    } catch (err) {
+      console.error('updateSale error:', err);
+      throw err;
+    }
+  };
+
   return (
     <ERPContext.Provider value={{
       categories,
@@ -911,6 +959,7 @@ export const ERPProvider = ({ children }) => {
       recordPurchase,
       createPurchase: recordPurchase,
       createSale,
+      updateSale,
       recordSaleReturn,
       recordPurchaseReturn
     }}>

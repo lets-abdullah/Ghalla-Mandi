@@ -192,6 +192,8 @@ export const Purchases = () => {
     return acc + Math.max(0, amt - paid - ret);
   }, 0);
 
+  const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('All');
+
   const filteredPurchases = purchases.filter(p => {
     const matchesSearch = (p.purchaseNo || p.purchaseno || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.supplier || p.supplierName || p.suppliername || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -200,6 +202,12 @@ export const Purchases = () => {
     const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
     const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
     const status = paid >= total && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
+
+    if (selectedSupplierFilter !== 'All') {
+      const supMatch = (p.supplierId === selectedSupplierFilter) || 
+                       ((p.supplier || p.supplierName || '').toLowerCase() === selectedSupplierFilter.toLowerCase());
+      if (!supMatch) return false;
+    }
 
     if (filterType === 'All') return matchesSearch;
     if (filterType === 'Paid') return matchesSearch && status === 'Paid';
@@ -309,34 +317,68 @@ export const Purchases = () => {
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className={`border rounded-2xl p-4 card-shadow flex flex-col md:flex-row items-center justify-between gap-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-        }`}>
-        <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-          {['All', 'Paid', 'Partial', 'Due', 'Returns'].map(type => (
-            <button
-              key={type}
-              onClick={() => setFilterType(type)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${filterType === type
-                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 font-black'
-                : theme === 'dark' ? 'bg-slate-900 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-            >
-              {type === 'All' ? t('All') : type === 'Returns' ? `Purchase Returns (${purchaseReturns.length})` : type === 'Due' ? t('pending') : t(type.toLowerCase())}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative w-full md:w-72">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder={t('searchPurchasePlaceholder')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+      {/* Advanced Filter Toolbar (English Dropdowns) */}
+      <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {/* 1. Supplier Filter */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+              Supplier Filter
+            </label>
+            <select
+              value={selectedSupplierFilter}
+              onChange={(e) => setSelectedSupplierFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
-          />
+            >
+              <option value="All">All Suppliers</option>
+              {suppliers.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.city ? `(${s.city})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 2. Payment Status Filter */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+              Payment Status
+            </label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Paid">Fully Paid</option>
+              <option value="Partial">Partial Paid</option>
+              <option value="Due">Unpaid / Khata Due</option>
+              <option value="Returns">Purchase Returns ({purchaseReturns.length})</option>
+            </select>
+          </div>
+
+          {/* 3. Search & Reset */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+              Search Purchases
+            </label>
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search purchase #, supplier or item..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              />
+            </div>
+          </div>
         </div>
       </div>
 

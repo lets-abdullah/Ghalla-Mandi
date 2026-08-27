@@ -102,13 +102,22 @@ export const Sale = {
     const params = [];
     let paramIndex = 1;
 
-    const keys = ['partyName', 'paidAmount', 'amount', 'status', 'profit'];
-    keys.forEach(k => {
-      if (updateData[k] !== undefined) {
-        fields.push(`${k} = $${paramIndex++}`);
-        params.push(updateData[k]);
-      }
-    });
+    const keys = ['partyName', 'partyname', 'customerId', 'customerid', 'customerType', 'customertype', 'paidAmount', 'paidamount', 'amount', 'grandTotal', 'grandtotal', 'status', 'profit', 'itemsCount', 'itemscount', 'cartJson', 'cartjson', 'note', 'saleNote'];
+    const updated = new Set();
+    
+    if (updateData.partyName !== undefined) { fields.push(`partyName = $${paramIndex++}`); params.push(updateData.partyName); }
+    if (updateData.customerId !== undefined) { fields.push(`customerId = $${paramIndex++}`); params.push(updateData.customerId); }
+    if (updateData.customerType !== undefined) { fields.push(`customerType = $${paramIndex++}`); params.push(updateData.customerType); }
+    if (updateData.amount !== undefined || updateData.grandTotal !== undefined) { fields.push(`amount = $${paramIndex++}`); params.push(Number(updateData.amount !== undefined ? updateData.amount : updateData.grandTotal)); }
+    if (updateData.paidAmount !== undefined) { fields.push(`paidAmount = $${paramIndex++}`); params.push(Number(updateData.paidAmount)); }
+    if (updateData.profit !== undefined) { fields.push(`profit = $${paramIndex++}`); params.push(Number(updateData.profit)); }
+    if (updateData.status !== undefined) { fields.push(`status = $${paramIndex++}`); params.push(updateData.status); }
+    if (updateData.itemsCount !== undefined) { fields.push(`itemsCount = $${paramIndex++}`); params.push(Number(updateData.itemsCount)); }
+    if (updateData.cartJson !== undefined || updateData.cart !== undefined) { 
+      const c = updateData.cartJson !== undefined ? (typeof updateData.cartJson === 'string' ? updateData.cartJson : JSON.stringify(updateData.cartJson)) : JSON.stringify(updateData.cart);
+      fields.push(`cartJson = $${paramIndex++}`); 
+      params.push(c); 
+    }
 
     if (fields.length > 0) {
       params.push(id);
