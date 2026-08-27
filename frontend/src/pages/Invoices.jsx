@@ -420,7 +420,7 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-amber-600" />
-            <span>{isPurchases ? 'Outstanding Supplier Payables' : 'Outstanding Receivables'}</span>
+            <span>{isPurchases ? 'Supplier Payables' : 'Customer Receivables'}</span>
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-amber-600 dark:text-amber-400">
             Rs. {totalOutstandingDue.toLocaleString()}

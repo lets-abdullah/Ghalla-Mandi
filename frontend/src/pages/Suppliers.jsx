@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  UserCheck, 
-  Search, 
-  Plus, 
-  Phone, 
-  MapPin, 
-  Edit3, 
-  Trash2, 
-  CheckCircle2, 
-  DollarSign, 
-  Check, 
-  X, 
-  Package, 
-  Mail, 
-  Building2, 
-  FileText, 
-  MessageSquare, 
-  Eye, 
-  LayoutGrid, 
-  List, 
+import {
+  UserCheck,
+  Search,
+  Plus,
+  Phone,
+  MapPin,
+  Edit3,
+  Trash2,
+  CheckCircle2,
+  DollarSign,
+  Check,
+  X,
+  Package,
+  Mail,
+  Building2,
+  FileText,
+  MessageSquare,
+  Eye,
+  LayoutGrid,
+  List,
   ExternalLink,
   ChevronRight,
   ShoppingCart,
@@ -108,9 +108,8 @@ const SuppliedProductsCombobox = ({
               setQuery(e.target.value);
               setIsOpen(true);
             }}
-            className={`w-full border rounded-xl pl-8.5 pr-8 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
-              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-            }`}
+            className={`w-full border rounded-xl pl-8.5 pr-8 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
           />
           <button
             type="button"
@@ -123,9 +122,8 @@ const SuppliedProductsCombobox = ({
 
         {/* Dropdown Options List */}
         {isOpen && (
-          <div className={`absolute left-0 right-0 top-full mt-1 z-50 rounded-2xl border shadow-xl max-h-40 overflow-y-auto p-1.5 space-y-0.5 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`absolute left-0 right-0 top-full mt-1 z-50 rounded-2xl border shadow-xl max-h-40 overflow-y-auto p-1.5 space-y-0.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             {filtered.length === 0 ? (
               <div className="p-2.5 text-center text-xs text-slate-400">
                 No products found matching "{query}"
@@ -149,19 +147,17 @@ const SuppliedProductsCombobox = ({
                   <div
                     key={p.id}
                     onClick={() => toggleProduct(p.name)}
-                    className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition ${
-                      isSelected
+                    className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition ${isSelected
                         ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold'
                         : theme === 'dark' ? 'hover:bg-slate-700/60 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
-                    }`}
+                      }`}
                   >
                     <div>
                       <span className="font-bold">{p.name}</span>
                       <span className="text-[10px] text-slate-400 ml-1.5">({p.category || 'General'} • Rs. {p.sellingPrice})</span>
                     </div>
-                    <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition ${
-                      isSelected ? 'bg-brand-500 border-brand-500 text-white' : 'border-slate-300 dark:border-slate-600'
-                    }`}>
+                    <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition ${isSelected ? 'bg-brand-500 border-brand-500 text-white' : 'border-slate-300 dark:border-slate-600'
+                      }`}>
                       {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                     </div>
                   </div>
@@ -178,11 +174,10 @@ const SuppliedProductsCombobox = ({
           {selectedProducts.map(name => (
             <span
               key={name}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl text-xs font-bold border transition ${
-                theme === 'dark'
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl text-xs font-bold border transition ${theme === 'dark'
                   ? 'bg-brand-500/15 border-brand-500/30 text-brand-400'
                   : 'bg-brand-50 border-brand-200 text-brand-700'
-              }`}
+                }`}
             >
               <span>{name}</span>
               <button
@@ -500,7 +495,7 @@ export const Suppliers = () => {
   // Filtered Suppliers List
   const filteredSuppliers = suppliers.filter(s => {
     // 1. Search filter
-    const matchesSearch = 
+    const matchesSearch =
       (s.name || '').toLowerCase().includes(search.toLowerCase()) ||
       (s.businessName || '').toLowerCase().includes(search.toLowerCase()) ||
       (s.phone || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -553,18 +548,16 @@ export const Suppliers = () => {
           <div className={`flex items-center p-1 rounded-xl border ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
             <button
               onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                viewMode === 'table' ? 'bg-brand-500 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
-              }`}
+              className={`p-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${viewMode === 'table' ? 'bg-brand-500 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                }`}
               title="Table View"
             >
               <List className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('card')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                viewMode === 'card' ? 'bg-brand-500 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
-              }`}
+              className={`p-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${viewMode === 'card' ? 'bg-brand-500 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                }`}
               title="Card View"
             >
               <LayoutGrid className="w-4 h-4" />
@@ -585,9 +578,8 @@ export const Suppliers = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div
           onClick={() => { setStatusFilter('All'); setSelectedProductFilter('All'); }}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-          }`}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+            }`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <UserCheck className="w-4 h-4 text-blue-600" />
@@ -600,9 +592,8 @@ export const Suppliers = () => {
 
         <div
           onClick={() => setStatusFilter('Payable')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
-          }`}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+            }`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <DollarSign className="w-4 h-4 text-rose-600" />
@@ -615,13 +606,12 @@ export const Suppliers = () => {
 
         <div
           onClick={() => setStatusFilter('Settled')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-          }`}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+            }`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Settled / Nil Accounts</span>
+            <span>Settled</span>
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
             {suppliers.filter(s => (Number(s.balance) || 0) === 0).length}
@@ -630,9 +620,8 @@ export const Suppliers = () => {
       </div>
 
       {/* Unified Filter Toolbar: [Search] [Supplier] [Product] [Status] */}
-      <div className={`p-4 rounded-2xl border card-shadow flex flex-col md:flex-row items-center justify-between gap-3 ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-      }`}>
+      <div className={`p-4 rounded-2xl border card-shadow flex flex-col md:flex-row items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+        }`}>
         <div className="relative w-full md:w-72">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -640,9 +629,8 @@ export const Suppliers = () => {
             placeholder="Search name, phone, city, firm..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
-              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-            }`}
+            className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
           />
         </div>
 
@@ -651,9 +639,8 @@ export const Suppliers = () => {
           <select
             value={selectedSupplierFilter}
             onChange={(e) => setSelectedSupplierFilter(e.target.value)}
-            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-            }`}
+            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
           >
             <option value="All">All Suppliers</option>
             {suppliers.map(s => (
@@ -665,9 +652,8 @@ export const Suppliers = () => {
           <select
             value={selectedProductFilter}
             onChange={(e) => setSelectedProductFilter(e.target.value)}
-            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-            }`}
+            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
           >
             <option value="All">All Products</option>
             {products.map(p => (
@@ -679,9 +665,8 @@ export const Suppliers = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-            }`}
+            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
           >
             <option value="All">All Statuses</option>
             <option value="Active">Active</option>
@@ -709,17 +694,15 @@ export const Suppliers = () => {
               return (
                 <div
                   key={s.id}
-                  className={`p-5 rounded-2xl border card-shadow space-y-4 transition hover:border-brand-500/50 ${
-                    theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                  }`}
+                  className={`p-5 rounded-2xl border card-shadow space-y-4 transition hover:border-brand-500/50 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                    }`}
                 >
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-extrabold text-sm flex items-center gap-1.5">
                         {s.name}
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          isAct ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isAct ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
+                          }`}>
                           {isAct ? 'Active' : 'Inactive'}
                         </span>
                       </h3>
@@ -766,9 +749,8 @@ export const Suppliers = () => {
                         suppliedProds.map((prod, idx) => (
                           <span
                             key={idx}
-                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${
-                              theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-brand-400' : 'bg-brand-50 text-brand-700 border-brand-200'
-                            }`}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-brand-400' : 'bg-brand-50 text-brand-700 border-brand-200'
+                              }`}
                           >
                             {prod}
                           </span>
@@ -811,15 +793,13 @@ export const Suppliers = () => {
         </div>
       ) : (
         /* Table View */
-        <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
+        <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
               <thead>
-                <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${
-                  theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                }`}>
+                <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                  }`}>
                   <th className="py-3 px-4">Supplier Firm</th>
                   <th className="py-3 px-4">Contact</th>
                   <th className="py-3 px-4">Supplied Products</th>
@@ -859,9 +839,8 @@ export const Suppliers = () => {
                               suppliedProds.slice(0, 3).map((prod, idx) => (
                                 <span
                                   key={idx}
-                                  className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                                    theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-brand-400' : 'bg-brand-50 text-brand-700 border-brand-200'
-                                  }`}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-brand-400' : 'bg-brand-50 text-brand-700 border-brand-200'
+                                    }`}
                                 >
                                   {prod}
                                 </span>
@@ -878,9 +857,8 @@ export const Suppliers = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                            isAct ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
-                          }`}>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${isAct ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
+                            }`}>
                             {isAct ? 'Active' : 'Inactive'}
                           </span>
                         </td>
@@ -926,9 +904,8 @@ export const Suppliers = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setShowAddModal(false); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
@@ -977,9 +954,8 @@ export const Suppliers = () => {
                         placeholder="e.g. Muhammad Aslam"
                         value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -992,9 +968,8 @@ export const Suppliers = () => {
                         placeholder="e.g. Aslam Grain Traders"
                         value={form.businessName}
                         onChange={(e) => setForm({ ...form, businessName: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1009,9 +984,8 @@ export const Suppliers = () => {
                         placeholder="03001234567"
                         value={form.phone}
                         onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1024,9 +998,8 @@ export const Suppliers = () => {
                         placeholder="03001234567"
                         value={form.whatsapp}
                         onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1041,9 +1014,8 @@ export const Suppliers = () => {
                         placeholder="e.g. Faisalabad, Multan"
                         value={form.city}
                         onChange={(e) => setForm({ ...form, city: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1056,9 +1028,8 @@ export const Suppliers = () => {
                         placeholder="supplier@example.com"
                         value={form.email}
                         onChange={(e) => setForm({ ...form, email: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1072,9 +1043,8 @@ export const Suppliers = () => {
                       placeholder="Shop #, Grain Market, Station Road..."
                       value={form.address}
                       onChange={(e) => setForm({ ...form, address: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1098,9 +1068,8 @@ export const Suppliers = () => {
                         placeholder="0"
                         value={form.openingBalance}
                         onChange={(e) => setForm({ ...form, openingBalance: Number(e.target.value) })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1111,9 +1080,8 @@ export const Suppliers = () => {
                       <select
                         value={form.status}
                         onChange={(e) => setForm({ ...form, status: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       >
                         <option value="Active">Active</option>
                         <option value="Inactive">Inactive</option>
@@ -1131,9 +1099,8 @@ export const Suppliers = () => {
                         placeholder="e.g. Meezan, HBL"
                         value={form.bankName}
                         onChange={(e) => setForm({ ...form, bankName: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1146,9 +1113,8 @@ export const Suppliers = () => {
                         placeholder="Title of Account"
                         value={form.accountTitle}
                         onChange={(e) => setForm({ ...form, accountTitle: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1161,9 +1127,8 @@ export const Suppliers = () => {
                         placeholder="PK36MEZN..."
                         value={form.accountNumber}
                         onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1186,9 +1151,8 @@ export const Suppliers = () => {
                       placeholder="Special Mandi terms, credit days, commission..."
                       value={form.notes}
                       onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1198,9 +1162,8 @@ export const Suppliers = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>
@@ -1225,9 +1188,8 @@ export const Suppliers = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setEditingSupplier(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
@@ -1274,9 +1236,8 @@ export const Suppliers = () => {
                         required
                         value={editingSupplier.name}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, name: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1288,9 +1249,8 @@ export const Suppliers = () => {
                         type="text"
                         value={editingSupplier.businessName || ''}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, businessName: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1304,9 +1264,8 @@ export const Suppliers = () => {
                         type="text"
                         value={editingSupplier.phone}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, phone: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1318,9 +1277,8 @@ export const Suppliers = () => {
                         type="text"
                         value={editingSupplier.whatsapp || ''}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, whatsapp: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1334,9 +1292,8 @@ export const Suppliers = () => {
                         type="text"
                         value={editingSupplier.city}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, city: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1348,9 +1305,8 @@ export const Suppliers = () => {
                         type="email"
                         value={editingSupplier.email || ''}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, email: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1363,9 +1319,8 @@ export const Suppliers = () => {
                       type="text"
                       value={editingSupplier.address || ''}
                       onChange={(e) => setEditingSupplier({ ...editingSupplier, address: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1388,9 +1343,8 @@ export const Suppliers = () => {
                         step="any"
                         value={editingSupplier.balance || 0}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, balance: Number(e.target.value) })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1401,9 +1355,8 @@ export const Suppliers = () => {
                       <select
                         value={editingSupplier.status || 'Active'}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, status: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       >
                         <option value="Active">Active</option>
                         <option value="Inactive">Inactive</option>
@@ -1421,9 +1374,8 @@ export const Suppliers = () => {
                         placeholder="e.g. Meezan, HBL"
                         value={editingSupplier.bankName || ''}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, bankName: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1436,9 +1388,8 @@ export const Suppliers = () => {
                         placeholder="Title of Account"
                         value={editingSupplier.accountTitle || ''}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, accountTitle: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1451,9 +1402,8 @@ export const Suppliers = () => {
                         placeholder="PK36MEZN..."
                         value={editingSupplier.accountNumber || editingSupplier.iban || ''}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, accountNumber: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1475,9 +1425,8 @@ export const Suppliers = () => {
                       type="text"
                       value={editingSupplier.notes || ''}
                       onChange={(e) => setEditingSupplier({ ...editingSupplier, notes: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1487,9 +1436,8 @@ export const Suppliers = () => {
                 <button
                   type="button"
                   onClick={() => setEditingSupplier(null)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>
@@ -1514,9 +1462,8 @@ export const Suppliers = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setViewingSupplier(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-black text-base">
@@ -1525,11 +1472,10 @@ export const Suppliers = () => {
                 <div>
                   <h3 className="text-base font-extrabold flex items-center gap-2">
                     {viewingSupplier.name}
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      (viewingSupplier.status || 'Active') === 'Active'
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${(viewingSupplier.status || 'Active') === 'Active'
                         ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30'
                         : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
-                    }`}>
+                      }`}>
                       {viewingSupplier.status || 'Active'}
                     </span>
                   </h3>
@@ -1547,20 +1493,17 @@ export const Suppliers = () => {
 
             {/* Financial Details Row */}
             <div className="grid grid-cols-2 gap-3">
-              <div className={`p-3 rounded-2xl border text-center ${
-                theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Payable Balance</div>
-                <div className={`font-mono font-black text-sm mt-0.5 ${
-                  Number(viewingSupplier.balance || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'
+              <div className={`p-3 rounded-2xl border text-center ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
                 }`}>
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Payable Balance</div>
+                <div className={`font-mono font-black text-sm mt-0.5 ${Number(viewingSupplier.balance || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'
+                  }`}>
                   Rs. {Number(viewingSupplier.balance || 0).toLocaleString()}
                 </div>
               </div>
 
-              <div className={`p-3 rounded-2xl border text-center ${
-                theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-              }`}>
+              <div className={`p-3 rounded-2xl border text-center ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                }`}>
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Procured Invoices</div>
                 <div className="font-mono font-black text-sm text-slate-700 dark:text-slate-200 mt-0.5">
                   {(purchases || []).filter(p => p.supplier === viewingSupplier.name || p.supplierId === viewingSupplier.id).length} Purchases
@@ -1569,9 +1512,8 @@ export const Suppliers = () => {
             </div>
 
             {/* Contact, Location & Bank Info Card */}
-            <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${
-              theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-            }`}>
+            <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+              }`}>
               <div className="flex justify-between items-center text-slate-500">
                 <span>Phone / Mobile:</span>
                 <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingSupplier.phone || '-'}</span>
@@ -1639,9 +1581,8 @@ export const Suppliers = () => {
                     (viewingSupplier.suppliedProducts || []).map((prod, idx) => (
                       <span
                         key={idx}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${
-                          theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-brand-400' : 'bg-brand-50 text-brand-700 border-brand-200'
-                        }`}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-brand-400' : 'bg-brand-50 text-brand-700 border-brand-200'
+                          }`}
                       >
                         {prod}
                       </span>
@@ -1664,9 +1605,8 @@ export const Suppliers = () => {
                   setViewingSupplier(null);
                   navigate(`/ledger?type=Supplier&customerId=${viewingSupplier.id}`);
                 }}
-                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
-                  theme === 'dark' ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-100'
-                }`}
+                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${theme === 'dark' ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-100'
+                  }`}
               >
                 <FileText className="w-3.5 h-3.5 text-brand-500" />
                 <span>View Khata</span>
@@ -1677,9 +1617,8 @@ export const Suppliers = () => {
                   setViewingSupplier(null);
                   navigate('/purchases');
                 }}
-                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
-                  theme === 'dark' ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-100'
-                }`}
+                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${theme === 'dark' ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-100'
+                  }`}
               >
                 <ShoppingCart className="w-3.5 h-3.5 text-emerald-500" />
                 <span>New Purchase</span>
@@ -1690,9 +1629,8 @@ export const Suppliers = () => {
                   setViewingSupplier(null);
                   navigate('/invoices?type=purchases');
                 }}
-                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
-                  theme === 'dark' ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-100'
-                }`}
+                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${theme === 'dark' ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-100'
+                  }`}
               >
                 <ExternalLink className="w-3.5 h-3.5 text-purple-500" />
                 <span>Invoices</span>
@@ -1707,20 +1645,19 @@ export const Suppliers = () => {
       {/* ========================================================================= */}
       {showAddProductModal && (
         <div
-          onClick={(e) => { 
+          onClick={(e) => {
             // Clicking backdrop closes ONLY this product modal, leaving supplier form open
             if (e.target === e.currentTarget && !showAddCategoryModal) {
-              setShowAddProductModal(false); 
+              setShowAddProductModal(false);
             }
           }}
           className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
           style={{ zIndex: 100 }}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
-            className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}
+            className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
@@ -1755,9 +1692,8 @@ export const Suppliers = () => {
                   placeholder="e.g. Super Basmati Rice, Wheat 1121"
                   value={newProductForm.name}
                   onChange={(e) => setNewProductForm({ ...newProductForm, name: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1780,9 +1716,8 @@ export const Suppliers = () => {
                 <select
                   value={newProductForm.category}
                   onChange={(e) => setNewProductForm({ ...newProductForm, category: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   {categories.map(c => (
                     <option key={c.id || c.name} value={c.name}>{c.name}</option>
@@ -1799,9 +1734,8 @@ export const Suppliers = () => {
                   <select
                     value={newProductForm.unit}
                     onChange={(e) => setNewProductForm({ ...newProductForm, unit: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   >
                     <option value="KG">Kilogram (KG)</option>
                     <option value="Maund">Maund / Mann (من)</option>
@@ -1822,9 +1756,8 @@ export const Suppliers = () => {
                     placeholder="e.g. PRD-101"
                     value={newProductForm.code}
                     onChange={(e) => setNewProductForm({ ...newProductForm, code: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -1842,9 +1775,8 @@ export const Suppliers = () => {
                     placeholder="0"
                     value={newProductForm.purchasePrice}
                     onChange={(e) => setNewProductForm({ ...newProductForm, purchasePrice: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
 
@@ -1859,9 +1791,8 @@ export const Suppliers = () => {
                     placeholder="0"
                     value={newProductForm.sellingPrice}
                     onChange={(e) => setNewProductForm({ ...newProductForm, sellingPrice: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -1876,9 +1807,8 @@ export const Suppliers = () => {
                   placeholder="Grade, moisture level, harvest season, etc."
                   value={newProductForm.description}
                   onChange={(e) => setNewProductForm({ ...newProductForm, description: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1886,9 +1816,8 @@ export const Suppliers = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddProductModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>
@@ -1917,20 +1846,19 @@ export const Suppliers = () => {
       {/* ========================================================================= */}
       {showAddCategoryModal && (
         <div
-          onClick={(e) => { 
+          onClick={(e) => {
             // Clicking backdrop closes ONLY category modal, leaving product form open
             if (e.target === e.currentTarget) {
-              setShowAddCategoryModal(false); 
+              setShowAddCategoryModal(false);
             }
           }}
           className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
           style={{ zIndex: 110 }}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
-            className={`rounded-3xl max-w-sm w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}
+            className={`rounded-3xl max-w-sm w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
           >
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
@@ -1963,9 +1891,8 @@ export const Suppliers = () => {
                   placeholder="e.g. Pulses, Oilseeds, Basmati Grains"
                   value={newCategoryForm.name}
                   onChange={(e) => setNewCategoryForm({ ...newCategoryForm, name: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1978,9 +1905,8 @@ export const Suppliers = () => {
                   placeholder="Brief description of this commodity category"
                   value={newCategoryForm.description}
                   onChange={(e) => setNewCategoryForm({ ...newCategoryForm, description: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1988,9 +1914,8 @@ export const Suppliers = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddCategoryModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>

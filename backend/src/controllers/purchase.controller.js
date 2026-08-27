@@ -155,3 +155,80 @@ export const getPurchases = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+export const updatePurchase = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { supplierName, supplierId, items, paidAmount, notes } = req.body;
+
+    const existingPurchase = await Purchase.findById(id);
+    if (!existingPurchase) {
+      return res.status(404).json({ success: false, message: 'Purchase not found' });
+    }
+
+    let totalGrand = 0;
+    const processedItems = [];
+
+    const rawItems = items || existingPurchase.items || [];
+    for (const item of rawItems) {
+      const product = await Product.findById(item.productId);
+      const qty = Number(item.enteredQty || item.qty) || 1;
+      const rate = Number(item.ratePerEnteredUnit || item.rate || item.price) || 0;
+      const itemTotal = qty * rate;
+      totalGrand += itemTotal;
+
+      const itemUnit = item.unit || item.unitName || item.enteredUnit || product?.unit || 'KG';
+
+      processedItems.push({
+        productId: product ? product.id : item.productId,
+        name: product ? product.name : (item.name || item.productName),
+        productName: product ? product.name : (item.name || item.productName),
+        unit: itemUnit,
+        unitName: itemUnit,
+        enteredUnit: itemUnit,
+        qty,
+        enteredQty: qty,
+        rate,
+        ratePerEnteredUnit: rate,
+        price: rate,
+        total: itemTotal,
+        totalAmount: itemTotal
+      });
+    }
+
+    const paid = Number(paidAmount !== undefined ? paidAmount : existingPurchase.paidAmount) || 0;
+    const paymentStatus = paid >= totalGrand ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+
+    let activeSupplierName = supplierName || existingPurchase.supplierName || 'Supplier';
+    let targetSupId = supplierId !== undefined ? supplierId : existingPurchase.supplierId;
+
+    if (targetSupId) {
+      const sup = await Supplier.findById(targetSupId);
+      if (sup) {
+        activeSupplierName = sup.name;
+        const oldUnpaid = Math.max(0, Number(existingPurchase.grandTotal || existingPurchase.amount || 0) - Number(existingPurchase.paidAmount || 0));
+        const newUnpaid = Math.max(0, totalGrand - paid);
+        const balanceDiff = newUnpaid - oldUnpaid;
+        if (balanceDiff !== 0) {
+          await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance) + balanceDiff });
+        }
+      }
+    }
+
+    const updatedPurchase = await Purchase.findByIdAndUpdate(id, {
+      supplierName: activeSupplierName,
+      supplierId: targetSupId,
+      grandTotal: totalGrand,
+      amount: totalGrand,
+      paidAmount: paid,
+      paymentStatus,
+      notes: notes !== undefined ? notes : existingPurchase.notes,
+      items: processedItems
+    });
+
+    return res.json({ success: true, purchase: updatedPurchase });
+  } catch (err) {
+    console.error('Update Purchase Error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

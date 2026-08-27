@@ -367,8 +367,8 @@ export const Sales = () => {
           <button
             onClick={() => window.print()}
             className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark'
-                ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
           >
             <Printer className="w-4 h-4" />
@@ -392,14 +392,14 @@ export const Sales = () => {
         <div
           onClick={() => setStatusFilter('All')}
           className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
-              ? 'bg-slate-800 border-emerald-500/30 text-white'
-              : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+            ? 'bg-slate-800 border-emerald-500/30 text-white'
+            : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
             }`}
           title="Click to view all sales"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <ShoppingBag className="w-4 h-4 text-emerald-600" />
-            <span>{t('totalSalesVolume') || 'Total Sales Volume'}</span>
+            <span>{t('totalSalesVolume') || 'Total Sales'}</span>
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">
             Rs. {totalFilteredSalesVolume.toLocaleString()}
@@ -410,8 +410,8 @@ export const Sales = () => {
         <div
           onClick={() => setStatusFilter('Paid')}
           className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
-              ? 'bg-slate-800 border-blue-500/30 text-white'
-              : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+            ? 'bg-slate-800 border-blue-500/30 text-white'
+            : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
             }`}
           title="Click to filter paid sales"
         >
@@ -428,8 +428,8 @@ export const Sales = () => {
         <div
           onClick={() => setStatusFilter('Pending')}
           className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
-              ? 'bg-slate-800 border-amber-500/30 text-white'
-              : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+            ? 'bg-slate-800 border-amber-500/30 text-white'
+            : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
             }`}
           title="Click to filter pending khata sales"
         >
@@ -597,158 +597,158 @@ export const Sales = () => {
       {/* ========================================================================= */}
       <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
-              <thead>
-                <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                  }`}>
-                  <th className="py-3.5 px-4">Sale ID</th>
-                  <th className="py-3.5 px-4">Date</th>
-                  <th className="py-3.5 px-4">Customer</th>
-                  <th className="py-3.5 px-4">Commodity</th>
-                  <th className="py-3.5 px-4 text-right">Amount</th>
-                  <th className="py-3.5 px-4 text-center">Status</th>
-                  <th className="py-3.5 px-4 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+            <thead>
+              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                {filteredSales.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
-                      {t('noSalesFoundForFilters') || 'No sales found matching your selected date and filter criteria.'}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredSales.map(s => {
-                    const paid = Number(s.paidAmount || 0);
-                    const total = Number(s.amount || s.grandTotal || 0);
-                    const retAmt = Number(s.returnAmount || 0);
-                    const due = Math.max(0, total - paid - retAmt);
-                    const status = paid >= (total - retAmt) && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
-                    const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') ||
-                      (s.partyName || '').toLowerCase().includes('walk-in');
+                <th className="py-3.5 px-4">Sale ID</th>
+                <th className="py-3.5 px-4">Date</th>
+                <th className="py-3.5 px-4">Customer</th>
+                <th className="py-3.5 px-4">Commodity</th>
+                <th className="py-3.5 px-4 text-right">Amount</th>
+                <th className="py-3.5 px-4 text-center">Status</th>
+                <th className="py-3.5 px-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+              }`}>
+              {filteredSales.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                    {t('noSalesFoundForFilters') || 'No sales found matching your selected date and filter criteria.'}
+                  </td>
+                </tr>
+              ) : (
+                filteredSales.map(s => {
+                  const paid = Number(s.paidAmount || 0);
+                  const total = Number(s.amount || s.grandTotal || 0);
+                  const retAmt = Number(s.returnAmount || 0);
+                  const due = Math.max(0, total - paid - retAmt);
+                  const status = paid >= (total - retAmt) && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+                  const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') ||
+                    (s.partyName || '').toLowerCase().includes('walk-in');
 
-                    return (
-                      <tr
-                        key={s.id}
-                        className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
-                      >
-                        {/* 1. Sale ID */}
-                        <td className="py-3.5 px-4 font-mono font-black text-brand-500 text-xs">
-                          {s.invoiceNo}
-                        </td>
+                  return (
+                    <tr
+                      key={s.id}
+                      className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                    >
+                      {/* 1. Sale ID */}
+                      <td className="py-3.5 px-4 font-mono font-black text-brand-500 text-xs">
+                        {s.invoiceNo}
+                      </td>
 
-                        {/* 2. Date */}
-                        <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-xs font-mono font-medium">
-                          {s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '-')}
-                        </td>
+                      {/* 2. Date */}
+                      <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-xs font-mono font-medium">
+                        {s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '-')}
+                      </td>
 
-                        {/* 3. Buyer / Customer */}
-                        <td className="py-3.5 px-4">
-                          <div className="font-extrabold text-xs text-slate-900 dark:text-white">
-                            {s.partyName}
+                      {/* 3. Buyer / Customer */}
+                      <td className="py-3.5 px-4">
+                        <div className="font-extrabold text-xs text-slate-900 dark:text-white">
+                          {s.partyName}
+                        </div>
+                      </td>
+
+                      {/* 4. Commodity */}
+                      <td className="py-3.5 px-4">
+                        {s.cart && s.cart.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {s.cart.map((item, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center px-2 py-0.5 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold text-[11px] border border-brand-500/20 whitespace-nowrap"
+                              >
+                                {item.name} ({item.qty} {item.unitName || item.unit || t('kg')})
+                              </span>
+                            ))}
                           </div>
-                        </td>
+                        ) : (
+                          <span className="text-slate-400 font-semibold">
+                            {typeof s.items === 'string'
+                              ? s.items
+                              : (Array.isArray(s.items) ? s.items.map(i => i.name || i.productName).join(', ') : t('products'))}
+                          </span>
+                        )}
+                      </td>
 
-                        {/* 4. Commodity */}
-                        <td className="py-3.5 px-4">
-                          {s.cart && s.cart.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 max-w-xs">
-                              {s.cart.map((item, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-flex items-center px-2 py-0.5 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold text-[11px] border border-brand-500/20 whitespace-nowrap"
-                                >
-                                  {item.name} ({item.qty} {item.unitName || item.unit || t('kg')})
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 font-semibold">
-                              {typeof s.items === 'string'
-                                ? s.items
-                                : (Array.isArray(s.items) ? s.items.map(i => i.name || i.productName).join(', ') : t('products'))}
+                      {/* 5. Amount (Total Price Only) */}
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
+                          Rs. {total.toLocaleString()}
+                        </div>
+                      </td>
+
+                      {/* 6. Status Badges */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${status === 'Paid'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                            : status === 'Partial'
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                            }`}>
+                            {status === 'Paid' ? 'Paid' : status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
+                          </span>
+
+                          {/* Return Status Badge if partially or fully returned */}
+                          {(s.returnStatus || s.returnAmount > 0) && (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap border ${s.returnStatus === 'Fully Returned'
+                              ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
+                              : 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30'
+                              }`}>
+                              {s.returnStatus || 'Partially Returned'}
                             </span>
                           )}
-                        </td>
+                        </div>
+                      </td>
 
-                        {/* 5. Amount (Total Price Only) */}
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
-                            Rs. {total.toLocaleString()}
-                          </div>
-                        </td>
+                      {/* 7. Actions: Edit | Return Sale */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Edit Action */}
+                          <button
+                            onClick={() => setEditingSale(s)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                            title="Edit Sale / Modify Items"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Edit</span>
+                          </button>
 
-                        {/* 6. Status Badges */}
-                        <td className="py-3.5 px-4 text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${status === 'Paid'
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                                : status === 'Partial'
-                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                              }`}>
-                              {status === 'Paid' ? 'Paid' : status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
-                            </span>
-
-                            {/* Return Status Badge if partially or fully returned */}
-                            {(s.returnStatus || s.returnAmount > 0) && (
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap border ${s.returnStatus === 'Fully Returned'
-                                  ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
-                                  : 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30'
-                                }`}>
-                                {s.returnStatus || 'Partially Returned'}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* 7. Actions: Edit | Return Sale */}
-                        <td className="py-3.5 px-4 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            {/* Edit Action */}
-                            <button
-                              onClick={() => setEditingSale(s)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                              title="Edit Sale / Modify Items"
+                          {/* Return Sale Action */}
+                          {(s.returnStatus === 'Fully Returned' || (Number(s.returnAmount || 0) >= (total - 1) && total > 0)) ? (
+                            <span
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
+                              title="This sale is fully returned"
                             >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              <span>Edit</span>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-purple-500" />
+                              <span>Fully Returned</span>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSelectedReturnSale(s);
+                                setShowReturnModal(true);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                              title="Return Sale (Partial or Full)"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Return Sale</span>
                             </button>
-
-                            {/* Return Sale Action */}
-                            {(s.returnStatus === 'Fully Returned' || (Number(s.returnAmount || 0) >= (total - 1) && total > 0)) ? (
-                              <span
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
-                                title="This sale is fully returned"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5 text-purple-500" />
-                                <span>Fully Returned</span>
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setSelectedReturnSale(s);
-                                  setShowReturnModal(true);
-                                }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                                title="Return Sale (Partial or Full)"
-                              >
-                                <RotateCcw className="w-3.5 h-3.5" />
-                                <span>Return Sale</span>
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
 
       {/* ========================================================================= */}
       {/* MODALS */}

@@ -19,13 +19,16 @@ import {
   UserCheck,
   User,
   Landmark,
-  Hash
+  Hash,
+  Edit3,
+  CreditCard
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
 import { PurchaseReturnModal } from '../components/PurchaseReturnModal';
+import { EditPurchaseModal } from '../components/EditPurchaseModal';
 
 export const Purchases = () => {
   const {
@@ -35,6 +38,7 @@ export const Purchases = () => {
     purchases = [],
     purchaseReturns = [],
     createPurchase,
+    updatePurchase,
     recordPayment,
     addProduct,
     addCategory,
@@ -55,6 +59,7 @@ export const Purchases = () => {
   const [showModal, setShowModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedReturnPurchase, setSelectedReturnPurchase] = useState(null);
+  const [editingPurchase, setEditingPurchase] = useState(null);
   const [payModalPurchase, setPayModalPurchase] = useState(null);
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -656,7 +661,7 @@ export const Purchases = () => {
             <Clock className="w-4 h-4 text-rose-600" /> {t('outstandingPayables')}
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
-            Rs. {totalOutstandingPayable.toLocaleString()}
+            Rs. {totalOutstanding.toLocaleString()}
           </div>
         </div>
 
@@ -857,9 +862,8 @@ export const Purchases = () => {
                             {p.cart.map((item, idx) => (
                               <span
                                 key={idx}
-                                className={`px-1.5 py-0.5 rounded text-[11px] font-bold ${
-                                  theme === 'dark' ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'
-                                }`}
+                                className={`px-1.5 py-0.5 rounded text-[11px] font-bold ${theme === 'dark' ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'
+                                  }`}
                               >
                                 {item.name || item.productName} ({item.qty || item.enteredQty || 1} {item.unit || item.unitName || 'KG'})
                               </span>
@@ -891,8 +895,8 @@ export const Purchases = () => {
 
                           {(p.returnStatus || (p.returnAmount > 0)) && (
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap border ${p.returnStatus === 'Fully Returned'
-                                ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
-                                : 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30'
+                              ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
+                              : 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30'
                               }`}>
                               {p.returnStatus || 'Partially Returned'}
                             </span>
@@ -900,31 +904,27 @@ export const Purchases = () => {
                         </div>
                       </td>
 
-                      {/* 7. Actions */}
+                      {/* 7. Actions: Edit | Return Purchase */}
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
-                          {due > 0 ? (
-                            <button
-                              onClick={() => openPayModal(p)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition shadow-xs active:scale-98 cursor-pointer"
-                              title="Pay Supplier Balance"
-                            >
-                              <CreditCard className="w-3.5 h-3.5" />
-                              <span>Pay</span>
-                            </button>
-                          ) : (
-                            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Paid
-                            </span>
-                          )}
+                          {/* Edit Action */}
+                          <button
+                            onClick={() => setEditingPurchase(p)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                            title="Edit Purchase / Modify Items"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Edit</span>
+                          </button>
 
+                          {/* Return Purchase Action */}
                           {(p.returnStatus === 'Fully Returned' || (Number(p.returnAmount || 0) >= (total - 1) && total > 0)) ? (
                             <span
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
                               title="This purchase is fully returned"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5 text-purple-500" />
-                              <span>Returned</span>
+                              <span>Fully Returned</span>
                             </span>
                           ) : (
                             <button
@@ -933,10 +933,10 @@ export const Purchases = () => {
                                 setShowReturnModal(true);
                               }}
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                              title="Return Purchase"
+                              title="Return Purchase (Partial or Full)"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
-                              <span>Return</span>
+                              <span>Return Purchase</span>
                             </button>
                           )}
                         </div>
@@ -1764,6 +1764,15 @@ export const Purchases = () => {
         onClose={() => setSelectedReceipt(null)}
         purchaseData={selectedReceipt}
       />
+
+      {/* Edit Purchase Modal */}
+      {editingPurchase && (
+        <EditPurchaseModal
+          isOpen={!!editingPurchase}
+          onClose={() => setEditingPurchase(null)}
+          purchase={editingPurchase}
+        />
+      )}
     </div>
   );
 };

@@ -995,6 +995,64 @@ export const ERPProvider = ({ children }) => {
     }
   };
 
+  const updatePurchase = async (id, purchaseData) => {
+    const rawItems = purchaseData.items || purchaseData.cart || [];
+    const items = rawItems.map(item => {
+      const p = products.find(prod => prod.id === item.productId || prod.name === item.name);
+      const unit = item.unit || item.unitName || (p ? p.unit : 'KG');
+      const qty = Number(item.qty || item.enteredQty) || 1;
+      const rate = Number(item.rate || item.price || item.ratePerEnteredUnit) || 0;
+      return {
+        productId: p ? p.id : item.productId,
+        name: p ? p.name : (item.name || item.productName),
+        productName: p ? p.name : (item.name || item.productName),
+        unit,
+        unitName: unit,
+        enteredUnit: unit,
+        qty,
+        enteredQty: qty,
+        rate,
+        ratePerEnteredUnit: rate,
+        price: rate,
+        total: qty * rate,
+        totalAmount: qty * rate
+      };
+    });
+
+    const payload = {
+      supplierName: purchaseData.supplierName || purchaseData.supplier || 'Supplier',
+      supplierId: purchaseData.supplierId !== undefined ? purchaseData.supplierId : null,
+      items,
+      paidAmount: Number(purchaseData.paidAmount) || 0,
+      notes: purchaseData.notes || ''
+    };
+
+    try {
+      const res = await authFetch(`/api/purchases/${id}`, {
+        method: 'PUT',
+        body: payload
+      });
+
+      if (res.success && res.purchase) {
+        const norm = normalizePurchase(res.purchase);
+        setPurchases(prev => prev.map(p => p.id === id ? norm : p));
+
+        const [prodRes, supRes] = await Promise.all([
+          authFetch('/api/products'),
+          authFetch('/api/suppliers')
+        ]);
+        if (prodRes.success) setProducts(prodRes.products || []);
+        if (supRes.success) setSuppliers(supRes.suppliers || []);
+
+        return norm;
+      }
+      throw new Error(res.message || 'Failed to update purchase');
+    } catch (err) {
+      console.error('updatePurchase error:', err);
+      throw err;
+    }
+  };
+
   const updateSaleReturn = async (id, updatedData) => {
     setSaleReturns(prev => prev.map(r => r.id === id ? { ...r, ...updatedData } : r));
     return true;
@@ -1035,6 +1093,7 @@ export const ERPProvider = ({ children }) => {
       recordPayment,
       recordPurchase,
       createPurchase: recordPurchase,
+      updatePurchase,
       createSale,
       updateSale,
       recordSaleReturn,

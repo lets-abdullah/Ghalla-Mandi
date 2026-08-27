@@ -468,7 +468,7 @@ export const Ledger = () => {
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <CreditCard className="w-4 h-4 text-amber-600" /> Balance Due
           </div>
-          <div className={`text-2xl font-black mt-1 font-mono ${balanceDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'}`}>
+          <div className={`text-2xl font-black mt-1 font-mono ${balanceDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-amber-600'}`}>
             {balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : 'Rs. 0'}
           </div>
         </div>
