@@ -411,17 +411,6 @@ export const Purchases = () => {
 
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => {
-              setSelectedReturnPurchase(null);
-              setShowReturnModal(true);
-            }}
-            className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-md shadow-rose-500/20 transition cursor-pointer"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Process Purchase Return</span>
-          </button>
-
-          <button
             onClick={() => window.print()}
             className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
@@ -677,10 +666,10 @@ export const Purchases = () => {
                                 setShowReturnModal(true);
                               }}
                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                              title="Return to Supplier"
+                              title="Return Purchase"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
-                              <span>Return</span>
+                              <span>Return Purchase</span>
                             </button>
 
                             <button

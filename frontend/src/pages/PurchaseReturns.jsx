@@ -51,7 +51,7 @@ export const PurchaseReturns = () => {
           </button>
 
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => navigate('/purchases')}
             className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-rose-500/20 cursor-pointer active:scale-98"
           >
             <Plus className="w-4 h-4" />
