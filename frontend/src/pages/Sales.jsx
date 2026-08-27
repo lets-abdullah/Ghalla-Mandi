@@ -534,7 +534,7 @@ export const Sales = () => {
         {/* Row 2: Custom Date Pickers (if Custom is chosen) + Search Bar + Reset */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/80">
           {/* Custom Date Pickers */}
-          {dateFilterType === 'Custom' && (
+          {dateFilterType === 'Custom' ? (
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div>
                 <input
@@ -557,6 +557,10 @@ export const Sales = () => {
                   title="To Date"
                 />
               </div>
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400 font-bold hidden sm:block">
+              Filter sales by date range, customer type, party, and payment status
             </div>
           )}
 

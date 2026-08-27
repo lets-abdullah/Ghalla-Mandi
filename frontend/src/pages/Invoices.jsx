@@ -531,7 +531,7 @@ export const Invoices = () => {
 
         {/* Row 2: Custom Date Pickers & Reset */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/80">
-          {dateFilterType === 'Custom' ? (
+          {dateFilterType === 'Custom' && (
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div>
                 <input
@@ -554,10 +554,6 @@ export const Invoices = () => {
                   title="To Date"
                 />
               </div>
-            </div>
-          ) : (
-            <div className="text-xs text-slate-400 font-bold hidden sm:block">
-              {isPurchases ? 'Official procurement vouchers and supplier billing archive' : 'Official sales tax invoices and customer billing registry'}
             </div>
           )}
 
