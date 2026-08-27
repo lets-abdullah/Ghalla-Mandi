@@ -163,10 +163,10 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
               </div>
               <div>
                 <h2 className="text-lg font-black tracking-tight">
-                  {t('dailySalesSummaryReport') || 'Daily Sales & Invoices Summary Report'}
+                  Daily Sales & Invoices Summary Report
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  {user?.shopName || 'Ghalla Mandi Trading ERP'} • روزانہ سیلز اور انوائس رپورٹ
+                  {user?.shopName || 'Ghalla Mandi Trading ERP'} • Daily Sales Invoices Breakdown
                 </p>
               </div>
             </div>
@@ -178,7 +178,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
               className="flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-brand-500/20 transition cursor-pointer active:scale-98"
             >
               <Printer className="w-4 h-4" />
-              <span>{t('printReport') || 'Print Report (A4)'}</span>
+              <span>Print Report (A4)</span>
             </button>
 
             <button
@@ -196,7 +196,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-brand-500" />
-              <span>{t('selectDate') || 'Select Report Date'}</span>
+              <span>Select Report Date</span>
             </label>
             <input
               type="date"
@@ -212,7 +212,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-blue-500" />
-              <span>{t('customerType') || 'Customer Type'}</span>
+              <span>Customer Type</span>
             </label>
             <select
               value={customerFilter}
@@ -221,9 +221,9 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
                 theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}
             >
-              <option value="All">All Customers (تمام گاہک)</option>
-              <option value="Regular Party">Regular Parties (کھاتہ دار)</option>
-              <option value="Walk-in Customer">Walk-in Customers (نقد گاہک)</option>
+              <option value="All">All Customer Types</option>
+              <option value="Regular Party">Regular Parties</option>
+              <option value="Walk-in Customer">Walk-in Customers</option>
             </select>
           </div>
 
@@ -231,7 +231,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
               <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-              <span>{t('paymentStatus') || 'Payment Status'}</span>
+              <span>Payment Status</span>
             </label>
             <select
               value={statusFilter}
@@ -240,10 +240,10 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
                 theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}
             >
-              <option value="All">All Statuses (تمام بلز)</option>
-              <option value="Paid">Fully Paid (مکمل نقد)</option>
-              <option value="Partial">Partial Paid (جزوی وصولی)</option>
-              <option value="Pending">Unpaid / Khata (بقایا ادھار)</option>
+              <option value="All">All Payment Statuses</option>
+              <option value="Paid">Fully Paid</option>
+              <option value="Partial">Partial Paid</option>
+              <option value="Pending">Unpaid / Due Khata</option>
             </select>
           </div>
         </div>

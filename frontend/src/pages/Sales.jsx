@@ -415,53 +415,108 @@ export const Sales = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* ADVANCED MULTI-FILTER TOOLBAR */}
+      {/* ADVANCED FILTER TOOLBAR (ALL ENGLISH DROPDOWNS) */}
       {/* ========================================================================= */}
-      <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-4 ${
+      <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
-        {/* Row 1: Date Range Filters */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700/80">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <span className="text-[11px] font-black uppercase text-slate-400 flex items-center gap-1 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* 1. Date Range Dropdown */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-brand-500" />
-              <span>Date:</span>
-            </span>
-
-            {[
-              { key: 'All', label: 'All Dates (تمام)' },
-              { key: 'Today', label: 'Today (آج)' },
-              { key: 'Yesterday', label: 'Yesterday (کل)' },
-              { key: 'This Week', label: 'This Week (اس ہفتے)' },
-              { key: 'This Month', label: 'This Month (اس مہینے)' },
-              { key: 'Custom', label: 'Custom Range (تاریخیں)' }
-            ].map(d => (
-              <button
-                key={d.key}
-                type="button"
-                onClick={() => setDateFilterType(d.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                  dateFilterType === d.key
-                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                    : theme === 'dark'
-                      ? 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-700'
-                      : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {d.label}
-              </button>
-            ))}
+              <span>Date Filter</span>
+            </label>
+            <select
+              value={dateFilterType}
+              onChange={(e) => setDateFilterType(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Dates</option>
+              <option value="Today">Today</option>
+              <option value="Yesterday">Yesterday</option>
+              <option value="This Week">This Week</option>
+              <option value="This Month">This Month</option>
+              <option value="Custom">Custom Date Range</option>
+            </select>
           </div>
 
-          {/* Custom Date Pickers (Shown always or when Custom is active) */}
-          {dateFilterType === 'Custom' && (
-            <div className="flex items-center gap-2 shrink-0">
+          {/* 2. Customer Type Dropdown */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
+              <Users className="w-3.5 h-3.5 text-blue-500" />
+              <span>Customer Type</span>
+            </label>
+            <select
+              value={customerTypeFilter}
+              onChange={(e) => setCustomerTypeFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Customer Types</option>
+              <option value="Regular Party">Regular Parties</option>
+              <option value="Walk-in Customer">Walk-in Customers</option>
+            </select>
+          </div>
+
+          {/* 3. Specific Customer Party Dropdown */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
+              <Users className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Select Party</span>
+            </label>
+            <select
+              value={selectedCustomerId}
+              onChange={(e) => setSelectedCustomerId(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Individual Parties</option>
+              {customers.map(cust => (
+                <option key={cust.id} value={cust.id}>
+                  {cust.name} {cust.city ? `(${cust.city})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 4. Payment Status Dropdown */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-amber-500" />
+              <span>Payment Status</span>
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Paid">Fully Paid</option>
+              <option value="Partial">Partial Paid</option>
+              <option value="Pending">Unpaid / Due Khata</option>
+              <option value="Returns">Sale Returns ({saleReturns.length})</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Row 2: Custom Date Pickers (if Custom is chosen) + Search Bar + Reset */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/80">
+          {/* Custom Date Pickers */}
+          {dateFilterType === 'Custom' ? (
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <div>
                 <input
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
                   title="From Date"
@@ -473,107 +528,26 @@ export const Sales = () => {
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
                   title="To Date"
                 />
               </div>
             </div>
+          ) : (
+            <div className="text-xs text-slate-400 font-bold hidden sm:block">
+              Filter sales history by date range, customer type, and payment status
+            </div>
           )}
-        </div>
-
-        {/* Row 2: Customer Filter & Customer Dropdown */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700/80">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <span className="text-[11px] font-black uppercase text-slate-400 flex items-center gap-1 shrink-0">
-              <Users className="w-3.5 h-3.5 text-blue-500" />
-              <span>Customer:</span>
-            </span>
-
-            {[
-              { key: 'All', label: 'All Customers (تمام)' },
-              { key: 'Regular Party', label: 'Regular Parties (کھاتہ دار)' },
-              { key: 'Walk-in Customer', label: 'Walk-in (نقد گاہک)' }
-            ].map(c => (
-              <button
-                key={c.key}
-                type="button"
-                onClick={() => setCustomerTypeFilter(c.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                  customerTypeFilter === c.key
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 font-black'
-                    : theme === 'dark'
-                      ? 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-700'
-                      : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Specific Customer Select Dropdown */}
-          <div className="w-full sm:w-64">
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="All">All Individual Parties (تمام پارٹیز)</option>
-              {customers.map(cust => (
-                <option key={cust.id} value={cust.id}>
-                  {cust.name} {cust.city ? `(${cust.city})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Row 3: Payment Status Pills & Live Search Input */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-          {/* Status Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto no-scrollbar">
-            <span className="text-[11px] font-black uppercase text-slate-400 flex items-center gap-1 shrink-0">
-              <Filter className="w-3.5 h-3.5 text-amber-500" />
-              <span>Status:</span>
-            </span>
-
-            {[
-              { key: 'All', label: 'All Statuses' },
-              { key: 'Paid', label: 'Paid (مکمل نقد)' },
-              { key: 'Partial', label: 'Partial (جزوی)' },
-              { key: 'Pending', label: 'Pending / Due (ادھار)' },
-              { key: 'Returns', label: `Sale Returns (${saleReturns.length})` }
-            ].map(st => (
-              <button
-                key={st.key}
-                type="button"
-                onClick={() => setStatusFilter(st.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                  statusFilter === st.key
-                    ? st.key === 'Returns' 
-                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 font-black'
-                      : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md font-black'
-                    : theme === 'dark'
-                      ? 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-700'
-                      : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
-          </div>
 
           {/* Search Box & Reset Button */}
-          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-            <div className="relative w-full md:w-64">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="relative w-full sm:w-72">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder={t('searchInvoicePlaceholder') || "Filter invoice, customer or item..."}
+                placeholder="Search invoice #, customer or item..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
@@ -586,11 +560,11 @@ export const Sales = () => {
               <button
                 type="button"
                 onClick={resetAllFilters}
-                className="p-2 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1"
+                className="px-3 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
                 title="Reset All Filters"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Reset</span>
+                <span>Reset</span>
               </button>
             )}
           </div>
