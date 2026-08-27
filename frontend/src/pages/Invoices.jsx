@@ -343,50 +343,33 @@ export const Invoices = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner & Tab Navigation */}
+      {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
-            <FileText className="w-6 h-6 text-brand-500" />
-            <span>Official Invoices & Billing Archive</span>
+            {isPurchases ? (
+              <ShoppingCart className="w-6 h-6 text-brand-500" />
+            ) : (
+              <FileText className="w-6 h-6 text-brand-500" />
+            )}
+            <span>{isPurchases ? 'Purchase Invoices' : 'Sales Invoices'}</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Formal accounting invoices, inward purchase vouchers, printable A4 documents, and payment clearance
+            {isPurchases 
+              ? 'Official supplier inward procurement vouchers, goods receipts, and payable records'
+              : 'Official sales tax invoices, customer billing records, and printable A4 receipts'}
           </p>
         </div>
 
-        {/* Tab Switcher: Sales Invoices vs Purchase Invoices */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => {
-              setSearchParams({ type: 'Sales' });
-              resetAllFilters();
-            }}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${!isPurchases
-              ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
-              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-          >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>Sales Invoices</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setSearchParams({ type: 'Purchases' });
-              resetAllFilters();
-            }}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${isPurchases
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-          >
-            <ShoppingCart className="w-3.5 h-3.5" />
-            <span>Purchase Vouchers</span>
-          </button>
-        </div>
+        <button
+          onClick={() => window.print()}
+          className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          <Printer className="w-4 h-4" /> 
+          <span>Print List</span>
+        </button>
       </div>
 
       {/* Financial KPI Summary Cards */}

@@ -26,7 +26,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { SaleReturnModal } from '../components/SaleReturnModal';
-import { DailySalesReportModal } from '../components/DailySalesReportModal';
 import { EditSaleModal } from '../components/EditSaleModal';
 
 export const Sales = () => {
@@ -48,7 +47,6 @@ export const Sales = () => {
   const [activeReceiptModal, setActiveReceiptModal] = useState(null);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedReturnSale, setSelectedReturnSale] = useState(null);
-  const [showDailyReportModal, setShowDailyReportModal] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
 
   // Payment Received Modal state
@@ -64,14 +62,13 @@ export const Sales = () => {
       if (e.key === 'Escape') {
         if (paymentModalSale) setPaymentModalSale(null);
         else if (activeReceiptModal) setActiveReceiptModal(null);
-        else if (showDailyReportModal) setShowDailyReportModal(false);
         else if (showReturnModal) setShowReturnModal(false);
         else if (editingSale) setEditingSale(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [paymentModalSale, activeReceiptModal, showDailyReportModal, showReturnModal, editingSale]);
+  }, [paymentModalSale, activeReceiptModal, showReturnModal, editingSale]);
 
   // Robust Date Parser helper for any sale record
   const parseSaleDate = (dateStr, createdAtStr) => {
@@ -370,18 +367,6 @@ export const Sales = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Daily Sales Report Modal Button */}
-          <button
-            onClick={() => setShowDailyReportModal(true)}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark'
-                ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-          >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>Daily Sales Report</span>
-          </button>
-
           {/* Print Current Filtered List */}
           <button
             onClick={() => window.print()}
