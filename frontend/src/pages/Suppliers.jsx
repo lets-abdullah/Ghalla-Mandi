@@ -912,7 +912,7 @@ export const Suppliers = () => {
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>+ Add New Product</span>
+                    <span>Add New Product</span>
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl border max-h-28 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700">
@@ -1168,7 +1168,7 @@ export const Suppliers = () => {
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>+ Add New Product</span>
+                    <span>Add New Product</span>
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl border max-h-28 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700">
@@ -1479,7 +1479,7 @@ export const Suppliers = () => {
                 />
               </div>
 
-              {/* Category Selection + "+ Add New Category" button */}
+              {/* Category Selection */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-400">
@@ -1491,39 +1491,21 @@ export const Suppliers = () => {
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
                   >
                     <FolderPlus className="w-3.5 h-3.5" />
-                    <span>+ Add New Category</span>
+                    <span>Add New Category</span>
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <select
-                    value={newProductForm.category}
-                    onChange={(e) => {
-                      if (e.target.value === '__add_new_cat__') {
-                        setShowAddCategoryModal(true);
-                        return;
-                      }
-                      setNewProductForm({ ...newProductForm, category: e.target.value });
-                    }}
-                    className={`flex-1 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    {categories.map(c => (
-                      <option key={c.id || c.name} value={c.name}>{c.name}</option>
-                    ))}
-                    <option value="__add_new_cat__" className="text-brand-600 font-bold">+ Add New Category...</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowAddCategoryModal(true)}
-                    className="p-2 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white transition cursor-pointer"
-                    title="Add New Category"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
+                <select
+                  value={newProductForm.category}
+                  onChange={(e) => setNewProductForm({ ...newProductForm, category: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  {categories.map(c => (
+                    <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Unit & Optional Product Code */}

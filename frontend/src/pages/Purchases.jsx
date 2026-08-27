@@ -1046,11 +1046,11 @@ export const Purchases = () => {
             )}
 
             <form onSubmit={handleRecordSubmit} className="space-y-4">
-              {/* Supplier Selection with "+ Add New Supplier" button */}
+              {/* Supplier Selection */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    {t('supplierFirmName')} *
+                    Supplier Firm *
                   </label>
                   <button
                     type="button"
@@ -1058,50 +1058,34 @@ export const Purchases = () => {
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>+ Add New Supplier</span>
+                    <span>Add New Supplier</span>
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <select
-                    value={form.supplierId}
-                    onChange={(e) => {
-                      if (e.target.value === '__add_new_sup__') {
-                        setShowAddSupplierModal(true);
-                        return;
-                      }
-                      const sup = suppliers.find(s => s.id === e.target.value);
-                      setForm({
-                        ...form,
-                        supplierId: e.target.value,
-                        supplierName: sup ? sup.name : ''
-                      });
-                    }}
-                    className={`flex-1 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  >
-                    {suppliers.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
-                    ))}
-                    <option value="__add_new_sup__" className="text-brand-600 font-bold">+ Add New Supplier...</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowAddSupplierModal(true)}
-                    className="p-2 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white transition cursor-pointer"
-                    title="Add New Supplier"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
+                <select
+                  value={form.supplierId}
+                  onChange={(e) => {
+                    const sup = suppliers.find(s => s.id === e.target.value);
+                    setForm({
+                      ...form,
+                      supplierId: e.target.value,
+                      supplierName: sup ? sup.name : ''
+                    });
+                  }}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                >
+                  {suppliers.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
+                  ))}
+                </select>
               </div>
 
-              {/* Product Selection with "+ Add New Product" button */}
+              {/* Product Selection */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    {t('selectProduct')} *
+                    Select Product *
                   </label>
                   <button
                     type="button"
@@ -1109,43 +1093,27 @@ export const Purchases = () => {
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>+ Add New Product</span>
+                    <span>Add New Product</span>
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <select
-                    value={form.productId}
-                    onChange={(e) => {
-                      if (e.target.value === '__add_new__') {
-                        setShowAddProductModal(true);
-                        return;
-                      }
-                      const prod = products.find(p => p.id === e.target.value);
-                      setForm(prev => ({
-                        ...prev,
-                        productId: e.target.value,
-                        rate: prod ? (prod.purchasePrice || 0) : prev.rate
-                      }));
-                    }}
-                    className={`flex-1 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  >
-                    {availableProducts.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.category}) — {p.unit || t('kg')}</option>
-                    ))}
-                    <option value="__add_new__" className="text-brand-600 font-bold">+ Add New Product...</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowAddProductModal(true)}
-                    className="p-2 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white transition cursor-pointer"
-                    title="Add New Product"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
+                <select
+                  value={form.productId}
+                  onChange={(e) => {
+                    const prod = products.find(p => p.id === e.target.value);
+                    setForm(prev => ({
+                      ...prev,
+                      productId: e.target.value,
+                      rate: prod ? (prod.purchasePrice || 0) : prev.rate
+                    }));
+                  }}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                >
+                  {availableProducts.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} ({p.category}) — {p.unit || t('kg')}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Quantity & Rate */}
@@ -1443,7 +1411,7 @@ export const Purchases = () => {
                 />
               </div>
 
-              {/* Category Selection + "+ Add New Category" button */}
+              {/* Category Selection */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-400">
@@ -1455,39 +1423,21 @@ export const Purchases = () => {
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
                   >
                     <FolderPlus className="w-3.5 h-3.5" />
-                    <span>+ Add New Category</span>
+                    <span>Add New Category</span>
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <select
-                    value={newProductForm.category}
-                    onChange={(e) => {
-                      if (e.target.value === '__add_new_cat__') {
-                        setShowAddCategoryModal(true);
-                        return;
-                      }
-                      setNewProductForm({ ...newProductForm, category: e.target.value });
-                    }}
-                    className={`flex-1 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    {categories.map(c => (
-                      <option key={c.id || c.name} value={c.name}>{c.name}</option>
-                    ))}
-                    <option value="__add_new_cat__" className="text-brand-600 font-bold">+ Add New Category...</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowAddCategoryModal(true)}
-                    className="p-2 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white transition cursor-pointer"
-                    title="Add New Category"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
+                <select
+                  value={newProductForm.category}
+                  onChange={(e) => setNewProductForm({ ...newProductForm, category: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  {categories.map(c => (
+                    <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Unit & Optional Product Code */}
