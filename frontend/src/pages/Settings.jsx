@@ -21,7 +21,16 @@ import {
   EyeOff,
   Hash,
   Home,
-  Check
+  Check,
+  X,
+  FileText,
+  BadgePercent,
+  Briefcase,
+  Receipt,
+  Scale,
+  Sparkles,
+  ShieldAlert,
+  Percent
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -52,14 +61,28 @@ export const Settings = () => {
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  // Tab 3: Shop & Mandi Profile State
+  // Tab 3: Shop & Mandi Profile State (Expanded with rich Mandi details)
   const [shopName, setShopName] = useState(shop?.name || 'Shaheen Traders');
   const [shopNo, setShopNo] = useState(shop?.shopNo || '');
   const [mandiName, setMandiName] = useState(shop?.mandiName || 'Ghalla Mandi Multan');
+  const [mandiGate, setMandiGate] = useState(shop?.mandiGate || '');
+  const [businessType, setBusinessType] = useState(shop?.businessType || 'Commission Agent (Aarthi / آڑھتی)');
+  const [licenseNo, setLicenseNo] = useState(shop?.licenseNo || '');
+  const [ntnNumber, setNtnNumber] = useState(shop?.ntnNumber || '');
+  const [strnNumber, setStrnNumber] = useState(shop?.strnNumber || '');
+  const [businessPhone, setBusinessPhone] = useState(shop?.businessPhone || shop?.phone || '');
+  const [businessWhatsapp, setBusinessWhatsapp] = useState(shop?.businessWhatsapp || '');
+  const [businessEmail, setBusinessEmail] = useState(shop?.businessEmail || shop?.email || '');
   const [businessAddress, setBusinessAddress] = useState(shop?.address || '');
+  const [shopCity, setShopCity] = useState(shop?.city || 'Multan');
+  const [defaultCommission, setDefaultCommission] = useState(shop?.defaultCommission || '2.0');
+  const [defaultLabourRate, setDefaultLabourRate] = useState(shop?.defaultLabourRate || '25');
+  const [primaryCommodities, setPrimaryCommodities] = useState(shop?.primaryCommodities || 'Wheat, Basmati Rice, Maize, Mustard');
   const [bankName, setBankName] = useState(shop?.bankName || '');
+  const [branchName, setBranchName] = useState(shop?.branchName || '');
   const [accountTitle, setAccountTitle] = useState(shop?.accountTitle || '');
   const [accountNumber, setAccountNumber] = useState(shop?.accountNumber || shop?.iban || '');
+  const [taxStatus, setTaxStatus] = useState(shop?.taxStatus || 'Active Taxpayer (Filer)');
 
   // Notifications / Saving state
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
@@ -103,6 +126,33 @@ export const Settings = () => {
     setTimeout(() => setStatusMsg({ type: '', text: '' }), 3500);
   };
 
+  // =========================================================================
+  // PASSWORD VALIDATION LOGIC (MUST have 1 upper, 1 lower, min 8 chars, 1 number, 1 special)
+  // =========================================================================
+  const passwordCriteria = {
+    minLength: newPassword.length >= 8,
+    hasUpper: /[A-Z]/.test(newPassword),
+    hasLower: /[a-z]/.test(newPassword),
+    hasNumber: /[0-9]/.test(newPassword),
+    hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPassword)
+  };
+
+  const isPasswordValid = 
+    passwordCriteria.minLength &&
+    passwordCriteria.hasUpper &&
+    passwordCriteria.hasLower &&
+    passwordCriteria.hasNumber &&
+    passwordCriteria.hasSpecial;
+
+  // Calculate Strength Score (0 to 5)
+  const strengthScore = Object.values(passwordCriteria).filter(Boolean).length;
+  const getStrengthLabel = () => {
+    if (!newPassword) return { text: '', color: 'bg-slate-300 dark:bg-slate-700', textClass: 'text-slate-400' };
+    if (strengthScore <= 2) return { text: 'Weak', color: 'bg-rose-500', textClass: 'text-rose-500' };
+    if (strengthScore <= 4) return { text: 'Moderate', color: 'bg-amber-500', textClass: 'text-amber-500' };
+    return { text: 'Strong & Enterprise-Grade', color: 'bg-emerald-500', textClass: 'text-emerald-500' };
+  };
+
   // 1. Handle Save Personal Details
   const handlePersonalDetailsSave = async (e) => {
     e.preventDefault();
@@ -141,7 +191,7 @@ export const Settings = () => {
     }
   };
 
-  // 2. Handle Save Password & Security
+  // 2. Handle Save Password & Security (Strict 5-Rule Enforcement)
   const handlePasswordSave = async (e) => {
     e.preventDefault();
     setStatusMsg({ type: '', text: '' });
@@ -151,13 +201,23 @@ export const Settings = () => {
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      setStatusMsg({ type: 'error', text: 'New password and confirm password do not match.' });
+    if (!isPasswordValid) {
+      const missing = [];
+      if (!passwordCriteria.minLength) missing.push('minimum 8 characters');
+      if (!passwordCriteria.hasUpper) missing.push('1 uppercase letter (A-Z)');
+      if (!passwordCriteria.hasLower) missing.push('1 lowercase letter (a-z)');
+      if (!passwordCriteria.hasNumber) missing.push('1 number (0-9)');
+      if (!passwordCriteria.hasSpecial) missing.push('1 special character (!@#$%^&*)');
+
+      setStatusMsg({ 
+        type: 'error', 
+        text: `Password requirements missing: ${missing.join(', ')}.` 
+      });
       return;
     }
 
-    if (newPassword.length < 6) {
-      setStatusMsg({ type: 'error', text: 'New password must be at least 6 characters long.' });
+    if (newPassword !== confirmPassword) {
+      setStatusMsg({ type: 'error', text: 'New password and confirm password do not match.' });
       return;
     }
 
@@ -194,11 +254,24 @@ export const Settings = () => {
       shopName: shopName.trim(),
       shopNo: shopNo.trim(),
       mandiName: mandiName.trim(),
+      mandiGate: mandiGate.trim(),
+      businessType: businessType.trim(),
+      licenseNo: licenseNo.trim(),
+      ntnNumber: ntnNumber.trim(),
+      strnNumber: strnNumber.trim(),
+      businessPhone: businessPhone.trim(),
+      businessWhatsapp: businessWhatsapp.trim(),
+      businessEmail: businessEmail.trim(),
       businessAddress: businessAddress.trim(),
+      city: shopCity.trim(),
+      defaultCommission: defaultCommission.trim(),
+      defaultLabourRate: defaultLabourRate.trim(),
+      primaryCommodities: primaryCommodities.trim(),
       bankName: bankName.trim(),
+      branchName: branchName.trim(),
       accountTitle: accountTitle.trim(),
       accountNumber: accountNumber.trim(),
-      city: city.trim()
+      taxStatus: taxStatus.trim()
     });
     setIsSaving(false);
 
@@ -221,6 +294,8 @@ export const Settings = () => {
       .slice(0, 2);
   };
 
+  const strength = getStrengthLabel();
+
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Top Page Header */}
@@ -234,7 +309,7 @@ export const Settings = () => {
               Account & Settings
             </h1>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              Manage your personal profile details, security credentials, and shop configuration
+              Manage your personal profile details, enterprise security credentials, and Mandi shop profile
             </p>
           </div>
         </div>
@@ -252,54 +327,52 @@ export const Settings = () => {
           ) : (
             <AlertCircle className="w-5 h-5 shrink-0 text-rose-500" />
           )}
-          <span>{statusMsg.text}</span>
+          <span className="flex-1">{statusMsg.text}</span>
+          <button 
+            type="button" 
+            onClick={() => setStatusMsg({ type: '', text: '' })}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      {/* Navigation Tabs Bar */}
-      <div className="flex flex-wrap items-center gap-2.5 pb-1">
-        {/* Tab 1: Personal Details / Change Your Details */}
+      {/* 3 Main Navigation Tabs */}
+      <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-extrabold">
         <button
           type="button"
-          onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all cursor-pointer shadow-xs ${
+          onClick={() => { setActiveTab('profile'); setStatusMsg({ type: '', text: '' }); }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${
             activeTab === 'profile'
-              ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 scale-[1.02]'
-              : isDark
-                ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
-                : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+              ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <User className="w-4 h-4" />
-          <span>Change Your Details</span>
+          <span>Personal Details</span>
         </button>
 
-        {/* Tab 2: Password & Security */}
         <button
           type="button"
-          onClick={() => setActiveTab('security')}
-          className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all cursor-pointer shadow-xs ${
+          onClick={() => { setActiveTab('security'); setStatusMsg({ type: '', text: '' }); }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${
             activeTab === 'security'
-              ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 scale-[1.02]'
-              : isDark
-                ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
-                : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+              ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <Lock className="w-4 h-4" />
+          <ShieldCheck className="w-4 h-4" />
           <span>Password & Security</span>
         </button>
 
-        {/* Tab 3: Shop & Mandi Profile */}
         <button
           type="button"
-          onClick={() => setActiveTab('shop')}
-          className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all cursor-pointer shadow-xs ${
+          onClick={() => { setActiveTab('shop'); setStatusMsg({ type: '', text: '' }); }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${
             activeTab === 'shop'
-              ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 scale-[1.02]'
-              : isDark
-                ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
-                : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+              ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <Store className="w-4 h-4" />
@@ -308,84 +381,69 @@ export const Settings = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: CHANGE YOUR DETAILS (PERSONAL DETAILS) */}
+      {/* TAB 1: PERSONAL DETAILS (Change Your Details) */}
       {/* ========================================================================= */}
       {activeTab === 'profile' && (
         <div className={`border rounded-3xl p-6 md:p-8 card-shadow space-y-6 transition-colors ${
           isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
-          {/* Section Header */}
-          <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-700">
-            <div className="w-9 h-9 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
-              <User className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Change Your Details</h3>
-              <p className="text-xs text-slate-400 font-medium">Update your name, mobile number, email, and location</p>
-            </div>
-          </div>
-
-          <form onSubmit={handlePersonalDetailsSave} className="space-y-6">
-            {/* 1. Profile Picture Upload & Avatar Preview */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-5 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/40">
-              <div className="relative shrink-0">
+          {/* Profile Picture Header */}
+          <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-slate-100 dark:border-slate-700">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-3xl overflow-hidden border-2 border-brand-500/30 flex items-center justify-center bg-slate-100 dark:bg-slate-900 shadow-md">
                 {profilePicture ? (
-                  <img
-                    src={profilePicture}
-                    alt="Profile"
-                    className="w-20 h-20 rounded-full object-cover border-2 border-brand-500 shadow-md"
-                  />
+                  <img src={profilePicture} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-brand-600 via-brand-500 to-indigo-600 text-white font-black flex items-center justify-center text-xl shadow-md tracking-wider">
+                  <span className="text-2xl font-black text-brand-600 dark:text-brand-400">
                     {getInitials(fullName)}
-                  </div>
+                  </span>
                 )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-2 -right-2 p-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white shadow-md transition cursor-pointer"
+                title="Change Photo"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-1.5 text-center sm:text-left">
+              <h3 className="font-extrabold text-lg text-slate-900 dark:text-white">Profile Picture</h3>
+              <p className="text-xs text-slate-400 font-medium">PNG, JPG, or WebP up to 2MB. Square ratio recommended.</p>
+              
+              <div className="flex flex-wrap items-center gap-2 pt-1 justify-center sm:justify-start">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  accept="image/png, image/jpeg, image/webp"
+                  className="hidden"
+                />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 p-1.5 rounded-full bg-brand-500 hover:bg-brand-600 text-white shadow-md transition cursor-pointer"
-                  title="Upload profile picture"
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 transition cursor-pointer"
                 >
-                  <Camera className="w-3.5 h-3.5" />
+                  Upload New
                 </button>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-xs font-bold text-slate-800 dark:text-white">Profile Picture</div>
-                <p className="text-[11px] text-slate-400">
-                  Upload your photo to personalize your account. PNG, JPG or WebP up to 2MB.
-                </p>
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                    className="hidden"
-                  />
+                {profilePicture && (
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3.5 py-1.5 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
+                    onClick={handleRemovePhoto}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition flex items-center gap-1 cursor-pointer"
                   >
-                    <Camera className="w-3.5 h-3.5" />
-                    <span>Upload New Photo</span>
+                    <Trash2 className="w-3.5 h-3.5" /> Remove
                   </button>
-                  {profilePicture && (
-                    <button
-                      type="button"
-                      onClick={handleRemovePhoto}
-                      className="px-3.5 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Remove</span>
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
             </div>
+          </div>
 
-            {/* Form Fields Grid */}
+          {/* Personal Info Form */}
+          <form onSubmit={handlePersonalDetailsSave} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
               {/* Full Name */}
               <div>
@@ -522,7 +580,7 @@ export const Settings = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: PASSWORD & SECURITY */}
+      {/* TAB 2: PASSWORD & SECURITY (Strict Mandatory 5-Point Validation) */}
       {/* ========================================================================= */}
       {activeTab === 'security' && (
         <div className={`border rounded-3xl p-6 md:p-8 card-shadow space-y-6 transition-colors ${
@@ -535,11 +593,13 @@ export const Settings = () => {
             </div>
             <div>
               <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Password & Security</h3>
-              <p className="text-xs text-slate-400 font-medium">Keep your account secure with a strong password</p>
+              <p className="text-xs text-slate-400 font-medium">
+                Mandatory enterprise security policy: 1 uppercase, 1 lowercase, 1 number, 1 special character, min 8 characters
+              </p>
             </div>
           </div>
 
-          <form onSubmit={handlePasswordSave} className="space-y-5 max-w-xl">
+          <form onSubmit={handlePasswordSave} className="space-y-6 max-w-xl">
             {/* Current Password */}
             <div>
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
@@ -579,7 +639,7 @@ export const Settings = () => {
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password (min. 6 characters)"
+                  placeholder="Enter strong password (e.g. Mandi@2026)"
                   className={`w-full border rounded-2xl pl-10 pr-10 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
                     isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
@@ -591,6 +651,98 @@ export const Settings = () => {
                 >
                   {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
+              </div>
+
+              {/* Real-time Password Strength Meter */}
+              {newPassword && (
+                <div className="mt-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-bold">
+                    <span className="text-slate-400">Password Strength:</span>
+                    <span className={`font-black ${strength.textClass}`}>{strength.text}</span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5 h-1.5">
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <div
+                        key={level}
+                        className={`rounded-full transition-all duration-300 ${
+                          strengthScore >= level ? strength.color : 'bg-slate-200 dark:bg-slate-700'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* MUST Password Requirements Checklist */}
+              <div className={`mt-3.5 p-3.5 rounded-2xl border space-y-2 ${
+                isDark ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-brand-500" />
+                  <span>Mandatory Password Rules (MUST satisfy all):</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold">
+                  {/* Rule 1: Min 8 chars */}
+                  <div className={`flex items-center gap-2 transition-colors ${
+                    passwordCriteria.minLength ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
+                  }`}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                      passwordCriteria.minLength ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                    }`}>
+                      {passwordCriteria.minLength ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3 stroke-[2]" />}
+                    </div>
+                    <span>Minimum 8 Characters</span>
+                  </div>
+
+                  {/* Rule 2: 1 Uppercase */}
+                  <div className={`flex items-center gap-2 transition-colors ${
+                    passwordCriteria.hasUpper ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
+                  }`}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                      passwordCriteria.hasUpper ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                    }`}>
+                      {passwordCriteria.hasUpper ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3 stroke-[2]" />}
+                    </div>
+                    <span>1 Uppercase Letter (A-Z)</span>
+                  </div>
+
+                  {/* Rule 3: 1 Lowercase */}
+                  <div className={`flex items-center gap-2 transition-colors ${
+                    passwordCriteria.hasLower ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
+                  }`}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                      passwordCriteria.hasLower ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                    }`}>
+                      {passwordCriteria.hasLower ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3 stroke-[2]" />}
+                    </div>
+                    <span>1 Lowercase Letter (a-z)</span>
+                  </div>
+
+                  {/* Rule 4: 1 Number */}
+                  <div className={`flex items-center gap-2 transition-colors ${
+                    passwordCriteria.hasNumber ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
+                  }`}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                      passwordCriteria.hasNumber ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                    }`}>
+                      {passwordCriteria.hasNumber ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3 stroke-[2]" />}
+                    </div>
+                    <span>1 Number (0-9)</span>
+                  </div>
+
+                  {/* Rule 5: 1 Special Character */}
+                  <div className={`flex items-center gap-2 sm:col-span-2 transition-colors ${
+                    passwordCriteria.hasSpecial ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
+                  }`}>
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
+                      passwordCriteria.hasSpecial ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                    }`}>
+                      {passwordCriteria.hasSpecial ? <Check className="w-3 h-3 stroke-[3]" /> : <X className="w-3 h-3 stroke-[2]" />}
+                    </div>
+                    <span>1 Special Symbol (!@#$%^&*()_+...)</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -619,27 +771,31 @@ export const Settings = () => {
                   {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-            </div>
 
-            {/* Security Tip Box */}
-            <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-medium space-y-1">
-              <div className="font-bold flex items-center gap-1.5">
-                <Check className="w-4 h-4" /> Security Recommendations:
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Use a minimum of 6 characters with a combination of uppercase letters, numbers, and special symbols to prevent unauthorized access.
-              </p>
+              {confirmPassword && newPassword && (
+                <div className="mt-1.5 text-xs font-bold flex items-center gap-1.5">
+                  {newPassword === confirmPassword ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Passwords match perfectly
+                    </span>
+                  ) : (
+                    <span className="text-rose-500 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" /> Passwords do not match
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Update Password Button */}
             <div className="flex justify-end pt-2">
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || (newPassword.length > 0 && !isPasswordValid)}
                 className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-6 py-3 rounded-2xl transition shadow-md shadow-brand-500/25 disabled:opacity-50 cursor-pointer active:scale-98"
               >
                 <Save className="w-4 h-4" />
-                <span>{isSaving ? 'Updating...' : 'Update Password'}</span>
+                <span>{isSaving ? 'Updating Password...' : 'Update Password'}</span>
               </button>
             </div>
           </form>
@@ -647,7 +803,7 @@ export const Settings = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: SHOP & MANDI PROFILE */}
+      {/* TAB 3: SHOP & MANDI PROFILE (Rich Mandi Business Identity & Settings) */}
       {/* ========================================================================= */}
       {activeTab === 'shop' && (
         <div className={`border rounded-3xl p-6 md:p-8 card-shadow space-y-8 transition-colors ${
@@ -661,17 +817,17 @@ export const Settings = () => {
             <div>
               <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Shop & Mandi Profile</h3>
               <p className="text-xs text-slate-400 font-medium">
-                Configure your business identity, mandi location, and banking details for receipts and invoices
+                Configure your Mandi trade firm, commission structure, license & banking credentials for receipts and invoices
               </p>
             </div>
           </div>
 
           <form onSubmit={handleShopProfileSave} className="space-y-8">
-            {/* Part 1: Business Identity & Mandi Details */}
+            {/* PART 1: Business Identity & Mandi Location */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-brand-600 dark:text-brand-400">
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-brand-600 dark:text-brand-400 border-b border-slate-100 dark:border-slate-700/60 pb-1.5">
                 <Store className="w-4 h-4" />
-                <span>Shop & Location Details</span>
+                <span>1. Mandi Trade Firm & Market Identity</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
@@ -695,10 +851,33 @@ export const Settings = () => {
                   </div>
                 </div>
 
-                {/* Shop Number */}
+                {/* Business Type */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Shop Number
+                    Business / Trade Type
+                  </label>
+                  <div className="relative">
+                    <Briefcase className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <select
+                      value={businessType}
+                      onChange={(e) => setBusinessType(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <option value="Commission Agent (Aarthi / آڑھتی)">Commission Agent (Aarthi / آڑھتی)</option>
+                      <option value="Grain Wholesaler (تھوک ڈیلر)">Grain Wholesaler (تھوک ڈیلر)</option>
+                      <option value="Grain Broker (دلال / بروکر)">Grain Broker (دلال / بروکر)</option>
+                      <option value="Mandi Input Supplier (کھاد، بیج، ادویات)">Mandi Input Supplier (کھاد، بیج، ادویات)</option>
+                      <option value="Warehouse / Silo Operator (گودام)">Warehouse / Silo Operator (گودام)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Shop Number / Stall Number */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Shop / Stall / Khata Number
                   </label>
                   <div className="relative">
                     <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -717,13 +896,13 @@ export const Settings = () => {
                 {/* Mandi Name */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Mandi Name
+                    Mandi Name / Grain Market
                   </label>
                   <div className="relative">
                     <Wheat className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="e.g. Ghalla Mandi Multan, Grain Market Faisalabad"
+                      placeholder="e.g. Ghalla Mandi Multan, Grain Market Okara"
                       value={mandiName}
                       onChange={(e) => setMandiName(e.target.value)}
                       className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
@@ -733,18 +912,241 @@ export const Settings = () => {
                   </div>
                 </div>
 
-                {/* Business Address */}
+                {/* Gate / Sector / Block */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Business Address
+                    Mandi Gate / Block / Sector
                   </label>
                   <div className="relative">
                     <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="e.g. Near Gate # 2, New Grain Market, Multan"
+                      placeholder="e.g. Gate # 2, Block C"
+                      value={mandiGate}
+                      onChange={(e) => setMandiGate(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Market Committee License Number */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Market Committee License #
+                  </label>
+                  <div className="relative">
+                    <FileText className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="e.g. MC-MUL-2026-482"
+                      value={licenseNo}
+                      onChange={(e) => setLicenseNo(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* NTN Number */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    NTN (National Tax Number)
+                  </label>
+                  <div className="relative">
+                    <CreditCard className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="e.g. 1234567-8"
+                      value={ntnNumber}
+                      onChange={(e) => setNtnNumber(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* STRN Number */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    STRN / Sales Tax Reg. #
+                  </label>
+                  <div className="relative">
+                    <Receipt className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="e.g. 32-77-8761-001-19"
+                      value={strnNumber}
+                      onChange={(e) => setStrnNumber(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PART 2: Business Contact & Mandi Operations */}
+            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-700/60 pb-1.5">
+                <Phone className="w-4 h-4" />
+                <span>2. Business Contacts & Commission Rates</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+                {/* Business Landline / Phone */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Business Phone / Landline
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="061-6512345"
+                      value={businessPhone}
+                      onChange={(e) => setBusinessPhone(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Business WhatsApp */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Official Business WhatsApp
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="03001234567"
+                      value={businessWhatsapp}
+                      onChange={(e) => setBusinessWhatsapp(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Business Email */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Business Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      placeholder="shaheen@mandi.pk"
+                      value={businessEmail}
+                      onChange={(e) => setBusinessEmail(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Complete Business Address */}
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Complete Business Address
+                  </label>
+                  <div className="relative">
+                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Shop # 42, Block B, New Ghalla Mandi, Vehari Road, Multan"
                       value={businessAddress}
                       onChange={(e) => setBusinessAddress(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Mandi City */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    City / Mandi Location
+                  </label>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Multan"
+                      value={shopCity}
+                      onChange={(e) => setShopCity(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Default Arhat Commission % */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Default Arhat / Commission Rate (%)
+                  </label>
+                  <div className="relative">
+                    <Percent className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      placeholder="2.0"
+                      value={defaultCommission}
+                      onChange={(e) => setDefaultCommission(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Default Labour / Mazdoori per Mann */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Default Mazdoori (Rs. / Mann)
+                  </label>
+                  <div className="relative">
+                    <Scale className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="25"
+                      value={defaultLabourRate}
+                      onChange={(e) => setDefaultLabourRate(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Primary Commodities Traded */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Primary Commodities Traded
+                  </label>
+                  <div className="relative">
+                    <Wheat className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Wheat, Basmati Rice, Maize, Mustard"
+                      value={primaryCommodities}
+                      onChange={(e) => setPrimaryCommodities(e.target.value)}
                       className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
                         isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
@@ -754,26 +1156,45 @@ export const Settings = () => {
               </div>
             </div>
 
-            {/* Part 2: Bank & Account Details for Receipts & Settlements */}
+            {/* PART 3: Bank & Settlement Details */}
             <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 border-b border-slate-100 dark:border-slate-700/60 pb-1.5">
                 <Landmark className="w-4 h-4" />
-                <span>Banking & Payment Details (Receipts & Invoices)</span>
+                <span>3. Banking & Settlement Accounts (For Receipts & Invoices)</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
                 {/* Bank Name */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Bank Name
+                    Primary Bank Name
                   </label>
                   <div className="relative">
                     <Landmark className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="e.g. Meezan Bank, HBL, MCB"
+                      placeholder="e.g. Meezan Bank, HBL, Bank of Punjab"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Branch Name & Code */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Branch Name & Code
+                  </label>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Ghalla Mandi Branch (0123)"
+                      value={branchName}
+                      onChange={(e) => setBranchName(e.target.value)}
                       className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${
                         isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
@@ -801,9 +1222,9 @@ export const Settings = () => {
                 </div>
 
                 {/* Account Number / IBAN */}
-                <div>
+                <div className="md:col-span-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Account Number / IBAN
+                    Account Number / International IBAN
                   </label>
                   <div className="relative">
                     <Hash className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -818,6 +1239,27 @@ export const Settings = () => {
                     />
                   </div>
                 </div>
+
+                {/* Tax Status */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    FBR Tax Status
+                  </label>
+                  <div className="relative">
+                    <CheckCircle2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <select
+                      value={taxStatus}
+                      onChange={(e) => setTaxStatus(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer ${
+                        isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <option value="Active Taxpayer (Filer)">Active Taxpayer (Filer)</option>
+                      <option value="Non-Filer">Non-Filer</option>
+                      <option value="Tax Exempted / Agricultural Trade">Tax Exempted / Agri Trade</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -829,7 +1271,7 @@ export const Settings = () => {
                 className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-6 py-3 rounded-2xl transition shadow-md shadow-brand-500/25 disabled:opacity-50 cursor-pointer active:scale-98"
               >
                 <Save className="w-4 h-4" />
-                <span>{isSaving ? 'Saving Shop Profile...' : 'Save Shop Profile'}</span>
+                <span>{isSaving ? 'Saving Shop Profile...' : 'Save Shop & Mandi Profile'}</span>
               </button>
             </div>
           </form>
