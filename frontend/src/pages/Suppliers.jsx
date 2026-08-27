@@ -935,7 +935,7 @@ export const Suppliers = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setShowAddModal(false); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto ${
+          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
@@ -1234,7 +1234,7 @@ export const Suppliers = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setEditingSupplier(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto ${
+          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
@@ -1523,7 +1523,7 @@ export const Suppliers = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setViewingSupplier(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto ${
+          <div className={`rounded-3xl max-w-xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
@@ -1727,7 +1727,7 @@ export const Suppliers = () => {
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className={`rounded-3xl max-w-lg w-full p-6 space-y-4 card-shadow border my-6 relative shadow-2xl ${
+            className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${
               theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}
           >
@@ -1937,7 +1937,7 @@ export const Suppliers = () => {
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className={`rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow border relative shadow-2xl ${
+            className={`rounded-3xl max-w-sm w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto relative shadow-2xl ${
               theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}
           >

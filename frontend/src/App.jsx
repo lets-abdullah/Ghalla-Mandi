@@ -38,7 +38,7 @@ const MainLayout = ({ children }) => {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex font-sans bg-slate-50 text-slate-800">
+    <div className="h-[100dvh] h-screen w-screen overflow-hidden flex font-sans bg-slate-50 text-slate-800">
       {/*
         Sidebar:
         - Mobile: renders as a fixed overlay drawer (out of flex flow),
@@ -48,7 +48,7 @@ const MainLayout = ({ children }) => {
       <Sidebar />
 
       {/* Main Container Area — always takes flex-1 */}
-      <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden transition-all duration-300">
+      <div className="flex-1 flex flex-col h-[100dvh] h-screen min-w-0 overflow-hidden transition-all duration-300">
         {/* Fixed Header */}
         <Header />
 

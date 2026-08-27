@@ -1248,9 +1248,9 @@ export const CreateOrder = () => {
       {showCustomerModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowCustomerModal(false); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl ${showNewCustomerForm ? 'max-w-2xl' : 'max-w-lg'} w-full p-5 sm:p-6 space-y-3.5 card-shadow border ${
+          <div className={`rounded-3xl ${showNewCustomerForm ? 'max-w-2xl' : 'max-w-lg'} w-full p-4 sm:p-6 space-y-3.5 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700">
@@ -1651,9 +1651,9 @@ export const CreateOrder = () => {
       {showDiscountModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowDiscountModal(false); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow border ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          <div className={`rounded-3xl max-w-sm w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-base font-black flex items-center gap-2">
@@ -1720,9 +1720,9 @@ export const CreateOrder = () => {
       {showRateModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowRateModal(null); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow border ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          <div className={`rounded-3xl max-w-sm w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-base font-black flex items-center gap-2">

@@ -671,11 +671,11 @@ export const Sidebar = () => {
       {showSupportModal && (
         <div 
           onClick={() => setShowSupportModal(false)}
-          className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className={`rounded-3xl max-w-sm w-full p-6 card-shadow space-y-4 border ${
+            className={`rounded-3xl max-w-sm w-full p-5 sm:p-6 card-shadow space-y-4 border my-auto max-h-[90vh] overflow-y-auto ${
               isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}
           >
