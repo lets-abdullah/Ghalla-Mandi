@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search, Plus, Printer, CheckCircle2, Clock, DollarSign, X, RotateCcw } from 'lucide-react';
+import { 
+  ShoppingCart, 
+  Search, 
+  Plus, 
+  Printer, 
+  CheckCircle2, 
+  Clock, 
+  DollarSign, 
+  X, 
+  RotateCcw,
+  Package,
+  FolderPlus,
+  Tag,
+  Scale,
+  Sparkles
+} from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
@@ -8,7 +23,18 @@ import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
 import { PurchaseReturnModal } from '../components/PurchaseReturnModal';
 
 export const Purchases = () => {
-  const { suppliers, products, purchases, purchaseReturns = [], createPurchase, recordPayment } = useERP();
+  const { 
+    suppliers = [], 
+    products = [], 
+    categories = [], 
+    purchases = [], 
+    purchaseReturns = [], 
+    createPurchase, 
+    recordPayment,
+    addProduct,
+    addCategory
+  } = useERP();
+
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -21,6 +47,29 @@ export const Purchases = () => {
   const [payModalPurchase, setPayModalPurchase] = useState(null);
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Quick Inline Modals State for Product & Category Creation
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+
+  // New Product Form State
+  const [newProductForm, setNewProductForm] = useState({
+    name: '',
+    category: categories[0]?.name || 'Grains & Cereals',
+    unit: 'KG',
+    code: '',
+    purchasePrice: '',
+    sellingPrice: '',
+    description: ''
+  });
+
+  // New Category Form State
+  const [newCategoryForm, setNewCategoryForm] = useState({
+    name: '',
+    description: ''
+  });
 
   // Form for New Purchase
   const [form, setForm] = useState({
@@ -41,13 +90,33 @@ export const Purchases = () => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (showModal) setShowModal(false);
+        if (showAddCategoryModal) setShowAddCategoryModal(false);
+        else if (showAddProductModal) setShowAddProductModal(false);
+        else if (showModal) setShowModal(false);
         else if (payModalPurchase) setPayModalPurchase(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showModal, payModalPurchase]);
+  }, [showAddCategoryModal, showAddProductModal, showModal, payModalPurchase]);
+
+  // Keep form.productId and form.supplierId valid
+  useEffect(() => {
+    if (!form.supplierId && suppliers.length > 0) {
+      setForm(prev => ({
+        ...prev,
+        supplierId: suppliers[0].id,
+        supplierName: suppliers[0].name
+      }));
+    }
+    if (!form.productId && products.length > 0) {
+      setForm(prev => ({
+        ...prev,
+        productId: products[0].id,
+        rate: products[0].purchasePrice || 0
+      }));
+    }
+  }, [suppliers, products, form.supplierId, form.productId]);
 
   // Available products catalog
   const availableProducts = products;
@@ -57,6 +126,103 @@ export const Purchases = () => {
   // Calculate live totals for the new purchase form
   const calculatedTotal = Math.max(0, (Number(form.enteredQty) || 0) * (Number(form.rate) || 0));
 
+  // 1. Quick Add Category Handler
+  const handleSaveCategory = async (e) => {
+    e.preventDefault();
+    const catName = newCategoryForm.name.trim();
+    if (!catName) {
+      alert('Category name is required.');
+      return;
+    }
+
+    const duplicate = categories.some(c => c.name.toLowerCase() === catName.toLowerCase());
+    if (duplicate) {
+      alert(`Category "${catName}" already exists. Automatically selecting it.`);
+      setNewProductForm(prev => ({ ...prev, category: catName }));
+      setShowAddCategoryModal(false);
+      return;
+    }
+
+    setIsCreatingCategory(true);
+    try {
+      const created = await addCategory({
+        name: catName,
+        description: newCategoryForm.description.trim() || 'Custom commodity category'
+      });
+
+      const assignedCategoryName = created?.name || catName;
+      // Auto-select newly created category in the New Product Form
+      setNewProductForm(prev => ({
+        ...prev,
+        category: assignedCategoryName
+      }));
+
+      setShowAddCategoryModal(false);
+      setNewCategoryForm({ name: '', description: '' });
+    } catch (err) {
+      console.error('Failed to create category:', err);
+      alert(err.message || 'Failed to save category.');
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
+
+  // 2. Quick Add Product Handler
+  const handleSaveProduct = async (e) => {
+    e.preventDefault();
+    const prodName = newProductForm.name.trim();
+    if (!prodName) {
+      alert('Product name is required.');
+      return;
+    }
+
+    const catName = newProductForm.category || (categories[0]?.name || 'Grains & Cereals');
+    const pPrice = Math.max(0, Number(newProductForm.purchasePrice) || 0);
+    const sPrice = Math.max(0, Number(newProductForm.sellingPrice) || pPrice);
+
+    setIsCreatingProduct(true);
+    try {
+      const createdProd = await addProduct({
+        name: prodName,
+        category: catName,
+        code: newProductForm.code.trim(),
+        unit: newProductForm.unit || 'KG',
+        defaultUnit: newProductForm.unit || 'KG',
+        purchasePrice: pPrice,
+        sellingPrice: sPrice,
+        stockQty: 0,
+        minStock: 10,
+        description: newProductForm.description.trim()
+      });
+
+      // Auto-select newly created product in the New Purchase Form
+      if (createdProd && createdProd.id) {
+        setForm(prev => ({
+          ...prev,
+          productId: createdProd.id,
+          rate: pPrice > 0 ? pPrice : prev.rate
+        }));
+      }
+
+      setShowAddProductModal(false);
+      setNewProductForm({
+        name: '',
+        category: categories[0]?.name || 'Grains & Cereals',
+        unit: 'KG',
+        code: '',
+        purchasePrice: '',
+        sellingPrice: '',
+        description: ''
+      });
+    } catch (err) {
+      console.error('Failed to create product:', err);
+      alert(err.message || 'Failed to save product.');
+    } finally {
+      setIsCreatingProduct(false);
+    }
+  };
+
+  // 3. Main New Purchase Record Handler
   const handleRecordSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -227,6 +393,9 @@ export const Purchases = () => {
             <ShoppingCart className="w-6 h-6 text-brand-500" />
             {t('purchasesTitle')}
           </h1>
+          <p className="text-xs text-slate-400 font-bold mt-0.5">
+            Procure commodities, record inward supplier lots, and manage supplier balances
+          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -250,173 +419,161 @@ export const Purchases = () => {
           </button>
 
           <button
-            onClick={() => {
-              if (suppliers.length === 0) {
-                alert(t('addSupplierFirst'));
-                return;
-              }
-              if (products.length === 0) {
-                alert(t('addProductFirst'));
-                return;
-              }
-              setForm({
-                supplierId: suppliers[0]?.id || '',
-                supplierName: suppliers[0]?.name || '',
-                productId: products[0]?.id || '',
-                enteredQty: 1,
-                rate: products[0]?.purchasePrice || 0,
-                paidAmount: 0
-              });
-              setShowModal(true);
-            }}
-            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/25 cursor-pointer active:scale-98"
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>{t('recordNewPurchase')}</span>
+            <span>{t('newPurchase')}</span>
           </button>
         </div>
       </div>
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div
           onClick={() => setFilterType('All')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-          }`}
-          title="Click to view all purchases"
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+            }`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <ShoppingCart className="w-4 h-4 text-blue-600" /> {t('totalPurchasesVolume')}
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-blue-600 dark:text-blue-400">Rs. {totalNetPurchases.toLocaleString()}</div>
-          <div className="text-xs text-blue-700 dark:text-blue-400 font-bold mt-1">{purchases.length} {t('invoices')} • Click to View All</div>
+          <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
+            Rs. {totalNetPurchases.toLocaleString()}
+          </div>
+          <div className="text-xs text-slate-400 font-medium mt-1">
+            {purchases.length} {t('purchasesTitle')} Total
+          </div>
         </div>
 
         <div
           onClick={() => setFilterType('Paid')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-          }`}
-          title="Click to filter paid purchases"
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+            }`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-emerald-600" /> {t('Paid')}
+            <DollarSign className="w-4 h-4 text-emerald-600" /> {t('totalPaidOut')}
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalPaidOut.toLocaleString()}</div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">{t('paid')} • Filter Paid Invoices</div>
+          <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
+            Rs. {totalPaidOut.toLocaleString()}
+          </div>
+          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">
+            {t('paid')} Suppliers
+          </div>
         </div>
 
         <div
-          onClick={() => navigate('/suppliers')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
-          }`}
-          title="Click to view Supplier Payables & Khata"
+          onClick={() => setFilterType('Due')}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+            }`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-rose-600" /> {t('amountToPay')}
+            <Clock className="w-4 h-4 text-rose-600" /> {t('outstandingPayables')}
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-rose-600 dark:text-rose-400">Rs. {totalOutstandingPayable.toLocaleString()}</div>
-          <div className="text-xs text-rose-700 dark:text-rose-400 font-bold mt-1">{t('pending')} • View Supplier Khata</div>
+          <div className="text-2xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
+            Rs. {totalOutstandingPayable.toLocaleString()}
+          </div>
+          <div className="text-xs text-rose-700 dark:text-rose-400 font-medium mt-1">
+            Pending Supplier Dues
+          </div>
+        </div>
+
+        <div
+          onClick={() => setFilterType('Returns')}
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-purple-50/50 to-white border-purple-200/80'
+            }`}
+        >
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <RotateCcw className="w-4 h-4 text-purple-600" /> Purchase Returns
+          </div>
+          <div className="text-2xl font-black mt-1 font-mono text-purple-600 dark:text-purple-400">
+            Rs. {totalPurchaseReturnsVal.toLocaleString()}
+          </div>
+          <div className="text-xs text-purple-700 dark:text-purple-400 font-medium mt-1">
+            {(purchaseReturns || []).length} Returned Lots
+          </div>
         </div>
       </div>
 
-      {/* Advanced Filter Toolbar (English Dropdowns) */}
-      <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {/* 1. Supplier Filter */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-              Supplier Filter
-            </label>
-            <select
-              value={selectedSupplierFilter}
-              onChange={(e) => setSelectedSupplierFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+      {/* Filter and Search Bar */}
+      <div className={`p-4 rounded-2xl border card-shadow flex flex-col md:flex-row items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+        }`}>
+        <div className="relative w-full md:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder={t('searchPurchasesPlaceholder')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
-            >
-              <option value="All">All Suppliers</option>
-              {suppliers.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.name} {s.city ? `(${s.city})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          />
+        </div>
 
-          {/* 2. Payment Status Filter */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-              Payment Status
-            </label>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="All">All Statuses</option>
-              <option value="Paid">Fully Paid</option>
-              <option value="Partial">Partial Paid</option>
-              <option value="Due">Unpaid / Khata Due</option>
-              <option value="Returns">Purchase Returns ({purchaseReturns.length})</option>
-            </select>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          {/* Supplier Selector Filter */}
+          <select
+            value={selectedSupplierFilter}
+            onChange={(e) => setSelectedSupplierFilter(e.target.value)}
+            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
+              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+            }`}
+          >
+            <option value="All">All Suppliers</option>
+            {suppliers.map(s => (
+              <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
+            ))}
+          </select>
 
-          {/* 3. Search & Reset */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-              Search Purchases
-            </label>
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search purchase #, supplier or item..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+          {['All', 'Paid', 'Partial', 'Due', 'Returns'].map(status => (
+            <button
+              key={status}
+              onClick={() => setFilterType(status)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${filterType === status
+                ? 'bg-brand-500 text-white shadow-xs'
+                : theme === 'dark'
+                  ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
-              />
-            </div>
-          </div>
+            >
+              {status === 'Returns' ? 'Returns' : t(status.toLowerCase())}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Purchase Returns History Table if Filtered */}
+      {/* Main Table View */}
       {filterType === 'Returns' ? (
+        /* Purchase Returns Table */
         <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
-          <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-            <h3 className="font-black text-sm flex items-center gap-2">
-              <RotateCcw className="w-4 h-4 text-rose-500" />
-              <span>Processed Supplier Purchase Returns (Debit Notes)</span>
-            </h3>
-          </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                  <th className="py-3 px-4">Debit #</th>
+                <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                  <th className="py-3 px-4">Return #</th>
+                  <th className="py-3 px-4">Orig. Purchase</th>
                   <th className="py-3 px-4">Date</th>
                   <th className="py-3 px-4">Supplier</th>
-                  <th className="py-3 px-4">Purchase #</th>
-                  <th className="py-3 px-4">Item</th>
-                  <th className="py-3 px-4 text-center">Mode</th>
-                  <th className="py-3 px-4 text-right">Amount</th>
+                  <th className="py-3 px-4">Returned Item</th>
+                  <th className="py-3 px-4 text-center">Refund Mode</th>
+                  <th className="py-3 px-4 text-right">Refund Amount</th>
                 </tr>
               </thead>
-              <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                {purchaseReturns.length === 0 ? (
-                  <tr><td colSpan={7} className="py-8 text-center text-slate-400">No purchase returns recorded yet.</td></tr>
+              <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                {(purchaseReturns || []).length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+                      No purchase returns processed yet.
+                    </td>
+                  </tr>
                 ) : (
-                  purchaseReturns.map(ret => (
-                    <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
-                      <td className="py-3 px-4 font-mono font-bold text-rose-600 dark:text-rose-400">{ret.returnNo}</td>
-                      <td className="py-3 px-4 text-slate-500">{ret.date}</td>
-                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{ret.supplierName}</td>
-                      <td className="py-3 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">{ret.purchaseNo}</td>
-                      <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200">
+                  (purchaseReturns || []).map(ret => (
+                    <tr key={ret.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}>
+                      <td className="py-3 px-4 font-mono font-bold text-rose-500">{ret.returnNo}</td>
+                      <td className="py-3 px-4 font-mono text-slate-500">{ret.purchaseNo}</td>
+                      <td className="py-3 px-4 text-slate-400">{ret.date}</td>
+                      <td className="py-3 px-4 font-bold">{ret.supplierName}</td>
+                      <td className="py-3 px-4 text-slate-400">
                         {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Item'}
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -439,7 +596,7 @@ export const Purchases = () => {
         <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
               <thead>
                 <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                   }`}>
@@ -584,7 +741,9 @@ export const Purchases = () => {
         </div>
       )}
 
-      {/* Record Purchase Modal */}
+      {/* ========================================================================= */}
+      {/* MAIN NEW PURCHASE MODAL */}
+      {/* ========================================================================= */}
       {showModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
@@ -593,7 +752,7 @@ export const Purchases = () => {
           <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-lg font-extrabold flex items-center gap-2">
+              <h3 className="text-base font-extrabold flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-brand-500" />
                 {t('recordNewPurchase')}
               </h3>
@@ -608,6 +767,7 @@ export const Purchases = () => {
             </div>
 
             <form onSubmit={handleRecordSubmit} className="space-y-4">
+              {/* Supplier Selection */}
               <div>
                 <label className="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">
                   {t('supplierFirmName')} *
@@ -622,7 +782,7 @@ export const Purchases = () => {
                       supplierName: sup ? sup.name : ''
                     });
                   }}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 >
                   {suppliers.map(s => (
@@ -631,29 +791,58 @@ export const Purchases = () => {
                 </select>
               </div>
 
+              {/* Product Selection with "+ Add New Product" button */}
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">
-                  {t('selectProduct')} *
-                </label>
-                <select
-                  value={form.productId}
-                  onChange={(e) => {
-                    const prod = products.find(p => p.id === e.target.value);
-                    setForm({
-                      ...form,
-                      productId: e.target.value,
-                      rate: prod ? (prod.purchasePrice || 0) : form.rate
-                    });
-                  }}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  {availableProducts.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} ({p.category}) — {t('unit')}: {p.unit || t('kg')}</option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    {t('selectProduct')} *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddProductModal(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add New Product</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={form.productId}
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new__') {
+                        setShowAddProductModal(true);
+                        return;
+                      }
+                      const prod = products.find(p => p.id === e.target.value);
+                      setForm({
+                        ...form,
+                        productId: e.target.value,
+                        rate: prod ? (prod.purchasePrice || 0) : form.rate
+                      });
+                    }}
+                    className={`flex-1 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  >
+                    {availableProducts.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.category}) — {p.unit || t('kg')}</option>
+                    ))}
+                    <option value="__add_new__" className="text-brand-600 font-bold">+ Add New Product...</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAddProductModal(true)}
+                    className="p-2 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white transition cursor-pointer"
+                    title="Add New Product"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
+              {/* Quantity & Rate */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">
@@ -691,11 +880,12 @@ export const Purchases = () => {
                 </div>
               </div>
 
+              {/* Calculated Volume */}
               <div className={`p-3 rounded-xl border space-y-1 ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'
                 }`}>
                 <div className="flex justify-between text-xs font-extrabold">
                   <span>{t('totalPurchasesVolume')}:</span>
-                  <span className="text-brand-500">Rs. {calculatedTotal.toLocaleString()}</span>
+                  <span className="text-brand-500 font-mono text-sm">Rs. {calculatedTotal.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -714,6 +904,318 @@ export const Purchases = () => {
                   className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isSubmitting ? t('processing') : t('save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* QUICK ADD NEW PRODUCT MODAL (Opened directly inside New Purchase) */}
+      {/* ========================================================================= */}
+      {showAddProductModal && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddProductModal(false); }}
+          className="fixed inset-0 z-60 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+        >
+          <div className={`rounded-3xl max-w-lg w-full p-6 space-y-4 card-shadow border my-6 ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
+                  <Package className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">Add New Product</h3>
+                  <p className="text-[10px] text-slate-400 font-bold">Create product & auto-select in purchase</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAddProductModal(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProduct} className="space-y-3.5">
+              {/* Product Name */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="e.g. Super Basmati Rice, Wheat 1121"
+                  value={newProductForm.name}
+                  onChange={(e) => setNewProductForm({ ...newProductForm, name: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              {/* Category Selection + "+ Add New Category" button */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-400">
+                    Category *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCategoryModal(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                  >
+                    <FolderPlus className="w-3.5 h-3.5" />
+                    <span>+ Add New Category</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={newProductForm.category}
+                    onChange={(e) => {
+                      if (e.target.value === '__add_new_cat__') {
+                        setShowAddCategoryModal(true);
+                        return;
+                      }
+                      setNewProductForm({ ...newProductForm, category: e.target.value });
+                    }}
+                    className={`flex-1 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    {categories.map(c => (
+                      <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                    ))}
+                    <option value="__add_new_cat__" className="text-brand-600 font-bold">+ Add New Category...</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCategoryModal(true)}
+                    className="p-2 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white transition cursor-pointer"
+                    title="Add New Category"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Unit & Optional Product Code */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    Standard Unit *
+                  </label>
+                  <select
+                    value={newProductForm.unit}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, unit: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="KG">Kilogram (KG)</option>
+                    <option value="Maund">Maund / Mann (من)</option>
+                    <option value="Bag">Bag / Bori (بوری)</option>
+                    <option value="Gram">Gram (g)</option>
+                    <option value="Liter">Liter (L)</option>
+                    <option value="Quintal">Quintal (100 KG)</option>
+                    <option value="Ton">Ton (1000 KG)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    Product Code (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. PRD-101"
+                    value={newProductForm.code}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, code: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Default Purchase Rate & Selling Rate */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    Purchase Rate (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="0"
+                    value={newProductForm.purchasePrice}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, purchasePrice: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">
+                    Selling Rate (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="0"
+                    value={newProductForm.sellingPrice}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, sellingPrice: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Grade, moisture level, harvest season, etc."
+                  value={newProductForm.description}
+                  onChange={(e) => setNewProductForm({ ...newProductForm, description: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setShowAddProductModal(false)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingProduct}
+                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {isCreatingProduct ? (
+                    <span>Saving...</span>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Save Product</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* QUICK ADD NEW CATEGORY MODAL (Opened from New Product Modal) */}
+      {/* ========================================================================= */}
+      {showAddCategoryModal && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddCategoryModal(false); }}
+          className="fixed inset-0 z-70 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className={`rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow border ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold">
+                  <FolderPlus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">Add New Category</h3>
+                  <p className="text-[10px] text-slate-400 font-bold">Instant category assignment</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddCategoryModal(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategory} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  Category Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="e.g. Pulses, Oilseeds, Basmati Grains"
+                  value={newCategoryForm.name}
+                  onChange={(e) => setNewCategoryForm({ ...newCategoryForm, name: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Brief description of this commodity category"
+                  value={newCategoryForm.description}
+                  onChange={(e) => setNewCategoryForm({ ...newCategoryForm, description: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingCategory}
+                  className="w-1/2 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-amber-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {isCreatingCategory ? (
+                    <span>Saving...</span>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Save Category</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -741,39 +1243,46 @@ export const Purchases = () => {
               </button>
             </div>
 
-            <p className="text-xs text-slate-400">
-              {t('supplierFirmName')}: <strong className={theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}>{payModalPurchase.supplier}</strong> ({payModalPurchase.purchaseNo})
-            </p>
-
-            <form onSubmit={handlePaySubmit} className="space-y-3">
+            <form onSubmit={handlePaySubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">{t('paidAmount')} (Rs.)</label>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  {t('supplierFirmName')}
+                </label>
+                <div className="text-sm font-extrabold">{payModalPurchase.supplier || payModalPurchase.supplierName}</div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  {t('amountPaid')} (PKR) *
+                </label>
                 <input
                   type="number"
                   required
                   min="1"
                   step="any"
-                  max={payModalPurchase.amount - (payModalPurchase.paidAmount || 0)}
-                  onWheel={(e) => e.target.blur()}
+                  autoFocus
                   onFocus={(e) => e.target.select()}
                   value={payForm.amount}
                   onChange={(e) => setPayForm({ ...payForm, amount: Number(e.target.value) })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">{t('paymentMethodLabel')}</label>
+                <label className="text-xs font-bold text-slate-400 block mb-1">
+                  {t('paymentMode')}
+                </label>
                 <select
                   value={payForm.paymentMode}
                   onChange={(e) => setPayForm({ ...payForm, paymentMode: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 >
-                  <option value="Cash">{t('cashOnCounter')}</option>
-                  <option value="Bank Transfer">{t('bankTransfer')}</option>
-                  <option value="Cheque">{t('cheque')}</option>
+                  <option value="Cash">Cash on Counter</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Online">Online Payment</option>
+                  <option value="Cheque">Cheque</option>
                 </select>
               </div>
 
@@ -789,9 +1298,9 @@ export const Purchases = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
+                  className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
                 >
-                  {isSubmitting ? 'Saving...' : t('savePayment')}
+                  {isSubmitting ? t('processing') : t('save')}
                 </button>
               </div>
             </form>
@@ -799,26 +1308,22 @@ export const Purchases = () => {
         </div>
       )}
 
-      {/* Purchase Receipt Modal */}
-      {selectedReceipt && (
-        <PurchaseReceiptModal
-          isOpen={!!selectedReceipt}
-          onClose={() => setSelectedReceipt(null)}
-          purchaseData={selectedReceipt}
-        />
-      )}
-
       {/* Purchase Return Modal */}
-      {showReturnModal && (
-        <PurchaseReturnModal
-          isOpen={showReturnModal}
-          onClose={() => {
-            setShowReturnModal(false);
-            setSelectedReturnPurchase(null);
-          }}
-          selectedPurchase={selectedReturnPurchase}
-        />
-      )}
+      <PurchaseReturnModal
+        isOpen={showReturnModal}
+        onClose={() => {
+          setShowReturnModal(false);
+          setSelectedReturnPurchase(null);
+        }}
+        initialPurchase={selectedReturnPurchase}
+      />
+
+      {/* Official Voucher Receipt Modal */}
+      <PurchaseReceiptModal
+        isOpen={!!selectedReceipt}
+        onClose={() => setSelectedReceipt(null)}
+        purchaseData={selectedReceipt}
+      />
     </div>
   );
 };
