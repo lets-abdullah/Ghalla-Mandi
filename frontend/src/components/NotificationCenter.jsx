@@ -13,7 +13,8 @@ import {
   ExternalLink,
   X,
   Clock,
-  Filter
+  Filter,
+  Sparkles
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -60,7 +61,7 @@ export const NotificationCenter = () => {
     }
   }, [readIds]);
 
-  // Click outside to close
+  // Click outside to close (desktop)
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (panelRef.current && !panelRef.current.contains(e.target)) {
@@ -116,7 +117,7 @@ export const NotificationCenter = () => {
       }
     });
 
-    // 2. SALE NOTIFICATIONS (Recent 5 sales)
+    // 2. SALE NOTIFICATIONS (Recent 8 sales)
     [...sales].slice(0, 8).forEach((s) => {
       const amt = Number(s.amount || s.grandTotal || 0);
       const paid = Number(s.paidAmount || 0);
@@ -151,7 +152,7 @@ export const NotificationCenter = () => {
       }
     });
 
-    // 3. PURCHASE NOTIFICATIONS (Recent 5 purchases)
+    // 3. PURCHASE NOTIFICATIONS (Recent 8 purchases)
     [...purchases].slice(0, 8).forEach((p) => {
       const amt = Number(p.amount || p.grandTotal || 0);
       list.push({
@@ -180,7 +181,7 @@ export const NotificationCenter = () => {
         time: r.date || 'Recent',
         timestamp: r.created_at ? new Date(r.created_at).getTime() : Date.now(),
         severity: 'warning',
-        link: '/returns',
+        link: '/sale-returns',
         icon: RotateCcw
       });
     });
@@ -192,12 +193,12 @@ export const NotificationCenter = () => {
         id: `purreturn-${r.id || r.returnNo}`,
         category: 'Transactions',
         type: 'Purchase Return',
-        title: `Purchase Return (Debit Note #${r.returnNo || 'PR'})`,
+        title: `Purchase Return #${r.returnNo || 'PR'}`,
         message: `Debit note of Rs. ${amt.toLocaleString()} adjusted with ${r.supplierName || 'Supplier'}.`,
         time: r.date || 'Recent',
         timestamp: r.created_at ? new Date(r.created_at).getTime() : Date.now(),
         severity: 'warning',
-        link: '/returns',
+        link: '/purchase-returns',
         icon: RotateCcw
       });
     });
@@ -333,9 +334,11 @@ export const NotificationCenter = () => {
     <div className="relative" ref={panelRef}>
       {/* Navbar Bell Button */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition cursor-pointer flex items-center justify-center"
+        className="relative p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition cursor-pointer flex items-center justify-center"
         title="All Notifications"
+        aria-label="Open notifications"
       >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
@@ -345,25 +348,34 @@ export const NotificationCenter = () => {
         )}
       </button>
 
-      {/* Notification Center Dropdown Panel */}
+      {/* Backdrop for Mobile (<640px) */}
+      {isOpen && (
+        <div
+          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs sm:hidden"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Notification Center Dropdown Panel (Responsive: Full width centered on mobile, Anchored dropdown on desktop) */}
       {isOpen && (
         <div 
-          className={`absolute right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] rounded-2xl border card-shadow shadow-2xl z-50 overflow-hidden transition-all ${
+          className={`fixed left-2 right-2 top-14 xs:left-4 xs:right-4 sm:left-auto sm:right-0 sm:top-full sm:absolute sm:mt-2 sm:w-96 max-h-[85vh] flex flex-col rounded-2xl sm:rounded-3xl border card-shadow shadow-2xl z-50 overflow-hidden transition-all duration-200 ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}
           style={{ zIndex: 1000 }}
         >
           {/* Header */}
-          <div className="p-3.5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
+          <div className="p-3 sm:p-3.5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold shrink-0">
                 <Bell className="w-4 h-4" />
               </div>
-              <div>
-                <h3 className="text-sm font-black flex items-center gap-1.5">
-                  All Notifications
+              <div className="truncate">
+                <h3 className="text-xs sm:text-sm font-black flex items-center gap-1.5 truncate">
+                  <span>Notifications</span>
                   {unreadCount > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-bold">
+                    <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold">
                       {unreadCount} new
                     </span>
                   )}
@@ -371,28 +383,31 @@ export const NotificationCenter = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {unreadCount > 0 && (
                 <button
+                  type="button"
                   onClick={handleMarkAllAsRead}
-                  className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 px-1.5 py-1 rounded cursor-pointer"
+                  className="text-[10px] sm:text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 px-2 py-1 rounded-lg bg-brand-500/10 dark:bg-brand-500/20 cursor-pointer"
                   title="Mark all as read"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  <span>Mark Read</span>
+                  <span>Mark All Read</span>
                 </button>
               )}
               <button
+                type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+                title="Close"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Category Tabs */}
-          <div className="px-3 pt-2 pb-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-900/30">
+          {/* Category Tabs (Touch scrollable) */}
+          <div className="px-2.5 sm:px-3 pt-2 pb-1.5 flex items-center gap-1 overflow-x-auto scrollbar-none touch-pan-x border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-900/30 shrink-0">
             {['All', 'Unread', 'Stock', 'Transactions', 'Khata'].map((tab) => {
               const isActive = activeTab === tab;
               const count = tab === 'Unread' 
@@ -404,15 +419,16 @@ export const NotificationCenter = () => {
               return (
                 <button
                   key={tab}
+                  type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold whitespace-nowrap transition cursor-pointer flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold whitespace-nowrap transition cursor-pointer flex items-center gap-1 shrink-0 ${
                     isActive
                       ? 'bg-brand-500 text-white shadow-xs'
                       : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
                   }`}
                 >
                   <span>{tab}</span>
-                  <span className={`text-[9px] px-1 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                  <span className={`text-[9px] px-1 rounded-full font-bold ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
                     {count}
                   </span>
                 </button>
@@ -420,12 +436,12 @@ export const NotificationCenter = () => {
             })}
           </div>
 
-          {/* Notification List */}
-          <div className="max-h-80 sm:max-h-96 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60">
+          {/* Notification List (Scrollable) */}
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60 max-h-[58vh] sm:max-h-96">
             {filteredNotifications.length === 0 ? (
               <div className="py-12 text-center text-slate-400 space-y-2">
                 <Bell className="w-8 h-8 mx-auto stroke-[1.5] text-slate-300 dark:text-slate-600" />
-                <p className="text-xs font-bold">No notifications found.</p>
+                <p className="text-xs font-bold">No notifications found in {activeTab}.</p>
               </div>
             ) : (
               filteredNotifications.map((item) => {
@@ -437,27 +453,27 @@ export const NotificationCenter = () => {
                     key={item.id}
                     onClick={() => handleNotificationClick(item)}
                     className={`p-3 transition-colors cursor-pointer flex items-start gap-2.5 group relative hover:bg-slate-50 dark:hover:bg-slate-700/40 ${
-                      !isRead ? (theme === 'dark' ? 'bg-slate-900/40' : 'bg-brand-50/25') : ''
+                      !isRead ? (theme === 'dark' ? 'bg-slate-900/40' : 'bg-brand-50/30') : ''
                     }`}
                   >
                     {/* Unread Indicator Bar */}
                     {!isRead && (
-                      <span className="absolute left-0 top-3 bottom-3 w-1 bg-brand-500 rounded-r" />
+                      <span className="absolute left-0 top-2.5 bottom-2.5 w-1 bg-brand-500 rounded-r" />
                     )}
 
                     {/* Icon */}
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs mt-0.5 ${getIconBadge(item.severity)}`}>
-                      <IconComponent className="w-3.5 h-3.5" />
+                    <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 shadow-xs mt-0.5 ${getIconBadge(item.severity)}`}>
+                      <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
                         <div className="flex items-center gap-1.5 truncate">
-                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${getSeverityBadge(item.severity)}`}>
+                          <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border shrink-0 ${getSeverityBadge(item.severity)}`}>
                             {item.type}
                           </span>
-                          <span className={`text-xs font-extrabold truncate ${!isRead ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}`}>
+                          <span className={`text-xs font-extrabold truncate ${!isRead ? 'text-slate-900 dark:text-white font-black' : 'text-slate-600 dark:text-slate-300'}`}>
                             {item.title}
                           </span>
                         </div>
@@ -466,17 +482,18 @@ export const NotificationCenter = () => {
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug line-clamp-2">
+                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-snug line-clamp-2">
                         {item.message}
                       </p>
                     </div>
 
                     {/* Mark Read Check or Action Arrow */}
-                    <div className="shrink-0 flex items-center gap-1 self-center opacity-70 group-hover:opacity-100">
+                    <div className="shrink-0 flex items-center gap-1 self-center">
                       {!isRead ? (
                         <button
+                          type="button"
                           onClick={(e) => handleMarkAsRead(item.id, e)}
-                          className="p-1 rounded-md hover:bg-brand-500/10 text-brand-600 dark:text-brand-400 transition"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-brand-500/10 text-slate-400 hover:text-brand-600 dark:bg-slate-700 dark:hover:bg-brand-500/20 dark:text-slate-300 dark:hover:text-brand-400 transition"
                           title="Mark as read"
                         >
                           <Check className="w-3.5 h-3.5" />
@@ -492,16 +509,17 @@ export const NotificationCenter = () => {
           </div>
 
           {/* Footer */}
-          <div className="p-2.5 border-t border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/50 flex items-center justify-between text-xs">
-            <span className="text-[10px] text-slate-400 font-bold">
-              {notifications.length} total event alerts
+          <div className="p-2.5 sm:p-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/50 flex items-center justify-between text-xs shrink-0">
+            <span className="text-[10px] sm:text-[11px] text-slate-400 font-bold">
+              {notifications.length} active alerts
             </span>
             <button
+              type="button"
               onClick={() => {
                 setIsOpen(false);
                 navigate('/reports');
               }}
-              className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-[10px] sm:text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
             >
               <span>Audit Reports</span>
               <ExternalLink className="w-3 h-3" />
