@@ -3527,7 +3527,7 @@ export const Reports = () => {
               }`}>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                  Total Business Assets
+                  Total Assets
                 </span>
                 <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                   <ArrowUpRight className="w-3.5 h-3.5" />
@@ -3538,7 +3538,7 @@ export const Reports = () => {
                 Rs. {totalAssets.toLocaleString()}
               </div>
               <div className="text-[10px] text-slate-400 font-medium">
-                Liquid Cash + Customer Dues + Commodity Stock
+                Cash + Customer Udhaar + Stock Maal
               </div>
             </div>
 
@@ -3547,7 +3547,7 @@ export const Reports = () => {
               }`}>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                  Total Liabilities & Payables
+                  Total Payables (Udhaar Dena)
                 </span>
                 <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">
                   <span>0.0% vs prev</span>
@@ -3557,7 +3557,7 @@ export const Reports = () => {
                 Rs. {totalLiabilities.toLocaleString()}
               </div>
               <div className="text-[10px] text-slate-400 font-medium">
-                Supplier Khata Dues + Short-Term Liabilities
+                Suppliers Ka Udhaar + Baki Kharcha
               </div>
             </div>
 
@@ -3566,7 +3566,7 @@ export const Reports = () => {
               }`}>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                  Net Business Worth (Equity)
+                  Net Worth (Asal Sarmaya)
                 </span>
                 <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                   <ArrowUpRight className="w-3.5 h-3.5" />
@@ -3577,7 +3577,7 @@ export const Reports = () => {
                 Rs. {totalEquity.toLocaleString()}
               </div>
               <div className="text-[10px] text-slate-400 font-medium">
-                Assets minus what you owe (Owner Capital + Profits)
+                Total Assets - Total Payables (Kul Bachat)
               </div>
             </div>
           </div>

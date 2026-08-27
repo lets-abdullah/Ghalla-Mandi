@@ -76,7 +76,7 @@ const SuppliedProductsCombobox = ({
     <div className="space-y-1.5" ref={containerRef}>
       <div className="flex items-center justify-between">
         <label className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
-          <span>Supplied Products / Commodities</span>
+          <span>Supplied Products</span>
           {selectedProducts.length > 0 && (
             <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 text-[10px] font-extrabold border border-brand-500/20">
               {selectedProducts.length} selected
@@ -101,7 +101,7 @@ const SuppliedProductsCombobox = ({
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search & select products / commodities..."
+            placeholder="Search & select products..."
             value={query}
             onFocus={() => setIsOpen(true)}
             onChange={(e) => {
@@ -148,8 +148,8 @@ const SuppliedProductsCombobox = ({
                     key={p.id}
                     onClick={() => toggleProduct(p.name)}
                     className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition ${isSelected
-                        ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold'
-                        : theme === 'dark' ? 'hover:bg-slate-700/60 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
+                      ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold'
+                      : theme === 'dark' ? 'hover:bg-slate-700/60 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
                       }`}
                   >
                     <div>
@@ -175,8 +175,8 @@ const SuppliedProductsCombobox = ({
             <span
               key={name}
               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl text-xs font-bold border transition ${theme === 'dark'
-                  ? 'bg-brand-500/15 border-brand-500/30 text-brand-400'
-                  : 'bg-brand-50 border-brand-200 text-brand-700'
+                ? 'bg-brand-500/15 border-brand-500/30 text-brand-400'
+                : 'bg-brand-50 border-brand-200 text-brand-700'
                 }`}
             >
               <span>{name}</span>
@@ -569,7 +569,7 @@ export const Suppliers = () => {
             className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Add Supplier</span>
+            <span>Add Supplier</span>
           </button>
         </div>
       </div>
@@ -1468,8 +1468,8 @@ export const Suppliers = () => {
                   <h3 className="text-base font-extrabold flex items-center gap-2">
                     {viewingSupplier.name}
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${(viewingSupplier.status || 'Active') === 'Active'
-                        ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30'
-                        : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
+                      ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30'
+                      : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
                       }`}>
                       {viewingSupplier.status || 'Active'}
                     </span>

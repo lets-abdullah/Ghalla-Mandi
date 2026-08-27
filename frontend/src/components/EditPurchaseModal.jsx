@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Edit3, 
-  X, 
-  Plus, 
-  Trash2, 
-  CheckCircle2, 
-  Package, 
-  Truck, 
-  CreditCard 
+import {
+  Edit3,
+  X,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  Package,
+  Truck,
+  CreditCard
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -29,7 +29,7 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
     if (purchase) {
       setSupplierName(purchase.supplier || purchase.supplierName || 'Supplier');
       setSupplierId(purchase.supplierId || null);
-      
+
       const cartItems = Array.isArray(purchase.cart) && purchase.cart.length > 0
         ? purchase.cart
         : (Array.isArray(purchase.items) ? purchase.items : []);
@@ -146,13 +146,12 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
   };
 
   return (
-    <div 
+    <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
     >
-      <div className={`rounded-3xl max-w-3xl w-full p-5 sm:p-6 space-y-4 card-shadow border transition-all ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-      }`}>
+      <div className={`rounded-3xl max-w-3xl w-full p-5 sm:p-6 space-y-4 card-shadow border transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        }`}>
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-2">
@@ -186,7 +185,7 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
             <div>
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <Truck className="w-3.5 h-3.5 text-brand-500" />
-                <span>Supplier / Arthi Firm</span>
+                <span>Supplier</span>
               </label>
               <select
                 value={supplierId || ''}
@@ -201,11 +200,10 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
                     setSupplierName(val || 'Supplier');
                   }
                 }}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                  }`}
               >
-                <option value="">-- Select Supplier --</option>
+                <option value="">Select Supplier</option>
                 {suppliers.map(s => (
                   <option key={s.id} value={s.id}>
                     {s.name} {s.businessName ? `(${s.businessName})` : ''} - Balance: Rs. {Number(s.balance || 0).toLocaleString()}
@@ -237,20 +235,18 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
               {items.map((item, idx) => {
                 const lineTotal = Number(item.qty || 0) * Number(item.rate || 0);
                 return (
-                  <div 
+                  <div
                     key={idx}
-                    className={`grid grid-cols-12 gap-2 p-2.5 rounded-2xl border items-center ${
-                      theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-                    }`}
+                    className={`grid grid-cols-12 gap-2 p-2.5 rounded-2xl border items-center ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                      }`}
                   >
                     {/* Product Selector */}
                     <div className="col-span-5 sm:col-span-5">
                       <select
                         value={item.productId}
                         onChange={(e) => handleItemChange(idx, 'productId', e.target.value)}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       >
                         {products.map(p => (
                           <option key={p.id} value={p.id}>
@@ -269,9 +265,8 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
                         value={item.qty}
                         onChange={(e) => handleItemChange(idx, 'qty', e.target.value)}
                         placeholder="Qty"
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -284,9 +279,8 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
                         value={item.rate}
                         onChange={(e) => handleItemChange(idx, 'rate', e.target.value)}
                         placeholder="Rate"
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -326,9 +320,8 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
                   step="any"
                   value={paidAmount}
                   onChange={(e) => setPaidAmount(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-1.5 text-xs font-black font-mono outline-none focus:border-brand-500 text-emerald-600 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-1.5 text-xs font-black font-mono outline-none focus:border-brand-500 text-emerald-600 ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
+                    }`}
                 />
               </div>
 
@@ -341,9 +334,8 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="e.g. Truck # FSD-1234 / Commission terms"
-                  className={`w-full border rounded-xl px-3 py-1.5 text-xs font-semibold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-1.5 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
             </div>

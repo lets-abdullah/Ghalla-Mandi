@@ -632,8 +632,10 @@ export const Purchases = () => {
             }`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <ShoppingCart className="w-4 h-4 text-blue-600" /> {t('totalPurchases')}
+            <ShoppingCart className="w-4 h-4 text-blue-600" />
+            <span>{t('totalPurchases') || 'TOTAL PURCHASES'}</span>
           </div>
+
           <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
             Rs. {totalNetPurchases.toLocaleString()}
           </div>
@@ -645,12 +647,15 @@ export const Purchases = () => {
             }`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-emerald-600" /> {t('totalPaidOut')}
+            <DollarSign className="w-4 h-4 text-emerald-600" />
+            <span>{t('totalPaidOut') || 'TOTAL PAID OUT'}</span>
           </div>
+
           <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
-            Rs. {totalPaidOut.toLocaleString()}
+            Rs. <span>{totalPaidOut.toLocaleString()}</span>
           </div>
         </div>
+
 
         <div
           onClick={() => setFilterType('Due')}
