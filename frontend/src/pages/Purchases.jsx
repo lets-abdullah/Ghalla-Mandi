@@ -582,10 +582,10 @@ export const Purchases = () => {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <ShoppingCart className="w-6 h-6 text-brand-500" />
-            {t('purchasesTitle')}
+            <span>Goods Inward & Procurement</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Procure commodities, record inward supplier lots, and manage supplier balances
+            Record inward truck arrivals, weighing scale entries, bags, and supplier deal booking
           </p>
         </div>
 
@@ -595,7 +595,8 @@ export const Purchases = () => {
             className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
           >
-            <Printer className="w-4 h-4" /> {t('Print Receipt')}
+            <Printer className="w-4 h-4" /> 
+            <span>Print List</span>
           </button>
 
           <button
@@ -603,7 +604,7 @@ export const Purchases = () => {
             className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>{t('newPurchase')}</span>
+            <span>Record Inward Purchase</span>
           </button>
         </div>
       </div>

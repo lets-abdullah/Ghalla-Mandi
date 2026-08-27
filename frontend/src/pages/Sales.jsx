@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Receipt, 
   Search, 
@@ -17,7 +18,8 @@ import {
   FileSpreadsheet, 
   RefreshCw, 
   Edit3,
-  Eye
+  Eye,
+  Plus
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -360,14 +362,27 @@ export const Sales = () => {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <Receipt className="w-6 h-6 text-brand-500" />
-            <span>{t('sales') || 'Sales'}</span>
+            <span>Sales Orders & Operations</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Complete sales transaction history with View, Edit & Return workflows
+            Manage live trade orders, deal adjustments, counter cash collections, and return workflows
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Daily Sales Report Modal Button */}
+          <button
+            onClick={() => setShowDailyReportModal(true)}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
+              theme === 'dark' 
+                ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' 
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> 
+            <span>Daily Sales Report</span>
+          </button>
+
           {/* Print Current Filtered List */}
           <button
             onClick={() => window.print()}
@@ -378,8 +393,17 @@ export const Sales = () => {
             }`}
           >
             <Printer className="w-4 h-4" /> 
-            <span>{t('print') || 'Print List'}</span>
+            <span>Print List</span>
           </button>
+
+          {/* New Sale POS Counter */}
+          <Link
+            to="/create-order"
+            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Sale (POS)</span>
+          </Link>
         </div>
       </div>
 
