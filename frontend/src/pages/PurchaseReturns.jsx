@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RotateCcw, RefreshCw, Plus, Printer, CheckCircle2, DollarSign, Package, Clock, Edit3, X } from 'lucide-react';
+import { RotateCcw, RefreshCw, Plus, Printer, CheckCircle2, DollarSign, Package, Clock, Edit3, X, CreditCard } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
