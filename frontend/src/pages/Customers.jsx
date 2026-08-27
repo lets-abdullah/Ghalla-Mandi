@@ -482,11 +482,7 @@ export const Customers = () => {
                           </div>
                         )}
                       </div>
-                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold shrink-0 border ${
-                        isWalkin
-                          ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600'
-                          : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border-brand-500/20'
-                      }`}>
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0">
                         {isWalkin ? 'Walk-in' : 'Regular'}
                       </span>
                     </div>
@@ -600,11 +596,7 @@ export const Customers = () => {
 
                         {/* 2. Customer Type */}
                         <td className="py-3 px-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border ${
-                            isWalkin
-                              ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600'
-                              : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border-brand-500/20'
-                          }`}>
+                          <span className="font-semibold text-xs text-slate-600 dark:text-slate-300">
                             {isWalkin ? 'Walk-in' : 'Regular'}
                           </span>
                         </td>

@@ -777,12 +777,6 @@ export const Ledger = () => {
                         <div className="font-extrabold text-slate-900 dark:text-white">
                           {entry.partyName}
                         </div>
-                        <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold ${(entry.customerType || '').toLowerCase().includes('walk-in')
-                          ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                          : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
-                          }`}>
-                          {entry.customerType}
-                        </span>
                       </td>
 
                       {/* 3. Voucher # */}
