@@ -369,17 +369,17 @@ export const Invoices = () => {
         {/* 1. Total Billed Volume */}
         <div
           onClick={() => setStatusFilter('All')}
-          className={`border rounded-2xl p-5 card-shadow transition-all cursor-pointer ${theme === 'dark'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark'
             ? isPurchases ? 'bg-slate-800 border-emerald-500/30' : 'bg-slate-800 border-brand-500/30'
-            : isPurchases ? 'bg-emerald-50/40 border-emerald-200/60' : 'bg-brand-50/40 border-brand-200/60'
+            : isPurchases ? 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
             }`}
           title="Click to view all invoices"
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             {isPurchases ? <ShoppingCart className="w-4 h-4 text-emerald-600" /> : <Receipt className="w-4 h-4 text-brand-600" />}
             <span>{isPurchases ? 'Total Purchase Billing' : 'Total Sales Invoiced'}</span>
           </div>
-          <div className={`text-2xl font-black mt-1.5 font-mono ${isPurchases ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand-600 dark:text-brand-400'}`}>
+          <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${isPurchases ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand-600 dark:text-brand-400'}`}>
             Rs. {totalBilledVolume.toLocaleString()}
           </div>
         </div>
@@ -387,15 +387,15 @@ export const Invoices = () => {
         {/* 2. Settled Payments */}
         <div
           onClick={() => setStatusFilter('Paid')}
-          className={`border rounded-2xl p-5 card-shadow transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-emerald-50/40 border-emerald-200/60'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
             }`}
           title="Click to filter fully settled invoices"
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-600" />
             <span>{isPurchases ? 'Total Paid to Vendors' : 'Total Cash Received'}</span>
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalSettledAmount.toLocaleString()}
           </div>
         </div>
@@ -403,15 +403,15 @@ export const Invoices = () => {
         {/* 3. Pending Khata / Due */}
         <div
           onClick={() => setStatusFilter('Pending')}
-          className={`border rounded-2xl p-5 card-shadow transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-amber-50/40 border-amber-200/60'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
             }`}
           title="Click to filter pending balance invoices"
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-600" />
             <span>{isPurchases ? 'Supplier Payables' : 'Customer Receivables'}</span>
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-amber-600 dark:text-amber-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalOutstandingDue.toLocaleString()}
           </div>
         </div>

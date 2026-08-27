@@ -436,65 +436,56 @@ export const Inventory = () => {
       </div>
 
       {/* KPI Summary Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className={`p-3.5 rounded-2xl border flex items-center gap-3 card-shadow ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
+          theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
         }`}>
-          <div className="w-9 h-9 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
-            <Warehouse className="w-4 h-4" />
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <Warehouse className="w-4 h-4 text-brand-500" />
+            <span>On-Hand Stock</span>
           </div>
-          <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase">On-Hand Stock</div>
-            <div className="text-base font-black font-mono text-brand-500">
-              {totalStockQty.toLocaleString()} <span className="text-xs font-normal">Units</span>
-            </div>
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-brand-500">
+            {totalStockQty.toLocaleString()} <span className="text-xs font-bold text-slate-400">Units</span>
           </div>
         </div>
 
-        <div className={`p-3.5 rounded-2xl border flex items-center gap-3 card-shadow ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
+          theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
         }`}>
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
-            <TrendingUp className="w-4 h-4" />
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-emerald-600" />
+            <span>Total Stock In</span>
           </div>
-          <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase">Total Stock In</div>
-            <div className="text-base font-black font-mono text-emerald-600 dark:text-emerald-400">
-              +{totalInflow.toLocaleString()} <span className="text-xs font-normal">Units</span>
-            </div>
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
+            +{totalInflow.toLocaleString()} <span className="text-xs font-bold text-slate-400">Units</span>
           </div>
         </div>
 
-        <div className={`p-3.5 rounded-2xl border flex items-center gap-3 card-shadow ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
+          theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
         }`}>
-          <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold">
-            <TrendingDown className="w-4 h-4" />
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <TrendingDown className="w-4 h-4 text-rose-600" />
+            <span>Total Stock Out</span>
           </div>
-          <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase">Total Stock Out</div>
-            <div className="text-base font-black font-mono text-rose-600 dark:text-rose-400">
-              -{totalOutflow.toLocaleString()} <span className="text-xs font-normal">Units</span>
-            </div>
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
+            -{totalOutflow.toLocaleString()} <span className="text-xs font-bold text-slate-400">Units</span>
           </div>
         </div>
 
         <div 
           onClick={() => navigate('/products')}
-          className={`p-3.5 rounded-2xl border flex items-center gap-3 card-shadow cursor-pointer transition hover:border-amber-500/50 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${
+            theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
           }`}
+          title="View products catalog"
         >
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
-            lowStockCount > 0 ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
-          }`}>
-            <AlertTriangle className="w-4 h-4" />
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <span>Low Stock Alerts</span>
           </div>
-          <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase">Low Stock Alerts</div>
-            <div className={`text-base font-black font-mono ${lowStockCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
-              {lowStockCount} <span className="text-xs font-normal">Items</span>
-            </div>
+          <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${lowStockCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
+            {lowStockCount} <span className="text-xs font-bold text-slate-400">Items</span>
           </div>
         </div>
       </div>

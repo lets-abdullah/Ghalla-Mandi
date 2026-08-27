@@ -302,14 +302,15 @@ export const Customers = () => {
         {/* Total Customers */}
         <div
           onClick={() => { setCustomerTypeFilter('All'); setBalanceFilter('All'); }}
-          className={`border rounded-2xl p-4 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
             }`}
           title="View all customers"
         >
-          <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
-            <Users className="w-4 h-4 text-blue-600" /> Total Customers
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <Users className="w-4 h-4 text-blue-600" />
+            <span>Total Customers</span>
           </div>
-          <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
             {totalCustomers}
           </div>
         </div>
@@ -317,14 +318,15 @@ export const Customers = () => {
         {/* Regular Customers */}
         <div
           onClick={() => { setCustomerTypeFilter('Regular Customer'); setBalanceFilter('All'); }}
-          className={`border rounded-2xl p-4 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-b from-indigo-50/50 to-white border-indigo-200/80'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-b from-indigo-50/50 to-white border-indigo-200/80'
             }`}
           title="Filter Regular Customers"
         >
-          <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
-            <Building2 className="w-4 h-4 text-indigo-600" /> Regular Customers
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-indigo-600" />
+            <span>Regular Customers</span>
           </div>
-          <div className="text-2xl font-black mt-1 font-mono text-indigo-600 dark:text-indigo-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-indigo-600 dark:text-indigo-400">
             {regularCount}
           </div>
         </div>
@@ -332,14 +334,15 @@ export const Customers = () => {
         {/* Walk-in Customers */}
         <div
           onClick={() => { setCustomerTypeFilter('Walk-in Customer'); setBalanceFilter('All'); }}
-          className={`border rounded-2xl p-4 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-teal-500/30 text-white' : 'bg-gradient-to-b from-teal-50/50 to-white border-teal-200/80'
+          className={`border rounded-2xl p-4 sm:p-5 card-hover card-shadow transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-teal-500/30 text-white' : 'bg-gradient-to-b from-teal-50/50 to-white border-teal-200/80'
             }`}
           title="Filter Walk-in Customers"
         >
-          <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
-            <User className="w-4 h-4 text-teal-600" /> Walk-in Customers
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <User className="w-4 h-4 text-teal-600" />
+            <span>Walk-in Customers</span>
           </div>
-          <div className="text-2xl font-black mt-1 font-mono text-teal-600 dark:text-teal-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-teal-600 dark:text-teal-400">
             {walkinCount}
           </div>
         </div>
@@ -347,14 +350,15 @@ export const Customers = () => {
         {/* Total Receivables */}
         <div
           onClick={() => { setBalanceFilter('Due'); }}
-          className={`border rounded-2xl p-4 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
             }`}
           title="Filter Customers with Outstanding Balance"
         >
-          <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
-            <DollarSign className="w-4 h-4 text-amber-600" /> Total Receivables
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-amber-600" />
+            <span>Total Receivables</span>
           </div>
-          <div className="text-2xl font-black mt-1 font-mono text-amber-600 dark:text-amber-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalReceivables.toLocaleString()}
           </div>
         </div>

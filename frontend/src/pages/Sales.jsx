@@ -362,17 +362,17 @@ export const Sales = () => {
         {/* 1. Total Sales Volume */}
         <div
           onClick={() => setStatusFilter('All')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
             ? 'bg-slate-800 border-emerald-500/30 text-white'
             : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
             }`}
           title="Click to view all sales"
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <ShoppingBag className="w-4 h-4 text-emerald-600" />
             <span>{t('totalSalesVolume') || 'Total Sales'}</span>
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalFilteredSalesVolume.toLocaleString()}
           </div>
         </div>
@@ -380,18 +380,18 @@ export const Sales = () => {
         {/* 2. Cash Received */}
         <div
           onClick={() => setStatusFilter('Paid')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
             ? 'bg-slate-800 border-blue-500/30 text-white'
             : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
             }`}
           title="Click to filter paid sales"
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-blue-600" />
-            <span>{t('cashReceived') || 'CASH RECEIVED'}</span>
+            <span>{t('cashReceived') || 'Cash Received'}</span>
           </div>
 
-          <div className="text-2xl font-black mt-1.5 font-mono text-blue-600 dark:text-blue-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
             Rs. {totalFilteredCashReceived.toLocaleString()}
           </div>
         </div>
@@ -399,17 +399,17 @@ export const Sales = () => {
         {/* 3. Pending Khata / Receivable */}
         <div
           onClick={() => setStatusFilter('Pending')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
             ? 'bg-slate-800 border-amber-500/30 text-white'
             : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
             }`}
           title="Click to filter pending khata sales"
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-600" />
             <span>{t('amountToReceive') || 'Current Amount to Receive'}</span>
           </div>
-          <div className="text-2xl font-black mt-1.5 font-mono text-amber-600 dark:text-amber-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalFilteredOutstandingDue.toLocaleString()}
           </div>
         </div>

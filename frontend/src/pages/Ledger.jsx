@@ -428,35 +428,38 @@ export const Ledger = () => {
 
       {/* KPI Cards Row (Clean user-friendly labels without Cr/Dr) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Total Sales */}
-        <div className={`border rounded-2xl p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+        {/* Total Sales / Purchases */}
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
           }`}>
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <ArrowUpRight className="w-4 h-4 text-blue-600" /> Total Sales
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <ArrowUpRight className="w-4 h-4 text-blue-600" />
+            <span>{isSupplier ? 'Total Purchases' : 'Total Sales'}</span>
           </div>
-          <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
             Rs. {totalSalesAmount.toLocaleString()}
           </div>
         </div>
 
         {/* Total Payments */}
-        <div className={`border rounded-2xl p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
           }`}>
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <ArrowDownLeft className="w-4 h-4 text-emerald-600" /> Total Payments
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <ArrowDownLeft className="w-4 h-4 text-emerald-600" />
+            <span>Total Payments</span>
           </div>
-          <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalPaymentsAmount.toLocaleString()}
           </div>
         </div>
 
         {/* Balance Due (Clean simple balance) */}
-        <div className={`border rounded-2xl p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
           }`}>
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <CreditCard className="w-4 h-4 text-amber-600" /> Balance Due
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-amber-600" />
+            <span>Balance Due</span>
           </div>
-          <div className={`text-2xl font-black mt-1 font-mono ${balanceDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-amber-600'}`}>
+          <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${balanceDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-amber-600'}`}>
             {balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : 'Rs. 0'}
           </div>
         </div>

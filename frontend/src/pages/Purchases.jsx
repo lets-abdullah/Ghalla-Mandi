@@ -625,57 +625,58 @@ export const Purchases = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div
           onClick={() => setFilterType('All')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
             }`}
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <ShoppingCart className="w-4 h-4 text-blue-600" />
-            <span>{t('totalPurchases') || 'TOTAL PURCHASES'}</span>
+            <span>{t('totalPurchases') || 'Total Purchases'}</span>
           </div>
 
-          <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
             Rs. {totalNetPurchases.toLocaleString()}
           </div>
         </div>
 
         <div
           onClick={() => setFilterType('Paid')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
             }`}
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-600" />
-            <span>{t('totalPaidOut') || 'TOTAL PAID OUT'}</span>
+            <span>{t('totalPaidOut') || 'Total Paid Out'}</span>
           </div>
 
-          <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
-            Rs. <span>{totalPaidOut.toLocaleString()}</span>
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
+            Rs. {totalPaidOut.toLocaleString()}
           </div>
         </div>
 
-
         <div
           onClick={() => setFilterType('Due')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
             }`}
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-rose-600" /> {t('outstandingPayables')}
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-rose-600" />
+            <span>{t('outstandingPayables') || 'Outstanding Payables'}</span>
           </div>
-          <div className="text-2xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
             Rs. {totalOutstandingPayable.toLocaleString()}
           </div>
         </div>
 
         <div
           onClick={() => setFilterType('Returns')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-purple-50/50 to-white border-purple-200/80'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-purple-50/50 to-white border-purple-200/80'
             }`}
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <RotateCcw className="w-4 h-4 text-purple-600" /> Purchase Returns
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-purple-600" />
+            <span>Purchase Returns</span>
           </div>
-          <div className="text-2xl font-black mt-1 font-mono text-purple-600 dark:text-purple-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-purple-600 dark:text-purple-400">
             Rs. {totalPurchaseReturnsVal.toLocaleString()}
           </div>
         </div>

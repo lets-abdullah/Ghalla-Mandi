@@ -101,23 +101,38 @@ export const PurchaseReturns = () => {
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`p-5 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Returned Stock</div>
-          <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalReturnAmount.toLocaleString()}</div>
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-rose-600" />
+            <span>Total Returned Stock</span>
+          </div>
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
+            Rs. {totalReturnAmount.toLocaleString()}
+          </div>
         </div>
 
-        <div className={`p-5 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Received from Suppliers</div>
-          <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalCashRefunds.toLocaleString()}</div>
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'}`}>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-emerald-600" />
+            <span>Cash Received from Suppliers</span>
+          </div>
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
+            Rs. {totalCashRefunds.toLocaleString()}
+          </div>
         </div>
 
         <div
           onClick={() => navigate('/ledger?type=Supplier')}
-          className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'}`}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'}`}
           title="Click to view Supplier Ledgers"
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Supplier Dues Deducted</div>
-          <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">Rs. {totalPayablesDeducted.toLocaleString()}</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-amber-600" />
+            <span>Supplier Dues Deducted</span>
+          </div>
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
+            Rs. {totalPayablesDeducted.toLocaleString()}
+          </div>
         </div>
       </div>
 

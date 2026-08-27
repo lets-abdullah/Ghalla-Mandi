@@ -288,15 +288,16 @@ export const Khata = () => {
         {/* Total Sales Volume */}
         <div
           onClick={() => { setBalanceStatusFilter('All'); setCustomerTypeFilter('All'); }}
-          className={`border rounded-2xl p-4 card-shadow card-hover transition-all cursor-pointer ${
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${
             theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
           }`}
           title="View all customer accounts"
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-blue-600" /> Total Sales
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <Users className="w-4 h-4 text-blue-600" />
+            <span>Total Sales</span>
           </div>
-          <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
             Rs. {totalVolume.toLocaleString()}
           </div>
         </div>
@@ -304,15 +305,16 @@ export const Khata = () => {
         {/* Total Payments Collected */}
         <div
           onClick={() => setBalanceStatusFilter('Clear')}
-          className={`border rounded-2xl p-4 card-shadow card-hover transition-all cursor-pointer ${
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${
             theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
           }`}
           title="Filter fully settled accounts"
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Total Received
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>Total Received</span>
           </div>
-          <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalCollected.toLocaleString()}
           </div>
         </div>
@@ -320,15 +322,16 @@ export const Khata = () => {
         {/* Total Outstanding */}
         <div
           onClick={() => setBalanceStatusFilter('Outstanding')}
-          className={`border rounded-2xl p-4 card-shadow card-hover transition-all cursor-pointer ${
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${
             theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
           }`}
           title="Filter pending receivables"
         >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-amber-600" /> Total Outstanding
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-600" />
+            <span>Total Outstanding</span>
           </div>
-          <div className="text-2xl font-black mt-1 font-mono text-amber-600 dark:text-amber-400">
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalOutstanding.toLocaleString()}
           </div>
         </div>
