@@ -349,25 +349,26 @@ export const Customers = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+            <form onSubmit={handleCreateSubmit} className="space-y-3">
               {/* 1. Basic & Business Identity */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div className="text-[11px] font-black uppercase text-brand-600 dark:text-brand-400 flex items-center gap-1.5">
-                  <span>Basic & Business Identity (بنیادی و کاروباری معلومات)</span>
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                <div className="text-[10px] font-black uppercase text-brand-600 dark:text-brand-400 flex items-center gap-1">
+                  <User className="w-3.5 h-3.5" />
+                  <span>Basic & Business Identity</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      {t('customerPartyName')} *
+                      Customer Name *
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Chaudhry Muhammad Aslam"
+                      placeholder="e.g. Muhammad Aslam"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -375,58 +376,58 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Shop / Firm / Arhat Name (دکان / فرم کا نام)
+                      Shop / Firm Name
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Chaudhry & Sons Commission Shop"
+                      placeholder="e.g. Aslam Traders"
                       value={form.shopName}
                       onChange={(e) => setForm({ ...form, shopName: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                    Customer Type (خریدار کی قسم)
-                  </label>
-                  <select
-                    value={form.customerType}
-                    onChange={(e) => setForm({ ...form, customerType: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    <option value="Regular Party">Regular Party (کھاتہ دار / کمیشن ایجنٹ)</option>
-                    <option value="Wholesale Buyer">Wholesale Buyer (تھوک خریدار)</option>
-                    <option value="Retailer">Retailer / Shopkeeper (پرچون فروش)</option>
-                    <option value="Farmer / Producer">Farmer / Producer (زمیندار / کاشتکار)</option>
-                  </select>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Customer Type
+                    </label>
+                    <select
+                      value={form.customerType}
+                      onChange={(e) => setForm({ ...form, customerType: e.target.value })}
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <option value="Regular Party">Regular Party</option>
+                      <option value="Wholesale Buyer">Wholesale Buyer</option>
+                      <option value="Retailer">Retailer</option>
+                      <option value="Farmer / Producer">Farmer / Producer</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
               {/* 2. Contact & Mandi Location */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div className="text-[11px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1">
                   <Phone className="w-3.5 h-3.5" />
-                  <span>Contact & Location (رابطہ و منڈی کا پتہ)</span>
+                  <span>Contact & Mandi Location</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      {t('phoneMobile')} *
+                      Phone / Mobile *
                     </label>
                     <input
                       type="tel"
-                      placeholder="e.g. 03001234567"
+                      placeholder="03001234567"
                       maxLength={11}
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -434,32 +435,30 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      WhatsApp / Alt Phone (واٹس ایپ نمبر)
+                      WhatsApp / Alt Phone
                     </label>
                     <input
                       type="tel"
-                      placeholder="e.g. 03217654321"
+                      placeholder="03217654321"
                       maxLength={11}
                       value={form.whatsapp}
                       onChange={(e) => setForm({ ...form, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      {t('mandiLocationCity')} *
+                      City / Mandi *
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Sargodha Mandi"
+                      placeholder="e.g. Sargodha"
                       value={form.city}
                       onChange={(e) => setForm({ ...form, city: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -467,14 +466,14 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Full Address / Shop # (مکمل پتہ)
+                      Address / Shop #
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Shop # 14, Block B, New Mandi"
+                      placeholder="e.g. Shop # 14, Block B"
                       value={form.address}
                       onChange={(e) => setForm({ ...form, address: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -483,16 +482,16 @@ export const Customers = () => {
               </div>
 
               {/* 3. Financial & Payment Terms */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div className="text-[11px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                <div className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1">
                   <DollarSign className="w-3.5 h-3.5" />
-                  <span>Financial & Payment Terms (کھاتہ و ادھار شرائط)</span>
+                  <span>Financial & Payment Terms</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Opening Balance (سابقہ ادھار)
+                      Opening Balance (PKR)
                     </label>
                     <input
                       type="number"
@@ -500,7 +499,7 @@ export const Customers = () => {
                       placeholder="0"
                       value={form.openingBalance || ''}
                       onChange={(e) => setForm({ ...form, openingBalance: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -508,7 +507,7 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Credit Limit (ادھار کی حد)
+                      Credit Limit (PKR)
                     </label>
                     <input
                       type="number"
@@ -516,7 +515,7 @@ export const Customers = () => {
                       placeholder="e.g. 500000"
                       value={form.creditLimit || ''}
                       onChange={(e) => setForm({ ...form, creditLimit: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -524,39 +523,39 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Payment Terms (مدت ادائیگی)
+                      Payment Terms
                     </label>
                     <select
                       value={form.paymentTerms}
                       onChange={(e) => setForm({ ...form, paymentTerms: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     >
-                      <option value="Cash / Credit">Cash / Regular Khata (نقد و ادھار)</option>
-                      <option value="Cash on Delivery">Cash on Delivery (فوری نقد)</option>
-                      <option value="7 Days">Weekly (7 Days / ہفتہ وار)</option>
-                      <option value="15 Days">15 Days (پندرہ دن)</option>
-                      <option value="30 Days">Monthly (30 Days / ماہانہ)</option>
-                      <option value="Seasonal">Seasonal (فصل کٹائی پر)</option>
+                      <option value="Cash / Credit">Cash / Regular Khata</option>
+                      <option value="Cash on Delivery">Cash on Delivery</option>
+                      <option value="7 Days">Weekly (7 Days)</option>
+                      <option value="15 Days">15 Days</option>
+                      <option value="30 Days">Monthly (30 Days)</option>
+                      <option value="Seasonal">Seasonal</option>
                     </select>
                   </div>
                 </div>
               </div>
 
               {/* 4. Identification & Notes */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      CNIC / National ID (شناختی کارڈ نمبر)
+                      CNIC / National ID
                     </label>
                     <input
                       type="text"
                       placeholder="e.g. 38403-1234567-1"
                       value={form.cnic}
                       onChange={(e) => setForm({ ...form, cnic: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -564,14 +563,14 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Notes / Guarantor Reference (حوالہ / نوٹ)
+                      Notes / Guarantor Reference
                     </label>
                     <input
                       type="text"
                       placeholder="e.g. Reference: Haji Akram Shop # 4"
                       value={form.notes}
                       onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -579,20 +578,20 @@ export const Customers = () => {
                 </div>
               </div>
 
-              <div className="flex gap-2.5 pt-2">
+              <div className="flex gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="w-1/3 py-3 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 cursor-pointer"
+                  className="w-1/3 py-2.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 cursor-pointer"
                 >
                   {t('cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="w-2/3 py-3 bg-brand-500 hover:bg-brand-600 text-white font-black text-sm rounded-2xl shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                  className="w-2/3 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-black text-xs rounded-xl shadow-md shadow-brand-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Save Customer Profile (کسٹمر محفوظ کریں)</span>
+                  <span>Save Customer Profile</span>
                 </button>
               </div>
             </form>
@@ -606,13 +605,13 @@ export const Customers = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setEditingCustomer(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-2xl w-full p-6 space-y-4 card-shadow border ${
+          <div className={`rounded-3xl max-w-2xl w-full p-5 sm:p-6 space-y-3.5 card-shadow border ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-200 dark:border-slate-700">
               <h3 className="text-base font-black uppercase tracking-wide flex items-center gap-2">
                 <Edit3 className="w-5 h-5 text-brand-500" />
-                <span>{t('editCustomer')}</span>
+                <span>Edit Customer Profile</span>
               </h3>
               <button 
                 type="button" 
@@ -624,24 +623,24 @@ export const Customers = () => {
               </button>
             </div>
 
-            <form onSubmit={handleUpdateSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+            <form onSubmit={handleUpdateSubmit} className="space-y-3">
               {/* 1. Basic & Business Identity */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div className="text-[11px] font-black uppercase text-brand-600 dark:text-brand-400">
-                  Basic & Business Identity (بنیادی و کاروباری معلومات)
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                <div className="text-[10px] font-black uppercase text-brand-600 dark:text-brand-400">
+                  Basic & Business Identity
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      {t('customerPartyName')} *
+                      Customer Name *
                     </label>
                     <input
                       type="text"
                       required
                       value={editingCustomer.name || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -649,56 +648,56 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Shop / Firm / Arhat Name (دکان / فرم کا نام)
+                      Shop / Firm Name
                     </label>
                     <input
                       type="text"
                       value={editingCustomer.shopName || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, shopName: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                    Customer Type (خریدار کی قسم)
-                  </label>
-                  <select
-                    value={editingCustomer.customerType || 'Regular Party'}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, customerType: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    <option value="Regular Party">Regular Party (کھاتہ دار / کمیشن ایجنٹ)</option>
-                    <option value="Wholesale Buyer">Wholesale Buyer (تھوک خریدار)</option>
-                    <option value="Retailer">Retailer / Shopkeeper (پرچون فروش)</option>
-                    <option value="Farmer / Producer">Farmer / Producer (زمیندار / کاشتکار)</option>
-                  </select>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                      Customer Type
+                    </label>
+                    <select
+                      value={editingCustomer.customerType || 'Regular Party'}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, customerType: e.target.value })}
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <option value="Regular Party">Regular Party</option>
+                      <option value="Wholesale Buyer">Wholesale Buyer</option>
+                      <option value="Retailer">Retailer</option>
+                      <option value="Farmer / Producer">Farmer / Producer</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
               {/* 2. Contact & Location */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div className="text-[11px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1">
                   <Phone className="w-3.5 h-3.5" />
-                  <span>Contact & Location (رابطہ و منڈی کا پتہ)</span>
+                  <span>Contact & Location</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      {t('phoneMobile')}
+                      Phone / Mobile
                     </label>
                     <input
                       type="tel"
                       maxLength={11}
                       value={editingCustomer.phone || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -706,30 +705,28 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      WhatsApp / Alt Phone (واٹس ایپ نمبر)
+                      WhatsApp / Alt Phone
                     </label>
                     <input
                       type="tel"
                       maxLength={11}
                       value={editingCustomer.whatsapp || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      {t('mandiLocationCity')}
+                      City / Mandi
                     </label>
                     <input
                       type="text"
                       value={editingCustomer.city || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, city: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -737,13 +734,13 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Full Address / Shop # (مکمل پتہ)
+                      Address / Shop #
                     </label>
                     <input
                       type="text"
                       value={editingCustomer.address || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -752,16 +749,16 @@ export const Customers = () => {
               </div>
 
               {/* 3. Financial & Payment Terms */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div className="text-[11px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                <div className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1">
                   <DollarSign className="w-3.5 h-3.5" />
-                  <span>Financial & Payment Terms (کھاتہ و ادھار شرائط)</span>
+                  <span>Financial & Payment Terms</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      {t('receivableBalance')} (موجودہ بقایا)
+                      Receivable Balance (PKR)
                     </label>
                     <input
                       type="number"
@@ -769,7 +766,7 @@ export const Customers = () => {
                       step="any"
                       value={editingCustomer.balance !== undefined ? editingCustomer.balance : ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, balance: Number(e.target.value) })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -777,14 +774,14 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Credit Limit (ادھار کی حد)
+                      Credit Limit (PKR)
                     </label>
                     <input
                       type="number"
                       min="0"
                       value={editingCustomer.creditLimit || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, creditLimit: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -792,38 +789,38 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Payment Terms (مدت ادائیگی)
+                      Payment Terms
                     </label>
                     <select
                       value={editingCustomer.paymentTerms || 'Cash / Credit'}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, paymentTerms: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     >
-                      <option value="Cash / Credit">Cash / Regular Khata (نقد و ادھار)</option>
-                      <option value="Cash on Delivery">Cash on Delivery (فوری نقد)</option>
-                      <option value="7 Days">Weekly (7 Days / ہفتہ وار)</option>
-                      <option value="15 Days">15 Days (پندرہ دن)</option>
-                      <option value="30 Days">Monthly (30 Days / ماہانہ)</option>
-                      <option value="Seasonal">Seasonal (فصل کٹائی پر)</option>
+                      <option value="Cash / Credit">Cash / Regular Khata</option>
+                      <option value="Cash on Delivery">Cash on Delivery</option>
+                      <option value="7 Days">Weekly (7 Days)</option>
+                      <option value="15 Days">15 Days</option>
+                      <option value="30 Days">Monthly (30 Days)</option>
+                      <option value="Seasonal">Seasonal</option>
                     </select>
                   </div>
                 </div>
               </div>
 
               {/* 4. Identification & Notes */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      CNIC / National ID (شناختی کارڈ نمبر)
+                      CNIC / National ID
                     </label>
                     <input
                       type="text"
                       value={editingCustomer.cnic || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, cnic: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -831,13 +828,13 @@ export const Customers = () => {
 
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Notes / Guarantor Reference (حوالہ / نوٹ)
+                      Notes / Guarantor Reference
                     </label>
                     <input
                       type="text"
                       value={editingCustomer.notes || ''}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, notes: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                       }`}
                     />
@@ -845,17 +842,17 @@ export const Customers = () => {
                 </div>
               </div>
 
-              <div className="flex gap-2.5 pt-2">
+              <div className="flex gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={() => setEditingCustomer(null)}
-                  className="w-1/3 py-3 font-bold text-xs rounded-2xl transition cursor-pointer bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200"
+                  className="w-1/3 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200"
                 >
                   {t('cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="w-2/3 py-3 bg-brand-500 hover:bg-brand-600 text-white font-black text-sm rounded-2xl transition shadow-lg shadow-brand-500/25 cursor-pointer active:scale-98"
+                  className="w-2/3 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-black text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer active:scale-98"
                 >
                   {t('saveChanges')}
                 </button>
