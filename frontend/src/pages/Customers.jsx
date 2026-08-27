@@ -7,6 +7,7 @@ import {
   Phone, 
   MapPin, 
   Edit3, 
+  Trash2,
   CheckCircle2, 
   DollarSign, 
   X, 
@@ -29,7 +30,7 @@ import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
 
 export const Customers = () => {
-  const { customers = [], sales = [], addCustomer, updateCustomer } = useERP();
+  const { customers = [], sales = [], addCustomer, updateCustomer, deleteCustomer } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -210,6 +211,16 @@ export const Customers = () => {
       setEditingCustomer(null);
     } catch (err) {
       alert(err.message || 'Failed to update customer');
+    }
+  };
+
+  const handleDeleteCustomer = async (id, name) => {
+    if (window.confirm(`Are you sure you want to delete customer "${name}"?`)) {
+      try {
+        await deleteCustomer(id);
+      } catch (err) {
+        alert(err.message || 'Failed to delete customer');
+      }
     }
   };
 
@@ -532,6 +543,13 @@ export const Customers = () => {
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
+                      <button
+                        onClick={() => handleDeleteCustomer(cust.id, cust.name)}
+                        className="p-1.5 rounded-xl border border-rose-500/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 transition cursor-pointer"
+                        title="Delete Customer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -630,7 +648,7 @@ export const Customers = () => {
                               onClick={() => setViewingCustomer(cust)}
                               className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${
                                 theme === 'dark' 
-                                  ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 
+                                   ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 
                                   : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
                               }`}
                               title="View Customer Profile"
@@ -646,6 +664,15 @@ export const Customers = () => {
                               title="Edit Customer"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Delete Customer */}
+                            <button
+                              onClick={() => handleDeleteCustomer(cust.id, cust.name)}
+                              className="p-1.5 rounded-xl border border-rose-500/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 transition cursor-pointer"
+                              title="Delete Customer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
