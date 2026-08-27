@@ -359,6 +359,41 @@ export const Reports = () => {
         </div>
       </div>
 
+      {/* Report Module Switcher Bar */}
+      <div className={`p-2.5 rounded-2xl border card-shadow flex items-center justify-between gap-3 ${
+        theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      }`}>
+        <div className="flex items-center gap-2 overflow-x-auto w-full no-scrollbar">
+          {[
+            { key: 'Stock', label: 'Stock & Inventory', icon: Warehouse },
+            { key: 'Sales', label: 'Sales & Revenue', icon: TrendingUp },
+            { key: 'Expenses', label: 'Operating Expenses', icon: DollarSign },
+            { key: 'ProfitLoss', label: 'Profit & Loss (P&L)', icon: PieChart },
+            { key: 'BalanceSheet', label: 'Balance Sheet & Equity', icon: Building },
+          ].map(tab => {
+            const Icon = tab.icon;
+            const isActive = reportType === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => navigate(`/reports?type=${tab.key}`)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                    : theme === 'dark'
+                      ? 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-700'
+                      : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* ========================================================================= */}
       {/* 2. REPORT VIEW CONTENT */}
       {/* ========================================================================= */}
