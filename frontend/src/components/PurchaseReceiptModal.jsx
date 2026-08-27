@@ -3,10 +3,12 @@ import { Printer, Download, Truck, X, Building2, CheckCircle2, Loader2, ShieldCh
 import html2pdf from 'html2pdf.js';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
+import { useAuth } from '../context/AuthContext';
 
 export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
   const { theme } = useTheme();
   const { t } = useLocale();
+  const { shop } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
 
   if (!isOpen || !purchaseData) return null;
@@ -37,6 +39,8 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
   const totalNum = Number(totalAmount || 0);
   const paidNum = Number(paidAmount || 0);
   const dueRemaining = Math.max(0, totalNum - paidNum);
+  const shopTitle = shop?.name || 'GHALLA MANDI ERP';
+  const mandiTitle = shop?.mandiName || 'COMMISSION AGENTS & GRAIN PROCUREMENT';
 
   // High Quality Isolated Print - Full Width A4 & Thermal
   const handlePrint = () => {
@@ -169,7 +173,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
               }
               .sig-box {
                 text-align: center;
-                width: 200px;
+                width: 180px;
                 border-top: 1.5px dashed #94a3b8;
                 padding-top: 6px;
                 font-size: 11px;
@@ -184,8 +188,8 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
               <table class="header-table">
                 <tr>
                   <td style="vertical-align: middle; width: 60%;">
-                    <div style="font-size: 24px; font-weight: 900; color: #064e3b; letter-spacing: -0.5px;">GHALLA MANDI ERP</div>
-                    <div style="font-size: 12px; font-weight: 700; color: #047857; margin-top: 2px;">COMMISSION AGENTS & GRAIN PROCUREMENT</div>
+                    <div style="font-size: 24px; font-weight: 900; color: #064e3b; letter-spacing: -0.5px;">${shopTitle}</div>
+                    <div style="font-size: 12px; font-weight: 700; color: #047857; margin-top: 2px;">${mandiTitle}</div>
                     <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Inward Purchase Voucher & Grain Receipt (آمد چٹھہ)</div>
                   </td>
                   <td style="vertical-align: middle; text-align: right; width: 40%;">
@@ -198,35 +202,34 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                 </tr>
               </table>
 
-              <!-- Supplier Metadata -->
+              <!-- Meta -->
               <div class="meta-box">
                 <table class="meta-table">
                   <tr>
-                    <td style="width: 50%; border-right: 1px solid #bbf7d0; padding-right: 16px;">
-                      <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #047857; margin-bottom: 4px;">SUPPLIER / GROWER DETAILS (سپلائر / زمیندار):</div>
-                      <div style="font-size: 15px; font-weight: 900; color: #0f172a;">${displaySupplier}</div>
-                      ${supplierCity ? `<div style="font-size: 12px; color: #475569; font-weight: 600; margin-top: 2px;">📍 City: ${supplierCity}</div>` : ''}
-                      ${supplierPhone ? `<div style="font-size: 12px; color: #475569; font-weight: 600; margin-top: 2px;">📞 Phone: ${supplierPhone}</div>` : ''}
+                    <td style="width: 50%;">
+                      <div style="font-size: 10px; font-weight: 800; color: #047857; text-transform: uppercase;">SUPPLIER / AARTHI:</div>
+                      <div style="font-size: 14px; font-weight: 900; color: #064e3b; margin-top: 2px;">${displaySupplier}</div>
+                      ${supplierCity ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">📍 City: ${supplierCity}</div>` : ''}
+                      ${supplierPhone ? `<div style="font-size: 11px; color: #475569; margin-top: 1px;">📞 Phone: ${supplierPhone}</div>` : ''}
                     </td>
-                    <td style="width: 50%; padding-left: 16px;">
-                      <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #047857; margin-bottom: 4px;">PURCHASE DETAILS:</div>
-                      <div style="font-size: 13px; font-weight: 800; color: #0f172a;">Payment: <span style="color: #047857;">${paymentMode}</span></div>
-                      ${truckNo ? `<div style="font-size: 12px; color: #0f172a; font-weight: 700; margin-top: 2px;">🚚 Truck / Vehicle: ${truckNo}</div>` : ''}
-                      ${gatePassNo ? `<div style="font-size: 11px; color: #64748b;">🎫 Gate Pass: ${gatePassNo}</div>` : ''}
+                    <td style="width: 50%; text-align: right;">
+                      <div style="font-size: 10px; font-weight: 800; color: #047857; text-transform: uppercase;">SETTLEMENT MODE:</div>
+                      <div style="font-size: 13px; font-weight: 800; color: #064e3b; margin-top: 2px;">${paymentMode}</div>
+                      ${truckNo ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">🚛 Truck: ${truckNo}</div>` : ''}
                     </td>
                   </tr>
                 </table>
               </div>
 
-              <!-- Products Table -->
+              <!-- Table -->
               <table class="items-table">
                 <thead>
                   <tr>
                     <th style="width: 45px; text-align: center;">#</th>
-                    <th style="text-align: left;">COMMODITY / GRAIN DESCRIPTION</th>
-                    <th style="width: 130px; text-align: right;">PURCHASE RATE</th>
-                    <th style="width: 130px; text-align: center;">QUANTITY / WEIGHT</th>
-                    <th style="width: 150px; text-align: right;">TOTAL COST</th>
+                    <th style="text-align: left;">COMMODITY / PROCUREMENT ITEM</th>
+                    <th style="width: 110px; text-align: right;">RATE (PKR)</th>
+                    <th style="width: 100px; text-align: center;">QTY / WEIGHT</th>
+                    <th style="width: 120px; text-align: right;">TOTAL (PKR)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -234,60 +237,54 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                 </tbody>
               </table>
 
-              <!-- Summary Table -->
-              <table style="width: 100%; border-collapse: collapse;">
+              <!-- Totals -->
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
                 <tr>
-                  <td style="width: 50%; vertical-align: top; padding-right: 20px;">
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-size: 11px; color: #64748b;">
-                      <div style="font-weight: 800; color: #0f172a; margin-bottom: 4px;">Quality & Mandi Arrival Note:</div>
-                      <div>• Goods verified on arrival by quality inspector & weighed at weighbridge.</div>
-                      <div>• Inventory updated into system stock.</div>
+                  <td style="width: 55%; vertical-align: top; padding-right: 20px;">
+                    <div style="border: 1px solid #d1fae5; border-radius: 8px; padding: 12px; font-size: 11px; color: #065f46; background: #f0fdf4;">
+                      <div style="font-weight: 800; margin-bottom: 4px;">Mandi Procurement Terms:</div>
+                      <div>• Goods inward verified per mandi weighing scale (کنڈا).</div>
+                      <div>• Purchase voucher credited to supplier account.</div>
+                      <div>• Authorized and stamped by Ghalla Mandi ERP.</div>
                     </div>
                   </td>
-                  <td style="width: 50%; vertical-align: top;">
-                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-                      <tr style="border-bottom: 1px solid #e2e8f0;">
-                        <td style="padding: 8px 12px; font-weight: 700; color: #64748b;">Subtotal Amount:</td>
-                        <td style="padding: 8px 12px; text-align: right; font-weight: 800; font-family: monospace; font-size: 13px;">Rs. ${Number(subtotalAmount || totalNum).toLocaleString()}</td>
-                      </tr>
-                      ${freightCharges > 0 ? `
-                      <tr style="border-bottom: 1px solid #e2e8f0; color: #475569;">
-                        <td style="padding: 8px 12px; font-weight: 700;">Freight / Carriage:</td>
-                        <td style="padding: 8px 12px; text-align: right; font-weight: 800; font-family: monospace; font-size: 13px;">+ Rs. ${Number(freightCharges).toLocaleString()}</td>
-                      </tr>` : ''}
+                  <td style="width: 45%; vertical-align: top;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                       <tr class="grand-total-row">
-                        <td style="padding: 10px 14px; font-size: 14px; font-weight: 900;">TOTAL PAYABLE:</td>
-                        <td style="padding: 10px 14px; text-align: right; font-size: 16px; font-weight: 900; font-family: monospace;">Rs. ${totalNum.toLocaleString()}</td>
+                        <td style="border-radius: 6px 0 0 6px;">TOTAL AMOUNT:</td>
+                        <td style="text-align: right; border-radius: 0 6px 6px 0; font-family: monospace;">Rs. ${totalNum.toLocaleString()}</td>
                       </tr>
-                      <tr style="border-bottom: 1px solid #e2e8f0; background: #ecfdf5; color: #047857;">
-                        <td style="padding: 8px 12px; font-weight: 800;">Amount Paid (ادا شدہ):</td>
-                        <td style="padding: 8px 12px; text-align: right; font-weight: 900; font-family: monospace; font-size: 13px;">Rs. ${paidNum.toLocaleString()}</td>
+                      <tr>
+                        <td style="padding: 6px 8px 4px; color: #047857; font-weight: 800;">Paid (Counter):</td>
+                        <td style="padding: 6px 8px 4px; text-align: right; font-weight: 800; color: #047857; font-family: monospace;">Rs. ${paidNum.toLocaleString()}</td>
                       </tr>
                       ${dueRemaining > 0 ? `
-                      <tr style="background: #fffbeb; color: #b45309;">
-                        <td style="padding: 8px 12px; font-weight: 800;">Balance Due (واجب الادا کھاتہ):</td>
-                        <td style="padding: 8px 12px; text-align: right; font-weight: 900; font-family: monospace; font-size: 13px;">Rs. ${dueRemaining.toLocaleString()}</td>
-                      </tr>` : `
-                      <tr style="background: #f0fdf4; color: #15803d;">
-                        <td style="padding: 8px 12px; font-weight: 800;">Payment Status:</td>
-                        <td style="padding: 8px 12px; text-align: right; font-weight: 900; font-size: 12px;">✓ FULLY PAID</td>
-                      </tr>`}
+                        <tr>
+                          <td style="padding: 4px 8px; color: #b45309; font-weight: 800;">Balance Due (Khata):</td>
+                          <td style="padding: 4px 8px; text-align: right; font-weight: 900; color: #b45309; font-family: monospace;">Rs. ${dueRemaining.toLocaleString()}</td>
+                        </tr>
+                      ` : `
+                        <tr>
+                          <td style="padding: 4px 8px; color: #047857; font-weight: 700;">Status:</td>
+                          <td style="padding: 4px 8px; text-align: right; font-weight: 800; color: #047857;">✓ FULLY SETTLED</td>
+                        </tr>
+                      `}
                     </table>
                   </td>
                 </tr>
               </table>
 
               <!-- Signatures -->
-              <div style="margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end;">
-                <div class="sig-box">
-                  Supplier / Grower Signature<br />
-                  <span style="font-size: 10px; font-weight: 600; color: #94a3b8;">دستخط سپلائر</span>
-                </div>
-                <div class="sig-box">
-                  Authorized Munshi Signature<br />
-                  <span style="font-size: 10px; font-weight: 600; color: #94a3b8;">مہر و دستخط منشی</span>
-                </div>
-              </div>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 30px;">
+                <tr>
+                  <td style="width: 50%; vertical-align: bottom;">
+                    <div class="sig-box">Weigher Signature (تولائی کار)</div>
+                  </td>
+                  <td style="width: 50%; vertical-align: bottom; text-align: right;">
+                    <div class="sig-box" style="margin-left: auto;">Receiver / Munshi (دستخط وصول کنندہ)</div>
+                  </td>
+                </tr>
+              </table>
             </div>
           </body>
         </html>
@@ -319,7 +316,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
       setIsDownloading(true);
 
       const opt = {
-        margin: [10, 10, 10, 10], // top, left, bottom, right in mm
+        margin: [8, 8, 8, 8],
         filename: `Purchase_Voucher_${cleanPurchaseNo.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
@@ -345,25 +342,51 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto print:p-0 print:bg-white print:static">
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto print:p-0 print:bg-white print:static"
+    >
       {/* Modal Container */}
-      <div className={`w-full max-w-lg rounded-3xl card-shadow border overflow-hidden flex flex-col print:shadow-none print:border-none print:w-full print:max-w-none print:rounded-none ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className={`w-full max-w-xl rounded-2xl sm:rounded-3xl card-shadow border overflow-hidden flex flex-col my-auto max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:w-full print:max-w-none print:rounded-none ${
+          theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+        }`}
+      >
+        {/* Modal Top Header Bar */}
+        <div className={`px-4 sm:px-6 py-3 border-b flex items-center justify-between gap-2 shrink-0 ${
+          theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-emerald-950/10 border-slate-100'
         }`}>
+          <div className="flex items-center gap-2 min-w-0">
+            <Truck className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span className="font-black text-xs sm:text-sm uppercase tracking-wider text-slate-800 dark:text-white truncate">
+              Goods Inward & Purchase Voucher
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Printable Purchase Voucher Body Area */}
         <div
-          className="p-6 md:p-8 space-y-5 text-slate-800 bg-white"
+          className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-slate-800 bg-white"
           id="purchase-voucher-printable-area"
         >
           {/* Header Badge & Procurement Branding */}
-          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center space-y-1">
-            <div className="flex items-center justify-center gap-2 text-emerald-800 font-black text-lg">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                <Truck className="w-5 h-5 stroke-[2.2]" />
+          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3.5 sm:p-4 text-center space-y-1">
+            <div className="flex items-center justify-center gap-2 text-emerald-800 font-black text-base sm:text-lg">
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                <Truck className="w-4 h-4 stroke-[2.2]" />
               </div>
-              <span>{t('appName')}</span>
+              <span className="truncate">{shopTitle}</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-xs">
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-xs">
               <Scale className="w-3 h-3" />
               <span>GOODS INWARD & PROCUREMENT VOUCHER</span>
             </div>
@@ -373,7 +396,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
           </div>
 
           {/* Metadata Grid */}
-          <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 border border-slate-100 rounded-2xl p-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 text-xs bg-slate-50 border border-slate-100 rounded-2xl p-3.5">
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Voucher No</span>
               <span className="font-black text-emerald-700 text-sm font-mono">{cleanPurchaseNo}</span>
@@ -384,63 +407,70 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-400 block">{t('supplierFirmName')}</span>
-              <span className="font-extrabold text-slate-900">{supplierName} {supplierCity ? `(${supplierCity})` : ''}</span>
+              <span className="font-extrabold text-slate-900">{displaySupplier} {supplierCity ? `(${supplierCity})` : ''}</span>
+              {supplierPhone && <div className="text-[11px] text-slate-500 font-mono">📞 {supplierPhone}</div>}
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-400 block">{t('paymentMethodLabel')}</span>
               <span className="font-bold text-slate-800">{paymentMode}</span>
+              {truckNo && <div className="text-[11px] text-slate-500 font-medium">🚛 Truck: {truckNo}</div>}
             </div>
           </div>
 
-          {/* Commodities / Inward Goods Table */}
+          {/* Commodities / Inward Goods Table with Scroll */}
           <div className="border border-slate-100 rounded-2xl overflow-hidden">
-            <div className="bg-emerald-900 text-white flex items-center justify-between text-[10px] font-black uppercase tracking-wider px-3.5 py-2">
-              <span className="flex-1">COMMODITY / ITEM</span>
-              <span className="w-20 text-center">WEIGHT / QTY</span>
-              <span className="w-24 text-right">TOTAL (PKR)</span>
-            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[360px] sm:min-w-0">
+                <thead>
+                  <tr className="bg-emerald-900 text-white text-[10px] font-black uppercase tracking-wider">
+                    <th className="py-2 px-3">COMMODITY / ITEM</th>
+                    <th className="py-2 px-3 text-center w-24">QTY / WEIGHT</th>
+                    <th className="py-2 px-3 text-right w-28">TOTAL (PKR)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {items.map((item, idx) => {
+                    const itemPrice = Number(item.price || item.rate || 0);
+                    const itemQty = Number(item.qty || 1);
+                    const itemUnit = item.unit || item.unitName || t('kg');
+                    const lineTotal = Number(item.total) || (itemPrice * itemQty);
 
-            <div className="divide-y divide-slate-100 text-xs">
-              {items.map((item, idx) => {
-                const itemPrice = Number(item.price || item.rate || 0);
-                const itemQty = Number(item.qty || 1);
-                const itemUnit = item.unit || item.unitName || t('kg');
-                const lineTotal = Number(item.total) || (itemPrice * itemQty);
-
-                return (
-                  <div key={idx} className="flex items-center justify-between p-3">
-                    <div className="flex-1 pr-2">
-                      <div className="font-extrabold text-emerald-950 text-xs">{item.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">Rate: Rs. {itemPrice.toLocaleString()} / {itemUnit}</div>
-                    </div>
-                    <div className="w-20 text-center font-black text-slate-800">
-                      {itemQty} {itemUnit}
-                    </div>
-                    <div className="w-24 text-right font-black text-emerald-800">
-                      Rs. {lineTotal.toLocaleString()}
-                    </div>
-                  </div>
-                );
-              })}
+                    return (
+                      <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}>
+                        <td className="p-3">
+                          <div className="font-extrabold text-emerald-950 text-xs">{item.name}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">Rate: Rs. {itemPrice.toLocaleString()} / {itemUnit}</div>
+                        </td>
+                        <td className="p-3 text-center font-black text-slate-800 whitespace-nowrap">
+                          {itemQty} {itemUnit}
+                        </td>
+                        <td className="p-3 text-right font-black text-emerald-800 font-mono whitespace-nowrap">
+                          Rs. {lineTotal.toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
 
           {/* Calculations Summary Section */}
-          <div className="border border-slate-200 rounded-2xl p-4 space-y-2 text-xs bg-slate-50">
+          <div className="border border-slate-200 rounded-2xl p-3.5 sm:p-4 space-y-2 text-xs bg-slate-50">
             <div className="flex justify-between items-center text-sm font-black text-slate-900">
               <span>{t('totalAmount')} (PKR):</span>
-              <span className="text-base text-emerald-700">Rs. {totalNum.toLocaleString()}</span>
+              <span className="text-base text-emerald-700 font-mono">Rs. {totalNum.toLocaleString()}</span>
             </div>
 
             <div className="flex justify-between items-center text-emerald-700 font-bold">
               <span>{t('paid')} ({t('cashOnCounter')}):</span>
-              <span>Rs. {paidNum.toLocaleString()}</span>
+              <span className="font-mono">Rs. {paidNum.toLocaleString()}</span>
             </div>
 
             {dueRemaining > 0 ? (
               <div className="flex justify-between items-center text-amber-700 font-black pt-1.5 border-t border-slate-200">
                 <span>{t('remainingDue')} ({t('mandiLedger')}):</span>
-                <span>Rs. {dueRemaining.toLocaleString()}</span>
+                <span className="font-mono">Rs. {dueRemaining.toLocaleString()}</span>
               </div>
             ) : (
               <div className="flex justify-between items-center text-emerald-700 font-black pt-1.5 border-t border-slate-200">
@@ -457,63 +487,67 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
           </div>
 
           {/* Mandi Weighment Sign-off footer */}
-          <div className="border border-dashed border-slate-200 rounded-2xl p-3 flex items-center justify-between text-[10px] text-slate-500">
-            <div className="text-center">
-              <div className="h-6"></div>
-              <div className="border-t border-slate-300 pt-1 font-bold">Weigher (تولائی کار)</div>
+          <div className="border border-dashed border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] text-slate-500">
+            <div className="text-center w-36 border-t border-slate-300 pt-1 font-bold">
+              Weigher (تولائی کار)
             </div>
             <div className="flex items-center gap-1 text-emerald-700 font-bold">
               <ShieldCheck className="w-4 h-4" />
               <span>Goods Inward Verified</span>
             </div>
-            <div className="text-center">
-              <div className="h-6"></div>
-              <div className="border-t border-slate-300 pt-1 font-bold">Receiver / Munshi</div>
+            <div className="text-center w-36 border-t border-slate-300 pt-1 font-bold">
+              Receiver / Munshi
             </div>
           </div>
         </div>
 
-        {/* Modal Actions Footer - Hidden during print */}
-        <div className={`p-4 border-t flex items-center justify-between gap-2.5 print:hidden shrink-0 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'
-          }`}>
+        {/* Modal Actions Footer */}
+        <div className={`p-3 sm:p-4 border-t flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 print:hidden shrink-0 ${
+          theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'
+        }`}>
           <button
+            type="button"
             onClick={onClose}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-              }`}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            }`}
           >
             <X className="w-4 h-4" />
             <span>{t('close')}</span>
           </button>
 
-          <button
-            onClick={handleDownloadPDF}
-            disabled={isDownloading}
-            className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer"
-            title="Download purchase voucher as A4 PDF file"
-          >
-            {isDownloading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Generating PDF...</span>
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                <span>Download PDF (A4)</span>
-              </>
-            )}
-          </button>
+          <div className="flex flex-1 items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadPDF}
+              disabled={isDownloading}
+              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer"
+              title="Download purchase voucher as A4 PDF file"
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Download PDF</span>
+                </>
+              )}
+            </button>
 
-          <button
-            onClick={handlePrint}
-            className="flex-1 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-900/20 flex items-center justify-center gap-1.5 cursor-pointer"
-            title="Print purchase arrival voucher"
-          >
-            <Printer className="w-4 h-4" />
-            <span>{t('Print Receipt')}</span>
-          </button>
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="flex-1 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-900/20 flex items-center justify-center gap-1.5 cursor-pointer"
+              title="Print purchase arrival voucher"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Print Receipt</span>
+            </button>
+          </div>
         </div>
-
       </div>
     </div>
   );

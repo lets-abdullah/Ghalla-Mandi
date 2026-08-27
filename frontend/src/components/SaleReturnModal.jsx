@@ -294,7 +294,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
             <div className={`p-3 rounded-2xl border space-y-1.5 ${
               theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
             }`}>
-              <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 block uppercase">Product</span>
                   <span className="font-extrabold text-slate-800 dark:text-white truncate block">{currentItem.name}</span>
