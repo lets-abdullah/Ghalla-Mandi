@@ -464,10 +464,16 @@ export const ERPProvider = ({ children }) => {
     try {
       const payload = {
         name: supplierData.name,
+        businessName: supplierData.businessName || supplierData.firmName || '',
         phone: supplierData.phone || '',
-        city: supplierData.city || 'Sargodha',
+        whatsapp: supplierData.whatsapp || '',
+        email: supplierData.email || '',
+        city: supplierData.city || 'Local Mandi',
+        address: supplierData.address || '',
         openingBalance: Number(supplierData.openingBalance) || 0,
-        suppliedProducts: supplierData.suppliedProductIds || supplierData.suppliedProducts || []
+        suppliedProducts: supplierData.suppliedProducts || [],
+        status: supplierData.status || 'Active',
+        notes: supplierData.notes || ''
       };
 
       const res = await authFetch('/api/suppliers', {
@@ -476,8 +482,9 @@ export const ERPProvider = ({ children }) => {
       });
 
       if (res.success && res.supplier) {
-        setSuppliers(prev => [...prev, res.supplier]);
-        return res.supplier;
+        const fullSup = { ...payload, ...res.supplier };
+        setSuppliers(prev => [...prev, fullSup]);
+        return fullSup;
       }
       throw new Error(res.message || 'Failed to add supplier');
     } catch (err) {
@@ -494,8 +501,8 @@ export const ERPProvider = ({ children }) => {
       });
 
       if (res.success && res.supplier) {
-        setSuppliers(prev => prev.map(s => s.id === id ? res.supplier : s));
-        return res.supplier;
+        setSuppliers(prev => prev.map(s => s.id === id ? { ...s, ...updatedData, ...res.supplier } : s));
+        return { ...updatedData, ...res.supplier };
       }
       throw new Error(res.message || 'Failed to update supplier');
     } catch (err) {

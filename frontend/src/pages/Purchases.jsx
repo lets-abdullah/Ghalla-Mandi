@@ -15,7 +15,8 @@ import {
   Tag,
   Scale,
   Sparkles,
-  Check
+  Check,
+  UserCheck
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -42,6 +43,11 @@ export const Purchases = () => {
 
   const [filterType, setFilterType] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Due' | 'Returns'
   const [search, setSearch] = useState('');
+  const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('All');
+  const [selectedProductFilter, setSelectedProductFilter] = useState('All');
+  const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedReturnPurchase, setSelectedReturnPurchase] = useState(null);
@@ -371,28 +377,120 @@ export const Purchases = () => {
     return acc + Math.max(0, amt - paid - ret);
   }, 0);
 
-  const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('All');
+  // Robust Date Parser helper
+  const parsePurchaseDate = (dateStr) => {
+    if (!dateStr) return null;
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+      }
+    } else if (dateStr.includes('-')) {
+      const parts = dateStr.split('T')[0].split('-');
+      if (parts.length === 3) {
+        return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      }
+    }
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const matchPurchaseDate = (dateStr) => {
+    if (dateFilterType === 'All') return true;
+    const pDate = parsePurchaseDate(dateStr);
+    if (!pDate) return true;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const day = new Date(pDate);
+    day.setHours(0, 0, 0, 0);
+
+    if (dateFilterType === 'Today') {
+      return day.getTime() === today.getTime();
+    }
+    if (dateFilterType === 'Yesterday') {
+      const yest = new Date(today);
+      yest.setDate(today.getDate() - 1);
+      return day.getTime() === yest.getTime();
+    }
+    if (dateFilterType === 'This Week') {
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - 7);
+      return day >= startOfWeek && day <= new Date();
+    }
+    if (dateFilterType === 'This Month') {
+      return day.getFullYear() === today.getFullYear() && day.getMonth() === today.getMonth();
+    }
+    if (dateFilterType === 'Custom') {
+      if (customStartDate && customEndDate) {
+        const start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+        return day >= start && day <= end;
+      } else if (customStartDate) {
+        const start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+        return day >= start;
+      } else if (customEndDate) {
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+        return day <= end;
+      }
+    }
+    return true;
+  };
 
   const filteredPurchases = purchases.filter(p => {
+    // 1. Search Filter
     const matchesSearch = (p.purchaseNo || p.purchaseno || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.supplier || p.supplierName || p.suppliername || '').toLowerCase().includes(search.toLowerCase()) ||
       (typeof p.items === 'string' ? p.items.toLowerCase() : '').includes(search.toLowerCase());
 
-    const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
-    const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
-    const status = paid >= total && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
+    if (!matchesSearch) return false;
 
+    // 2. Supplier Filter
     if (selectedSupplierFilter !== 'All') {
       const supMatch = (p.supplierId === selectedSupplierFilter) || 
                        ((p.supplier || p.supplierName || '').toLowerCase() === selectedSupplierFilter.toLowerCase());
       if (!supMatch) return false;
     }
 
-    if (filterType === 'All') return matchesSearch;
-    if (filterType === 'Paid') return matchesSearch && status === 'Paid';
-    if (filterType === 'Partial') return matchesSearch && status === 'Partial';
-    if (filterType === 'Due') return matchesSearch && status === 'Due';
-    return matchesSearch;
+    // 3. Product Filter
+    if (selectedProductFilter !== 'All') {
+      let containsProd = false;
+      if (p.productId && p.productId === selectedProductFilter) containsProd = true;
+      if (p.productName && p.productName.toLowerCase() === selectedProductFilter.toLowerCase()) containsProd = true;
+      if (typeof p.items === 'string' && p.items.toLowerCase().includes(selectedProductFilter.toLowerCase())) containsProd = true;
+      if (Array.isArray(p.cart)) {
+        containsProd = p.cart.some(item => 
+          (item.name || item.productName || '').toLowerCase() === selectedProductFilter.toLowerCase() ||
+          item.productId === selectedProductFilter
+        );
+      }
+      if (Array.isArray(p.items)) {
+        containsProd = containsProd || p.items.some(item => 
+          (item.name || item.productName || '').toLowerCase() === selectedProductFilter.toLowerCase() ||
+          item.productId === selectedProductFilter
+        );
+      }
+      if (!containsProd) return false;
+    }
+
+    // 4. Date Filter
+    if (!matchPurchaseDate(p.date || p.createdAt)) return false;
+
+    // 5. Payment / Status Filter
+    const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
+    const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
+    const status = paid >= total && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
+
+    if (filterType === 'Paid' && status !== 'Paid') return false;
+    if (filterType === 'Partial' && status !== 'Partial') return false;
+    if (filterType === 'Due' && status !== 'Due') return false;
+
+    return true;
   });
 
   return (
@@ -495,51 +593,135 @@ export const Purchases = () => {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className={`p-4 rounded-2xl border card-shadow flex flex-col md:flex-row items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-        }`}>
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder={t('searchPurchasesPlaceholder')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+      {/* Unified Filter Toolbar: [Search] [Supplier] [Product] [Date] [Status] */}
+      <div className={`p-4 rounded-3xl border card-shadow space-y-3 ${
+        theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      }`}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* 1. Search */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Search className="w-3.5 h-3.5 text-brand-500" />
+              <span>Search</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Search #, supplier, items..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
-          />
-        </div>
+            />
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          {/* Supplier Selector Filter */}
-          <select
-            value={selectedSupplierFilter}
-            onChange={(e) => setSelectedSupplierFilter(e.target.value)}
-            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-            }`}
-          >
-            <option value="All">All Suppliers</option>
-            {suppliers.map(s => (
-              <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
-            ))}
-          </select>
-
-          {['All', 'Paid', 'Partial', 'Due', 'Returns'].map(status => (
-            <button
-              key={status}
-              onClick={() => setFilterType(status)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${filterType === status
-                ? 'bg-brand-500 text-white shadow-xs'
-                : theme === 'dark'
-                  ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
+          {/* 2. Supplier */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <UserCheck className="w-3.5 h-3.5 text-blue-500" />
+              <span>Supplier</span>
+            </label>
+            <select
+              value={selectedSupplierFilter}
+              onChange={(e) => setSelectedSupplierFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
             >
-              {status === 'Returns' ? 'Returns' : t(status.toLowerCase())}
-            </button>
-          ))}
+              <option value="All">All Suppliers</option>
+              {suppliers.map(s => (
+                <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Product */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Package className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Product</span>
+            </label>
+            <select
+              value={selectedProductFilter}
+              onChange={(e) => setSelectedProductFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Products</option>
+              {products.map(p => (
+                <option key={p.id} value={p.name}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 4. Date Filter */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Date Filter</span>
+            </label>
+            <select
+              value={dateFilterType}
+              onChange={(e) => setDateFilterType(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Dates</option>
+              <option value="Today">Today</option>
+              <option value="Yesterday">Yesterday</option>
+              <option value="This Week">This Week</option>
+              <option value="This Month">This Month</option>
+              <option value="Custom">Custom Range</option>
+            </select>
+          </div>
+
+          {/* 5. Status */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-amber-500" />
+              <span>Status</span>
+            </label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Paid">Fully Paid</option>
+              <option value="Partial">Partial Paid</option>
+              <option value="Due">Pending / Due</option>
+              <option value="Returns">Show Returns</option>
+            </select>
+          </div>
         </div>
+
+        {/* Custom Date Pickers (if Custom is selected) */}
+        {dateFilterType === 'Custom' && (
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+            <span className="text-xs font-bold text-slate-400">Date Range:</span>
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={(e) => setCustomStartDate(e.target.value)}
+              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            />
+            <span className="text-xs text-slate-400 font-bold">to</span>
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            />
+          </div>
+        )}
       </div>
 
       {/* Main Table View */}

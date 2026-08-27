@@ -24,7 +24,7 @@ import { ReceiptModal } from '../components/ReceiptModal';
 import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
 
 export const Invoices = () => {
-  const { sales = [], purchases = [], customers = [], suppliers = [], saleReturns = [], purchaseReturns = [] } = useERP();
+  const { sales = [], purchases = [], customers = [], suppliers = [], products = [], saleReturns = [], purchaseReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const [searchParams] = useSearchParams();
@@ -33,13 +33,14 @@ export const Invoices = () => {
   const isPurchases = typeParam && typeParam.toLowerCase() === 'purchases';
   const activeTab = isPurchases ? 'Purchases' : 'Sales';
 
-  // 5-Filter State System (Identical to Sales Page)
+  // 5-Filter State System: [Search] [Supplier/Customer] [Product] [Date] [Status]
   const [search, setSearch] = useState('');
   const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Party' | 'Walk-in Customer'
   const [selectedCustomerId, setSelectedCustomerId] = useState('All'); // 'All' | specific customer id or name
+  const [selectedProductFilter, setSelectedProductFilter] = useState('All'); // 'All' | specific product
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Pending'
   const [returnFilter, setReturnFilter] = useState('All'); // 'All' | 'SalesOnly' | 'WithReturns' | 'ReturnsOnly'
 
@@ -261,21 +262,35 @@ export const Invoices = () => {
         if (customerTypeFilter === 'Walk-in Customer' && !isWalkin) return false;
       }
 
-      // 4. Specific Party Filter
+      // 4. Specific Party Filter (Supplier or Customer)
       if (selectedCustomerId !== 'All') {
         const idMatch = (item.customerId === selectedCustomerId) || (item.supplierId === selectedCustomerId);
         const nameMatch = item.partyName.toLowerCase() === selectedCustomerId.toLowerCase();
         if (!idMatch && !nameMatch) return false;
       }
 
-      // 5. Payment Status Filter
+      // 5. Product Filter
+      if (selectedProductFilter !== 'All') {
+        let hasProduct = false;
+        if (item.productName && item.productName.toLowerCase() === selectedProductFilter.toLowerCase()) hasProduct = true;
+        if (typeof item.items === 'string' && item.items.toLowerCase().includes(selectedProductFilter.toLowerCase())) hasProduct = true;
+        if (Array.isArray(item.cart)) {
+          hasProduct = item.cart.some(it => 
+            (it.name || it.productName || '').toLowerCase() === selectedProductFilter.toLowerCase() ||
+            it.productId === selectedProductFilter
+          );
+        }
+        if (!hasProduct) return false;
+      }
+
+      // 6. Payment Status Filter
       if (statusFilter === 'Paid' && item.status !== 'Paid') return false;
       if (statusFilter === 'Partial' && item.status !== 'Partial') return false;
       if (statusFilter === 'Pending' && item.status !== 'Pending') return false;
 
       return true;
     });
-  }, [activeInvoicesList, isPurchases, search, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter]);
+  }, [activeInvoicesList, isPurchases, search, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, selectedProductFilter, statusFilter]);
 
   // Aggregate Metrics based on Filtered Invoices
   const totalInvoicedVolume = filteredInvoices.reduce((acc, i) => acc + i.amountNum, 0);
@@ -451,22 +466,81 @@ export const Invoices = () => {
             Rs. {totalPendingDue.toLocaleString()}
           </div>
           <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">
-            Filter Unpaid Invoices
+        Filter Unpaid Invoices
           </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 5-FILTER TOOLBAR (EXACT SAME FILTERS AS SALES PAGE) */}
+      {/* 5-FILTER TOOLBAR: [Search] [Supplier/Customer] [Product] [Date] [Status] */}
       {/* ========================================================================= */}
       <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* 1. Date Filter */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* 1. Search */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-brand-500" />
+              <Search className="w-3.5 h-3.5 text-brand-500" />
+              <span>Search</span>
+            </label>
+            <input
+              type="text"
+              placeholder={isPurchases ? "Search purchase #, supplier..." : "Search invoice #, customer..."}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            />
+          </div>
+
+          {/* 2. Select Party (Supplier or Customer) */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <User className="w-3.5 h-3.5 text-blue-500" />
+              <span>{isPurchases ? 'Supplier' : 'Customer'}</span>
+            </label>
+            <select
+              value={selectedCustomerId}
+              onChange={(e) => setSelectedCustomerId(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All {isPurchases ? 'Suppliers' : 'Customers'}</option>
+              {(isPurchases ? suppliers : customers).map(party => (
+                <option key={party.id} value={party.id}>
+                  {party.name} {party.city ? `(${party.city})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Product Filter */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <ShoppingBag className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Product</span>
+            </label>
+            <select
+              value={selectedProductFilter}
+              onChange={(e) => setSelectedProductFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Products</option>
+              {products.map(p => (
+                <option key={p.id} value={p.name}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 4. Date Filter */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-indigo-500" />
               <span>Date Filter</span>
             </label>
             <select
@@ -485,48 +559,7 @@ export const Invoices = () => {
             </select>
           </div>
 
-          {/* 2. Customer Type */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Users className="w-3.5 h-3.5 text-blue-500" />
-              <span>{isPurchases ? 'Party Type' : 'Customer Type'}</span>
-            </label>
-            <select
-              value={customerTypeFilter}
-              onChange={(e) => setCustomerTypeFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="All">All {isPurchases ? 'Suppliers' : 'Customer Types'}</option>
-              {!isPurchases && <option value="Regular Party">Regular Parties</option>}
-              {!isPurchases && <option value="Walk-in Customer">Walk-in Customers</option>}
-            </select>
-          </div>
-
-          {/* 3. Select Party */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <User className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Select Party</span>
-            </label>
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="All">All Individual Parties</option>
-              {(isPurchases ? suppliers : customers).map(party => (
-                <option key={party.id} value={party.id}>
-                  {party.name} {party.city ? `(${party.city})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* 4. Payment Status */}
+          {/* 5. Payment Status */}
           <div>
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-amber-500" />
@@ -547,7 +580,7 @@ export const Invoices = () => {
           </div>
         </div>
 
-        {/* Row 2: Custom Date Pickers (if Custom is chosen) + Search Bar + Reset */}
+        {/* Row 2: Custom Date Pickers (if Custom is chosen) + Reset */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/80">
           {/* Custom Date Pickers */}
           {dateFilterType === 'Custom' ? (
@@ -560,7 +593,6 @@ export const Invoices = () => {
                   className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
-                  title="From Date"
                 />
               </div>
               <span className="text-xs text-slate-400 font-bold">to</span>
@@ -572,43 +604,25 @@ export const Invoices = () => {
                   className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
-                  title="To Date"
                 />
               </div>
             </div>
           ) : (
             <div className="text-xs text-slate-400 font-bold hidden sm:block">
-              Filter invoices by date range, customer type, party, payment status, and returns
+              {isPurchases ? 'Official procurement vouchers and supplier billing history' : 'Complete sales invoices and tax billing register'}
             </div>
           )}
 
-          {/* Search Box & Reset Button */}
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder={isPurchases ? "Filter invoice # or supplier..." : "Filter invoice # or customer..."}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-              />
-            </div>
-
-            {isAnyFilterActive && (
-              <button
-                type="button"
-                onClick={resetAllFilters}
-                className="px-3 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
-                title="Reset All Filters"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Reset</span>
-              </button>
-            )}
-          </div>
+          {isAnyFilterActive && (
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Reset Filters</span>
+            </button>
+          )}
         </div>
       </div>
 

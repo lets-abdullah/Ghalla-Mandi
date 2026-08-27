@@ -5,6 +5,8 @@ import {
   Printer, 
   Users, 
   User,
+  UserCheck,
+  Package,
   DollarSign, 
   X, 
   Search, 
@@ -22,7 +24,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const Ledger = () => {
-  const { customers = [], suppliers = [], sales = [], purchases = [], paymentLogs = [], saleReturns = [], purchaseReturns = [], recordPayment } = useERP();
+  const { customers = [], suppliers = [], products = [], sales = [], purchases = [], paymentLogs = [], saleReturns = [], purchaseReturns = [], recordPayment } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const [searchParams] = useSearchParams();
@@ -35,6 +37,7 @@ export const Ledger = () => {
   // Filters State
   const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Customer' | 'Walk-in Customer'
   const [selectedPartyId, setSelectedPartyId] = useState(customerIdParam || 'All');
+  const [selectedProductFilter, setSelectedProductFilter] = useState('All');
   const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'This Week' | 'This Month' | 'Custom'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -165,6 +168,8 @@ export const Ledger = () => {
             desc: `Cash Received against ${s.invoiceNo}`,
             debit: 0,
             credit: paidAmt,
+            items: s.cart || s.items || [],
+            productNames: ((s.cart || s.items || []).map(i => i.name || i.productName).join(' ') + ' ' + (s.productName || '')).trim(),
             notes: s.paymentMode || 'Counter Payment'
           });
         }
@@ -188,6 +193,8 @@ export const Ledger = () => {
           desc: `Account Payment (${p.mode || 'Cash'})`,
           debit: 0,
           credit: Number(p.amount || 0),
+          items: [],
+          productNames: '',
           notes: p.note || ''
         });
       });
@@ -210,6 +217,8 @@ export const Ledger = () => {
           desc: `Sale Return Credit (${r.refundMode || 'Ledger'})`,
           debit: 0,
           credit: Number(r.refundAmount || 0),
+          items: r.items || [],
+          productNames: ((r.items || []).map(i => i.name || i.productName).join(' ')).trim(),
           notes: r.reason || ''
         });
       });
@@ -217,6 +226,9 @@ export const Ledger = () => {
       // Supplier Ledger Transactions
       (purchases || []).forEach(p => {
         const supObj = suppliers.find(s => s.id === p.supplierId || s.name === (p.supplier || p.supplierName));
+        const pItems = p.cart || p.items || [];
+        const pProdNames = (Array.isArray(pItems) ? pItems.map(i => i.name || i.productName).join(' ') : '') + ' ' + (p.productName || (typeof p.items === 'string' ? p.items : ''));
+
         entries.push({
           id: `pur-${p.id}`,
           rawDate: p.date,
@@ -229,6 +241,8 @@ export const Ledger = () => {
           desc: `Procurement Inward Entry`,
           debit: 0,
           credit: Number(p.amount || 0),
+          items: pItems,
+          productNames: pProdNames.trim(),
           notes: ''
         });
       });
@@ -247,7 +261,29 @@ export const Ledger = () => {
           desc: `Supplier Payment Out (${p.mode || 'Cash'})`,
           debit: Number(p.amount || 0),
           credit: 0,
+          items: [],
+          productNames: '',
           notes: p.note || ''
+        });
+      });
+
+      (purchaseReturns || []).forEach(r => {
+        const supObj = suppliers.find(s => s.id === r.supplierId || s.name === r.supplierName);
+        entries.push({
+          id: `pret-${r.id}`,
+          rawDate: r.date,
+          date: r.date || 'N/A',
+          partyId: r.supplierId || supObj?.id || null,
+          partyName: r.supplierName || supObj?.name || 'Supplier',
+          customerType: 'Supplier',
+          ref: r.returnNo || `PR-${r.id}`,
+          txType: 'Returns',
+          desc: `Purchase Return Debit Note (${r.refundMode || 'Ledger'})`,
+          debit: Number(r.refundAmount || 0),
+          credit: 0,
+          items: r.items || [],
+          productNames: ((r.items || []).map(i => i.name || i.productName).join(' ')).trim(),
+          notes: r.reason || ''
         });
       });
     }
@@ -267,7 +303,7 @@ export const Ledger = () => {
     let runningBalance = 0;
 
     return rawLedgerEntries.filter(entry => {
-      // 1. Party Filter
+      // 1. Party Filter (Supplier or Customer)
       if (selectedPartyId !== 'All') {
         const idMatch = entry.partyId === selectedPartyId;
         const nameMatch = entry.partyName.toLowerCase() === selectedPartyId.toLowerCase();
@@ -281,15 +317,27 @@ export const Ledger = () => {
         if (customerTypeFilter === 'Walk-in Customer' && !isWalkin) return false;
       }
 
-      // 3. Date Filter
+      // 3. Product Filter
+      if (selectedProductFilter !== 'All') {
+        const prodMatch = (entry.productNames || '').toLowerCase().includes(selectedProductFilter.toLowerCase()) ||
+          (entry.items || []).some(it => 
+            (it.name || it.productName || '').toLowerCase() === selectedProductFilter.toLowerCase() ||
+            it.productId === selectedProductFilter
+          );
+        if (!prodMatch && (entry.txType === 'Sales' || entry.txType === 'Purchases' || entry.txType === 'Returns')) {
+          return false;
+        }
+      }
+
+      // 4. Date Filter
       if (!matchDate(entry.rawDate)) return false;
 
-      // 4. Transaction Type Filter
+      // 5. Transaction Type Filter
       if (txTypeFilter === 'Sales' && entry.txType !== 'Sales' && entry.txType !== 'Purchases') return false;
       if (txTypeFilter === 'Payments' && entry.txType !== 'Payments') return false;
       if (txTypeFilter === 'Returns' && entry.txType !== 'Returns') return false;
 
-      // 5. Text Search
+      // 6. Text Search
       const q = search.toLowerCase().trim();
       if (q) {
         const refMatch = entry.ref.toLowerCase().includes(q);
@@ -300,14 +348,13 @@ export const Ledger = () => {
 
       return true;
     }).map(entry => {
-      // Running balance increases with sales (debit) and decreases with payments (credit)
       runningBalance += (entry.debit - entry.credit);
       return {
         ...entry,
         runningBalance
       };
     });
-  }, [rawLedgerEntries, selectedPartyId, customerTypeFilter, dateFilterType, customStartDate, customEndDate, txTypeFilter, search, isSupplier]);
+  }, [rawLedgerEntries, selectedPartyId, selectedProductFilter, customerTypeFilter, dateFilterType, customStartDate, customEndDate, txTypeFilter, search, isSupplier]);
 
   // Aggregate stats (clean terminology, no Cr / Dr)
   const totalSalesAmount = filteredLedger.reduce((sum, e) => sum + e.debit, 0);
@@ -441,104 +488,230 @@ export const Ledger = () => {
         </div>
       </div>
 
-      {/* Ledger Filter Toolbar */}
+      {/* Ledger Filter Toolbar: [Search] [Supplier / Customer] [Product] [Date] [Status] */}
       <div className={`border rounded-3xl p-4 card-shadow space-y-3.5 ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* 1. Customer Type */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Users className="w-3.5 h-3.5 text-brand-500" />
-              <span>Customer Type</span>
-            </label>
-            <select
-              value={customerTypeFilter}
-              onChange={(e) => setCustomerTypeFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="All">All Types</option>
-              <option value="Regular Customer">Regular Customers</option>
-              <option value="Walk-in Customer">Walk-in Customers</option>
-            </select>
-          </div>
+          {/* 1. Customer Type (Only if Customer Ledger) OR Supplier Selector (If Supplier Ledger) */}
+          {isSupplier ? (
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+                <UserCheck className="w-3.5 h-3.5 text-brand-500" />
+                <span>Supplier</span>
+              </label>
+              <select
+                value={selectedPartyId}
+                onChange={(e) => setSelectedPartyId(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="All">All Suppliers</option>
+                {suppliers.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.city ? `(${p.city})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+                <Users className="w-3.5 h-3.5 text-brand-500" />
+                <span>Customer Type</span>
+              </label>
+              <select
+                value={customerTypeFilter}
+                onChange={(e) => setCustomerTypeFilter(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="All">All Customer Types</option>
+                <option value="Regular Customer">Regular Customers</option>
+                <option value="Walk-in Customer">Walk-in Customers</option>
+              </select>
+            </div>
+          )}
 
-          {/* 2. Select Party */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <User className="w-3.5 h-3.5 text-blue-500" />
-              <span>Select Customer</span>
-            </label>
-            <select
-              value={selectedPartyId}
-              onChange={(e) => setSelectedPartyId(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="All">All Customers</option>
-              {(isSupplier ? suppliers : customers).map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name} {p.city ? `(${p.city})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* 2. Select Customer (if Customer Ledger) OR Product (if Supplier Ledger) */}
+          {!isSupplier ? (
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+                <User className="w-3.5 h-3.5 text-blue-500" />
+                <span>Customer</span>
+              </label>
+              <select
+                value={selectedPartyId}
+                onChange={(e) => setSelectedPartyId(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="All">All Customers</option>
+                {customers.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.city ? `(${p.city})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+                <Package className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Product</span>
+              </label>
+              <select
+                value={selectedProductFilter}
+                onChange={(e) => setSelectedProductFilter(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="All">All Products</option>
+                {products.map(p => (
+                  <option key={p.id} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          {/* 3. Date Filter */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Date Filter</span>
-            </label>
-            <select
-              value={dateFilterType}
-              onChange={(e) => setDateFilterType(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="All">All Dates</option>
-              <option value="Today">Today</option>
-              <option value="This Week">This Week</option>
-              <option value="This Month">This Month</option>
-              <option value="Custom">Custom Date Range</option>
-            </select>
-          </div>
+          {/* 3. Product (for Customer Ledger) OR Date Filter (for Supplier Ledger) */}
+          {!isSupplier ? (
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+                <Package className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Product</span>
+              </label>
+              <select
+                value={selectedProductFilter}
+                onChange={(e) => setSelectedProductFilter(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="All">All Products</option>
+                {products.map(p => (
+                  <option key={p.id} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Date Filter</span>
+              </label>
+              <select
+                value={dateFilterType}
+                onChange={(e) => setDateFilterType(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="All">All Dates</option>
+                <option value="Today">Today</option>
+                <option value="This Week">This Week</option>
+                <option value="This Month">This Month</option>
+                <option value="Custom">Custom Date Range</option>
+              </select>
+            </div>
+          )}
 
-          {/* 4. Transaction Type Filter */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5 text-amber-500" />
-              <span>Transaction Type</span>
-            </label>
-            <select
-              value={txTypeFilter}
-              onChange={(e) => setTxTypeFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="All">All Transactions</option>
-              <option value="Sales">Sales</option>
-              <option value="Payments">Payments</option>
-              <option value="Returns">Returns</option>
-            </select>
-          </div>
+          {/* 4. Date Filter (for Customer Ledger) OR Transaction Type */}
+          {!isSupplier ? (
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Date Filter</span>
+              </label>
+              <select
+                value={dateFilterType}
+                onChange={(e) => setDateFilterType(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="All">All Dates</option>
+                <option value="Today">Today</option>
+                <option value="This Week">This Week</option>
+                <option value="This Month">This Month</option>
+                <option value="Custom">Custom Date Range</option>
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5 text-amber-500" />
+                <span>Transaction Type</span>
+              </label>
+              <select
+                value={txTypeFilter}
+                onChange={(e) => setTxTypeFilter(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="All">All Transactions</option>
+                <option value="Sales">Purchases</option>
+                <option value="Payments">Payments</option>
+                <option value="Returns">Returns</option>
+              </select>
+            </div>
+          )}
 
-          {/* 5. Search Bar */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Search className="w-3.5 h-3.5 text-slate-400" />
-              <span>Search Voucher</span>
-            </label>
-            <div className="relative">
+          {/* 5. Transaction Type (for Customer Ledger) OR Search (for Supplier Ledger) */}
+          {!isSupplier ? (
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5 text-amber-500" />
+                <span>Transaction Type</span>
+              </label>
+              <select
+                value={txTypeFilter}
+                onChange={(e) => setTxTypeFilter(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="All">All Transactions</option>
+                <option value="Sales">Sales</option>
+                <option value="Payments">Payments</option>
+                <option value="Returns">Returns</option>
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+                <Search className="w-3.5 h-3.5 text-slate-400" />
+                <span>Search Voucher</span>
+              </label>
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search ref #, supplier..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Row 2: Search Bar (for Customer Ledger) + Custom Date Pickers + Reset */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+          {!isSupplier ? (
+            <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search ref #, customer..."
+                placeholder="Search ref #, customer, description..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
@@ -546,47 +719,47 @@ export const Ledger = () => {
                 }`}
               />
             </div>
-          </div>
-        </div>
-
-        {/* Row 2: Custom Date Pickers & Reset */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/80">
-          {dateFilterType === 'Custom' ? (
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-              />
-              <span className="text-xs text-slate-400 font-bold">to</span>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-              />
-            </div>
           ) : (
-            <div className="text-xs text-slate-400 font-bold hidden sm:block">
-              Compact transaction ledger with instant detail lookup
+            <div className="text-xs text-slate-400 font-bold">
+              Showing Procurement Ledger statements for Mandi suppliers
             </div>
           )}
 
-          {isAnyFilterActive && (
-            <button
-              type="button"
-              onClick={resetAllFilters}
-              className="px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Reset Filters</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {dateFilterType === 'Custom' && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-400">Date Range:</span>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+                <span className="text-xs text-slate-400 font-bold">to</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+            )}
+
+            {isAnyFilterActive && (
+              <button
+                type="button"
+                onClick={resetAllFilters}
+                className="px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Reset Filters</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
