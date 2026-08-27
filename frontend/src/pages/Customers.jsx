@@ -1,20 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { Users, User, Search, Plus, Phone, MapPin, Edit3, Trash2, CheckCircle2, DollarSign, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Users, 
+  User, 
+  Search, 
+  Plus, 
+  Phone, 
+  MapPin, 
+  Edit3, 
+  Trash2, 
+  CheckCircle2, 
+  DollarSign, 
+  X, 
+  Eye, 
+  BookOpen, 
+  CreditCard,
+  Building2,
+  RefreshCw,
+  Clock,
+  ShieldCheck
+} from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
 
 export const Customers = () => {
-  const { customers, addCustomer, updateCustomer, deleteCustomer } = useERP();
+  const { customers = [], sales = [], paymentLogs = [], addCustomer, updateCustomer, deleteCustomer } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
 
-  const [filterType, setFilterType] = useState('All'); // 'All' | 'Receivable' | 'Settled'
+  // Filters State
+  const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Party' | 'Walk-in Customer'
+  const [balanceFilter, setBalanceFilter] = useState('All'); // 'All' | 'Due' | 'Paid'
+  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Active' | 'Inactive'
   const [search, setSearch] = useState('');
-  const [showModal, setShowModal] = useState(false);
+
+  // Modals state
+  const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [viewingCustomer, setViewingCustomer] = useState(null);
 
   // Form state for New Customer
   const [form, setForm] = useState({
@@ -29,6 +54,7 @@ export const Customers = () => {
     creditLimit: '',
     paymentTerms: 'Cash / Credit',
     cnic: '',
+    status: 'Active',
     notes: ''
   });
 
@@ -36,27 +62,72 @@ export const Customers = () => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (showModal) setShowModal(false);
+        if (showAddModal) setShowAddModal(false);
         else if (editingCustomer) setEditingCustomer(null);
+        else if (viewingCustomer) setViewingCustomer(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showModal, editingCustomer]);
+  }, [showAddModal, editingCustomer, viewingCustomer]);
 
+  // Aggregate stats
+  const totalCustomers = customers.length;
+  const regularCount = customers.filter(c => (c.customerType || 'Regular Party') === 'Regular Party').length;
+  const walkinCount = customers.filter(c => (c.customerType || '').toLowerCase().includes('walk-in')).length;
+  const totalReceivables = customers.reduce((acc, c) => acc + Math.max(0, Number(c.balance || 0)), 0);
+
+  // Filtered Customers Array
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(c => {
+      const q = search.toLowerCase().trim();
+      if (q) {
+        const nameMatch = (c.name || '').toLowerCase().includes(q);
+        const shopMatch = (c.shopName || '').toLowerCase().includes(q);
+        const phoneMatch = (c.phone || '').toLowerCase().includes(q);
+        const cityMatch = (c.city || '').toLowerCase().includes(q);
+        if (!nameMatch && !shopMatch && !phoneMatch && !cityMatch) return false;
+      }
+
+      // Customer Type Filter
+      const isWalkin = (c.customerType || '').toLowerCase().includes('walk-in');
+      if (customerTypeFilter === 'Regular Party' && isWalkin) return false;
+      if (customerTypeFilter === 'Walk-in Customer' && !isWalkin) return false;
+
+      // Balance Filter
+      const bal = Number(c.balance || 0);
+      if (balanceFilter === 'Due' && bal <= 0) return false;
+      if (balanceFilter === 'Paid' && bal !== 0) return false;
+
+      // Status Filter
+      const custStatus = c.status || 'Active';
+      if (statusFilter === 'Active' && custStatus !== 'Active') return false;
+      if (statusFilter === 'Inactive' && custStatus !== 'Inactive') return false;
+
+      return true;
+    });
+  }, [customers, search, customerTypeFilter, balanceFilter, statusFilter]);
+
+  const isAnyFilterActive = (
+    search !== '' ||
+    customerTypeFilter !== 'All' ||
+    balanceFilter !== 'All' ||
+    statusFilter !== 'All'
+  );
+
+  const resetAllFilters = () => {
+    setSearch('');
+    setCustomerTypeFilter('All');
+    setBalanceFilter('All');
+    setStatusFilter('All');
+  };
+
+  // Create Customer Handler
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) {
       alert(t('customerPartyName') + ' ' + t('required'));
       return;
-    }
-
-    if (form.phone.trim()) {
-      const cleanDigits = form.phone.replace(/\D/g, '');
-      if (cleanDigits.length < 10 || cleanDigits.length > 11) {
-        alert(t('phoneNumberValidationAlert'));
-        return;
-      }
     }
 
     try {
@@ -72,10 +143,11 @@ export const Customers = () => {
         creditLimit: Math.max(0, Number(form.creditLimit) || 0),
         paymentTerms: form.paymentTerms || 'Cash / Credit',
         cnic: form.cnic.trim(),
+        status: form.status || 'Active',
         notes: form.notes.trim()
       });
 
-      setShowModal(false);
+      setShowAddModal(false);
       setForm({
         name: '',
         shopName: '',
@@ -88,6 +160,7 @@ export const Customers = () => {
         creditLimit: '',
         paymentTerms: 'Cash / Credit',
         cnic: '',
+        status: 'Active',
         notes: ''
       });
     } catch (err) {
@@ -95,17 +168,10 @@ export const Customers = () => {
     }
   };
 
+  // Update Customer Handler
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
     if (!editingCustomer || !editingCustomer.name.trim()) return;
-
-    if (editingCustomer.phone && editingCustomer.phone.trim()) {
-      const cleanDigits = editingCustomer.phone.replace(/\D/g, '');
-      if (cleanDigits.length < 10 || cleanDigits.length > 11) {
-        alert(t('phoneNumberValidationAlert'));
-        return;
-      }
-    }
 
     try {
       await updateCustomer(editingCustomer.id, {
@@ -116,10 +182,11 @@ export const Customers = () => {
         city: editingCustomer.city ? editingCustomer.city.trim() : 'Local Mandi',
         address: editingCustomer.address ? editingCustomer.address.trim() : '',
         customerType: editingCustomer.customerType || 'Regular Party',
-        balance: Math.max(0, Number(editingCustomer.balance) || 0),
+        balance: Number(editingCustomer.balance) || 0,
         creditLimit: Math.max(0, Number(editingCustomer.creditLimit) || 0),
         paymentTerms: editingCustomer.paymentTerms || 'Cash / Credit',
         cnic: editingCustomer.cnic ? editingCustomer.cnic.trim() : '',
+        status: editingCustomer.status || 'Active',
         notes: editingCustomer.notes ? editingCustomer.notes.trim() : ''
       });
 
@@ -129,467 +196,638 @@ export const Customers = () => {
     }
   };
 
-  const regularCustomers = customers.filter(c => (c.customerType || 'Regular Party') === 'Regular Party');
-  const totalReceivablesAmount = regularCustomers.reduce((acc, c) => acc + Math.max(0, c.balance), 0);
-
-  const filteredCustomers = regularCustomers.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-                          c.phone.toLowerCase().includes(search.toLowerCase()) ||
-                          c.city.toLowerCase().includes(search.toLowerCase());
-
-    if (filterType === 'All') return matchesSearch;
-    if (filterType === 'Receivable') return matchesSearch && c.balance > 0;
-    if (filterType === 'Settled') return matchesSearch && c.balance === 0;
-    return matchesSearch;
-  });
+  // Calculate customer metrics for profile view
+  const getCustomerMetrics = (cust) => {
+    if (!cust) return { totalSales: 0, totalPaid: 0, balance: 0, ordersCount: 0 };
+    const custSales = (sales || []).filter(s => s.customerId === cust.id || s.partyName === cust.name);
+    const totalSales = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
+    const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+    const balance = Number(cust.balance !== undefined ? cust.balance : Math.max(0, totalSales - totalPaid));
+    return {
+      totalSales,
+      totalPaid,
+      balance,
+      ordersCount: custSales.length
+    };
+  };
 
   return (
     <div className="space-y-6">
-      {/* Page Header Banner */}
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <Users className="w-6 h-6 text-brand-500" />
-            {t('customersListTitle')}
+            <span>{t('customers') || 'Customers Directory'}</span>
           </h1>
+          <p className="text-xs text-slate-400 font-bold mt-0.5">
+            Master database of all Regular Parties and Walk-in Customers
+          </p>
         </div>
 
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>{t('addNewRegularParty')}</span>
+          <span>Add New Customer</span>
         </button>
       </div>
 
-      {/* Summary KPI Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Total Customers */}
         <div
-          onClick={() => setFilterType('All')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-            theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80 text-slate-800'
+          onClick={() => { setCustomerTypeFilter('All'); setBalanceFilter('All'); }}
+          className={`border rounded-2xl p-4 card-shadow card-hover transition-all cursor-pointer ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
           }`}
-          title="Click to view all customer parties"
+          title="View all customers"
         >
-          <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-blue-600" /> {t('totalRegularParties')}
+          <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
+            <Users className="w-4 h-4 text-blue-600" /> Total Customers
           </div>
-          <div className="text-2xl font-extrabold mt-1 font-mono text-blue-600 dark:text-blue-400">{regularCustomers.length}</div>
-          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-1">{t('activeParties')} • View All</div>
+          <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
+            {totalCustomers}
+          </div>
+          <div className="text-xs text-slate-400 font-medium mt-0.5">
+            {regularCount} Regular • {walkinCount} Walk-in
+          </div>
         </div>
 
+        {/* Regular Parties */}
         <div
-          onClick={() => setFilterType('Receivable')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-            theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80 text-slate-800'
+          onClick={() => { setCustomerTypeFilter('Regular Party'); setBalanceFilter('All'); }}
+          className={`border rounded-2xl p-4 card-shadow card-hover transition-all cursor-pointer ${
+            theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-b from-indigo-50/50 to-white border-indigo-200/80'
           }`}
-          title="Click to filter customers with unpaid balance"
+          title="Filter Regular Parties"
         >
-          <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-amber-600" /> {t('amountToReceive')}
+          <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
+            <Building2 className="w-4 h-4 text-indigo-600" /> Regular Parties
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-amber-600 dark:text-amber-400 font-mono">Rs. {(Number(totalReceivablesAmount) || 0).toLocaleString()}</div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">{t('pending')} • Filter Unpaid</div>
+          <div className="text-2xl font-black mt-1 font-mono text-indigo-600 dark:text-indigo-400">
+            {regularCount}
+          </div>
+          <div className="text-xs text-indigo-700 dark:text-indigo-400 font-medium mt-0.5">
+            Permanent Accounts
+          </div>
         </div>
 
+        {/* Walk-in Customers */}
         <div
-          onClick={() => setFilterType('Settled')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-            theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80 text-slate-800'
+          onClick={() => { setCustomerTypeFilter('Walk-in Customer'); setBalanceFilter('All'); }}
+          className={`border rounded-2xl p-4 card-shadow card-hover transition-all cursor-pointer ${
+            theme === 'dark' ? 'bg-slate-800 border-teal-500/30 text-white' : 'bg-gradient-to-b from-teal-50/50 to-white border-teal-200/80'
           }`}
-          title="Click to filter settled customer accounts"
+          title="Filter Walk-in Customers"
         >
-          <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {t('settledAccounts')}
+          <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
+            <User className="w-4 h-4 text-teal-600" /> Walk-in Customers
           </div>
-          <div className="text-2xl font-extrabold mt-1 text-emerald-600 dark:text-emerald-400 font-mono">
-            {regularCustomers.filter(c => (Number(c.balance) || 0) === 0).length}
+          <div className="text-2xl font-black mt-1 font-mono text-teal-600 dark:text-teal-400">
+            {walkinCount}
           </div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">{t('zeroBalance')} • Filter Settled</div>
+          <div className="text-xs text-teal-700 dark:text-teal-400 font-medium mt-0.5">
+            Counter Customers
+          </div>
+        </div>
+
+        {/* Total Receivables */}
+        <div
+          onClick={() => { setBalanceFilter('Due'); }}
+          className={`border rounded-2xl p-4 card-shadow card-hover transition-all cursor-pointer ${
+            theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+          }`}
+          title="Filter Customers with Outstanding Balance"
+        >
+          <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 uppercase tracking-wider">
+            <DollarSign className="w-4 h-4 text-amber-600" /> Total Receivables
+          </div>
+          <div className="text-2xl font-black mt-1 font-mono text-amber-600 dark:text-amber-400">
+            Rs. {totalReceivables.toLocaleString()}
+          </div>
+          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-0.5">
+            Pending in Khata
+          </div>
         </div>
       </div>
 
-      {/* Filter & Search Controls (English Dropdown) */}
-      <div className={`border rounded-2xl p-4 card-shadow flex flex-col md:flex-row items-center justify-between gap-4 ${
+      {/* Filter & Search Toolbar */}
+      <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3 ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className={`w-full sm:w-56 border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-            }`}
-          >
-            <option value="All">All Customer Accounts</option>
-            <option value="Receivable">Pending Khata (Receivables)</option>
-            <option value="Settled">Settled (Zero Balance)</option>
-          </select>
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {/* 1. Customer Type */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Users className="w-3.5 h-3.5 text-brand-500" />
+              <span>Customer Type</span>
+            </label>
+            <select
+              value={customerTypeFilter}
+              onChange={(e) => setCustomerTypeFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Customer Types</option>
+              <option value="Regular Party">Regular Parties</option>
+              <option value="Walk-in Customer">Walk-in Customers</option>
+            </select>
+          </div>
+
+          {/* 2. Balance Filter */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <DollarSign className="w-3.5 h-3.5 text-amber-500" />
+              <span>Balance Status</span>
+            </label>
+            <select
+              value={balanceFilter}
+              onChange={(e) => setBalanceFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Balances</option>
+              <option value="Due">Due / Outstanding</option>
+              <option value="Paid">Paid / Zero Balance</option>
+            </select>
+          </div>
+
+          {/* 3. Account Status Filter */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Account Status</span>
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+
+          {/* 4. Search Box */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Search className="w-3.5 h-3.5 text-slate-400" />
+              <span>Search Party</span>
+            </label>
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search name, phone, city..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="relative w-full md:w-72">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search party by name, shop or phone..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
-              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-            }`}
-          />
+        {isAnyFilterActive && (
+          <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-700/80">
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Reset Filters</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Main Customers Compact Table */}
+      <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
+        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+      }`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+            <thead>
+              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
+                theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+              }`}>
+                <th className="py-3.5 px-4">Customer</th>
+                <th className="py-3.5 px-4">Type</th>
+                <th className="py-3.5 px-4">Phone</th>
+                <th className="py-3.5 px-4 text-right">Balance</th>
+                <th className="py-3.5 px-4 text-center">Status</th>
+                <th className="py-3.5 px-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y font-medium ${
+              theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+            }`}>
+              {filteredCustomers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
+                    No customers found matching your filter criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredCustomers.map(cust => {
+                  const bal = Number(cust.balance || 0);
+                  const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
+                  const status = cust.status || 'Active';
+
+                  return (
+                    <tr 
+                      key={cust.id} 
+                      className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                    >
+                      {/* 1. Customer Name + City */}
+                      <td className="py-3.5 px-4">
+                        <div className="font-extrabold text-slate-900 dark:text-white">
+                          {cust.name}
+                        </div>
+                        {cust.city && (
+                          <div className="text-[11px] text-slate-400 font-medium">
+                            📍 {cust.city} {cust.shopName ? `• ${cust.shopName}` : ''}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 2. Customer Type */}
+                      <td className="py-3.5 px-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border ${
+                          isWalkin
+                            ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600'
+                            : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border-brand-500/20'
+                        }`}>
+                          {isWalkin ? 'Walk-in' : 'Regular Party'}
+                        </span>
+                      </td>
+
+                      {/* 3. Phone */}
+                      <td className="py-3.5 px-4 font-mono font-medium text-slate-600 dark:text-slate-300">
+                        {cust.phone && cust.phone !== 'N/A' ? cust.phone : '-'}
+                      </td>
+
+                      {/* 4. Balance */}
+                      <td className="py-3.5 px-4 text-right font-mono">
+                        {bal > 0 ? (
+                          <span className="font-black text-amber-500 text-xs">
+                            Rs. {bal.toLocaleString()} Due
+                          </span>
+                        ) : (
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                            Rs. 0 (Clear)
+                          </span>
+                        )}
+                      </td>
+
+                      {/* 5. Status Badge */}
+                      <td className="py-3.5 px-4 text-center">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                          status === 'Active'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                            : 'bg-slate-100 text-slate-500 border-slate-300 dark:bg-slate-700 dark:text-slate-400'
+                        }`}>
+                          {status}
+                        </span>
+                      </td>
+
+                      {/* 6. Actions */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* View Profile */}
+                          <button
+                            onClick={() => setViewingCustomer(cust)}
+                            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${
+                              theme === 'dark' 
+                                ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 
+                                : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
+                            }`}
+                            title="View Complete Customer Profile"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>View</span>
+                          </button>
+
+                          {/* Edit Customer */}
+                          <button
+                            onClick={() => setEditingCustomer(cust)}
+                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer"
+                            title="Edit Profile"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Customer Card Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredCustomers.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-slate-400 text-xs font-medium">
-            {t('noCustomerFound')}
-          </div>
-        ) : (
-          filteredCustomers.map(customer => (
-            <div
-              key={customer.id}
-              className={`border rounded-2xl p-5 card-shadow flex flex-col justify-between space-y-4 transition ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-              }`}
-            >
-              <div>
-                <div className="flex items-start justify-between">
+      {/* ========================================================================= */}
+      {/* 1. VIEW CUSTOMER PROFILE MODAL */}
+      {/* ========================================================================= */}
+      {viewingCustomer && (() => {
+        const metrics = getCustomerMetrics(viewingCustomer);
+        const isWalkin = (viewingCustomer.customerType || '').toLowerCase().includes('walk-in');
+
+        return (
+          <div
+            onClick={(e) => { if (e.target === e.currentTarget) setViewingCustomer(null); }}
+            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          >
+            <div className={`rounded-3xl max-w-lg w-full p-6 space-y-5 card-shadow border ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+              {/* Profile Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center font-black">
+                    <User className="w-5 h-5" />
+                  </div>
                   <div>
-                    <h3 className="font-extrabold text-sm tracking-tight">{customer.name}</h3>
-                    <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3 h-3 text-brand-500" /> {customer.city}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setEditingCustomer(customer)}
-                      className={`p-1.5 rounded-lg transition cursor-pointer ${
-                        theme === 'dark' ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-slate-100 text-slate-600'
-                      }`}
-                      title={t('edit')}
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`${t('delete')} ${customer.name}?`)) {
-                          deleteCustomer(customer.id);
-                        }
-                      }}
-                      className="p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition cursor-pointer"
-                      title={t('delete')}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-1.5 text-xs text-slate-400 font-medium">
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{customer.phone}</span>
-                  </div>
-                  <div className="pt-1">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500/10 text-brand-500 border border-brand-500/30">
-                      {t('regularParty')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">{t('receivableBalance')}</div>
-                  <div className={`text-base font-extrabold ${
-                    Number(customer.balance || 0) > 0 ? 'text-amber-500' : 'text-emerald-500'
-                  }`}>
-                    Rs. {(Number(customer.balance) || 0).toLocaleString()}
+                    <h3 className="text-base font-extrabold">{viewingCustomer.name}</h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                        isWalkin 
+                          ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300' 
+                          : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
+                      }`}>
+                        {viewingCustomer.customerType || 'Regular Party'}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-bold">
+                        Status: {viewingCustomer.status || 'Active'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => navigate('/ledger')}
-                  className="px-3 py-1.5 text-xs font-extrabold text-brand-500 bg-brand-500/10 hover:bg-brand-500/20 rounded-xl transition cursor-pointer"
+                  type="button"
+                  onClick={() => setViewingCustomer(null)}
+                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
                 >
-                  {t('viewLedger')}
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Financial Metrics Strip */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className={`p-3 rounded-2xl border text-center ${
+                  theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Total Sales</div>
+                  <div className="font-mono font-extrabold text-xs text-slate-900 dark:text-white mt-0.5">
+                    Rs. {metrics.totalSales.toLocaleString()}
+                  </div>
+                </div>
+
+                <div className={`p-3 rounded-2xl border text-center ${
+                  theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Total Paid</div>
+                  <div className="font-mono font-extrabold text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    Rs. {metrics.totalPaid.toLocaleString()}
+                  </div>
+                </div>
+
+                <div className={`p-3 rounded-2xl border text-center ${
+                  theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Outstanding</div>
+                  <div className={`font-mono font-extrabold text-xs mt-0.5 ${
+                    metrics.balance > 0 ? 'text-amber-500' : 'text-emerald-600'
+                  }`}>
+                    Rs. {metrics.balance.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact & Business Info Details */}
+              <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${
+                theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+              }`}>
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Shop / Firm:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{viewingCustomer.shopName || '-'}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>Phone Number:</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingCustomer.phone || '-'}</span>
+                </div>
+                {viewingCustomer.whatsapp && (
+                  <div className="flex justify-between items-center text-slate-500">
+                    <span>WhatsApp:</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingCustomer.whatsapp}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>City / Mandi:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{viewingCustomer.city || 'Local Mandi'}</span>
+                </div>
+                {viewingCustomer.address && (
+                  <div className="flex justify-between items-center text-slate-500">
+                    <span>Address:</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{viewingCustomer.address}</span>
+                  </div>
+                )}
+                {viewingCustomer.cnic && (
+                  <div className="flex justify-between items-center text-slate-500">
+                    <span>CNIC / NTN:</span>
+                    <span className="font-mono font-medium text-slate-800 dark:text-slate-200">{viewingCustomer.cnic}</span>
+                  </div>
+                )}
+                {viewingCustomer.notes && (
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-slate-400 italic">
+                    Note: {viewingCustomer.notes}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Jump Buttons */}
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewingCustomer(null);
+                    navigate(`/ledger?customerId=${viewingCustomer.id}`);
+                  }}
+                  className="py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>View Ledger</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewingCustomer(null);
+                    navigate(`/khata?customerId=${viewingCustomer.id}`);
+                  }}
+                  className="py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>View Khata</span>
                 </button>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          </div>
+        );
+      })()}
 
-      {/* Add Customer Modal */}
-      {showModal && (
-        <div 
-          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+      {/* ========================================================================= */}
+      {/* 2. ADD CUSTOMER MODAL */}
+      {/* ========================================================================= */}
+      {showAddModal && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddModal(false); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-2xl w-full p-6 space-y-4 card-shadow border ${
+          <div className={`rounded-3xl max-w-lg w-full p-6 space-y-4 card-shadow border my-8 ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-brand-500" />
-                <h3 className="text-base font-black uppercase tracking-wide">{t('addNewRegularParty')}</h3>
-              </div>
-              <button 
-                type="button" 
-                onClick={() => setShowModal(false)}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-base font-extrabold flex items-center gap-2">
+                <Plus className="w-5 h-5 text-brand-500" /> Add New Customer / Party
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
                 className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-                title={t('close')}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="space-y-3">
-              {/* 1. Basic & Business Identity */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                <div className="text-[10px] font-black uppercase text-brand-600 dark:text-brand-400 flex items-center gap-1">
-                  <User className="w-3.5 h-3.5" />
-                  <span>Basic & Business Identity</span>
+            <form onSubmit={handleCreateSubmit} className="space-y-3.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Customer Type *</label>
+                  <select
+                    value={form.customerType}
+                    onChange={(e) => setForm({ ...form, customerType: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="Regular Party">Regular Party</option>
+                    <option value="Walk-in Customer">Walk-in Customer</option>
+                  </select>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Customer Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Muhammad Aslam"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Shop / Firm Name
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Aslam Traders"
-                      value={form.shopName}
-                      onChange={(e) => setForm({ ...form, shopName: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Customer Type
-                    </label>
-                    <select
-                      value={form.customerType}
-                      onChange={(e) => setForm({ ...form, customerType: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    >
-                      <option value="Regular Party">Regular Party</option>
-                      <option value="Wholesale Buyer">Wholesale Buyer</option>
-                      <option value="Retailer">Retailer</option>
-                      <option value="Farmer / Producer">Farmer / Producer</option>
-                    </select>
-                  </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Account Status</label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
                 </div>
               </div>
 
-              {/* 2. Contact & Mandi Location */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>Contact & Mandi Location</span>
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Customer / Party Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Ahmad Traders / Ali Khan"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="03001234567"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Phone / Mobile *
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="03001234567"
-                      maxLength={11}
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      WhatsApp / Alt Phone
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="03217654321"
-                      maxLength={11}
-                      value={form.whatsapp}
-                      onChange={(e) => setForm({ ...form, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      City / Mandi *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Sargodha"
-                      value={form.city}
-                      onChange={(e) => setForm({ ...form, city: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Address / Shop #
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Shop # 14, Block B"
-                      value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">City / Mandi</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Faisalabad / Okara"
+                    value={form.city}
+                    onChange={(e) => setForm({ ...form, city: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
                 </div>
               </div>
 
-              {/* 3. Financial & Payment Terms */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                <div className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5" />
-                  <span>Financial & Payment Terms</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Shop / Firm Name</label>
+                  <input
+                    type="text"
+                    placeholder="Shop # / Grain Market"
+                    value={form.shopName}
+                    onChange={(e) => setForm({ ...form, shopName: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Opening Balance (PKR)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={form.openingBalance || ''}
-                      onChange={(e) => setForm({ ...form, openingBalance: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Credit Limit (PKR)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="e.g. 500000"
-                      value={form.creditLimit || ''}
-                      onChange={(e) => setForm({ ...form, creditLimit: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Payment Terms
-                    </label>
-                    <select
-                      value={form.paymentTerms}
-                      onChange={(e) => setForm({ ...form, paymentTerms: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    >
-                      <option value="Cash / Credit">Cash / Regular Khata</option>
-                      <option value="Cash on Delivery">Cash on Delivery</option>
-                      <option value="7 Days">Weekly (7 Days)</option>
-                      <option value="15 Days">15 Days</option>
-                      <option value="30 Days">Monthly (30 Days)</option>
-                      <option value="Seasonal">Seasonal</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Opening Khata Balance (Rs.)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={form.openingBalance}
+                    onChange={(e) => setForm({ ...form, openingBalance: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
                 </div>
               </div>
 
-              {/* 4. Identification & Notes */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      CNIC / National ID
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 38403-1234567-1"
-                      value={form.cnic}
-                      onChange={(e) => setForm({ ...form, cnic: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Notes / Guarantor Reference
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Reference: Haji Akram Shop # 4"
-                      value={form.notes}
-                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2.5 pt-1">
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
-                  className="w-1/3 py-2.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 cursor-pointer"
+                  onClick={() => setShowAddModal(false)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
                 >
-                  {t('cancel')}
+                  Cancel
                 </button>
                 <button
                   type="submit"
-                  className="w-2/3 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-black text-xs rounded-xl shadow-md shadow-brand-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Save Customer Profile</span>
+                  Save Customer
                 </button>
               </div>
             </form>
@@ -597,262 +835,141 @@ export const Customers = () => {
         </div>
       )}
 
-      {/* Edit Customer Modal */}
+      {/* ========================================================================= */}
+      {/* 3. EDIT CUSTOMER MODAL */}
+      {/* ========================================================================= */}
       {editingCustomer && (
-        <div 
+        <div
           onClick={(e) => { if (e.target === e.currentTarget) setEditingCustomer(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-2xl w-full p-5 sm:p-6 space-y-3.5 card-shadow border ${
+          <div className={`rounded-3xl max-w-lg w-full p-6 space-y-4 card-shadow border my-8 ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-            <div className="flex items-center justify-between pb-2.5 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-base font-black uppercase tracking-wide flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-brand-500" />
-                <span>Edit Customer Profile</span>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-base font-extrabold flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-blue-500" /> Edit Customer Profile
               </h3>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setEditingCustomer(null)}
                 className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-                title={t('close')}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleUpdateSubmit} className="space-y-3">
-              {/* 1. Basic & Business Identity */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                <div className="text-[10px] font-black uppercase text-brand-600 dark:text-brand-400">
-                  Basic & Business Identity
+            <form onSubmit={handleUpdateSubmit} className="space-y-3.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Customer Type *</label>
+                  <select
+                    value={editingCustomer.customerType || 'Regular Party'}
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, customerType: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="Regular Party">Regular Party</option>
+                    <option value="Walk-in Customer">Walk-in Customer</option>
+                  </select>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Customer Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={editingCustomer.name || ''}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Shop / Firm Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editingCustomer.shopName || ''}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, shopName: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Customer Type
-                    </label>
-                    <select
-                      value={editingCustomer.customerType || 'Regular Party'}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, customerType: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    >
-                      <option value="Regular Party">Regular Party</option>
-                      <option value="Wholesale Buyer">Wholesale Buyer</option>
-                      <option value="Retailer">Retailer</option>
-                      <option value="Farmer / Producer">Farmer / Producer</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Status</label>
+                  <select
+                    value={editingCustomer.status || 'Active'}
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, status: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
                 </div>
               </div>
 
-              {/* 2. Contact & Location */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>Contact & Location</span>
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Customer / Party Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingCustomer.name}
+                  onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editingCustomer.phone}
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Phone / Mobile
-                    </label>
-                    <input
-                      type="tel"
-                      maxLength={11}
-                      value={editingCustomer.phone || ''}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      WhatsApp / Alt Phone
-                    </label>
-                    <input
-                      type="tel"
-                      maxLength={11}
-                      value={editingCustomer.whatsapp || ''}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      City / Mandi
-                    </label>
-                    <input
-                      type="text"
-                      value={editingCustomer.city || ''}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, city: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Address / Shop #
-                    </label>
-                    <input
-                      type="text"
-                      value={editingCustomer.address || ''}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">City / Mandi</label>
+                  <input
+                    type="text"
+                    value={editingCustomer.city}
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, city: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
                 </div>
               </div>
 
-              {/* 3. Financial & Payment Terms */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                <div className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5" />
-                  <span>Financial & Payment Terms</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Shop / Firm</label>
+                  <input
+                    type="text"
+                    value={editingCustomer.shopName || ''}
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, shopName: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Receivable Balance (PKR)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      value={editingCustomer.balance !== undefined ? editingCustomer.balance : ''}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, balance: Number(e.target.value) })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Credit Limit (PKR)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={editingCustomer.creditLimit || ''}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, creditLimit: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Payment Terms
-                    </label>
-                    <select
-                      value={editingCustomer.paymentTerms || 'Cash / Credit'}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, paymentTerms: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    >
-                      <option value="Cash / Credit">Cash / Regular Khata</option>
-                      <option value="Cash on Delivery">Cash on Delivery</option>
-                      <option value="7 Days">Weekly (7 Days)</option>
-                      <option value="15 Days">15 Days</option>
-                      <option value="30 Days">Monthly (30 Days)</option>
-                      <option value="Seasonal">Seasonal</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Current Khata Balance (Rs.)</label>
+                  <input
+                    type="number"
+                    value={editingCustomer.balance || 0}
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, balance: e.target.value })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
                 </div>
               </div>
 
-              {/* 4. Identification & Notes */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      CNIC / National ID
-                    </label>
-                    <input
-                      type="text"
-                      value={editingCustomer.cnic || ''}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, cnic: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                      Notes / Guarantor Reference
-                    </label>
-                    <input
-                      type="text"
-                      value={editingCustomer.notes || ''}
-                      onChange={(e) => setEditingCustomer({ ...editingCustomer, notes: e.target.value })}
-                      className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2.5 pt-1">
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setEditingCustomer(null)}
-                  className="w-1/3 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200"
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
                 >
-                  {t('cancel')}
+                  Cancel
                 </button>
                 <button
                   type="submit"
-                  className="w-2/3 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-black text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer active:scale-98"
+                  className="w-1/2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-blue-600/20 cursor-pointer"
                 >
-                  {t('saveChanges')}
+                  Update Customer
                 </button>
               </div>
             </form>

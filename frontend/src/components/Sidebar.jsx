@@ -23,7 +23,7 @@ export const Sidebar = () => {
 
   // Check which sub-menus should be highlighted / active
   const isSalesActive =
-    ['/sales', '/customers'].includes(location.pathname) ||
+    ['/sales', '/customers', '/khata'].includes(location.pathname) ||
     (location.pathname === '/invoices' && (location.search.includes('Sales') || location.search.includes('sales') || !location.search)) ||
     (location.pathname === '/ledger' && (location.search.includes('Customer') || location.search.includes('customer') || !location.search));
 
@@ -238,6 +238,17 @@ export const Sidebar = () => {
                     >
                       <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
                       <span>{t('customerLedger')}</span>
+                    </Link>
+
+                    <Link
+                      to="/khata"
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/khata')
+                        ? 'bg-brand-500 text-white shadow-xs font-black'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <CreditCard className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                      <span>Khata & Balance</span>
                     </Link>
 
                     <Link
