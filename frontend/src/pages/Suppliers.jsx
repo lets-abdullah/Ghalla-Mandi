@@ -596,9 +596,6 @@ export const Suppliers = () => {
           <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
             {totalSuppliersCount}
           </div>
-          <div className="text-xs text-slate-400 font-medium mt-1">
-            {activeSuppliersCount} Active Suppliers registered
-          </div>
         </div>
 
         <div
@@ -614,9 +611,6 @@ export const Suppliers = () => {
           <div className="text-2xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
             Rs. {totalPayablesAmount.toLocaleString()}
           </div>
-          <div className="text-xs text-rose-700 dark:text-rose-400 font-medium mt-1">
-            {suppliers.filter(s => (Number(s.balance) || 0) > 0).length} Suppliers with Pending Balances
-          </div>
         </div>
 
         <div
@@ -631,9 +625,6 @@ export const Suppliers = () => {
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
             {suppliers.filter(s => (Number(s.balance) || 0) === 0).length}
-          </div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">
-            Zero Outstanding Accounts
           </div>
         </div>
       </div>

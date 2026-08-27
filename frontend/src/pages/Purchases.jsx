@@ -622,9 +622,6 @@ export const Purchases = () => {
           <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
             Rs. {totalNetPurchases.toLocaleString()}
           </div>
-          <div className="text-xs text-slate-400 font-medium mt-1">
-            {purchases.length} {t('purchasesTitle')} Total
-          </div>
         </div>
 
         <div
@@ -637,9 +634,6 @@ export const Purchases = () => {
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
             Rs. {totalPaidOut.toLocaleString()}
-          </div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">
-            {t('paid')} Suppliers
           </div>
         </div>
 
@@ -654,9 +648,6 @@ export const Purchases = () => {
           <div className="text-2xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
             Rs. {totalOutstandingPayable.toLocaleString()}
           </div>
-          <div className="text-xs text-rose-700 dark:text-rose-400 font-medium mt-1">
-            Pending Supplier Dues
-          </div>
         </div>
 
         <div
@@ -669,9 +660,6 @@ export const Purchases = () => {
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-purple-600 dark:text-purple-400">
             Rs. {totalPurchaseReturnsVal.toLocaleString()}
-          </div>
-          <div className="text-xs text-purple-700 dark:text-purple-400 font-medium mt-1">
-            {(purchaseReturns || []).length} Returned Lots
           </div>
         </div>
       </div>

@@ -1619,7 +1619,6 @@ export const Reports = () => {
               <div className="text-xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
                 Rs. {totalStockValuation.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Asset purchase cost</div>
             </div>
 
             {/* 2. Total Products */}
@@ -1633,7 +1632,6 @@ export const Reports = () => {
               <div className="text-xl font-black mt-1 font-mono text-slate-900 dark:text-white">
                 {processedStock.length} <span className="text-xs font-normal">Products</span>
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Active catalog SKUs</div>
             </div>
 
             {/* 3. Total Units Available */}
@@ -1646,7 +1644,6 @@ export const Reports = () => {
               <div className="text-xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
                 {totalStockUnits.toLocaleString()} <span className="text-xs font-normal">Units</span>
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Commodities in warehouse</div>
             </div>
 
             {/* 4. Low Stock */}
@@ -1660,7 +1657,6 @@ export const Reports = () => {
               <div className="text-xl font-black mt-1 font-mono text-amber-600 dark:text-amber-400">
                 {lowStockCount} <span className="text-xs font-normal">Items</span>
               </div>
-              <div className="text-[10px] text-amber-600 dark:text-amber-400 font-bold mt-0.5">Below reorder alert</div>
             </div>
 
             {/* 5. Out of Stock */}
@@ -1674,7 +1670,6 @@ export const Reports = () => {
               <div className="text-xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
                 {outOfStockCount} <span className="text-xs font-normal">Items</span>
               </div>
-              <div className="text-[10px] text-rose-600 dark:text-rose-400 font-bold mt-0.5">0 Stock remaining</div>
             </div>
           </div>
 
@@ -2115,7 +2110,6 @@ export const Reports = () => {
               <div className="text-lg font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
                 Rs. {filteredGrossSales.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Total billed volume</div>
             </div>
 
             {/* 2. Net Sales */}
@@ -2126,7 +2120,6 @@ export const Reports = () => {
               <div className="text-lg font-black font-mono mt-1 text-brand-500">
                 Rs. {filteredNetSales.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">After discounts & returns</div>
             </div>
 
             {/* 3. Total Invoices */}
@@ -2137,7 +2130,6 @@ export const Reports = () => {
               <div className="text-lg font-black font-mono mt-1 text-blue-600 dark:text-blue-400">
                 {filteredInvoicesCount} <span className="text-xs font-normal">Orders</span>
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Customer sales count</div>
             </div>
 
             {/* 4. Total Quantity Sold */}
@@ -2148,7 +2140,6 @@ export const Reports = () => {
               <div className="text-lg font-black font-mono mt-1 text-purple-600 dark:text-purple-400">
                 {filteredTotalQty.toLocaleString()} <span className="text-xs font-normal">Units</span>
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Commodities dispatched</div>
             </div>
 
             {/* 5. Cash Sales */}
@@ -2159,7 +2150,6 @@ export const Reports = () => {
               <div className="text-lg font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
                 Rs. {filteredCashSales.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Direct counter cash</div>
             </div>
 
             {/* 6. Credit Sales */}
@@ -2170,7 +2160,6 @@ export const Reports = () => {
               <div className="text-lg font-black font-mono mt-1 text-amber-600 dark:text-amber-400">
                 Rs. {filteredCreditSales.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Outstanding receivable</div>
             </div>
 
             {/* 7. Total Discount */}
@@ -2181,7 +2170,6 @@ export const Reports = () => {
               <div className="text-lg font-black font-mono mt-1 text-rose-500">
                 Rs. {filteredDiscount.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Concessions given</div>
             </div>
 
             {/* 8. Average Invoice Value */}
@@ -2192,7 +2180,6 @@ export const Reports = () => {
               <div className="text-lg font-black font-mono mt-1 text-indigo-600 dark:text-indigo-400">
                 Rs. {filteredAvgInvoiceValue.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Per order average</div>
             </div>
           </div>
 

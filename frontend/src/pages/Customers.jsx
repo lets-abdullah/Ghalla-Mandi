@@ -299,9 +299,6 @@ export const Customers = () => {
           <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
             {totalCustomers}
           </div>
-          <div className="text-xs text-slate-400 font-medium mt-0.5">
-            {regularCount} Regular • {walkinCount} Walk-in
-          </div>
         </div>
 
         {/* Regular Customers */}
@@ -317,9 +314,6 @@ export const Customers = () => {
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-indigo-600 dark:text-indigo-400">
             {regularCount}
-          </div>
-          <div className="text-xs text-indigo-700 dark:text-indigo-400 font-medium mt-0.5">
-            Registered Accounts
           </div>
         </div>
 
@@ -337,9 +331,6 @@ export const Customers = () => {
           <div className="text-2xl font-black mt-1 font-mono text-teal-600 dark:text-teal-400">
             {walkinCount}
           </div>
-          <div className="text-xs text-teal-700 dark:text-teal-400 font-medium mt-0.5">
-            Counter Customers
-          </div>
         </div>
 
         {/* Total Receivables */}
@@ -355,9 +346,6 @@ export const Customers = () => {
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-amber-600 dark:text-amber-400">
             Rs. {totalReceivables.toLocaleString()}
-          </div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-0.5">
-            Pending in Khata
           </div>
         </div>
       </div>

@@ -70,7 +70,6 @@ export const SaleReturns = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Returns Value</div>
           <div className="text-2xl font-black mt-1.5 text-orange-600 dark:text-orange-400 font-mono">Rs. {totalRefundAmount.toLocaleString()}</div>
-          <div className="text-xs text-slate-400 font-medium mt-1">{saleReturns.length} Return Records • View Sales</div>
         </div>
 
         <div
@@ -80,7 +79,6 @@ export const SaleReturns = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Payouts</div>
           <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalCashRefunds.toLocaleString()}</div>
-          <div className="text-xs text-rose-700 dark:text-rose-400 font-medium mt-1">Direct Counter Refunds • Filter Cash</div>
         </div>
 
         <div
@@ -90,7 +88,6 @@ export const SaleReturns = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Khata Dues Deducted</div>
           <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">Rs. {totalKhataAdjustments.toLocaleString()}</div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">Customer Ledger Reductions • View Khata</div>
         </div>
       </div>
 
