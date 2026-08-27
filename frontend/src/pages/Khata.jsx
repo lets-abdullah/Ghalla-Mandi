@@ -442,11 +442,9 @@ export const Khata = () => {
                     <div>
                       <div className="text-[10px] uppercase font-bold text-slate-400">Balance</div>
                       <div className="font-mono font-black text-xs">
-                        {item.balance > 0 ? (
-                          <span className="text-amber-500">Rs. {item.balance.toLocaleString()} Due</span>
-                        ) : (
-                          <span className="text-emerald-600 dark:text-emerald-400">Rs. 0 Clear</span>
-                        )}
+                        <span className={item.balance > 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}>
+                          Rs. {item.balance.toLocaleString()}
+                        </span>
                       </div>
                     </div>
 
@@ -553,17 +551,11 @@ export const Khata = () => {
                           Rs. {item.totalPaid.toLocaleString()}
                         </td>
 
-                        {/* Balance Due */}
+                        {/* Balance */}
                         <td className="py-3 px-4 text-right font-mono font-black text-xs">
-                          {item.balance > 0 ? (
-                            <span className="text-amber-500 font-black">
-                              Rs. {item.balance.toLocaleString()} Due
-                            </span>
-                          ) : (
-                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                              Rs. 0 (Clear)
-                            </span>
-                          )}
+                          <span className={item.balance > 0 ? 'text-amber-500 font-black' : 'text-emerald-600 dark:text-emerald-400 font-bold'}>
+                            Rs. {item.balance.toLocaleString()}
+                          </span>
                         </td>
 
                         {/* Status */}

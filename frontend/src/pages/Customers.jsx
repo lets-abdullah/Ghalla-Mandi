@@ -507,11 +507,9 @@ export const Customers = () => {
                     <div>
                       <div className="text-[10px] uppercase font-bold text-slate-400">Balance</div>
                       <div className="font-mono font-black text-xs">
-                        {bal > 0 ? (
-                          <span className="text-amber-500">Rs. {bal.toLocaleString()} Due</span>
-                        ) : (
-                          <span className="text-emerald-600 dark:text-emerald-400">Rs. 0 Clear</span>
-                        )}
+                        <span className={bal > 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}>
+                          Rs. {bal.toLocaleString()}
+                        </span>
                       </div>
                     </div>
 
@@ -607,16 +605,10 @@ export const Customers = () => {
                         </td>
 
                         {/* 4. Balance */}
-                        <td className="py-3 px-4 text-right font-mono">
-                          {bal > 0 ? (
-                            <span className="font-black text-amber-500 text-xs">
-                              Rs. {bal.toLocaleString()} Due
-                            </span>
-                          ) : (
-                            <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                              Rs. 0 (Clear)
-                            </span>
-                          )}
+                        <td className="py-3 px-4 text-right font-mono font-black text-xs">
+                          <span className={bal > 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}>
+                            Rs. {bal.toLocaleString()}
+                          </span>
                         </td>
 
                         {/* 5. Status Badge */}

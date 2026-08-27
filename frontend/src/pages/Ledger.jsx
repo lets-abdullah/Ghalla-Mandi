@@ -806,17 +806,11 @@ export const Ledger = () => {
                         )}
                       </td>
 
-                      {/* 6. Running Balance (Simple Clean Format, No Dr/Cr) */}
+                      {/* 6. Running Balance (Pure Price Only) */}
                       <td className="py-3 px-4 text-right font-mono font-black text-xs">
-                        {entry.runningBalance > 0 ? (
-                          <span className="text-amber-500">
-                            Rs. {entry.runningBalance.toLocaleString()} Due
-                          </span>
-                        ) : (
-                          <span className="text-emerald-600 dark:text-emerald-400">
-                            Rs. 0 (Settled)
-                          </span>
-                        )}
+                        <span className={entry.runningBalance > 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}>
+                          Rs. {entry.runningBalance.toLocaleString()}
+                        </span>
                       </td>
 
                       {/* 7. Action: View Ledger / Details */}
@@ -907,7 +901,7 @@ export const Ledger = () => {
               <div className="flex justify-between items-center font-black pt-1 border-t border-slate-200 dark:border-slate-700">
                 <span>Account Balance:</span>
                 <span className={`font-mono text-sm ${viewingEntry.runningBalance > 0 ? 'text-amber-500' : 'text-emerald-600'}`}>
-                  {viewingEntry.runningBalance > 0 ? `Rs. ${viewingEntry.runningBalance.toLocaleString()} Due` : 'Rs. 0 (Settled)'}
+                  Rs. {viewingEntry.runningBalance.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -957,7 +951,7 @@ export const Ledger = () => {
                   <option value="">Choose Customer</option>
                   {(isSupplier ? suppliers : customers).map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.name} (Due: Rs. {(Number(p.balance) || 0).toLocaleString()})
+                      {p.name} (Rs. {(Number(p.balance) || 0).toLocaleString()})
                     </option>
                   ))}
                 </select>
