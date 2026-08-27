@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Plus, Phone, MapPin, Edit3, Trash2, CheckCircle2, DollarSign, X } from 'lucide-react';
+import { Users, User, Search, Plus, Phone, MapPin, Edit3, Trash2, CheckCircle2, DollarSign, X } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
