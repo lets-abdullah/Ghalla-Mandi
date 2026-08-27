@@ -22,7 +22,13 @@ export const LocaleProvider = ({ children }) => {
   };
 
   const t = (key, params = {}) => {
-    let text = translations['en']?.[key] || key;
+    let text = translations['en']?.[key];
+    if (!text) {
+      // Convert camelCase key (e.g. "totalPurchases") to spaced Title Case words ("Total Purchases")
+      text = key
+        ? key.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (str) => str.toUpperCase())
+        : '';
+    }
     if (typeof text === 'string' && params && typeof params === 'object') {
       Object.keys(params).forEach((paramKey) => {
         text = text.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), params[paramKey]);

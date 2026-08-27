@@ -3016,1225 +3016,1204 @@ export const Reports = () => {
                 </select>
               </div>
 
-              {/* 6. Search Bar */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Search Statement
-                </label>
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={plSearch}
-                    onChange={(e) => {
-                      setPlSearch(e.target.value);
-                      setPlPage(1);
-                    }}
-                    placeholder="Ref, item, party..."
-                    className={`w-full pl-8 pr-2.5 py-1.5 border rounded-xl text-xs font-bold outline-none focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
-                      }`}
-                  />
+              {/* Custom Date Pickers */}
+              {plDateFilter === 'Custom' && (
+                <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-400">From Date:</span>
+                    <input
+                      type="date"
+                      value={plStartDate}
+                      onChange={(e) => {
+                        setPlStartDate(e.target.value);
+                        setPlPage(1);
+                      }}
+                      className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-400">To Date:</span>
+                    <input
+                      type="date"
+                      value={plEndDate}
+                      onChange={(e) => {
+                        setPlEndDate(e.target.value);
+                        setPlPage(1);
+                      }}
+                      className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Compact Financial Statement Summary & Reconciliation Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+              {/* 5 Compact KPI Metric Cards (8 cols) */}
+              <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {/* 1. Total Sales / Revenue */}
+                <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                  }`}>
+                  <div className="text-[10px] font-black uppercase text-slate-400">Total Sales / Revenue</div>
+                  <div className="text-lg font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
+                    +Rs. {plTotalRevenue.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">Customer sales & returns</div>
+                </div>
+
+                {/* 2. Total Purchases (COGS) */}
+                <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                  }`}>
+                  <div className="text-[10px] font-black uppercase text-slate-400">Total Purchases (COGS)</div>
+                  <div className="text-lg font-black font-mono mt-1 text-blue-600 dark:text-blue-400">
+                    -Rs. {plTotalCOGS.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">Procurement cost</div>
+                </div>
+
+                {/* 3. Gross Profit */}
+                <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                  }`}>
+                  <div className="text-[10px] font-black uppercase text-slate-400">Gross Profit</div>
+                  <div className="text-lg font-black font-mono mt-1 text-slate-900 dark:text-white">
+                    Rs. {plGrossProfit.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
+                    Margin: {plGrossMargin}%
+                  </div>
+                </div>
+
+                {/* 4. Shop Expenses */}
+                <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                  }`}>
+                  <div className="text-[10px] font-black uppercase text-slate-400">Shop Expenses</div>
+                  <div className="text-lg font-black font-mono mt-1 text-rose-500">
+                    -Rs. {plTotalExpenses.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">Operational overheads</div>
+                </div>
+
+                {/* 5. Net Operating Profit */}
+                <div className={`p-3.5 rounded-2xl border card-shadow sm:col-span-2 ${theme === 'dark' ? 'bg-emerald-950/30 border-emerald-500/40 text-white' : 'bg-emerald-50/70 border-emerald-200 text-slate-900'
+                  }`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">Net Operating Profit</div>
+                      <div className="text-xl font-black font-mono mt-0.5 text-emerald-700 dark:text-emerald-300">
+                        Rs. {plNetProfit.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white font-black text-xs font-mono">
+                        {plNetMargin}% Net Margin
+                      </span>
+                      <div className="text-[10px] text-slate-400 font-medium mt-1">
+                        Sales − Purchases − Expenses
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Statement Period Summary Card (4 cols) */}
+              <div className={`lg:col-span-4 p-4 rounded-2xl border card-shadow space-y-2.5 ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-slate-50/90 border-slate-200 text-slate-900'
+                }`}>
+                <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 border-b pb-1.5 border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                  <span>Period Statement Summary</span>
+                  <span className="text-[10px] font-bold text-emerald-600">{plDateFilter}</span>
+                </div>
+
+                <div className="space-y-1.5 text-xs font-semibold">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Opening Balance:</span>
+                    <span className="font-mono text-slate-600 dark:text-slate-300">Rs. 0</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Total Inflow (Revenue):</span>
+                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                      +Rs. {plTotalInflow.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Total Outflow (Costs):</span>
+                    <span className="font-mono text-rose-500 font-bold">
+                      -Rs. {plTotalOutflow.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-sm font-black">
+                    <span>Net Statement P&L:</span>
+                    <span className={`font-mono ${plNetProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                      Rs. {plNetProfit.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Custom Date Pickers */}
-            {plDateFilter === 'Custom' && (
-              <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-slate-400">From Date:</span>
-                  <input
-                    type="date"
-                    value={plStartDate}
-                    onChange={(e) => {
-                      setPlStartDate(e.target.value);
-                      setPlPage(1);
-                    }}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
+            {/* ========================================================================= */}
+            {/* MAIN BANK-STATEMENT STYLE TRANSACTION LEDGER */}
+            {/* ========================================================================= */}
+            <div className={`border rounded-2xl card-shadow overflow-hidden ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+                    <span>Itemized Transaction Statement Journal</span>
+                  </h3>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Financial running balance ledger sorted chronologically
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-slate-400">To Date:</span>
-                  <input
-                    type="date"
-                    value={plEndDate}
-                    onChange={(e) => {
-                      setPlEndDate(e.target.value);
-                      setPlPage(1);
-                    }}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
 
-          {/* Compact Financial Statement Summary & Reconciliation Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
-            {/* 5 Compact KPI Metric Cards (8 cols) */}
-            <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {/* 1. Total Sales / Revenue */}
-              <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                }`}>
-                <div className="text-[10px] font-black uppercase text-slate-400">Total Sales / Revenue</div>
-                <div className="text-lg font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
-                  +Rs. {plTotalRevenue.toLocaleString()}
-                </div>
-                <div className="text-[10px] text-slate-400 font-medium mt-0.5">Customer sales & returns</div>
-              </div>
-
-              {/* 2. Total Purchases (COGS) */}
-              <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                }`}>
-                <div className="text-[10px] font-black uppercase text-slate-400">Total Purchases (COGS)</div>
-                <div className="text-lg font-black font-mono mt-1 text-blue-600 dark:text-blue-400">
-                  -Rs. {plTotalCOGS.toLocaleString()}
-                </div>
-                <div className="text-[10px] text-slate-400 font-medium mt-0.5">Procurement cost</div>
-              </div>
-
-              {/* 3. Gross Profit */}
-              <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                }`}>
-                <div className="text-[10px] font-black uppercase text-slate-400">Gross Profit</div>
-                <div className="text-lg font-black font-mono mt-1 text-slate-900 dark:text-white">
-                  Rs. {plGrossProfit.toLocaleString()}
-                </div>
-                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
-                  Margin: {plGrossMargin}%
+                <div className="text-xs text-slate-400 font-bold">
+                  Showing {filteredPlJournal.length > 0 ? (plPage - 1) * plPageSize + 1 : 0}–{Math.min(plPage * plPageSize, filteredPlJournal.length)} of {filteredPlJournal.length} transactions
                 </div>
               </div>
 
-              {/* 4. Shop Expenses */}
-              <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                }`}>
-                <div className="text-[10px] font-black uppercase text-slate-400">Shop Expenses</div>
-                <div className="text-lg font-black font-mono mt-1 text-rose-500">
-                  -Rs. {plTotalExpenses.toLocaleString()}
-                </div>
-                <div className="text-[10px] text-slate-400 font-medium mt-0.5">Operational overheads</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider sticky top-0 ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-slate-400' : 'bg-slate-50/90 border-slate-200 text-slate-500'
+                      }`}>
+                      <th className="py-3 px-3.5">Date</th>
+                      <th className="py-3 px-3">Reference</th>
+                      <th className="py-3 px-3">Product / Description</th>
+                      <th className="py-3 px-3">Category</th>
+                      <th className="py-3 px-3 text-center">Type</th>
+                      <th className="py-3 px-3 text-center">Qty</th>
+                      <th className="py-3 px-3 text-right">Amount</th>
+                      <th className="py-3 px-3.5 text-right font-black text-slate-900 dark:text-white">Running P&L</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                    {paginatedPlJournal.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-slate-400">
+                          No financial transactions match the selected filters.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedPlJournal.map((tx) => {
+                        const isPositive = tx.amount >= 0;
+                        return (
+                          <tr key={tx.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
+                            {/* Date */}
+                            <td className="py-3 px-3.5 text-slate-600 dark:text-slate-300 font-mono text-[11px] whitespace-nowrap">
+                              {tx.dateStr}
+                            </td>
+
+                            {/* Reference */}
+                            <td className="py-3 px-3 font-mono font-bold whitespace-nowrap">
+                              <span className={`font-mono font-bold text-xs ${tx.type === 'Sale' ? 'text-emerald-600 dark:text-emerald-400' :
+                                tx.type === 'Purchase' ? 'text-blue-600 dark:text-blue-400' :
+                                  tx.type === 'Expense' ? 'text-rose-600 dark:text-rose-400' :
+                                    'text-purple-600 dark:text-purple-400'
+                                }`}>
+                                {tx.ref}
+                              </span>
+                            </td>
+
+                            {/* Product / Description */}
+                            <td className="py-3 px-3 font-bold text-slate-900 dark:text-white max-w-xs truncate">
+                              <div>{tx.product}</div>
+                              <div className="text-[10px] text-slate-400 font-medium">{tx.party} • {tx.mode}</div>
+                            </td>
+
+                            {/* Category */}
+                            <td className="py-3 px-3 text-slate-600 dark:text-slate-400 font-semibold text-xs">
+                              {tx.category}
+                            </td>
+
+                            {/* Type */}
+                            <td className="py-3 px-3 text-center whitespace-nowrap">
+                              <span className={`text-xs font-black uppercase ${tx.type === 'Sale' ? 'text-emerald-600' :
+                                tx.type === 'Purchase' ? 'text-blue-600' :
+                                  tx.type === 'Expense' ? 'text-rose-600' :
+                                    'text-purple-600'
+                                }`}>
+                                {tx.type}
+                              </span>
+                            </td>
+
+                            {/* Qty */}
+                            <td className="py-3 px-3 text-center font-mono font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                              {tx.qty}
+                            </td>
+
+                            {/* Amount */}
+                            <td className={`py-3 px-3 text-right font-mono font-bold whitespace-nowrap ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                              }`}>
+                              {isPositive ? '+' : ''}Rs. {tx.amount.toLocaleString()}
+                            </td>
+
+                            {/* Running P&L */}
+                            <td className="py-3 px-3.5 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
+                              Rs. {tx.runningPnL.toLocaleString()}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
 
-              {/* 5. Net Operating Profit */}
-              <div className={`p-3.5 rounded-2xl border card-shadow sm:col-span-2 ${theme === 'dark' ? 'bg-emerald-950/30 border-emerald-500/40 text-white' : 'bg-emerald-50/70 border-emerald-200 text-slate-900'
+              {/* Pagination Controls */}
+              {totalPlPages > 1 && (
+                <div className="p-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs">
+                  <button
+                    onClick={() => setPlPage(p => Math.max(1, p - 1))}
+                    disabled={plPage === 1}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Previous Page
+                  </button>
+
+                  <div className="font-bold text-slate-500">
+                    Page {plPage} of {totalPlPages}
+                  </div>
+
+                  <button
+                    onClick={() => setPlPage(p => Math.min(totalPlPages, p + 1))}
+                    disabled={plPage === totalPlPages}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Next Page
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* ========================================================================= */}
+            {/* PRODUCT-WISE & CATEGORY-WISE P&L ANALYTICS */}
+            {/* ========================================================================= */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* 1. Product-Wise P&L Table */}
+              <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
                 }`}>
                 <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">Net Operating Profit</div>
-                    <div className="text-xl font-black font-mono mt-0.5 text-emerald-700 dark:text-emerald-300">
-                      Rs. {plNetProfit.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white font-black text-xs font-mono">
-                      {plNetMargin}% Net Margin
-                    </span>
-                    <div className="text-[10px] text-slate-400 font-medium mt-1">
-                      Sales − Purchases − Expenses
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Statement Period Summary Card (4 cols) */}
-            <div className={`lg:col-span-4 p-4 rounded-2xl border card-shadow space-y-2.5 ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-slate-50/90 border-slate-200 text-slate-900'
-              }`}>
-              <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 border-b pb-1.5 border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                <span>Period Statement Summary</span>
-                <span className="text-[10px] font-bold text-emerald-600">{plDateFilter}</span>
-              </div>
-
-              <div className="space-y-1.5 text-xs font-semibold">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Opening Balance:</span>
-                  <span className="font-mono text-slate-600 dark:text-slate-300">Rs. 0</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Total Inflow (Revenue):</span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                    +Rs. {plTotalInflow.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Total Outflow (Costs):</span>
-                  <span className="font-mono text-rose-500 font-bold">
-                    -Rs. {plTotalOutflow.toLocaleString()}
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-sm font-black">
-                  <span>Net Statement P&L:</span>
-                  <span className={`font-mono ${plNetProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
-                    Rs. {plNetProfit.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ========================================================================= */}
-          {/* MAIN BANK-STATEMENT STYLE TRANSACTION LEDGER */}
-          {/* ========================================================================= */}
-          <div className={`border rounded-2xl card-shadow overflow-hidden ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
-                  <span>Itemized Transaction Statement Journal</span>
-                </h3>
-                <span className="text-[11px] text-slate-400 font-medium">
-                  Financial running balance ledger sorted chronologically
-                </span>
-              </div>
-
-              <div className="text-xs text-slate-400 font-bold">
-                Showing {filteredPlJournal.length > 0 ? (plPage - 1) * plPageSize + 1 : 0}–{Math.min(plPage * plPageSize, filteredPlJournal.length)} of {filteredPlJournal.length} transactions
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className={`border-b text-[10px] font-black uppercase tracking-wider sticky top-0 ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-slate-400' : 'bg-slate-50/90 border-slate-200 text-slate-500'
-                    }`}>
-                    <th className="py-3 px-3.5">Date</th>
-                    <th className="py-3 px-3">Reference</th>
-                    <th className="py-3 px-3">Product / Description</th>
-                    <th className="py-3 px-3">Category</th>
-                    <th className="py-3 px-3 text-center">Type</th>
-                    <th className="py-3 px-3 text-center">Qty</th>
-                    <th className="py-3 px-3 text-right">Amount</th>
-                    <th className="py-3 px-3.5 text-right font-black text-slate-900 dark:text-white">Running P&L</th>
-                  </tr>
-                </thead>
-                <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                  {paginatedPlJournal.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="py-12 text-center text-slate-400">
-                        No financial transactions match the selected filters.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedPlJournal.map((tx) => {
-                      const isPositive = tx.amount >= 0;
-                      return (
-                        <tr key={tx.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
-                          {/* Date */}
-                          <td className="py-3 px-3.5 text-slate-600 dark:text-slate-300 font-mono text-[11px] whitespace-nowrap">
-                            {tx.dateStr}
-                          </td>
-
-                          {/* Reference */}
-                          <td className="py-3 px-3 font-mono font-bold whitespace-nowrap">
-                            <span className={`font-mono font-bold text-xs ${tx.type === 'Sale' ? 'text-emerald-600 dark:text-emerald-400' :
-                              tx.type === 'Purchase' ? 'text-blue-600 dark:text-blue-400' :
-                                tx.type === 'Expense' ? 'text-rose-600 dark:text-rose-400' :
-                                  'text-purple-600 dark:text-purple-400'
-                              }`}>
-                              {tx.ref}
-                            </span>
-                          </td>
-
-                          {/* Product / Description */}
-                          <td className="py-3 px-3 font-bold text-slate-900 dark:text-white max-w-xs truncate">
-                            <div>{tx.product}</div>
-                            <div className="text-[10px] text-slate-400 font-medium">{tx.party} • {tx.mode}</div>
-                          </td>
-
-                          {/* Category */}
-                          <td className="py-3 px-3 text-slate-600 dark:text-slate-400 font-semibold text-xs">
-                            {tx.category}
-                          </td>
-
-                          {/* Type */}
-                          <td className="py-3 px-3 text-center whitespace-nowrap">
-                            <span className={`text-xs font-black uppercase ${tx.type === 'Sale' ? 'text-emerald-600' :
-                              tx.type === 'Purchase' ? 'text-blue-600' :
-                                tx.type === 'Expense' ? 'text-rose-600' :
-                                  'text-purple-600'
-                              }`}>
-                              {tx.type}
-                            </span>
-                          </td>
-
-                          {/* Qty */}
-                          <td className="py-3 px-3 text-center font-mono font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                            {tx.qty}
-                          </td>
-
-                          {/* Amount */}
-                          <td className={`py-3 px-3 text-right font-mono font-bold whitespace-nowrap ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                            }`}>
-                            {isPositive ? '+' : ''}Rs. {tx.amount.toLocaleString()}
-                          </td>
-
-                          {/* Running P&L */}
-                          <td className="py-3 px-3.5 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
-                            Rs. {tx.runningPnL.toLocaleString()}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Controls */}
-            {totalPlPages > 1 && (
-              <div className="p-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs">
-                <button
-                  onClick={() => setPlPage(p => Math.max(1, p - 1))}
-                  disabled={plPage === 1}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  Previous Page
-                </button>
-
-                <div className="font-bold text-slate-500">
-                  Page {plPage} of {totalPlPages}
+                  <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                    <Wheat className="w-4 h-4 text-emerald-500" />
+                    <span>Product-Wise Profit & Loss</span>
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-medium">Click row to filter</span>
                 </div>
 
-                <button
-                  onClick={() => setPlPage(p => Math.min(totalPlPages, p + 1))}
-                  disabled={plPage === totalPlPages}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  Next Page
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* ========================================================================= */}
-          {/* PRODUCT-WISE & CATEGORY-WISE P&L ANALYTICS */}
-          {/* ========================================================================= */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* 1. Product-Wise P&L Table */}
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                  <Wheat className="w-4 h-4 text-emerald-500" />
-                  <span>Product-Wise Profit & Loss</span>
-                </h3>
-                <span className="text-[10px] text-slate-400 font-medium">Click row to filter</span>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                      }`}>
-                      <th className="py-2.5 px-2.5">Product</th>
-                      <th className="py-2.5 px-2 text-center">Units Sold</th>
-                      <th className="py-2.5 px-2 text-right">Sales</th>
-                      <th className="py-2.5 px-2 text-right">Cost (COGS)</th>
-                      <th className="py-2.5 px-2 text-right font-black">Gross Profit</th>
-                      <th className="py-2.5 px-2.5 text-right">Margin %</th>
-                    </tr>
-                  </thead>
-                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                    {productWisePnLData.length === 0 ? (
-                      <tr><td colSpan={6} className="py-6 text-center text-slate-400">No product sales records.</td></tr>
-                    ) : (
-                      productWisePnLData.map((p, idx) => (
-                        <tr
-                          key={idx}
-                          onClick={() => {
-                            setPlProductFilter(p.name);
-                            setPlPage(1);
-                          }}
-                          className={`cursor-pointer transition ${theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-emerald-50/50'}`}
-                          title="Click to filter statement to this product"
-                        >
-                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">
-                            <div>{p.name}</div>
-                            <div className="text-[9px] text-slate-400">{p.category}</div>
-                          </td>
-                          <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-600 dark:text-slate-300">
-                            {p.unitsSold} {p.unit}
-                          </td>
-                          <td className="py-2.5 px-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Rs. {p.salesRevenue.toLocaleString()}
-                          </td>
-                          <td className="py-2.5 px-2 text-right font-mono text-slate-500">
-                            Rs. {p.cogs.toLocaleString()}
-                          </td>
-                          <td className="py-2.5 px-2 text-right font-mono font-black text-slate-900 dark:text-white">
-                            Rs. {p.grossProfit.toLocaleString()}
-                          </td>
-                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            {p.margin}%
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* 2. Category-Wise P&L Table */}
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                  <Building className="w-4 h-4 text-blue-500" />
-                  <span>Category-Wise Profit & Loss</span>
-                </h3>
-                <span className="text-[10px] text-slate-400 font-medium">Click row to filter</span>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                        }`}>
+                        <th className="py-2.5 px-2.5">Product</th>
+                        <th className="py-2.5 px-2 text-center">Units Sold</th>
+                        <th className="py-2.5 px-2 text-right">Sales</th>
+                        <th className="py-2.5 px-2 text-right">Cost (COGS)</th>
+                        <th className="py-2.5 px-2 text-right font-black">Gross Profit</th>
+                        <th className="py-2.5 px-2.5 text-right">Margin %</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                      {productWisePnLData.length === 0 ? (
+                        <tr><td colSpan={6} className="py-6 text-center text-slate-400">No product sales records.</td></tr>
+                      ) : (
+                        productWisePnLData.map((p, idx) => (
+                          <tr
+                            key={idx}
+                            onClick={() => {
+                              setPlProductFilter(p.name);
+                              setPlPage(1);
+                            }}
+                            className={`cursor-pointer transition ${theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-emerald-50/50'}`}
+                            title="Click to filter statement to this product"
+                          >
+                            <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">
+                              <div>{p.name}</div>
+                              <div className="text-[9px] text-slate-400">{p.category}</div>
+                            </td>
+                            <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-600 dark:text-slate-300">
+                              {p.unitsSold} {p.unit}
+                            </td>
+                            <td className="py-2.5 px-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              Rs. {p.salesRevenue.toLocaleString()}
+                            </td>
+                            <td className="py-2.5 px-2 text-right font-mono text-slate-500">
+                              Rs. {p.cogs.toLocaleString()}
+                            </td>
+                            <td className="py-2.5 px-2 text-right font-mono font-black text-slate-900 dark:text-white">
+                              Rs. {p.grossProfit.toLocaleString()}
+                            </td>
+                            <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              {p.margin}%
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                      }`}>
-                      <th className="py-2.5 px-2.5">Category</th>
-                      <th className="py-2.5 px-2 text-right">Sales</th>
-                      <th className="py-2.5 px-2 text-right">Purchases</th>
-                      <th className="py-2.5 px-2 text-right">Expenses</th>
-                      <th className="py-2.5 px-2 text-right font-black">Net Profit</th>
-                      <th className="py-2.5 px-2.5 text-right">Margin %</th>
-                    </tr>
-                  </thead>
-                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                    {categoryWisePnLData.length === 0 ? (
-                      <tr><td colSpan={6} className="py-6 text-center text-slate-400">No category breakdown data.</td></tr>
-                    ) : (
-                      categoryWisePnLData.map((c, idx) => (
-                        <tr
-                          key={idx}
-                          onClick={() => {
-                            setPlCategoryFilter(c.category);
-                            setPlPage(1);
-                          }}
-                          className={`cursor-pointer transition ${theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-blue-50/50'}`}
-                          title="Click to filter statement to this category"
-                        >
-                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">
-                            {c.category}
-                          </td>
-                          <td className="py-2.5 px-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Rs. {c.sales.toLocaleString()}
-                          </td>
-                          <td className="py-2.5 px-2 text-right font-mono text-blue-600 dark:text-blue-400">
-                            Rs. {c.purchases.toLocaleString()}
-                          </td>
-                          <td className="py-2.5 px-2 text-right font-mono text-rose-500">
-                            Rs. {c.expenses.toLocaleString()}
-                          </td>
-                          <td className="py-2.5 px-2 text-right font-mono font-black text-slate-900 dark:text-white">
-                            Rs. {c.netProfit.toLocaleString()}
-                          </td>
-                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            {c.margin}%
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              {/* 2. Category-Wise P&L Table */}
+              <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                    <Building className="w-4 h-4 text-blue-500" />
+                    <span>Category-Wise Profit & Loss</span>
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-medium">Click row to filter</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                        }`}>
+                        <th className="py-2.5 px-2.5">Category</th>
+                        <th className="py-2.5 px-2 text-right">Sales</th>
+                        <th className="py-2.5 px-2 text-right">Purchases</th>
+                        <th className="py-2.5 px-2 text-right">Expenses</th>
+                        <th className="py-2.5 px-2 text-right font-black">Net Profit</th>
+                        <th className="py-2.5 px-2.5 text-right">Margin %</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                      {categoryWisePnLData.length === 0 ? (
+                        <tr><td colSpan={6} className="py-6 text-center text-slate-400">No category breakdown data.</td></tr>
+                      ) : (
+                        categoryWisePnLData.map((c, idx) => (
+                          <tr
+                            key={idx}
+                            onClick={() => {
+                              setPlCategoryFilter(c.category);
+                              setPlPage(1);
+                            }}
+                            className={`cursor-pointer transition ${theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-blue-50/50'}`}
+                            title="Click to filter statement to this category"
+                          >
+                            <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">
+                              {c.category}
+                            </td>
+                            <td className="py-2.5 px-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              Rs. {c.sales.toLocaleString()}
+                            </td>
+                            <td className="py-2.5 px-2 text-right font-mono text-blue-600 dark:text-blue-400">
+                              Rs. {c.purchases.toLocaleString()}
+                            </td>
+                            <td className="py-2.5 px-2 text-right font-mono text-rose-500">
+                              Rs. {c.expenses.toLocaleString()}
+                            </td>
+                            <td className="py-2.5 px-2 text-right font-mono font-black text-slate-900 dark:text-white">
+                              Rs. {c.netProfit.toLocaleString()}
+                            </td>
+                            <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              {c.margin}%
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ------------------------------------------------------------------------- */}
-      {/* 5. BALANCE SHEET STATEMENT (PROFESSIONAL BANKING & FINANCIAL DASHBOARD) */}
-      {/* ------------------------------------------------------------------------- */}
-      {reportType === 'BalanceSheet' && (
-        <div className="space-y-6">
-          {/* Top Filter Bar - Single Clean Date Filter */}
-          <div className={`p-4 rounded-2xl border card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Building className="w-4 h-4 text-indigo-500" />
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                    Balance Sheet Statement
-                  </span>
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                    As of {bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}
-                  </span>
+          {/* ------------------------------------------------------------------------- */}
+          {/* 5. BALANCE SHEET STATEMENT (PROFESSIONAL BANKING & FINANCIAL DASHBOARD) */}
+          {/* ------------------------------------------------------------------------- */}
+          {reportType === 'BalanceSheet' && (
+            <div className="space-y-6">
+              {/* Top Filter Bar - Single Clean Date Filter */}
+              <div className={`p-4 rounded-2xl border card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Building className="w-4 h-4 text-indigo-500" />
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                        Balance Sheet Statement
+                      </span>
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                        As of {bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Single Clean Date Filter Dropdown & Controls */}
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                      <select
+                        value={bsDateFilter}
+                        onChange={(e) => setBsDateFilter(e.target.value)}
+                        className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
+                      >
+                        <option value="Today">Today ({new Date().toLocaleDateString('en-GB')})</option>
+                        <option value="Yesterday">Yesterday</option>
+                        <option value="This Week">Weekly (This Week)</option>
+                        <option value="This Month">Monthly (This Month)</option>
+                        <option value="All Time">All Time</option>
+                        <option value="Custom">Custom Date Range</option>
+                      </select>
+                    </div>
+
+                    {bsDateFilter === 'Custom' && (
+                      <input
+                        type="date"
+                        value={bsCustomDate}
+                        onChange={(e) => setBsCustomDate(e.target.value)}
+                        className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
+                      />
+                    )}
+
+                    <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
+                      <span className="text-[11px] text-slate-400 font-medium">Last updated: <strong className="text-slate-600 dark:text-slate-300">{bsLastUpdated}</strong></span>
+                      <button
+                        onClick={handleRefreshBalanceSheet}
+                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-500 transition cursor-pointer"
+                        title="Refresh Balance Sheet"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+                      {bsDateFilter !== 'All Time' && (
+                        <button
+                          onClick={handleResetBsFilters}
+                          className="text-[11px] font-bold text-rose-500 hover:underline cursor-pointer ml-1"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Single Clean Date Filter Dropdown & Controls */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                  <select
-                    value={bsDateFilter}
-                    onChange={(e) => setBsDateFilter(e.target.value)}
-                    className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  >
-                    <option value="Today">Today ({new Date().toLocaleDateString('en-GB')})</option>
-                    <option value="Yesterday">Yesterday</option>
-                    <option value="This Week">Weekly (This Week)</option>
-                    <option value="This Month">Monthly (This Month)</option>
-                    <option value="All Time">All Time</option>
-                    <option value="Custom">Custom Date Range</option>
-                  </select>
+              {/* 3 Main Metric Cards with Movement Badges */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. TOTAL ASSETS */}
+                <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200 text-slate-900'
+                  }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                      Total Assets
+                    </span>
+                    <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                      <span>+8.4% vs prev</span>
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                    Rs. {totalAssets.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium">
+                    Cash + Customer Udhaar + Stock Maal
+                  </div>
                 </div>
 
-                {bsDateFilter === 'Custom' && (
+                {/* 2. TOTAL LIABILITIES */}
+                <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200 text-slate-900'
+                  }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                      Total Payables (Udhaar Dena)
+                    </span>
+                    <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">
+                      <span>0.0% vs prev</span>
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
+                    Rs. {totalLiabilities.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium">
+                    Suppliers Ka Udhaar + Baki Kharcha
+                  </div>
+                </div>
+
+                {/* 3. NET BUSINESS WORTH */}
+                <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-br from-indigo-50/40 to-white border-indigo-200 text-slate-900'
+                  }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                      Net Worth (Asal Sarmaya)
+                    </span>
+                    <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                      <span>+12.2% vs prev</span>
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">
+                    Rs. {totalEquity.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium">
+                    Total Assets - Total Payables (Kul Bachat)
+                  </div>
+                </div>
+              </div>
+
+              {/* Visual Financial Summary — Net Worth Trend Line */}
+              <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-indigo-500" />
+                    <h3 className="text-xs font-black uppercase tracking-wider">
+                      Financial Position & Net Worth Trajectory
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-4 text-[11px] font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                      <span>Assets</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+                      <span>Liabilities</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" />
+                      <span>Net Worth</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Simple Clean Responsive SVG Trend Line */}
+                <div className="h-28 w-full flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-100 dark:border-slate-700">
+                  {bsTrendData.map((d, i) => {
+                    const maxVal = Math.max(1, bsTrendData[bsTrendData.length - 1].assets);
+                    const assetHeight = Math.max(15, Math.round((d.assets / maxVal) * 80));
+                    const nwHeight = Math.max(12, Math.round((d.netWorth / maxVal) * 80));
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group cursor-pointer">
+                        <div className="flex items-end gap-1 w-full justify-center">
+                          <div
+                            className="w-2.5 bg-emerald-500/80 hover:bg-emerald-500 rounded-t-sm transition-all"
+                            style={{ height: `${assetHeight}px` }}
+                            title={`Assets: Rs. ${d.assets.toLocaleString()}`}
+                          />
+                          <div
+                            className="w-2.5 bg-indigo-500/80 hover:bg-indigo-500 rounded-t-sm transition-all"
+                            style={{ height: `${nwHeight}px` }}
+                            title={`Net Worth: Rs. ${d.netWorth.toLocaleString()}`}
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400">{d.month}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Two Column Banking Balance Sheet Statement */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* ========================================================================= */}
+                {/* LEFT COLUMN: WHAT YOU OWN (ASSETS) */}
+                {/* ========================================================================= */}
+                <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                  }`}>
+                  <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
+                    <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                      <Building className="w-4 h-4" />
+                      <span>What You Own (Assets)</span>
+                    </h3>
+                    <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      Rs. {totalAssets.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    {/* 1. Cash & Bank Equivalents */}
+                    <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                      }`}>
+                      <div
+                        onClick={() => toggleBsSection('cashBank')}
+                        className="flex items-center justify-between cursor-pointer font-bold"
+                      >
+                        <div className="flex items-center gap-2">
+                          {bsExpandedSections.cashBank ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                          <span className="text-slate-900 dark:text-white">Cash & Bank Equivalents</span>
+                        </div>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                          Rs. {bsCashBreakdown.total.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {bsExpandedSections.cashBank && (
+                        <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                          <div className="flex justify-between">
+                            <span>Cash in Hand (Counter Drawer):</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {cashInHand.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Bank Accounts (HBL / Meezan):</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Mobile Wallets (JazzCash / Easypaisa):</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                          </div>
+                          <div className="pt-1 text-right">
+                            <button
+                              onClick={() => {
+                                setBsDrilldownSearch('');
+                                setBsActiveDrilldownModal('cashBank');
+                              }}
+                              className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                            >
+                              View Liquid Details →
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. Customer Receivables */}
+                    <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                      }`}>
+                      <div
+                        onClick={() => toggleBsSection('receivables')}
+                        className="flex items-center justify-between cursor-pointer font-bold"
+                      >
+                        <div className="flex items-center gap-2">
+                          {bsExpandedSections.receivables ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                          <span className="text-slate-900 dark:text-white">Receivables (Khata Dues)</span>
+                        </div>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                          Rs. {totalCustomerReceivables.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {bsExpandedSections.receivables && (
+                        <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                          <div className="flex justify-between">
+                            <span>Customer Khata Receivables:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {totalCustomerReceivables.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Other Business Advances:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                          </div>
+                          <div className="pt-1 text-right">
+                            <button
+                              onClick={() => {
+                                setBsDrilldownSearch('');
+                                setBsActiveDrilldownModal('customers');
+                              }}
+                              className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                            >
+                              View Customers Ledger →
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 3. Commodity Inventory Assets */}
+                    <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                      }`}>
+                      <div
+                        onClick={() => toggleBsSection('inventory')}
+                        className="flex items-center justify-between cursor-pointer font-bold"
+                      >
+                        <div className="flex items-center gap-2">
+                          {bsExpandedSections.inventory ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                          <span className="text-slate-900 dark:text-white">Inventory / Commodities</span>
+                        </div>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                          Rs. {totalStockValuation.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {bsExpandedSections.inventory && (
+                        <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                          <div className="flex justify-between">
+                            <span>Stock in Warehouse Godown:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {totalStockValuation.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Damaged / Expired Goods:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                          </div>
+                          <div className="pt-1 text-right">
+                            <button
+                              onClick={() => {
+                                setBsDrilldownSearch('');
+                                setBsActiveDrilldownModal('stock');
+                              }}
+                              className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                            >
+                              View Stock Valuation →
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Total Assets Summary Line */}
+                    <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-slate-900 dark:text-white">
+                      <span>TOTAL ASSETS:</span>
+                      <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ========================================================================= */}
+                {/* RIGHT COLUMN: WHAT YOU OWE & EQUITY (LIABILITIES & EQUITY) */}
+                {/* ========================================================================= */}
+                <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                  }`}>
+                  <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
+                    <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                      <PieChart className="w-4 h-4" />
+                      <span>What You Owe & Equity</span>
+                    </h3>
+                    <span className="text-[11px] font-mono font-bold text-slate-900 dark:text-white">
+                      Rs. {(totalLiabilities + totalEquity).toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    {/* 1. Supplier Payables & Current Liabilities */}
+                    <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                      }`}>
+                      <div
+                        onClick={() => toggleBsSection('payables')}
+                        className="flex items-center justify-between cursor-pointer font-bold"
+                      >
+                        <div className="flex items-center gap-2">
+                          {bsExpandedSections.payables ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                          <span className="text-slate-900 dark:text-white">Current Liabilities</span>
+                        </div>
+                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                          Rs. {totalSupplierPayables.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {bsExpandedSections.payables && (
+                        <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                          <div className="flex justify-between">
+                            <span>Supplier Khata Payables:</span>
+                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Loans & Financing:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Outstanding Operating Expenses:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                          </div>
+                          <div className="pt-1 text-right">
+                            <button
+                              onClick={() => {
+                                setBsDrilldownSearch('');
+                                setBsActiveDrilldownModal('suppliers');
+                              }}
+                              className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                            >
+                              View Suppliers Ledger →
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. Equity & Business Net Worth */}
+                    <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                      }`}>
+                      <div
+                        onClick={() => toggleBsSection('equity')}
+                        className="flex items-center justify-between cursor-pointer font-bold"
+                      >
+                        <div className="flex items-center gap-2">
+                          {bsExpandedSections.equity ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                          <span className="text-slate-900 dark:text-white">Equity & Capital</span>
+                        </div>
+                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                          Rs. {totalEquity.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {bsExpandedSections.equity && (
+                        <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                          <div className="flex justify-between">
+                            <span>Owner's Opening Capital:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Current Year Retained Profit:</span>
+                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {bsEquityBreakdown.retainedProfit.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
+                            <span>Total Net Business Value:</span>
+                            <span className="font-mono text-indigo-600 dark:text-indigo-400">Rs. {totalEquity.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Total Liabilities + Equity Summary Line */}
+                    <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-slate-900 dark:text-white">
+                      <span>TOTAL LIABILITIES & EQUITY:</span>
+                      <span className="font-mono text-slate-900 dark:text-white">Rs. {(totalLiabilities + totalEquity).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 6. BALANCE SHEET INTERACTIVE DRILLDOWN MODALS */}
+          {/* ========================================================================= */}
+          {bsActiveDrilldownModal && (
+            <div
+              onClick={(e) => { if (e.target === e.currentTarget) setBsActiveDrilldownModal(null); }}
+              className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            >
+              <div className={`rounded-3xl max-w-2xl w-full p-4 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] flex flex-col ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}>
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700">
+                  <div>
+                    <h3 className="text-sm font-black flex items-center gap-2">
+                      {bsActiveDrilldownModal === 'stock' && <Warehouse className="w-4 h-4 text-amber-500" />}
+                      {bsActiveDrilldownModal === 'customers' && <Users className="w-4 h-4 text-emerald-500" />}
+                      {bsActiveDrilldownModal === 'suppliers' && <Building className="w-4 h-4 text-blue-500" />}
+                      {bsActiveDrilldownModal === 'cashBank' && <Wallet className="w-4 h-4 text-purple-500" />}
+                      <span>
+                        {bsActiveDrilldownModal === 'stock' && 'Stock Valuation Breakdown'}
+                        {bsActiveDrilldownModal === 'customers' && 'Customer Khata Receivables Ledger'}
+                        {bsActiveDrilldownModal === 'suppliers' && 'Supplier Payables Ledger'}
+                        {bsActiveDrilldownModal === 'cashBank' && 'Liquid Cash & Bank Accounts'}
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-medium">
+                      Itemized live balances supporting the Balance Sheet Statement
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setBsActiveDrilldownModal(null)}
+                    className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Modal Search Bar */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
-                    type="date"
-                    value={bsCustomDate}
-                    onChange={(e) => setBsCustomDate(e.target.value)}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    type="text"
+                    value={bsDrilldownSearch}
+                    onChange={(e) => setBsDrilldownSearch(e.target.value)}
+                    placeholder="Search items, names, phone..."
+                    className={`w-full pl-8 pr-3 py-1.5 border rounded-xl text-xs font-bold outline-none focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
                       }`}
                   />
-                )}
+                </div>
 
-                <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
-                  <span className="text-[11px] text-slate-400 font-medium">Last updated: <strong className="text-slate-600 dark:text-slate-300">{bsLastUpdated}</strong></span>
+                {/* Modal Content Table */}
+                <div className="overflow-y-auto overflow-x-auto flex-1 text-xs">
+                  {/* 1. Stock Valuation Details */}
+                  {bsActiveDrilldownModal === 'stock' && (
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                          <th className="py-2 px-2.5">Product</th>
+                          <th className="py-2 px-2">Category</th>
+                          <th className="py-2 px-2 text-center">Available Stock</th>
+                          <th className="py-2 px-2 text-right">Purchase Rate</th>
+                          <th className="py-2 px-2.5 text-right font-black">Stock Value</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                        {(filteredStock || []).filter(p => p.name.toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (p.category || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase())).map((p, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                            <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{p.name}</td>
+                            <td className="py-2.5 px-2 text-slate-500">{p.category}</td>
+                            <td className="py-2.5 px-2 text-center font-mono">{p.qty} {p.unit}</td>
+                            <td className="py-2.5 px-2 text-right font-mono text-slate-500">Rs. {p.purchaseRate}/{p.unit}</td>
+                            <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {p.stockVal.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 text-xs font-black">
+                          <td colSpan={4} className="py-2.5 px-2.5 uppercase">Total Warehouse Stock Valuation</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono text-emerald-600">Rs. {totalStockValuation.toLocaleString()}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  )}
+
+                  {/* 2. Customer Receivables Details */}
+                  {bsActiveDrilldownModal === 'customers' && (
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                          <th className="py-2 px-2.5">Customer Party</th>
+                          <th className="py-2 px-2">Phone</th>
+                          <th className="py-2 px-2">City / Address</th>
+                          <th className="py-2 px-2.5 text-right font-black">Receivable Due</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                        {(customers || []).filter(c => (c.name || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (c.phone || '').includes(bsDrilldownSearch)).map((c, idx) => {
+                          const bal = Math.max(0, Number(c.balance !== undefined ? c.balance : c.openingBalance || 0));
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                              <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{c.name}</td>
+                              <td className="py-2.5 px-2 text-slate-500 font-mono">{c.phone || '—'}</td>
+                              <td className="py-2.5 px-2 text-slate-500">{c.city || c.address || 'Local Mandi'}</td>
+                              <td className="py-2.5 px-2.5 text-right font-mono font-bold text-amber-600 dark:text-amber-400">Rs. {bal.toLocaleString()}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 text-xs font-black">
+                          <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Pending Customer Receivables</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono text-amber-600">Rs. {totalCustomerReceivables.toLocaleString()}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  )}
+
+                  {/* 3. Supplier Payables Details */}
+                  {bsActiveDrilldownModal === 'suppliers' && (
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                          <th className="py-2 px-2.5">Supplier Firm</th>
+                          <th className="py-2 px-2">Phone</th>
+                          <th className="py-2 px-2">Supplied Goods</th>
+                          <th className="py-2 px-2.5 text-right font-black">Payable Due</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                        {(suppliers || []).filter(s => (s.name || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (s.phone || '').includes(bsDrilldownSearch)).map((s, idx) => {
+                          const bal = Math.max(0, Number(s.balance !== undefined ? s.balance : s.openingBalance || 0));
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                              <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{s.name}</td>
+                              <td className="py-2.5 px-2 text-slate-500 font-mono">{s.phone || '—'}</td>
+                              <td className="py-2.5 px-2 text-slate-500">{(s.suppliedProducts || []).join(', ') || 'General Commodity'}</td>
+                              <td className="py-2.5 px-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {bal.toLocaleString()}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 text-xs font-black">
+                          <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Due to Suppliers</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono text-rose-600">Rs. {totalSupplierPayables.toLocaleString()}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  )}
+
+                  {/* 4. Cash & Bank Accounts Details */}
+                  {bsActiveDrilldownModal === 'cashBank' && (
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                          <th className="py-2 px-2.5">Account / Channel</th>
+                          <th className="py-2 px-2">Type</th>
+                          <th className="py-2 px-2">Account #</th>
+                          <th className="py-2 px-2.5 text-right font-black">Liquid Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Shop Cash Counter Drawer</td>
+                          <td className="py-2.5 px-2 text-emerald-600 font-bold">Physical Cash</td>
+                          <td className="py-2.5 px-2 text-slate-500 font-mono">DRAWER-01</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600">Rs. {cashInHand.toLocaleString()}</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Habib Bank Limited (HBL)</td>
+                          <td className="py-2.5 px-2 text-blue-600 font-bold">Corporate Current</td>
+                          <td className="py-2.5 px-2 text-slate-500 font-mono">PK64HABB000123456789</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-slate-600">Rs. 0</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Meezan Islamic Banking</td>
+                          <td className="py-2.5 px-2 text-emerald-600 font-bold">Islamic Business</td>
+                          <td className="py-2.5 px-2 text-slate-500 font-mono">PK21MEZN000987654321</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-slate-600">Rs. 0</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">JazzCash Merchant Account</td>
+                          <td className="py-2.5 px-2 text-rose-600 font-bold">Mobile Wallet</td>
+                          <td className="py-2.5 px-2 text-slate-500 font-mono">0300-1234567</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-slate-600">Rs. 0</td>
+                        </tr>
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 text-xs font-black">
+                          <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Liquid Cash & Bank Funds</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono text-emerald-600">Rs. {cashInHand.toLocaleString()}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  )}
+                </div>
+
+                <div className="pt-2 text-right border-t border-slate-100 dark:border-slate-700">
                   <button
-                    onClick={handleRefreshBalanceSheet}
-                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-500 transition cursor-pointer"
-                    title="Refresh Balance Sheet"
+                    type="button"
+                    onClick={() => setBsActiveDrilldownModal(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
+                    Close Drilldown
                   </button>
-                  {bsDateFilter !== 'All Time' && (
-                    <button
-                      onClick={handleResetBsFilters}
-                      className="text-[11px] font-bold text-rose-500 hover:underline cursor-pointer ml-1"
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 3. RECORD OPERATING EXPENSE MODAL */}
+          {/* ========================================================================= */}
+          {showAddExpenseModal && (
+            <div
+              onClick={(e) => { if (e.target === e.currentTarget) setShowAddExpenseModal(false); }}
+              className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            >
+              <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}>
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
+                  <h3 className="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+                    <DollarSign className="w-5 h-5 text-slate-700" />
+                    <span>Record Operating Expense</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddExpenseModal(false)}
+                    className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddExpense} className="space-y-3.5">
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 block mb-1">
+                      Expense Category
+                    </label>
+                    <select
+                      value={newExpense.category}
+                      onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     >
-                      Reset
+                      <option value="Labour & Loading (Palla)">Labour & Loading (Palla / Mazdoori)</option>
+                      <option value="Bardana / Bags">Bardana / Bags Procurement</option>
+                      <option value="Freight & Transport">Freight & Truck Transport (Bilty)</option>
+                      <option value="Electricity & Fuel">Electricity & Generator Diesel</option>
+                      <option value="Tea & Refreshments">Tea & Customer Hospitality</option>
+                      <option value="Shop Rent">Shop & Godown Rent</option>
+                      <option value="General Misc">General Miscellaneous</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 block mb-1">
+                      Amount (Rs.)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={newExpense.amount}
+                      onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                      placeholder="e.g. 5000"
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 block mb-1">
+                      Description / Remarks
+                    </label>
+                    <input
+                      type="text"
+                      value={newExpense.desc}
+                      onChange={(e) => setNewExpense({ ...newExpense, desc: e.target.value })}
+                      placeholder="e.g. Loading and unloading mazdoori..."
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 block mb-1">
+                      Payment Mode
+                    </label>
+                    <select
+                      value={newExpense.mode}
+                      onChange={(e) => setNewExpense({ ...newExpense, mode: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    >
+                      <option value="Cash">Cash (Counter Drawer)</option>
+                      <option value="Bank Transfer">Bank Transfer / Online</option>
+                      <option value="Cheque">Cheque</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddExpenseModal(false)}
+                      className={`w-1/2 py-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${theme === 'dark' ? 'border-slate-700 text-slate-300 hover:bg-slate-700' : 'border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                    >
+                      Cancel
                     </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 3 Main Metric Cards with Movement Badges */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 1. TOTAL ASSETS */}
-            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200 text-slate-900'
-              }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                  Total Assets
-                </span>
-                <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                  <span>+8.4% vs prev</span>
-                </span>
-              </div>
-              <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-                Rs. {totalAssets.toLocaleString()}
-              </div>
-              <div className="text-[10px] text-slate-400 font-medium">
-                Cash + Customer Udhaar + Stock Maal
-              </div>
-            </div>
-
-            {/* 2. TOTAL LIABILITIES */}
-            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200 text-slate-900'
-              }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                  Total Payables (Udhaar Dena)
-                </span>
-                <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">
-                  <span>0.0% vs prev</span>
-                </span>
-              </div>
-              <div className="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
-                Rs. {totalLiabilities.toLocaleString()}
-              </div>
-              <div className="text-[10px] text-slate-400 font-medium">
-                Suppliers Ka Udhaar + Baki Kharcha
-              </div>
-            </div>
-
-            {/* 3. NET BUSINESS WORTH */}
-            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-br from-indigo-50/40 to-white border-indigo-200 text-slate-900'
-              }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                  Net Worth (Asal Sarmaya)
-                </span>
-                <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                  <span>+12.2% vs prev</span>
-                </span>
-              </div>
-              <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">
-                Rs. {totalEquity.toLocaleString()}
-              </div>
-              <div className="text-[10px] text-slate-400 font-medium">
-                Total Assets - Total Payables (Kul Bachat)
-              </div>
-            </div>
-          </div>
-
-          {/* Visual Financial Summary — Net Worth Trend Line */}
-          <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-indigo-500" />
-                <h3 className="text-xs font-black uppercase tracking-wider">
-                  Financial Position & Net Worth Trajectory
-                </h3>
-              </div>
-              <div className="flex items-center gap-4 text-[11px] font-bold">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-                  <span>Assets</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
-                  <span>Liabilities</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" />
-                  <span>Net Worth</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Simple Clean Responsive SVG Trend Line */}
-            <div className="h-28 w-full flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-100 dark:border-slate-700">
-              {bsTrendData.map((d, i) => {
-                const maxVal = Math.max(1, bsTrendData[bsTrendData.length - 1].assets);
-                const assetHeight = Math.max(15, Math.round((d.assets / maxVal) * 80));
-                const nwHeight = Math.max(12, Math.round((d.netWorth / maxVal) * 80));
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group cursor-pointer">
-                    <div className="flex items-end gap-1 w-full justify-center">
-                      <div
-                        className="w-2.5 bg-emerald-500/80 hover:bg-emerald-500 rounded-t-sm transition-all"
-                        style={{ height: `${assetHeight}px` }}
-                        title={`Assets: Rs. ${d.assets.toLocaleString()}`}
-                      />
-                      <div
-                        className="w-2.5 bg-indigo-500/80 hover:bg-indigo-500 rounded-t-sm transition-all"
-                        style={{ height: `${nwHeight}px` }}
-                        title={`Net Worth: Rs. ${d.netWorth.toLocaleString()}`}
-                      />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400">{d.month}</span>
+                    <button
+                      type="submit"
+                      className="w-1/2 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+                    >
+                      Save Expense
+                    </button>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Two Column Banking Balance Sheet Statement */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* ========================================================================= */}
-            {/* LEFT COLUMN: WHAT YOU OWN (ASSETS) */}
-            {/* ========================================================================= */}
-            <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
-                <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                  <Building className="w-4 h-4" />
-                  <span>What You Own (Assets)</span>
-                </h3>
-                <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  Rs. {totalAssets.toLocaleString()}
-                </span>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                {/* 1. Cash & Bank Equivalents */}
-                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                  }`}>
-                  <div
-                    onClick={() => toggleBsSection('cashBank')}
-                    className="flex items-center justify-between cursor-pointer font-bold"
-                  >
-                    <div className="flex items-center gap-2">
-                      {bsExpandedSections.cashBank ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                      <span className="text-slate-900 dark:text-white">Cash & Bank Equivalents</span>
-                    </div>
-                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                      Rs. {bsCashBreakdown.total.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {bsExpandedSections.cashBank && (
-                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between">
-                        <span>Cash in Hand (Counter Drawer):</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {cashInHand.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Bank Accounts (HBL / Meezan):</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Mobile Wallets (JazzCash / Easypaisa):</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                      </div>
-                      <div className="pt-1 text-right">
-                        <button
-                          onClick={() => {
-                            setBsDrilldownSearch('');
-                            setBsActiveDrilldownModal('cashBank');
-                          }}
-                          className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                        >
-                          View Liquid Details →
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 2. Customer Receivables */}
-                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                  }`}>
-                  <div
-                    onClick={() => toggleBsSection('receivables')}
-                    className="flex items-center justify-between cursor-pointer font-bold"
-                  >
-                    <div className="flex items-center gap-2">
-                      {bsExpandedSections.receivables ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                      <span className="text-slate-900 dark:text-white">Receivables (Khata Dues)</span>
-                    </div>
-                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                      Rs. {totalCustomerReceivables.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {bsExpandedSections.receivables && (
-                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between">
-                        <span>Customer Khata Receivables:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {totalCustomerReceivables.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Other Business Advances:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                      </div>
-                      <div className="pt-1 text-right">
-                        <button
-                          onClick={() => {
-                            setBsDrilldownSearch('');
-                            setBsActiveDrilldownModal('customers');
-                          }}
-                          className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                        >
-                          View Customers Ledger →
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 3. Commodity Inventory Assets */}
-                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                  }`}>
-                  <div
-                    onClick={() => toggleBsSection('inventory')}
-                    className="flex items-center justify-between cursor-pointer font-bold"
-                  >
-                    <div className="flex items-center gap-2">
-                      {bsExpandedSections.inventory ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                      <span className="text-slate-900 dark:text-white">Inventory / Commodities</span>
-                    </div>
-                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                      Rs. {totalStockValuation.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {bsExpandedSections.inventory && (
-                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between">
-                        <span>Stock in Warehouse Godown:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {totalStockValuation.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Damaged / Expired Goods:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                      </div>
-                      <div className="pt-1 text-right">
-                        <button
-                          onClick={() => {
-                            setBsDrilldownSearch('');
-                            setBsActiveDrilldownModal('stock');
-                          }}
-                          className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                        >
-                          View Stock Valuation →
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Total Assets Summary Line */}
-                <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-slate-900 dark:text-white">
-                  <span>TOTAL ASSETS:</span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
-                </div>
+                </form>
               </div>
             </div>
-
-            {/* ========================================================================= */}
-            {/* RIGHT COLUMN: WHAT YOU OWE & EQUITY (LIABILITIES & EQUITY) */}
-            {/* ========================================================================= */}
-            <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
-                <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-rose-600 dark:text-rose-400">
-                  <PieChart className="w-4 h-4" />
-                  <span>What You Owe & Equity</span>
-                </h3>
-                <span className="text-[11px] font-mono font-bold text-slate-900 dark:text-white">
-                  Rs. {(totalLiabilities + totalEquity).toLocaleString()}
-                </span>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                {/* 1. Supplier Payables & Current Liabilities */}
-                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                  }`}>
-                  <div
-                    onClick={() => toggleBsSection('payables')}
-                    className="flex items-center justify-between cursor-pointer font-bold"
-                  >
-                    <div className="flex items-center gap-2">
-                      {bsExpandedSections.payables ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                      <span className="text-slate-900 dark:text-white">Current Liabilities</span>
-                    </div>
-                    <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
-                      Rs. {totalSupplierPayables.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {bsExpandedSections.payables && (
-                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between">
-                        <span>Supplier Khata Payables:</span>
-                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Loans & Financing:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Outstanding Operating Expenses:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                      </div>
-                      <div className="pt-1 text-right">
-                        <button
-                          onClick={() => {
-                            setBsDrilldownSearch('');
-                            setBsActiveDrilldownModal('suppliers');
-                          }}
-                          className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
-                        >
-                          View Suppliers Ledger →
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 2. Equity & Business Net Worth */}
-                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                  }`}>
-                  <div
-                    onClick={() => toggleBsSection('equity')}
-                    className="flex items-center justify-between cursor-pointer font-bold"
-                  >
-                    <div className="flex items-center gap-2">
-                      {bsExpandedSections.equity ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                      <span className="text-slate-900 dark:text-white">Equity & Capital</span>
-                    </div>
-                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                      Rs. {totalEquity.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {bsExpandedSections.equity && (
-                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between">
-                        <span>Owner's Opening Capital:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Current Year Retained Profit:</span>
-                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {bsEquityBreakdown.retainedProfit.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
-                        <span>Total Net Business Value:</span>
-                        <span className="font-mono text-indigo-600 dark:text-indigo-400">Rs. {totalEquity.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Total Liabilities + Equity Summary Line */}
-                <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-slate-900 dark:text-white">
-                  <span>TOTAL LIABILITIES & EQUITY:</span>
-                  <span className="font-mono text-slate-900 dark:text-white">Rs. {(totalLiabilities + totalEquity).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 6. BALANCE SHEET INTERACTIVE DRILLDOWN MODALS */}
-      {/* ========================================================================= */}
-      {bsActiveDrilldownModal && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setBsActiveDrilldownModal(null); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className={`rounded-3xl max-w-2xl w-full p-4 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] flex flex-col ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700">
-              <div>
-                <h3 className="text-sm font-black flex items-center gap-2">
-                  {bsActiveDrilldownModal === 'stock' && <Warehouse className="w-4 h-4 text-amber-500" />}
-                  {bsActiveDrilldownModal === 'customers' && <Users className="w-4 h-4 text-emerald-500" />}
-                  {bsActiveDrilldownModal === 'suppliers' && <Building className="w-4 h-4 text-blue-500" />}
-                  {bsActiveDrilldownModal === 'cashBank' && <Wallet className="w-4 h-4 text-purple-500" />}
-                  <span>
-                    {bsActiveDrilldownModal === 'stock' && 'Stock Valuation Breakdown'}
-                    {bsActiveDrilldownModal === 'customers' && 'Customer Khata Receivables Ledger'}
-                    {bsActiveDrilldownModal === 'suppliers' && 'Supplier Payables Ledger'}
-                    {bsActiveDrilldownModal === 'cashBank' && 'Liquid Cash & Bank Accounts'}
-                  </span>
-                </h3>
-                <p className="text-[11px] text-slate-400 font-medium">
-                  Itemized live balances supporting the Balance Sheet Statement
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setBsActiveDrilldownModal(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Modal Search Bar */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={bsDrilldownSearch}
-                onChange={(e) => setBsDrilldownSearch(e.target.value)}
-                placeholder="Search items, names, phone..."
-                className={`w-full pl-8 pr-3 py-1.5 border rounded-xl text-xs font-bold outline-none focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
-                  }`}
-              />
-            </div>
-
-            {/* Modal Content Table */}
-            <div className="overflow-y-auto overflow-x-auto flex-1 text-xs">
-              {/* 1. Stock Valuation Details */}
-              {bsActiveDrilldownModal === 'stock' && (
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                      <th className="py-2 px-2.5">Product</th>
-                      <th className="py-2 px-2">Category</th>
-                      <th className="py-2 px-2 text-center">Available Stock</th>
-                      <th className="py-2 px-2 text-right">Purchase Rate</th>
-                      <th className="py-2 px-2.5 text-right font-black">Stock Value</th>
-                    </tr>
-                  </thead>
-                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                    {(filteredStock || []).filter(p => p.name.toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (p.category || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase())).map((p, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                        <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{p.name}</td>
-                        <td className="py-2.5 px-2 text-slate-500">{p.category}</td>
-                        <td className="py-2.5 px-2 text-center font-mono">{p.qty} {p.unit}</td>
-                        <td className="py-2.5 px-2 text-right font-mono text-slate-500">Rs. {p.purchaseRate}/{p.unit}</td>
-                        <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {p.stockVal.toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 text-xs font-black">
-                      <td colSpan={4} className="py-2.5 px-2.5 uppercase">Total Warehouse Stock Valuation</td>
-                      <td className="py-2.5 px-2.5 text-right font-mono text-emerald-600">Rs. {totalStockValuation.toLocaleString()}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              )}
-
-              {/* 2. Customer Receivables Details */}
-              {bsActiveDrilldownModal === 'customers' && (
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                      <th className="py-2 px-2.5">Customer Party</th>
-                      <th className="py-2 px-2">Phone</th>
-                      <th className="py-2 px-2">City / Address</th>
-                      <th className="py-2 px-2.5 text-right font-black">Receivable Due</th>
-                    </tr>
-                  </thead>
-                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                    {(customers || []).filter(c => (c.name || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (c.phone || '').includes(bsDrilldownSearch)).map((c, idx) => {
-                      const bal = Math.max(0, Number(c.balance !== undefined ? c.balance : c.openingBalance || 0));
-                      return (
-                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{c.name}</td>
-                          <td className="py-2.5 px-2 text-slate-500 font-mono">{c.phone || '—'}</td>
-                          <td className="py-2.5 px-2 text-slate-500">{c.city || c.address || 'Local Mandi'}</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-amber-600 dark:text-amber-400">Rs. {bal.toLocaleString()}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 text-xs font-black">
-                      <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Pending Customer Receivables</td>
-                      <td className="py-2.5 px-2.5 text-right font-mono text-amber-600">Rs. {totalCustomerReceivables.toLocaleString()}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              )}
-
-              {/* 3. Supplier Payables Details */}
-              {bsActiveDrilldownModal === 'suppliers' && (
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                      <th className="py-2 px-2.5">Supplier Firm</th>
-                      <th className="py-2 px-2">Phone</th>
-                      <th className="py-2 px-2">Supplied Goods</th>
-                      <th className="py-2 px-2.5 text-right font-black">Payable Due</th>
-                    </tr>
-                  </thead>
-                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                    {(suppliers || []).filter(s => (s.name || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (s.phone || '').includes(bsDrilldownSearch)).map((s, idx) => {
-                      const bal = Math.max(0, Number(s.balance !== undefined ? s.balance : s.openingBalance || 0));
-                      return (
-                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{s.name}</td>
-                          <td className="py-2.5 px-2 text-slate-500 font-mono">{s.phone || '—'}</td>
-                          <td className="py-2.5 px-2 text-slate-500">{(s.suppliedProducts || []).join(', ') || 'General Commodity'}</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {bal.toLocaleString()}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 text-xs font-black">
-                      <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Due to Suppliers</td>
-                      <td className="py-2.5 px-2.5 text-right font-mono text-rose-600">Rs. {totalSupplierPayables.toLocaleString()}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              )}
-
-              {/* 4. Cash & Bank Accounts Details */}
-              {bsActiveDrilldownModal === 'cashBank' && (
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                      <th className="py-2 px-2.5">Account / Channel</th>
-                      <th className="py-2 px-2">Type</th>
-                      <th className="py-2 px-2">Account #</th>
-                      <th className="py-2 px-2.5 text-right font-black">Liquid Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                      <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Shop Cash Counter Drawer</td>
-                      <td className="py-2.5 px-2 text-emerald-600 font-bold">Physical Cash</td>
-                      <td className="py-2.5 px-2 text-slate-500 font-mono">DRAWER-01</td>
-                      <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600">Rs. {cashInHand.toLocaleString()}</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                      <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Habib Bank Limited (HBL)</td>
-                      <td className="py-2.5 px-2 text-blue-600 font-bold">Corporate Current</td>
-                      <td className="py-2.5 px-2 text-slate-500 font-mono">PK64HABB000123456789</td>
-                      <td className="py-2.5 px-2.5 text-right font-mono font-bold text-slate-600">Rs. 0</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                      <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Meezan Islamic Banking</td>
-                      <td className="py-2.5 px-2 text-emerald-600 font-bold">Islamic Business</td>
-                      <td className="py-2.5 px-2 text-slate-500 font-mono">PK21MEZN000987654321</td>
-                      <td className="py-2.5 px-2.5 text-right font-mono font-bold text-slate-600">Rs. 0</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                      <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">JazzCash Merchant Account</td>
-                      <td className="py-2.5 px-2 text-rose-600 font-bold">Mobile Wallet</td>
-                      <td className="py-2.5 px-2 text-slate-500 font-mono">0300-1234567</td>
-                      <td className="py-2.5 px-2.5 text-right font-mono font-bold text-slate-600">Rs. 0</td>
-                    </tr>
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 text-xs font-black">
-                      <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Liquid Cash & Bank Funds</td>
-                      <td className="py-2.5 px-2.5 text-right font-mono text-emerald-600">Rs. {cashInHand.toLocaleString()}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              )}
-            </div>
-
-            <div className="pt-2 text-right border-t border-slate-100 dark:border-slate-700">
-              <button
-                type="button"
-                onClick={() => setBsActiveDrilldownModal(null)}
-                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
-              >
-                Close Drilldown
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 3. RECORD OPERATING EXPENSE MODAL */}
-      {/* ========================================================================= */}
-      {showAddExpenseModal && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAddExpenseModal(false); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-                <DollarSign className="w-5 h-5 text-slate-700" />
-                <span>Record Operating Expense</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowAddExpenseModal(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddExpense} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">
-                  Expense Category
-                </label>
-                <select
-                  value={newExpense.category}
-                  onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="Labour & Loading (Palla)">Labour & Loading (Palla / Mazdoori)</option>
-                  <option value="Bardana / Bags">Bardana / Bags Procurement</option>
-                  <option value="Freight & Transport">Freight & Truck Transport (Bilty)</option>
-                  <option value="Electricity & Fuel">Electricity & Generator Diesel</option>
-                  <option value="Tea & Refreshments">Tea & Customer Hospitality</option>
-                  <option value="Shop Rent">Shop & Godown Rent</option>
-                  <option value="General Misc">General Miscellaneous</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">
-                  Amount (Rs.)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={newExpense.amount}
-                  onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                  placeholder="e.g. 5000"
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">
-                  Description / Remarks
-                </label>
-                <input
-                  type="text"
-                  value={newExpense.desc}
-                  onChange={(e) => setNewExpense({ ...newExpense, desc: e.target.value })}
-                  placeholder="e.g. Loading and unloading mazdoori..."
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">
-                  Payment Mode
-                </label>
-                <select
-                  value={newExpense.mode}
-                  onChange={(e) => setNewExpense({ ...newExpense, mode: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="Cash">Cash (Counter Drawer)</option>
-                  <option value="Bank Transfer">Bank Transfer / Online</option>
-                  <option value="Cheque">Cheque</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddExpenseModal(false)}
-                  className={`w-1/2 py-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${theme === 'dark' ? 'border-slate-700 text-slate-300 hover:bg-slate-700' : 'border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="w-1/2 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
-                >
-                  Save Expense
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    );
 };
 
 export default Reports;

@@ -1200,7 +1200,7 @@ export const Purchases = () => {
 
                     <div>
                       <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Firm / Business Name
+                        Business Name
                       </label>
                       <input
                         type="text"
@@ -1232,7 +1232,7 @@ export const Purchases = () => {
 
                     <div>
                       <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        City / Mandi
+                        City
                       </label>
                       <input
                         type="text"
@@ -1247,7 +1247,7 @@ export const Purchases = () => {
 
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                      Full Address (Optional)
+                      Full Address
                     </label>
                     <input
                       type="text"
@@ -1314,7 +1314,7 @@ export const Purchases = () => {
 
                     <div>
                       <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Account # / IBAN
+                        Account #
                       </label>
                       <input
                         type="text"
