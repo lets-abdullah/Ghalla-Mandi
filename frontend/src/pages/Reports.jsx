@@ -25,7 +25,39 @@ export const Reports = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [stockStatusFilter, setStockStatusFilter] = useState('All'); // 'All' | 'LowStock' | 'InStock' | 'OutOfStock'
-  const [sortBy, setSortBy] = useState('valueDesc'); // 'valueDesc' | 'qtyDesc' | 'nameAsc'
+  const [stockUnitFilter, setStockUnitFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('valueDesc'); // 'valueDesc' | 'valueAsc' | 'qtyDesc' | 'qtyAsc' | 'nameAsc' | 'recent'
+  const [stockPage, setStockPage] = useState(1);
+  const [stockPageSize, setStockPageSize] = useState(25);
+
+  const handleResetStockFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('All');
+    setStockStatusFilter('All');
+    setStockUnitFilter('All');
+    setSortBy('valueDesc');
+    setStockPage(1);
+  };
+
+  // Operating Expenses Filters & Pagination
+  const [expDateFilter, setExpDateFilter] = useState('All'); // 'All' | 'Today' | 'This Week' | 'This Month' | 'Last Month' | 'This Quarter' | 'This FY' | 'Custom'
+  const [expStartDate, setExpStartDate] = useState('');
+  const [expEndDate, setExpEndDate] = useState('');
+  const [expCategoryFilter, setExpCategoryFilter] = useState('All');
+  const [expPaymentFilter, setExpPaymentFilter] = useState('All');
+  const [expSearch, setExpSearch] = useState('');
+  const [expPage, setExpPage] = useState(1);
+  const [expPageSize, setExpPageSize] = useState(25);
+
+  const handleResetExpFilters = () => {
+    setExpDateFilter('All');
+    setExpStartDate('');
+    setExpEndDate('');
+    setExpCategoryFilter('All');
+    setExpPaymentFilter('All');
+    setExpSearch('');
+    setExpPage(1);
+  };
 
   // Multi-dimensional Sales Report Filters
   const [salesDateFilter, setSalesDateFilter] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
@@ -215,6 +247,13 @@ export const Reports = () => {
     });
   }, [products]);
 
+  const allUnits = useMemo(() => {
+    const set = new Set((products || []).map(p => (p.unit || p.baseUnit || 'KG').trim()));
+    return ['All', ...Array.from(set)];
+  }, [products]);
+
+  const totalStockUnits = useMemo(() => processedStock.reduce((sum, p) => sum + p.qty, 0), [processedStock]);
+
   const filteredStock = useMemo(() => {
     return processedStock.filter(p => {
       const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -222,20 +261,31 @@ export const Reports = () => {
         (p.category || '').toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCat = categoryFilter === 'All' || p.category === categoryFilter;
+      const matchesUnit = stockUnitFilter === 'All' || p.unit === stockUnitFilter;
 
       let matchesStatus = true;
       if (stockStatusFilter === 'LowStock') matchesStatus = p.status === 'Low Stock';
       else if (stockStatusFilter === 'InStock') matchesStatus = p.status === 'In Stock';
       else if (stockStatusFilter === 'OutOfStock') matchesStatus = p.status === 'Out of Stock';
 
-      return matchesSearch && matchesCat && matchesStatus;
+      return matchesSearch && matchesCat && matchesStatus && matchesUnit;
     }).sort((a, b) => {
       if (sortBy === 'valueDesc') return b.stockVal - a.stockVal;
+      if (sortBy === 'valueAsc') return a.stockVal - b.stockVal;
       if (sortBy === 'qtyDesc') return b.qty - a.qty;
+      if (sortBy === 'qtyAsc') return a.qty - b.qty;
       if (sortBy === 'nameAsc') return (a.name || '').localeCompare(b.name || '');
+      if (sortBy === 'recent') return b.id - a.id;
       return 0;
     });
-  }, [processedStock, searchTerm, categoryFilter, stockStatusFilter, sortBy]);
+  }, [processedStock, searchTerm, categoryFilter, stockStatusFilter, stockUnitFilter, sortBy]);
+
+  const paginatedStock = useMemo(() => {
+    const start = (stockPage - 1) * stockPageSize;
+    return filteredStock.slice(start, start + stockPageSize);
+  }, [filteredStock, stockPage, stockPageSize]);
+
+  const totalStockPages = useMemo(() => Math.max(1, Math.ceil(filteredStock.length / stockPageSize)), [filteredStock, stockPageSize]);
 
   const totalStockValuation = useMemo(() => processedStock.reduce((sum, p) => sum + p.stockVal, 0), [processedStock]);
   const inStockCount = useMemo(() => processedStock.filter(p => p.status === 'In Stock').length, [processedStock]);
@@ -576,6 +626,93 @@ export const Reports = () => {
   const totalPurchasesGross = useMemo(() => purchasesList.reduce((sum, p) => sum + p.grossAmt, 0), [purchasesList]);
   const totalNetPurchases = useMemo(() => Math.max(0, totalPurchasesGross - totalPurchaseReturnsVal), [totalPurchasesGross, totalPurchaseReturnsVal]);
   const totalPurchasesPaid = useMemo(() => purchasesList.reduce((sum, p) => sum + p.paidAmt, 0), [purchasesList]);
+
+  // Detailed Operating Expenses Filtering, Search & Period Breakdown
+  const processedExpenses = useMemo(() => {
+    return expenses.map(e => {
+      let eDateObj = new Date();
+      if (e.date && e.date.includes('/')) {
+        const parts = e.date.split('/');
+        if (parts.length === 3) eDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+      } else if (e.date) {
+        eDateObj = new Date(e.date);
+      }
+
+      return {
+        ...e,
+        amount: Number(e.amount || 0),
+        dateObj: eDateObj,
+        status: e.status || 'Paid / Cleared'
+      };
+    });
+  }, [expenses]);
+
+  const thisMonthExpenses = useMemo(() => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    return processedExpenses.filter(e => e.dateObj.getMonth() === currentMonth && e.dateObj.getFullYear() === currentYear).reduce((sum, e) => sum + e.amount, 0);
+  }, [processedExpenses]);
+
+  const thisFYExpenses = useMemo(() => {
+    return processedExpenses.reduce((sum, e) => sum + e.amount, 0);
+  }, [processedExpenses]);
+
+  const filteredExpensesList = useMemo(() => {
+    return processedExpenses.filter(e => {
+      // 1. Search
+      const matchesSearch = (e.ref || '').toLowerCase().includes(expSearch.toLowerCase()) ||
+        (e.category || '').toLowerCase().includes(expSearch.toLowerCase()) ||
+        (e.desc || '').toLowerCase().includes(expSearch.toLowerCase()) ||
+        (e.mode || '').toLowerCase().includes(expSearch.toLowerCase());
+
+      // 2. Category
+      const matchesCategory = expCategoryFilter === 'All' || e.category === expCategoryFilter;
+
+      // 3. Payment Mode
+      const matchesPayment = expPaymentFilter === 'All' || e.mode === expPaymentFilter;
+
+      // 4. Date Range
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const eDate = new Date(e.dateObj);
+      eDate.setHours(0, 0, 0, 0);
+
+      let matchesDate = true;
+      if (expDateFilter === 'Today') {
+        matchesDate = eDate.getTime() === today.getTime();
+      } else if (expDateFilter === 'This Week') {
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        matchesDate = eDate >= startOfWeek;
+      } else if (expDateFilter === 'This Month') {
+        matchesDate = eDate.getMonth() === today.getMonth() && eDate.getFullYear() === today.getFullYear();
+      } else if (expDateFilter === 'Last Month') {
+        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        matchesDate = eDate.getMonth() === lastMonth.getMonth() && eDate.getFullYear() === lastMonth.getFullYear();
+      } else if (expDateFilter === 'This Quarter') {
+        const qStartMonth = Math.floor(today.getMonth() / 3) * 3;
+        matchesDate = eDate.getMonth() >= qStartMonth && eDate.getFullYear() === today.getFullYear();
+      } else if (expDateFilter === 'Custom' && expStartDate && expEndDate) {
+        const start = new Date(expStartDate);
+        const end = new Date(expEndDate);
+        matchesDate = eDate >= start && eDate <= end;
+      }
+
+      return matchesSearch && matchesCategory && matchesPayment && matchesDate;
+    });
+  }, [processedExpenses, expSearch, expCategoryFilter, expPaymentFilter, expDateFilter, expStartDate, expEndDate]);
+
+  const filteredExpensesTotal = useMemo(() => filteredExpensesList.reduce((sum, e) => sum + e.amount, 0), [filteredExpensesList]);
+
+  const paginatedExpenses = useMemo(() => {
+    const start = (expPage - 1) * expPageSize;
+    return filteredExpensesList.slice(start, start + expPageSize);
+  }, [filteredExpensesList, expPage, expPageSize]);
+
+  const totalExpensePages = useMemo(() => Math.max(1, Math.ceil(filteredExpensesList.length / expPageSize)), [filteredExpensesList, expPageSize]);
+
+  const hasActiveExpFilters = expDateFilter !== 'All' || expCategoryFilter !== 'All' || expPaymentFilter !== 'All' || expSearch || expStartDate || expEndDate;
 
   const totalExpensesAmount = useMemo(() => expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0), [expenses]);
 
@@ -1167,13 +1304,20 @@ export const Reports = () => {
             {reportType === 'ProfitLoss' && <PieChart className="w-6 h-6 text-brand-500" />}
             {reportType === 'BalanceSheet' && <Building className="w-6 h-6 text-indigo-500" />}
             <span>
-              {reportType === 'Stock' && 'Stock & Inventory Report'}
+              {reportType === 'Stock' && 'Stock & Inventory'}
               {reportType === 'Sales' && 'Sales & Revenue Report'}
-              {reportType === 'Expenses' && 'Operating Expenses Report'}
+              {reportType === 'Expenses' && 'Operating Expenses'}
               {reportType === 'ProfitLoss' && 'Profit & Loss Statement'}
               {reportType === 'BalanceSheet' && 'Balance Sheet Statement'}
             </span>
           </h1>
+          <p className="text-xs text-slate-400 font-medium mt-0.5">
+            {reportType === 'Stock' && 'Inventory Valuation • Stock Availability & Register Overview'}
+            {reportType === 'Sales' && 'Multi-dimensional date, product & supplier turnover analytics'}
+            {reportType === 'Expenses' && 'Financial Year 2026–27 • Expense Register & Financial Summary'}
+            {reportType === 'ProfitLoss' && 'Itemized transaction journal with cumulative running P&L ledger'}
+            {reportType === 'BalanceSheet' && 'Audited financial position • Assets, Liabilities & Net Worth'}
+          </p>
         </div>
 
         {/* Print & CSV Export Buttons */}
@@ -1214,192 +1358,327 @@ export const Reports = () => {
       {/* ========================================================================= */}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 1. STOCK REPORT (VIBRANT & RICH COLORS) */}
+      {/* 1. STOCK & INVENTORY REGISTER (ENTERPRISE VALUATION & AVAILABILITY) */}
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'Stock' && (
-        <div className="space-y-6">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="space-y-5">
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+            {/* 1. Total Valuation */}
             <div
-              onClick={() => { setCategoryFilter('All'); setStockStatusFilter('All'); setSearchTerm(''); }}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-                }`}
-              title="Click to view all registered commodities"
+              onClick={() => handleResetStockFilters()}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
             >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Stock Valuation</div>
-              <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalStockValuation.toLocaleString()}</div>
-              <div className="text-xs text-slate-400 font-medium mt-1">{processedStock.length} Total Registered • View All</div>
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Stock Value</div>
+              <div className="text-xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
+                Rs. {totalStockValuation.toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Asset purchase cost</div>
             </div>
 
+            {/* 2. Total Products */}
             <div
-              onClick={() => setStockStatusFilter('InStock')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200/60'
-                }`}
-              title="Click to filter In-Stock commodities"
+              onClick={() => setStockStatusFilter('All')}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
             >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">In-Stock Products</div>
-              <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">{inStockCount} Items</div>
-              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mt-1">Available for Sale • Filter Available</div>
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Registered Items</div>
+              <div className="text-xl font-black mt-1 font-mono text-slate-900 dark:text-white">
+                {processedStock.length} <span className="text-xs font-normal">Products</span>
+              </div>
+              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Active catalog SKUs</div>
             </div>
 
+            {/* 3. Total Units Available */}
             <div
-              onClick={() => setStockStatusFilter('LowStock')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200/60'
-                }`}
-              title="Click to filter Low Stock Warnings"
+              className={`p-4 rounded-xl border card-shadow ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
             >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Low Stock Warnings</div>
-              <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">{lowStockCount} Items</div>
-              <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-1">Below Threshold • Filter Low Stock</div>
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Available Units</div>
+              <div className="text-xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
+                {totalStockUnits.toLocaleString()} <span className="text-xs font-normal">Units</span>
+              </div>
+              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Commodities in warehouse</div>
             </div>
 
+            {/* 4. Low Stock */}
             <div
-              onClick={() => setStockStatusFilter('OutOfStock')}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200/60'
-                }`}
-              title="Click to filter Out of Stock items"
+              onClick={() => { setStockStatusFilter('LowStock'); setStockPage(1); }}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-800 border-amber-500/40 text-white' : 'bg-white border-amber-200 text-slate-900'
+              }`}
             >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Out of Stock</div>
-              <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">{outOfStockCount} Items</div>
-              <div className="text-xs text-rose-700 dark:text-rose-400 font-bold mt-1">0 Remaining • Filter Out of Stock</div>
+              <div className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Low Stock Warnings</div>
+              <div className="text-xl font-black mt-1 font-mono text-amber-600 dark:text-amber-400">
+                {lowStockCount} <span className="text-xs font-normal">Items</span>
+              </div>
+              <div className="text-[10px] text-amber-600 dark:text-amber-400 font-bold mt-0.5">Below reorder alert</div>
+            </div>
+
+            {/* 5. Out of Stock */}
+            <div
+              onClick={() => { setStockStatusFilter('OutOfStock'); setStockPage(1); }}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-800 border-rose-500/40 text-white' : 'bg-white border-rose-200 text-slate-900'
+              }`}
+            >
+              <div className="text-[10px] font-black uppercase text-rose-500 tracking-wider">Out of Stock</div>
+              <div className="text-xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
+                {outOfStockCount} <span className="text-xs font-normal">Items</span>
+              </div>
+              <div className="text-[10px] text-rose-600 dark:text-rose-400 font-bold mt-0.5">0 Stock remaining</div>
             </div>
           </div>
 
-          {/* Interactive Filters Bar for Stock Report */}
-          <div className={`p-4 rounded-2xl border card-shadow flex flex-col md:flex-row md:items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-            }`}>
-            <div className="flex flex-wrap items-center gap-3 flex-1">
+          {/* Enterprise Inventory Control & Filter Toolbar */}
+          <div className={`p-3.5 rounded-xl border card-shadow space-y-2.5 ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
               {/* Search */}
-              <div className="relative min-w-[220px] flex-1 max-w-sm">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search product, category, code..."
-                  className={`w-full pl-9 pr-3 py-2 text-xs font-bold rounded-xl border outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                  onChange={(e) => { setSearchTerm(e.target.value); setStockPage(1); }}
+                  placeholder="Search product name, SKU code, category..."
+                  className={`w-full pl-8 pr-3 py-1.5 text-xs font-bold rounded-xl border outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                  }`}
                 />
               </div>
 
-              {/* Category Filter */}
-              <div className="flex items-center gap-1.5">
-                <Filter className="w-3.5 h-3.5 text-slate-400" />
+              {/* Filters Group */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Category */}
                 <select
                   value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                  onChange={(e) => { setCategoryFilter(e.target.value); setStockPage(1); }}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
                 >
-                  {allCategories.map(cat => (
-                    <option key={cat} value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>
+                  <option value="All">All Categories</option>
+                  {allCategories.filter(c => c !== 'All').map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
+
+                {/* Stock Level / Status */}
+                <select
+                  value={stockStatusFilter}
+                  onChange={(e) => { setStockStatusFilter(e.target.value); setStockPage(1); }}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Stock Levels</option>
+                  <option value="InStock">In Stock ({inStockCount})</option>
+                  <option value="LowStock">Low Stock ({lowStockCount})</option>
+                  <option value="OutOfStock">Out of Stock ({outOfStockCount})</option>
+                </select>
+
+                {/* Unit */}
+                <select
+                  value={stockUnitFilter}
+                  onChange={(e) => { setStockUnitFilter(e.target.value); setStockPage(1); }}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Units</option>
+                  {allUnits.filter(u => u !== 'All').map(u => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+
+                {/* Sort Order */}
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="valueDesc">Highest Stock Value</option>
+                  <option value="valueAsc">Lowest Stock Value</option>
+                  <option value="qtyDesc">Highest Quantity</option>
+                  <option value="qtyAsc">Lowest Quantity</option>
+                  <option value="nameAsc">Product Name (A-Z)</option>
+                  <option value="recent">Recently Added</option>
+                </select>
+
+                {/* Reset Button */}
+                {(searchTerm || categoryFilter !== 'All' || stockStatusFilter !== 'All' || stockUnitFilter !== 'All' || sortBy !== 'valueDesc') && (
+                  <button
+                    onClick={handleResetStockFilters}
+                    className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold transition cursor-pointer flex items-center gap-1"
+                    title="Reset all filters"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Reset</span>
+                  </button>
+                )}
               </div>
-
-              {/* Status Filter */}
-              <select
-                value={stockStatusFilter}
-                onChange={(e) => setStockStatusFilter(e.target.value)}
-                className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              >
-                <option value="All">All Statuses</option>
-                <option value="InStock">In Stock ({inStockCount})</option>
-                <option value="LowStock">Low Stock ({lowStockCount})</option>
-                <option value="OutOfStock">Out of Stock ({outOfStockCount})</option>
-              </select>
-            </div>
-
-            {/* Sort Order */}
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs text-slate-500 font-bold flex items-center gap-1">
-                <ArrowUpDown className="w-3.5 h-3.5" /> Sort:
-              </span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className={`px-3 py-2 rounded-xl text-xs font-bold border outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              >
-                <option value="valueDesc">Highest Stock Value</option>
-                <option value="qtyDesc">Highest Quantity</option>
-                <option value="nameAsc">Product (A-Z)</option>
-              </select>
             </div>
           </div>
 
-          {/* Universal Clean Stock Table */}
-          <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                <Package className="w-4 h-4 text-slate-600" />
-                <span>Stock Statement ({filteredStock.length} Products Displayed)</span>
-              </h3>
-            </div>
-
+          {/* Enterprise Inventory Register Table */}
+          <div className={`border rounded-xl card-shadow overflow-hidden ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+          }`}>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead>
-                  <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
-                    <th className="py-3 px-3">Product</th>
-                    <th className="py-3 px-3 text-center">Category</th>
-                    <th className="py-3 px-3 text-center">Available Stock</th>
+                  <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
+                    theme === 'dark' ? 'text-slate-400 bg-slate-900/60 border-slate-700' : 'text-slate-500 bg-slate-50 border-slate-200'
+                  }`}>
+                    <th className="py-3 px-3.5">Product & SKU</th>
+                    <th className="py-3 px-3">Category</th>
+                    <th className="py-3 px-3 text-right">Available</th>
+                    <th className="py-3 px-2 text-center">Unit</th>
                     <th className="py-3 px-3 text-right">Purchase Rate</th>
                     <th className="py-3 px-3 text-right">Selling Rate</th>
-                    <th className="py-3 px-3 text-right">Stock Valuation</th>
+                    <th className="py-3 px-3.5 text-right font-black">Stock Value</th>
                     <th className="py-3 px-3 text-center">Status</th>
+                    <th className="py-3 px-3 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                  {filteredStock.length === 0 ? (
+                  {paginatedStock.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-400">
+                      <td colSpan={9} className="py-12 text-center text-slate-400">
                         <Package className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
-                        No products match your active search or filters.
+                        No commodities match your active search or filters.
                       </td>
                     </tr>
                   ) : (
-                    filteredStock.map((item) => (
-                      <tr key={item.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
-                        <td className="py-3.5 px-3">
-                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <span>{item.name}</span>
+                    paginatedStock.map((item) => (
+                      <tr key={item.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}`}>
+                        {/* 1. Product & SKU */}
+                        <td className="py-3 px-3.5">
+                          <div className="font-bold text-slate-900 dark:text-white">
+                            {item.name}
                           </div>
-                          {item.code && <span className="text-[10px] text-slate-400 font-mono block">{item.code}</span>}
+                          <span className="text-[10px] font-mono text-slate-400 block">
+                            {item.code || `PRD-${item.id}`}
+                          </span>
                         </td>
-                        <td className="py-3.5 px-3 text-center">
-                          <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>
+
+                        {/* 2. Category */}
+                        <td className="py-3 px-3">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                            theme === 'dark' ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'
+                          }`}>
                             {item.category}
                           </span>
                         </td>
-                        <td className="py-3.5 px-3 text-center font-mono font-bold text-slate-900 dark:text-white text-xs">
-                          {item.qty.toLocaleString()} <span className="text-[11px] font-medium text-slate-500">{item.unit}</span>
+
+                        {/* 3. Available Stock */}
+                        <td className="py-3 px-3 text-right font-mono font-bold text-slate-900 dark:text-white text-xs">
+                          {item.qty.toLocaleString()}
                         </td>
-                        <td className="py-3.5 px-3 text-right font-mono text-slate-600 dark:text-slate-300">
-                          Rs. {item.purchaseRate.toLocaleString()} / {item.unit}
+
+                        {/* 4. Unit */}
+                        <td className="py-3 px-2 text-center font-bold text-slate-500">
+                          {item.unit}
                         </td>
-                        <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
-                          Rs. {item.sellingRate.toLocaleString()} / {item.unit}
+
+                        {/* 5. Purchase Rate */}
+                        <td className="py-3 px-3 text-right font-mono text-slate-600 dark:text-slate-300">
+                          Rs. {item.purchaseRate.toLocaleString()}
                         </td>
-                        <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
+
+                        {/* 6. Selling Rate */}
+                        <td className="py-3 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
+                          Rs. {item.sellingRate.toLocaleString()}
+                        </td>
+
+                        {/* 7. Stock Valuation */}
+                        <td className="py-3 px-3.5 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
                           Rs. {item.stockVal.toLocaleString()}
                         </td>
-                        <td className="py-3.5 px-3 text-center">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${item.status === 'In Stock'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+
+                        {/* 8. Status Badge */}
+                        <td className="py-3 px-3 text-center">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                            item.status === 'In Stock'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
                               : item.status === 'Low Stock'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                : 'bg-rose-50 text-rose-700 border border-rose-200'
-                            }`}>
+                                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                                : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                          }`}>
                             {item.status}
                           </span>
+                        </td>
+
+                        {/* 9. Action */}
+                        <td className="py-3 px-3 text-center">
+                          <button
+                            onClick={() => navigate('/inventory')}
+                            className="text-[11px] font-bold text-brand-500 hover:text-brand-600 hover:underline cursor-pointer"
+                          >
+                            Manage →
+                          </button>
                         </td>
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Table Footer with Pagination */}
+            <div className={`p-3 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium ${
+              theme === 'dark' ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50/70 border-slate-200 text-slate-500'
+            }`}>
+              <div className="flex items-center gap-3">
+                <span>
+                  Showing {filteredStock.length === 0 ? 0 : (stockPage - 1) * stockPageSize + 1}–{Math.min(stockPage * stockPageSize, filteredStock.length)} of {filteredStock.length} commodities
+                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px]">Rows:</span>
+                  <select
+                    value={stockPageSize}
+                    onChange={(e) => { setStockPageSize(Number(e.target.value)); setStockPage(1); }}
+                    className={`border rounded-lg px-2 py-0.5 text-xs font-bold outline-none cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+
+              {totalStockPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setStockPage(prev => Math.max(1, prev - 1))}
+                    disabled={stockPage === 1}
+                    className="px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-2 font-bold font-mono">
+                    {stockPage} / {totalStockPages}
+                  </span>
+                  <button
+                    onClick={() => setStockPage(prev => Math.min(totalStockPages, prev + 1))}
+                    disabled={stockPage === totalStockPages}
+                    className="px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2119,92 +2398,266 @@ export const Reports = () => {
       )}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 3. OPERATING EXPENSES REPORT */}
+      {/* 3. OPERATING EXPENSES (ENTERPRISE EXPENSE REGISTER & FINANCIAL SUMMARY) */}
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'Expenses' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="space-y-5">
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+            {/* 1. Total Expenses */}
             <div
-              onClick={() => setShowAddExpenseModal(true)}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
-                }`}
-              title="Click to Record New Expense"
+              onClick={() => handleResetExpFilters()}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
             >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Operating Expenses</div>
-              <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalExpensesAmount.toLocaleString()}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">{expenses.length} Expense Records • Add Expense</div>
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Expenses</div>
+              <div className="text-xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
+                Rs. {filteredExpensesTotal.toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-400 font-bold mt-0.5">{filteredExpensesList.length} Logged records</div>
             </div>
 
+            {/* 2. This Month */}
             <div
-              onClick={() => setShowAddExpenseModal(true)}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-purple-500/30' : 'bg-gradient-to-b from-purple-50/50 to-white border-purple-200/80'
-                }`}
-              title="Click to Record New Expense"
+              onClick={() => { setExpDateFilter('This Month'); setExpPage(1); }}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
             >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Top Cost Category</div>
-              <div className="text-2xl font-black mt-1.5 text-purple-600 dark:text-purple-400 truncate">{topExpenseCategory}</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Based on Logged Vouchers</div>
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">This Month</div>
+              <div className="text-xl font-black mt-1 font-mono text-amber-600 dark:text-amber-400">
+                Rs. {thisMonthExpenses.toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Current month outlays</div>
             </div>
 
+            {/* 3. This Financial Year */}
+            <div
+              onClick={() => { setExpDateFilter('All'); setExpPage(1); }}
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
+            >
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">This Financial Year</div>
+              <div className="text-xl font-black mt-1 font-mono text-indigo-600 dark:text-indigo-400">
+                Rs. {thisFYExpenses.toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-400 font-bold mt-0.5">FY 2026–27 cumulative</div>
+            </div>
+
+            {/* 4. Expense Entries Count */}
             <div
               onClick={() => setShowAddExpenseModal(true)}
-              className={`p-5 rounded-2xl border card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-                }`}
-              title="Click to Record New Expense"
+              className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${
+                theme === 'dark' ? 'bg-slate-800 border-rose-500/40 text-white' : 'bg-white border-rose-200 text-slate-900'
+              }`}
+              title="Click to Record Expense"
             >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Logged Entries</div>
-              <div className="text-2xl font-black mt-1.5 text-blue-600 dark:text-blue-400 font-mono">{expenses.length} Entries</div>
-              <div className="text-xs text-slate-500 font-medium mt-1">Direct Expense Records • Click to Add</div>
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Expense Entries</div>
+              <div className="text-xl font-black mt-1 font-mono text-slate-900 dark:text-white">
+                {expenses.length} <span className="text-xs font-normal">Vouchers</span>
+              </div>
+              <div className="text-[10px] text-rose-600 dark:text-rose-400 font-bold mt-0.5">+ Click to Add Record</div>
             </div>
           </div>
 
-          {/* Expenses Table */}
-          <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-rose-500" />
-                <span>Operating Expenses Log</span>
-              </h3>
-              <button
-                onClick={() => setShowAddExpenseModal(true)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs shadow-md shadow-rose-500/20 transition cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Record Expense</span>
-              </button>
+          {/* Enterprise Expenses Filter Toolbar */}
+          <div className={`p-3.5 rounded-xl border card-shadow space-y-2.5 ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+              {/* Search */}
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={expSearch}
+                  onChange={(e) => { setExpSearch(e.target.value); setExpPage(1); }}
+                  placeholder="Search voucher #, category, description, payment mode..."
+                  className={`w-full pl-8 pr-3 py-1.5 text-xs font-bold rounded-xl border outline-none focus:border-rose-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                  }`}
+                />
+              </div>
+
+              {/* Filters Group */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Date Range Filter */}
+                <select
+                  value={expDateFilter}
+                  onChange={(e) => { setExpDateFilter(e.target.value); setExpPage(1); }}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Dates</option>
+                  <option value="Today">Today</option>
+                  <option value="This Week">This Week</option>
+                  <option value="This Month">This Month</option>
+                  <option value="Last Month">Last Month</option>
+                  <option value="This Quarter">This Quarter</option>
+                  <option value="Custom">Custom Date Range</option>
+                </select>
+
+                {/* Category Filter */}
+                <select
+                  value={expCategoryFilter}
+                  onChange={(e) => { setExpCategoryFilter(e.target.value); setExpPage(1); }}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Categories</option>
+                  <option value="Labour & Loading (Palla)">Labour & Loading (Palla)</option>
+                  <option value="Bardana / Bags">Bardana / Bags</option>
+                  <option value="Freight & Transport">Freight & Transport</option>
+                  <option value="Electricity & Fuel">Electricity & Fuel</option>
+                  <option value="Tea & Refreshments">Tea & Refreshments</option>
+                  <option value="Shop Rent">Shop Rent</option>
+                  <option value="General Misc">General Misc</option>
+                </select>
+
+                {/* Payment Mode */}
+                <select
+                  value={expPaymentFilter}
+                  onChange={(e) => { setExpPaymentFilter(e.target.value); setExpPage(1); }}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Payment Modes</option>
+                  <option value="Cash">Cash (Counter Drawer)</option>
+                  <option value="Bank Transfer">Bank Transfer / Online</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+
+                {/* Record Button */}
+                <button
+                  onClick={() => setShowAddExpenseModal(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs shadow-md shadow-rose-500/20 transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Record</span>
+                </button>
+
+                {/* Reset Button */}
+                {hasActiveExpFilters && (
+                  <button
+                    onClick={handleResetExpFilters}
+                    className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold transition cursor-pointer flex items-center gap-1"
+                    title="Reset all filters"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Reset</span>
+                  </button>
+                )}
+              </div>
             </div>
 
+            {/* Custom Date Pickers */}
+            {expDateFilter === 'Custom' && (
+              <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-400">From:</span>
+                  <input
+                    type="date"
+                    value={expStartDate}
+                    onChange={(e) => { setExpStartDate(e.target.value); setExpPage(1); }}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-400">To:</span>
+                  <input
+                    type="date"
+                    value={expEndDate}
+                    onChange={(e) => { setExpEndDate(e.target.value); setExpPage(1); }}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Enterprise Expenses Register Table */}
+          <div className={`border rounded-xl card-shadow overflow-hidden ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+          }`}>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                 <thead>
-                  <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
-                    <th className="py-3 px-3">Date</th>
+                  <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
+                    theme === 'dark' ? 'text-slate-400 bg-slate-900/60 border-slate-700' : 'text-slate-500 bg-slate-50 border-slate-200'
+                  }`}>
+                    <th className="py-3 px-3.5">Date</th>
                     <th className="py-3 px-3">Voucher #</th>
                     <th className="py-3 px-3">Category</th>
                     <th className="py-3 px-3">Description</th>
                     <th className="py-3 px-3">Payment Mode</th>
-                    <th className="py-3 px-3 text-right">Amount (Rs.)</th>
+                    <th className="py-3 px-3.5 text-right font-black">Amount (Rs.)</th>
+                    <th className="py-3 px-3 text-center">Status</th>
                     <th className="py-3 px-3 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                  {expenses.length === 0 ? (
-                    <tr><td colSpan={7} className="py-8 text-center text-slate-400">No expenses recorded yet. Click "Record Expense" to add your first entry.</td></tr>
+                  {paginatedExpenses.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-slate-400">
+                        <DollarSign className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
+                        No expenses recorded matching your active filters.
+                      </td>
+                    </tr>
                   ) : (
-                    expenses.map((exp) => (
-                      <tr key={exp.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
-                        <td className="py-3 px-3 text-slate-500">{exp.date}</td>
-                        <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">{exp.ref}</td>
-                        <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">
-                          <span className="px-2.5 py-0.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-bold text-[10px]">
+                    paginatedExpenses.map((exp) => (
+                      <tr key={exp.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}`}>
+                        {/* 1. Date */}
+                        <td className="py-3 px-3.5 text-slate-500 font-medium">
+                          {exp.date}
+                        </td>
+
+                        {/* 2. Voucher # */}
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">
+                          {exp.ref}
+                        </td>
+
+                        {/* 3. Category */}
+                        <td className="py-3 px-3">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                            theme === 'dark' ? 'bg-rose-950/40 text-rose-300 border border-rose-800' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}>
                             {exp.category}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-slate-500">{exp.desc}</td>
-                        <td className="py-3 px-3 font-medium">{exp.mode}</td>
-                        <td className="py-3 px-3 text-right font-bold text-rose-600 dark:text-rose-400 font-mono">
+
+                        {/* 4. Description */}
+                        <td className="py-3 px-3 text-slate-600 dark:text-slate-300 max-w-xs truncate">
+                          {exp.desc}
+                        </td>
+
+                        {/* 5. Payment Mode */}
+                        <td className="py-3 px-3 font-medium text-slate-600 dark:text-slate-400">
+                          {exp.mode}
+                        </td>
+
+                        {/* 6. Amount */}
+                        <td className="py-3 px-3.5 text-right font-mono font-black text-rose-600 dark:text-rose-400">
                           Rs. {Number(exp.amount).toLocaleString()}
                         </td>
+
+                        {/* 7. Status */}
+                        <td className="py-3 px-3 text-center">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Paid</span>
+                          </span>
+                        </td>
+
+                        {/* 8. Action */}
                         <td className="py-3 px-3 text-center">
                           <button
                             onClick={() => handleDeleteExpense(exp.id)}
@@ -2219,6 +2672,54 @@ export const Reports = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Table Footer with Pagination */}
+            <div className={`p-3 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium ${
+              theme === 'dark' ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50/70 border-slate-200 text-slate-500'
+            }`}>
+              <div className="flex items-center gap-3">
+                <span>
+                  Showing {filteredExpensesList.length === 0 ? 0 : (expPage - 1) * expPageSize + 1}–{Math.min(expPage * expPageSize, filteredExpensesList.length)} of {filteredExpensesList.length} entries
+                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px]">Rows:</span>
+                  <select
+                    value={expPageSize}
+                    onChange={(e) => { setExpPageSize(Number(e.target.value)); setExpPage(1); }}
+                    className={`border rounded-lg px-2 py-0.5 text-xs font-bold outline-none cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+
+              {totalExpensePages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setExpPage(prev => Math.max(1, prev - 1))}
+                    disabled={expPage === 1}
+                    className="px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-2 font-bold font-mono">
+                    {expPage} / {totalExpensePages}
+                  </span>
+                  <button
+                    onClick={() => setExpPage(prev => Math.min(totalExpensePages, prev + 1))}
+                    disabled={expPage === totalExpensePages}
+                    className="px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
