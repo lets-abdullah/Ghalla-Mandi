@@ -255,9 +255,6 @@ export const Khata = () => {
           <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
             Rs. {totalVolume.toLocaleString()}
           </div>
-          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-0.5">
-            {filteredKhata.length} Active Accounts
-          </div>
         </div>
 
         {/* Total Payments Collected */}
@@ -274,9 +271,6 @@ export const Khata = () => {
           <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
             Rs. {totalCollected.toLocaleString()}
           </div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-0.5">
-            {filteredKhata.filter(k => k.balance === 0).length} Accounts Settled
-          </div>
         </div>
 
         {/* Total Outstanding */}
@@ -292,9 +286,6 @@ export const Khata = () => {
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-amber-600 dark:text-amber-400">
             Rs. {totalOutstanding.toLocaleString()}
-          </div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-bold mt-0.5">
-            {filteredKhata.filter(k => k.balance > 0).length} Accounts with Due
           </div>
         </div>
       </div>

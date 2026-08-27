@@ -355,7 +355,7 @@ export const Invoices = () => {
             <span>{isPurchases ? 'Purchase Invoices' : 'Sales Invoices'}</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            {isPurchases 
+            {isPurchases
               ? 'Official supplier inward procurement vouchers, goods receipts, and payable records'
               : 'Official sales tax invoices, customer billing records, and printable A4 receipts'}
           </p>
@@ -363,11 +363,10 @@ export const Invoices = () => {
 
         <button
           onClick={() => window.print()}
-          className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-          }`}
+          className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
         >
-          <Printer className="w-4 h-4" /> 
+          <Printer className="w-4 h-4" />
           <span>Print List</span>
         </button>
       </div>
@@ -437,7 +436,7 @@ export const Invoices = () => {
             </label>
             <input
               type="text"
-              placeholder={isPurchases ? "Search voucher #, supplier..." : "Search invoice #, customer..."}
+              placeholder={isPurchases ? "Search voucher #..." : "Search invoice #..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'

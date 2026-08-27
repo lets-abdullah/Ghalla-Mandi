@@ -2646,7 +2646,6 @@ export const Reports = () => {
               <div className="text-xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
                 Rs. {filteredExpensesTotal.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">{filteredExpensesList.length} Logged records</div>
             </div>
 
             {/* 2. This Month */}
@@ -2660,7 +2659,6 @@ export const Reports = () => {
               <div className="text-xl font-black mt-1 font-mono text-amber-600 dark:text-amber-400">
                 Rs. {thisMonthExpenses.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">Current month outlays</div>
             </div>
 
             {/* 3. This Financial Year */}
@@ -2674,7 +2672,6 @@ export const Reports = () => {
               <div className="text-xl font-black mt-1 font-mono text-indigo-600 dark:text-indigo-400">
                 Rs. {thisFYExpenses.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-bold mt-0.5">FY 2026–27 cumulative</div>
             </div>
 
             {/* 4. Expense Entries Count */}
@@ -2689,7 +2686,6 @@ export const Reports = () => {
               <div className="text-xl font-black mt-1 font-mono text-slate-900 dark:text-white">
                 {expenses.length} <span className="text-xs font-normal">Vouchers</span>
               </div>
-              <div className="text-[10px] text-rose-600 dark:text-rose-400 font-bold mt-0.5">+ Click to Add Record</div>
             </div>
           </div>
 

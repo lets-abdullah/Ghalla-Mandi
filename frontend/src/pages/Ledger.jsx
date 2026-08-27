@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { 
-  BookOpen, 
-  Printer, 
-  Users, 
+import {
+  BookOpen,
+  Printer,
+  Users,
   User,
   UserCheck,
   Package,
-  DollarSign, 
-  X, 
-  Search, 
-  Calendar, 
-  Filter, 
+  DollarSign,
+  X,
+  Search,
+  Calendar,
+  Filter,
   RefreshCw,
   ArrowDownLeft,
   ArrowUpRight,
@@ -131,10 +131,10 @@ export const Ledger = () => {
       // Customer Ledger Transactions (Both Regular & Walk-in)
       (sales || []).forEach(s => {
         const custObj = customers.find(c => c.id === s.customerId || c.name === s.partyName);
-        const isWalkin = (custObj?.customerType || s.customerType || '').toLowerCase().includes('walk-in') || 
-                         (s.partyName || '').toLowerCase().includes('walk-in');
+        const isWalkin = (custObj?.customerType || s.customerType || '').toLowerCase().includes('walk-in') ||
+          (s.partyName || '').toLowerCase().includes('walk-in');
         const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
-        const itemsSummary = Array.isArray(s.cart) && s.cart.length > 0 
+        const itemsSummary = Array.isArray(s.cart) && s.cart.length > 0
           ? s.cart.map(i => `${i.name} (${i.qty} ${i.unitName || i.unit || 'KG'})`).join(', ')
           : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
 
@@ -320,7 +320,7 @@ export const Ledger = () => {
       // 3. Product Filter
       if (selectedProductFilter !== 'All') {
         const prodMatch = (entry.productNames || '').toLowerCase().includes(selectedProductFilter.toLowerCase()) ||
-          (entry.items || []).some(it => 
+          (entry.items || []).some(it =>
             (it.name || it.productName || '').toLowerCase() === selectedProductFilter.toLowerCase() ||
             it.productId === selectedProductFilter
           );
@@ -430,9 +430,8 @@ export const Ledger = () => {
 
           <button
             onClick={() => window.print()}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
           >
             <Printer className="w-4 h-4" />
             <span>Print Ledger</span>
@@ -443,55 +442,42 @@ export const Ledger = () => {
       {/* KPI Cards Row (Clean user-friendly labels without Cr/Dr) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Sales */}
-        <div className={`border rounded-2xl p-4 card-shadow ${
-          theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-        }`}>
+        <div className={`border rounded-2xl p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+          }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <ArrowUpRight className="w-4 h-4 text-blue-600" /> Total Sales
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-blue-600 dark:text-blue-400">
             Rs. {totalSalesAmount.toLocaleString()}
           </div>
-          <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mt-0.5">
-            Billed Transactions
-          </div>
         </div>
 
         {/* Total Payments */}
-        <div className={`border rounded-2xl p-4 card-shadow ${
-          theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-        }`}>
+        <div className={`border rounded-2xl p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+          }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <ArrowDownLeft className="w-4 h-4 text-emerald-600" /> Total Payments
           </div>
           <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
             Rs. {totalPaymentsAmount.toLocaleString()}
           </div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-0.5">
-            Received Payments
-          </div>
         </div>
 
         {/* Balance Due (Clean simple balance) */}
-        <div className={`border rounded-2xl p-4 card-shadow ${
-          theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
-        }`}>
+        <div className={`border rounded-2xl p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+          }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <DollarSign className="w-4 h-4 text-amber-600" /> Balance Due
           </div>
           <div className={`text-2xl font-black mt-1 font-mono ${balanceDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'}`}>
-            {balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : 'Rs. 0 (Settled)'}
-          </div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-0.5">
-            {balanceDue > 0 ? 'Pending Settlement' : 'Account Clear'}
+            {balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : 'Rs. 0'}
           </div>
         </div>
       </div>
 
       {/* Ledger Filter Toolbar: [Search] [Supplier / Customer] [Product] [Date] [Status] */}
-      <div className={`border rounded-3xl p-4 card-shadow space-y-3.5 ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-      }`}>
+      <div className={`border rounded-3xl p-4 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+        }`}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* 1. Customer Type (Only if Customer Ledger) OR Supplier Selector (If Supplier Ledger) */}
           {isSupplier ? (
@@ -503,9 +489,8 @@ export const Ledger = () => {
               <select
                 value={selectedPartyId}
                 onChange={(e) => setSelectedPartyId(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Suppliers</option>
                 {suppliers.map(p => (
@@ -524,9 +509,8 @@ export const Ledger = () => {
               <select
                 value={customerTypeFilter}
                 onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Customer Types</option>
                 <option value="Regular Customer">Regular Customers</option>
@@ -545,9 +529,8 @@ export const Ledger = () => {
               <select
                 value={selectedPartyId}
                 onChange={(e) => setSelectedPartyId(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Customers</option>
                 {customers.map(p => (
@@ -566,9 +549,8 @@ export const Ledger = () => {
               <select
                 value={selectedProductFilter}
                 onChange={(e) => setSelectedProductFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Products</option>
                 {products.map(p => (
@@ -588,9 +570,8 @@ export const Ledger = () => {
               <select
                 value={selectedProductFilter}
                 onChange={(e) => setSelectedProductFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Products</option>
                 {products.map(p => (
@@ -607,9 +588,8 @@ export const Ledger = () => {
               <select
                 value={dateFilterType}
                 onChange={(e) => setDateFilterType(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Dates</option>
                 <option value="Today">Today</option>
@@ -630,9 +610,8 @@ export const Ledger = () => {
               <select
                 value={dateFilterType}
                 onChange={(e) => setDateFilterType(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Dates</option>
                 <option value="Today">Today</option>
@@ -650,9 +629,8 @@ export const Ledger = () => {
               <select
                 value={txTypeFilter}
                 onChange={(e) => setTxTypeFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Transactions</option>
                 <option value="Sales">Purchases</option>
@@ -672,9 +650,8 @@ export const Ledger = () => {
               <select
                 value={txTypeFilter}
                 onChange={(e) => setTxTypeFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Transactions</option>
                 <option value="Sales">Sales</option>
@@ -695,9 +672,8 @@ export const Ledger = () => {
                   placeholder="Search ref #, supplier..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
             </div>
@@ -714,9 +690,8 @@ export const Ledger = () => {
                 placeholder="Search ref #, customer, description..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
             </div>
           ) : (
@@ -733,18 +708,16 @@ export const Ledger = () => {
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
                 <span className="text-xs text-slate-400 font-bold">to</span>
                 <input
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
             )}
@@ -764,15 +737,13 @@ export const Ledger = () => {
       </div>
 
       {/* Main Compact Ledger Table (No Large Description Column, No Horizontal Scroll) */}
-      <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-      }`}>
+      <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        }`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
             <thead>
-              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
-                theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-              }`}>
+              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                }`}>
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4">Customer</th>
                 <th className="py-3 px-3">Voucher #</th>
@@ -782,9 +753,8 @@ export const Ledger = () => {
                 <th className="py-3 px-4 text-center">Action</th>
               </tr>
             </thead>
-            <tbody className={`divide-y font-medium ${
-              theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
-            }`}>
+            <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+              }`}>
               {filteredLedger.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
@@ -794,8 +764,8 @@ export const Ledger = () => {
               ) : (
                 filteredLedger.map(entry => {
                   return (
-                    <tr 
-                      key={entry.id} 
+                    <tr
+                      key={entry.id}
                       className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
                     >
                       {/* 1. Date */}
@@ -808,11 +778,10 @@ export const Ledger = () => {
                         <div className="font-extrabold text-slate-900 dark:text-white">
                           {entry.partyName}
                         </div>
-                        <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                          (entry.customerType || '').toLowerCase().includes('walk-in')
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold ${(entry.customerType || '').toLowerCase().includes('walk-in')
                             ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
                             : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
-                        }`}>
+                          }`}>
                           {entry.customerType}
                         </span>
                       </td>
@@ -861,11 +830,10 @@ export const Ledger = () => {
                       <td className="py-3 px-4 text-center">
                         <button
                           onClick={() => setViewingEntry(entry)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${
-                            theme === 'dark' 
-                              ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${theme === 'dark'
+                              ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400'
                               : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
-                          }`}
+                            }`}
                           title="View Transaction Details"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -889,9 +857,8 @@ export const Ledger = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setViewingEntry(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
@@ -911,9 +878,8 @@ export const Ledger = () => {
               </button>
             </div>
 
-            <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${
-              theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-            }`}>
+            <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
               <div className="flex justify-between items-center text-slate-500">
                 <span>Customer:</span>
                 <span className="font-extrabold text-slate-900 dark:text-white">{viewingEntry.partyName}</span>
@@ -970,9 +936,8 @@ export const Ledger = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setShowPaymentModal(false); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
               <h3 className="text-base font-extrabold flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-emerald-600" /> Record Ledger Payment
@@ -993,9 +958,8 @@ export const Ledger = () => {
                   required
                   value={paymentForm.partyId}
                   onChange={(e) => setPaymentForm({ ...paymentForm, partyId: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="">-- Choose Customer --</option>
                   {(isSupplier ? suppliers : customers).map(p => (
@@ -1015,9 +979,8 @@ export const Ledger = () => {
                   placeholder="Enter payment amount"
                   value={paymentForm.amount}
                   onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1027,9 +990,8 @@ export const Ledger = () => {
                   <select
                     value={paymentForm.paymentMode}
                     onChange={(e) => setPaymentForm({ ...paymentForm, paymentMode: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   >
                     <option value="Cash">Cash on Counter</option>
                     <option value="Bank Transfer">Bank Transfer</option>
@@ -1045,9 +1007,8 @@ export const Ledger = () => {
                     value={paymentForm.note}
                     onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
                     placeholder="e.g. Account settlement"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -1056,9 +1017,8 @@ export const Ledger = () => {
                 <button
                   type="button"
                   onClick={() => setShowPaymentModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>

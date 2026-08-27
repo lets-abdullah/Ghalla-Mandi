@@ -69,7 +69,6 @@ export const PurchaseReturns = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Debit Valuation</div>
           <div className="text-2xl font-black mt-1.5 text-rose-600 dark:text-rose-400 font-mono">Rs. {totalReturnAmount.toLocaleString()}</div>
-          <div className="text-xs text-slate-400 font-medium mt-1">{purchaseReturns.length} Return Records • View Purchases</div>
         </div>
 
         <div
@@ -79,7 +78,6 @@ export const PurchaseReturns = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Supplier Dues Deducted</div>
           <div className="text-2xl font-black mt-1.5 text-amber-600 dark:text-amber-400 font-mono">Rs. {totalPayablesDeducted.toLocaleString()}</div>
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">Supplier Ledger Reductions • View Khata</div>
         </div>
 
         <div
@@ -89,7 +87,6 @@ export const PurchaseReturns = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Cash Received Back</div>
           <div className="text-2xl font-black mt-1.5 text-emerald-600 dark:text-emerald-400 font-mono">Rs. {totalCashRefunds.toLocaleString()}</div>
-          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">Cash Returned by Suppliers • Filter Cash</div>
         </div>
       </div>
 
