@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { 
-  FileText, 
-  Search, 
-  Printer, 
-  DollarSign, 
-  ShoppingBag, 
-  ShoppingCart, 
-  Clock, 
-  Calendar, 
-  Users, 
-  User, 
-  Filter, 
-  RotateCcw, 
-  RefreshCw, 
-  Eye, 
+import {
+  FileText,
+  Search,
+  Printer,
+  DollarSign,
+  ShoppingBag,
+  ShoppingCart,
+  Clock,
+  Calendar,
+  Users,
+  User,
+  Filter,
+  RotateCcw,
+  RefreshCw,
+  Eye,
   Download,
   Building2,
   CheckCircle2,
@@ -215,7 +215,7 @@ export const Invoices = () => {
   const filteredInvoices = useMemo(() => {
     return rawList.filter(item => {
       // 1. Search filter
-      const matchesSearch = 
+      const matchesSearch =
         item.invoiceNo.toLowerCase().includes(search.toLowerCase()) ||
         item.partyName.toLowerCase().includes(search.toLowerCase()) ||
         (item.paymentMode || '').toLowerCase().includes(search.toLowerCase());
@@ -232,7 +232,7 @@ export const Invoices = () => {
       if (selectedProductFilter !== 'All') {
         let hasProduct = false;
         if (Array.isArray(item.cart)) {
-          hasProduct = item.cart.some(c => 
+          hasProduct = item.cart.some(c =>
             (c.name || c.productName || '').toLowerCase().includes(selectedProductFilter.toLowerCase())
           );
         } else if (typeof item.cart === 'string') {
@@ -268,11 +268,11 @@ export const Invoices = () => {
     return filteredInvoices.reduce((sum, inv) => sum + Number(inv.dueAmount || 0), 0);
   }, [filteredInvoices]);
 
-  const isAnyFilterActive = 
-    search !== '' || 
-    dateFilterType !== 'All' || 
-    selectedPartyId !== 'All' || 
-    selectedProductFilter !== 'All' || 
+  const isAnyFilterActive =
+    search !== '' ||
+    dateFilterType !== 'All' ||
+    selectedPartyId !== 'All' ||
+    selectedProductFilter !== 'All' ||
     statusFilter !== 'All';
 
   const resetAllFilters = () => {
@@ -363,11 +363,10 @@ export const Invoices = () => {
               setSearchParams({ type: 'Sales' });
               resetAllFilters();
             }}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
-              !isPurchases
-                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${!isPurchases
+              ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
           >
             <Receipt className="w-3.5 h-3.5" />
             <span>Sales Invoices</span>
@@ -379,11 +378,10 @@ export const Invoices = () => {
               setSearchParams({ type: 'Purchases' });
               resetAllFilters();
             }}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
-              isPurchases
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${isPurchases
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
           >
             <ShoppingCart className="w-3.5 h-3.5" />
             <span>Purchase Vouchers</span>
@@ -396,11 +394,10 @@ export const Invoices = () => {
         {/* 1. Total Billed Volume */}
         <div
           onClick={() => setStatusFilter('All')}
-          className={`border rounded-2xl p-5 card-shadow transition-all cursor-pointer ${
-            theme === 'dark'
-              ? isPurchases ? 'bg-slate-800 border-emerald-500/30' : 'bg-slate-800 border-brand-500/30'
-              : isPurchases ? 'bg-emerald-50/40 border-emerald-200/60' : 'bg-brand-50/40 border-brand-200/60'
-          }`}
+          className={`border rounded-2xl p-5 card-shadow transition-all cursor-pointer ${theme === 'dark'
+            ? isPurchases ? 'bg-slate-800 border-emerald-500/30' : 'bg-slate-800 border-brand-500/30'
+            : isPurchases ? 'bg-emerald-50/40 border-emerald-200/60' : 'bg-brand-50/40 border-brand-200/60'
+            }`}
           title="Click to view all invoices"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -418,9 +415,8 @@ export const Invoices = () => {
         {/* 2. Settled Payments */}
         <div
           onClick={() => setStatusFilter('Paid')}
-          className={`border rounded-2xl p-5 card-shadow transition-all cursor-pointer ${
-            theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-emerald-50/40 border-emerald-200/60'
-          }`}
+          className={`border rounded-2xl p-5 card-shadow transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-emerald-50/40 border-emerald-200/60'
+            }`}
           title="Click to filter fully settled invoices"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -438,9 +434,8 @@ export const Invoices = () => {
         {/* 3. Pending Khata / Due */}
         <div
           onClick={() => setStatusFilter('Pending')}
-          className={`border rounded-2xl p-5 card-shadow transition-all cursor-pointer ${
-            theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-amber-50/40 border-amber-200/60'
-          }`}
+          className={`border rounded-2xl p-5 card-shadow transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-amber-50/40 border-amber-200/60'
+            }`}
           title="Click to filter pending balance invoices"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -457,9 +452,8 @@ export const Invoices = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-      }`}>
+      <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+        }`}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* 1. Search */}
           <div>
@@ -472,9 +466,8 @@ export const Invoices = () => {
               placeholder={isPurchases ? "Search voucher #, supplier..." : "Search invoice #, customer..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             />
           </div>
 
@@ -487,9 +480,8 @@ export const Invoices = () => {
             <select
               value={selectedPartyId}
               onChange={(e) => setSelectedPartyId(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All {isPurchases ? 'Suppliers' : 'Customers'}</option>
               {(isPurchases ? suppliers : customers).map(party => (
@@ -509,9 +501,8 @@ export const Invoices = () => {
             <select
               value={selectedProductFilter}
               onChange={(e) => setSelectedProductFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Commodities</option>
               {products.map(p => (
@@ -529,9 +520,8 @@ export const Invoices = () => {
             <select
               value={dateFilterType}
               onChange={(e) => setDateFilterType(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Time</option>
               <option value="Today">Today</option>
@@ -551,14 +541,13 @@ export const Invoices = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Statuses</option>
-              <option value="Paid">Fully Paid (Settled)</option>
+              <option value="Paid">Fully Paid</option>
               <option value="Partial">Partially Paid</option>
-              <option value="Pending">Unpaid (Khata Due)</option>
+              <option value="Pending">Unpaid</option>
             </select>
           </div>
         </div>
@@ -572,9 +561,8 @@ export const Invoices = () => {
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                   title="From Date"
                 />
               </div>
@@ -584,9 +572,8 @@ export const Invoices = () => {
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                   title="To Date"
                 />
               </div>
@@ -611,15 +598,13 @@ export const Invoices = () => {
       </div>
 
       {/* Official Invoices Table */}
-      <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-      }`}>
+      <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        }`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
             <thead>
-              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
-                theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-              }`}>
+              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                }`}>
                 <th className="py-3.5 px-4">{isPurchases ? 'Voucher #' : 'Invoice #'}</th>
                 <th className="py-3.5 px-4">Billing Date</th>
                 <th className="py-3.5 px-4">{isPurchases ? 'Supplier / Vendor' : 'Billed Customer'}</th>
@@ -629,9 +614,8 @@ export const Invoices = () => {
                 <th className="py-3.5 px-4 text-center">Formal Documents</th>
               </tr>
             </thead>
-            <tbody className={`divide-y font-medium ${
-              theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
-            }`}>
+            <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+              }`}>
               {filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
@@ -645,8 +629,8 @@ export const Invoices = () => {
                   const due = Number(inv.dueAmount || 0);
 
                   return (
-                    <tr 
-                      key={inv.id} 
+                    <tr
+                      key={inv.id}
                       className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
                     >
                       {/* 1. Document # */}
@@ -696,14 +680,13 @@ export const Invoices = () => {
 
                       {/* 6. Clearance Status Badge */}
                       <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${
-                          inv.status === 'Paid'
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                            : inv.status === 'Partial'
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                        }`}>
-                          {inv.status === 'Paid' ? 'Settled (Paid)' : inv.status === 'Partial' ? 'Partial Paid' : 'Unpaid (Due)'}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${inv.status === 'Paid'
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                          : inv.status === 'Partial'
+                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                          }`}>
+                          {inv.status === 'Paid' ? 'Paid' : inv.status === 'Partial' ? 'Partial Paid' : 'Unpaid (Due)'}
                         </span>
                       </td>
 

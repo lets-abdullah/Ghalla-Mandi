@@ -370,11 +370,11 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
                         <td className="py-2.5 px-3">
                           <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                             <span>{s.partyName}</span>
-                            <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                              isWalkin ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300' : 'bg-brand-500/10 text-brand-600 dark:text-brand-400'
-                            }`}>
-                              {isWalkin ? 'Walk-in' : 'Regular'}
-                            </span>
+                            {isWalkin && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                Walk-in
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">

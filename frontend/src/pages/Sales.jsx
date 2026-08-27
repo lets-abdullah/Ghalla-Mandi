@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Receipt, 
-  Search, 
-  Printer, 
-  CheckCircle2, 
-  ShoppingBag, 
-  DollarSign, 
-  Clock, 
-  X, 
-  Check, 
-  RotateCcw, 
-  Calendar, 
-  Users, 
+import {
+  Receipt,
+  Search,
+  Printer,
+  CheckCircle2,
+  ShoppingBag,
+  DollarSign,
+  Clock,
+  X,
+  Check,
+  RotateCcw,
+  Calendar,
+  Users,
   User,
-  Filter, 
-  FileSpreadsheet, 
-  RefreshCw, 
+  Filter,
+  FileSpreadsheet,
+  RefreshCw,
   Edit3,
   Eye,
   Plus
@@ -169,7 +169,7 @@ export const Sales = () => {
         const invMatch = (s.invoiceNo || s.invoiceno || '').toLowerCase().includes(q);
         const partyMatch = (s.partyName || s.partyname || s.customerName || '').toLowerCase().includes(q);
         const noteMatch = (s.note || s.saleNote || '').toLowerCase().includes(q);
-        
+
         let itemMatch = false;
         if (Array.isArray(s.cart)) {
           itemMatch = s.cart.some(item => (item.name || '').toLowerCase().includes(q));
@@ -186,8 +186,8 @@ export const Sales = () => {
       if (!matchDateFilter(s)) return false;
 
       // 3. Customer Type Filter
-      const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') || 
-                       (s.partyName || '').toLowerCase().includes('walk-in');
+      const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') ||
+        (s.partyName || '').toLowerCase().includes('walk-in');
       if (customerTypeFilter === 'Regular Party' && isWalkin) return false;
       if (customerTypeFilter === 'Walk-in Customer' && !isWalkin) return false;
 
@@ -237,11 +237,11 @@ export const Sales = () => {
 
   // Aggregate Metrics based on Filtered Sales
   const totalFilteredSalesVolume = filteredSales.reduce(
-    (acc, s) => acc + (Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0), 
+    (acc, s) => acc + (Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0),
     0
   );
   const totalFilteredCashReceived = filteredSales.reduce(
-    (acc, s) => acc + (Number(s.paidAmount ?? s.paidamount) || 0), 
+    (acc, s) => acc + (Number(s.paidAmount ?? s.paidamount) || 0),
     0
   );
   const totalFilteredOutstandingDue = filteredSales.reduce((acc, s) => {
@@ -253,12 +253,12 @@ export const Sales = () => {
 
   // Check if any filter is active
   const isAnyFilterActive = (
-    search !== '' || 
+    search !== '' ||
     dateFilterType !== 'All' ||
     customStartDate !== '' ||
     customEndDate !== '' ||
-    customerTypeFilter !== 'All' || 
-    selectedCustomerId !== 'All' || 
+    customerTypeFilter !== 'All' ||
+    selectedCustomerId !== 'All' ||
     statusFilter !== 'All' ||
     returnFilter !== 'All'
   );
@@ -373,26 +373,24 @@ export const Sales = () => {
           {/* Daily Sales Report Modal Button */}
           <button
             onClick={() => setShowDailyReportModal(true)}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
-              theme === 'dark' 
-                ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' 
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark'
+                ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
+              }`}
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> 
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
             <span>Daily Sales Report</span>
           </button>
 
           {/* Print Current Filtered List */}
           <button
             onClick={() => window.print()}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
-              theme === 'dark' 
-                ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' 
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark'
+                ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
+              }`}
           >
-            <Printer className="w-4 h-4" /> 
+            <Printer className="w-4 h-4" />
             <span>Print List</span>
           </button>
 
@@ -412,15 +410,14 @@ export const Sales = () => {
         {/* 1. Total Sales Volume */}
         <div
           onClick={() => { setStatusFilter('All'); setReturnFilter('All'); }}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-            theme === 'dark' 
-              ? 'bg-slate-800 border-emerald-500/30 text-white' 
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
+              ? 'bg-slate-800 border-emerald-500/30 text-white'
               : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-          }`}
+            }`}
           title="Click to view all sales"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <ShoppingBag className="w-4 h-4 text-emerald-600" /> 
+            <ShoppingBag className="w-4 h-4 text-emerald-600" />
             <span>{t('totalSalesVolume') || 'Total Sales Volume'}</span>
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-emerald-600 dark:text-emerald-400">
@@ -434,15 +431,14 @@ export const Sales = () => {
         {/* 2. Cash Received */}
         <div
           onClick={() => setStatusFilter('Paid')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-            theme === 'dark' 
-              ? 'bg-slate-800 border-blue-500/30 text-white' 
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
+              ? 'bg-slate-800 border-blue-500/30 text-white'
               : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-          }`}
+            }`}
           title="Click to filter paid sales"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-blue-600" /> 
+            <DollarSign className="w-4 h-4 text-blue-600" />
             <span>{t('cashReceived') || 'Cash Received'}</span>
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-blue-600 dark:text-blue-400">
@@ -456,15 +452,14 @@ export const Sales = () => {
         {/* 3. Pending Khata / Receivable */}
         <div
           onClick={() => setStatusFilter('Pending')}
-          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${
-            theme === 'dark' 
-              ? 'bg-slate-800 border-amber-500/30 text-white' 
+          className={`border rounded-2xl p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
+              ? 'bg-slate-800 border-amber-500/30 text-white'
               : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
-          }`}
+            }`}
           title="Click to filter pending khata sales"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-amber-600" /> 
+            <Clock className="w-4 h-4 text-amber-600" />
             <span>{t('amountToReceive') || 'Current Amount to Receive'}</span>
           </div>
           <div className="text-2xl font-black mt-1.5 font-mono text-amber-600 dark:text-amber-400">
@@ -479,9 +474,8 @@ export const Sales = () => {
       {/* ========================================================================= */}
       {/* 5-FILTER TOOLBAR (DATE, CUSTOMER TYPE, PARTY, PAYMENT STATUS, SALE RETURNS) */}
       {/* ========================================================================= */}
-      <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-      }`}>
+      <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+        }`}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* 1. Date Filter */}
           <div>
@@ -492,9 +486,8 @@ export const Sales = () => {
             <select
               value={dateFilterType}
               onChange={(e) => setDateFilterType(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Dates</option>
               <option value="Today">Today</option>
@@ -514,9 +507,8 @@ export const Sales = () => {
             <select
               value={customerTypeFilter}
               onChange={(e) => setCustomerTypeFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Customer Types</option>
               <option value="Regular Party">Regular Parties</option>
@@ -533,9 +525,8 @@ export const Sales = () => {
             <select
               value={selectedCustomerId}
               onChange={(e) => setSelectedCustomerId(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Individual Parties</option>
               {customers.map(cust => (
@@ -555,9 +546,8 @@ export const Sales = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Statuses</option>
               <option value="Paid">Fully Paid</option>
@@ -575,9 +565,8 @@ export const Sales = () => {
             <select
               value={returnFilter}
               onChange={(e) => setReturnFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Transactions</option>
               <option value="SalesOnly">Sales Only (No Returns)</option>
@@ -597,9 +586,8 @@ export const Sales = () => {
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                   title="From Date"
                 />
               </div>
@@ -609,9 +597,8 @@ export const Sales = () => {
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                   title="To Date"
                 />
               </div>
@@ -631,9 +618,8 @@ export const Sales = () => {
                 placeholder="Search sale ID, buyer, commodity..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs font-bold outline-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
             </div>
 
@@ -657,9 +643,8 @@ export const Sales = () => {
       {/* ========================================================================= */}
       {returnFilter === 'ReturnsOnly' ? (
         /* Sale Returns History Table */
-        <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
+        <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
           <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
             <h3 className="font-black text-sm flex items-center gap-2">
               <RotateCcw className="w-4 h-4 text-orange-500" />
@@ -669,9 +654,8 @@ export const Sales = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
               <thead>
-                <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
-                  theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                }`}>
+                <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                  }`}>
                   <th className="py-3.5 px-4">Return #</th>
                   <th className="py-3.5 px-4">Date</th>
                   <th className="py-3.5 px-4">Buyer / Party</th>
@@ -699,11 +683,10 @@ export const Sales = () => {
                         {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Commodity Item'}
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${
-                          ret.refundMode === 'Cash' 
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                        <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${ret.refundMode === 'Cash'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : 'bg-slate-100 text-slate-700 border border-slate-200'
-                        }`}>
+                          }`}>
                           {ret.refundMode === 'Cash' ? 'Cash' : 'Khata'}
                         </span>
                       </td>
@@ -719,27 +702,24 @@ export const Sales = () => {
         </div>
       ) : (
         /* Regular Sales Table */
-        <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
+        <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
               <thead>
-                <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
-                  theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                }`}>
+                <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                  }`}>
                   <th className="py-3.5 px-4">Sale ID</th>
                   <th className="py-3.5 px-4">Date</th>
-                  <th className="py-3.5 px-4">Buyer / Customer</th>
+                  <th className="py-3.5 px-4">Customer</th>
                   <th className="py-3.5 px-4">Commodity</th>
                   <th className="py-3.5 px-4 text-right">Amount</th>
                   <th className="py-3.5 px-4 text-center">Status</th>
                   <th className="py-3.5 px-4 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className={`divide-y font-medium ${
-                theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
-              }`}>
+              <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+                }`}>
                 {filteredSales.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
@@ -753,12 +733,12 @@ export const Sales = () => {
                     const retAmt = Number(s.returnAmount || 0);
                     const due = Math.max(0, total - paid - retAmt);
                     const status = paid >= (total - retAmt) && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
-                    const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') || 
-                                     (s.partyName || '').toLowerCase().includes('walk-in');
+                    const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') ||
+                      (s.partyName || '').toLowerCase().includes('walk-in');
 
                     return (
-                      <tr 
-                        key={s.id} 
+                      <tr
+                        key={s.id}
                         className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
                       >
                         {/* 1. Sale ID */}
@@ -775,13 +755,11 @@ export const Sales = () => {
                         <td className="py-3.5 px-4">
                           <div className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
                             <span>{s.partyName}</span>
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                              isWalkin 
-                                ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300' 
-                                : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
-                            }`}>
-                              {isWalkin ? 'Walk-in' : 'Regular'}
-                            </span>
+                            {isWalkin && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                Walk-in
+                              </span>
+                            )}
                           </div>
                         </td>
 
@@ -790,8 +768,8 @@ export const Sales = () => {
                           {s.cart && s.cart.length > 0 ? (
                             <div className="flex flex-wrap gap-1 max-w-xs">
                               {s.cart.map((item, idx) => (
-                                <span 
-                                  key={idx} 
+                                <span
+                                  key={idx}
                                   className="inline-flex items-center px-2 py-0.5 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold text-[11px] border border-brand-500/20 whitespace-nowrap"
                                 >
                                   {item.name} ({item.qty} {item.unitName || item.unit || t('kg')})
@@ -800,8 +778,8 @@ export const Sales = () => {
                             </div>
                           ) : (
                             <span className="text-slate-400 font-semibold">
-                              {typeof s.items === 'string' 
-                                ? s.items 
+                              {typeof s.items === 'string'
+                                ? s.items
                                 : (Array.isArray(s.items) ? s.items.map(i => i.name || i.productName).join(', ') : t('products'))}
                             </span>
                           )}
@@ -826,46 +804,30 @@ export const Sales = () => {
                         {/* 6. Status Badges */}
                         <td className="py-3.5 px-4 text-center">
                           <div className="flex flex-col items-center gap-1">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${
-                              status === 'Paid'
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold whitespace-nowrap border ${status === 'Paid'
                                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                                 : status === 'Partial'
                                   ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
                                   : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                            }`}>
+                              }`}>
                               {status === 'Paid' ? t('paid') : status === 'Partial' ? t('partial') : t('pending')}
                             </span>
 
                             {/* Return Status Badge if partially or fully returned */}
                             {(s.returnStatus || s.returnAmount > 0) && (
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap border ${
-                                s.returnStatus === 'Fully Returned'
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap border ${s.returnStatus === 'Fully Returned'
                                   ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30'
                                   : 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30'
-                              }`}>
+                                }`}>
                                 {s.returnStatus || 'Partially Returned'}
                               </span>
                             )}
                           </div>
                         </td>
 
-                        {/* 7. Actions: Strictly View | Edit | Return Sale */}
+                        {/* 7. Actions: Edit | Return Sale */}
                         <td className="py-3.5 px-4 text-center">
                           <div className="flex items-center justify-center gap-1.5">
-                            {/* View Action */}
-                            <button
-                              onClick={() => openReceiptForSale(s)}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${
-                                theme === 'dark' 
-                                  ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 
-                                  : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
-                              }`}
-                              title="View Sale Details"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>View</span>
-                            </button>
-
                             {/* Edit Action */}
                             <button
                               onClick={() => setEditingSale(s)}
@@ -878,7 +840,7 @@ export const Sales = () => {
 
                             {/* Return Sale Action */}
                             {(s.returnStatus === 'Fully Returned' || (Number(s.returnAmount || 0) >= (total - 1) && total > 0)) ? (
-                              <span 
+                              <span
                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
                                 title="This sale is fully returned"
                               >
@@ -928,9 +890,8 @@ export const Sales = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setPaymentModalSale(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -952,9 +913,8 @@ export const Sales = () => {
             </div>
 
             {/* Invoice Breakdown Summary */}
-            <div className={`rounded-2xl p-3.5 space-y-2 border text-xs font-semibold ${
-              theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'
-            }`}>
+            <div className={`rounded-2xl p-3.5 space-y-2 border text-xs font-semibold ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
               <div className="flex justify-between items-center text-slate-400">
                 <span>{t('customerParty')}:</span>
                 <span className="font-extrabold text-slate-900 dark:text-white">{paymentModalSale.partyName}</span>
@@ -991,9 +951,8 @@ export const Sales = () => {
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                   placeholder={t('enterPaymentAmount')}
-                  className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1003,9 +962,8 @@ export const Sales = () => {
                   <select
                     value={paymentMode}
                     onChange={(e) => setPaymentMode(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   >
                     <option value="Cash">{t('cashOnCounter')}</option>
                     <option value="Bank Transfer">{t('bankTransfer')}</option>
@@ -1021,9 +979,8 @@ export const Sales = () => {
                     value={paymentNote}
                     onChange={(e) => setPaymentNote(e.target.value)}
                     placeholder="e.g. Cash payment"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -1032,9 +989,8 @@ export const Sales = () => {
                 <button
                   type="button"
                   onClick={() => setPaymentModalSale(null)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   {t('cancel')}
                 </button>
