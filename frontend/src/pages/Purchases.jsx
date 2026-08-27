@@ -946,64 +946,6 @@ export const Purchases = () => {
                                 <span>Return Purchase</span>
                               </button>
                             )}
-
-                            <button
-                              onClick={() => {
-                                const totalAmt = Number(p.amount || 0);
-                                const paidAmt = Number(p.paidAmount || 0);
-                                const supplierObj = suppliers.find(s => s.name === p.supplier || s.id === p.supplierId);
-
-                                let purchaseItems = [];
-                                if (p.cart && Array.isArray(p.cart) && p.cart.length > 0) {
-                                  purchaseItems = p.cart.map(item => ({
-                                    name: item.name || item.productName || 'Commodity Product',
-                                    qty: Number(item.qty || item.enteredQty || 1),
-                                    unit: item.unit || item.unitName || item.enteredUnit || t('kg'),
-                                    price: Number(item.rate || item.price || item.ratePerEnteredUnit || (totalAmt / (item.qty || 1))),
-                                    total: Number(item.total || item.totalAmount) || (Number(item.rate || item.price || 0) * Number(item.qty || 1)) || totalAmt
-                                  }));
-                                } else if (p.items && Array.isArray(p.items) && p.items.length > 0) {
-                                  purchaseItems = p.items.map(item => ({
-                                    name: item.name || item.productName || 'Commodity Product',
-                                    qty: Number(item.qty || item.enteredQty || 1),
-                                    unit: item.unit || item.unitName || item.enteredUnit || t('kg'),
-                                    price: Number(item.rate || item.price || item.ratePerEnteredUnit || (totalAmt / (item.qty || item.enteredQty || 1))),
-                                    total: Number(item.total || item.totalAmount) || totalAmt
-                                  }));
-                                } else {
-                                  purchaseItems = [{
-                                    name: p.productName || (typeof p.items === 'string' ? p.items : t('products')),
-                                    qty: Number(p.qty || p.qtyKg || 1),
-                                    unit: p.unit || p.unitName || t('kg'),
-                                    price: Number(p.rate || p.purchasePrice || (p.qty ? Math.round(totalAmt / p.qty) : totalAmt)),
-                                    total: totalAmt
-                                  }];
-                                }
-
-                                const receiptData = {
-                                  purchaseNo: p.purchaseNo,
-                                  date: p.date,
-                                  supplierName: p.supplier,
-                                  supplierPhone: supplierObj?.phone || '',
-                                  supplierCity: supplierObj?.city || '',
-                                  items: purchaseItems,
-                                  totalAmount: totalAmt,
-                                  paidAmount: paidAmt,
-                                  paymentMode: paidAmt >= totalAmt ? 'Cash' : paidAmt > 0 ? 'Partial Cash' : 'Supplier Credit (Khata)',
-                                  supplierBalance: supplierObj ? supplierObj.balance : 0,
-                                  note: 'Official Purchase Arrival Voucher'
-                                };
-                                setSelectedReceipt(receiptData);
-                              }}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-bold transition cursor-pointer shadow-2xs ${theme === 'dark'
-                                ? 'bg-slate-700 hover:bg-slate-600 text-emerald-400 border-slate-600'
-                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
-                                }`}
-                              title={t('Print Receipt')}
-                            >
-                              <Printer className="w-3.5 h-3.5" />
-                              <span>{t('Print Receipt')}</span>
-                            </button>
                           </div>
                         </td>
                       </tr>
