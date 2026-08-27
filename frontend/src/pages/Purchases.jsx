@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, Plus, Printer, CheckCircle2, Clock, DollarSign, X, RotateCcw } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -10,6 +11,7 @@ export const Purchases = () => {
   const { suppliers, products, purchases, purchaseReturns = [], createPurchase, recordPayment } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
+  const navigate = useNavigate();
 
   const [filterType, setFilterType] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Due' | 'Returns'
   const [search, setSearch] = useState('');

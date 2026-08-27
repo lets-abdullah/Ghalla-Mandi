@@ -15,6 +15,7 @@ export const Invoices = () => {
 
   const typeParam = searchParams.get('type');
   const [search, setSearch] = useState('');
+  const [filterType, setFilterType] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Pending'
   const [selectedSaleReceipt, setSelectedSaleReceipt] = useState(null);
   const [selectedPurchaseReceipt, setSelectedPurchaseReceipt] = useState(null);
 
@@ -90,10 +91,18 @@ export const Invoices = () => {
 
   const list = isPurchases ? purchaseInvoices : salesInvoices;
 
-  const filtered = list.filter(item =>
-    item.invoiceNo.toLowerCase().includes(search.toLowerCase()) ||
-    item.partyName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = list.filter(item => {
+    const matchesSearch =
+      item.invoiceNo.toLowerCase().includes(search.toLowerCase()) ||
+      item.partyName.toLowerCase().includes(search.toLowerCase());
+
+    if (!matchesSearch) return false;
+    if (filterType === 'All') return true;
+    if (filterType === 'Paid') return item.status === 'Paid';
+    if (filterType === 'Partial') return item.status === 'Partial';
+    if (filterType === 'Pending') return item.status !== 'Paid';
+    return item.status === filterType;
+  });
 
   const openReceiptModal = (inv) => {
     if (inv.type === 'Sale') {
