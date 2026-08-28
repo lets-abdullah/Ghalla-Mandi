@@ -294,10 +294,21 @@ export const QuickSaleModal = ({ onClose }) => {
                 {isNoProduct ? (
                   <option value="">⚠️ {t('noCommoditiesInCatalog')}</option>
                 ) : (
-                  products.map(p => (
-                    <option key={p.id} value={p.id} disabled={p.stockQty <= 0}>
-                      {p.name} ({p.category}) — {t('currentStock')}: {p.stockQty} {p.unit || t('kg')} {p.stockQty <= 0 ? `(${t('outOfStock')})` : ''}
-                    </option>
+                  Object.entries(
+                    (products || []).reduce((acc, p) => {
+                      const cat = p.category && p.category.trim() ? p.category.trim() : 'General';
+                      if (!acc[cat]) acc[cat] = [];
+                      acc[cat].push(p);
+                      return acc;
+                    }, {})
+                  ).map(([catName, prods]) => (
+                    <optgroup key={catName} label={`📦 ${catName} (${prods.length})`}>
+                      {prods.map(p => (
+                        <option key={p.id} value={p.id} disabled={p.stockQty <= 0}>
+                          {p.name} — Rs. {Number(p.sellingPrice || 0).toLocaleString()} (Stock: {p.stockQty} {p.unit || t('kg')}) {p.stockQty <= 0 ? `(${t('outOfStock')})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))
                 )}
               </select>

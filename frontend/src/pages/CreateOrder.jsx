@@ -5,8 +5,8 @@ import {
   Percent, CheckCircle2, DollarSign,
   CreditCard, Smartphone, Wallet, Edit3, Phone, MapPin,
   RefreshCw, Wheat, Check, PanelLeftClose, PanelLeftOpen, Maximize2,
-  Receipt, AlertCircle, FileText, ChevronDown, Filter, Building2,
-  Landmark
+  Receipt, AlertCircle, FileText, ChevronDown, ChevronUp, Filter, Building2,
+  Landmark, Layers, FolderOpen
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -350,6 +350,26 @@ export const CreateOrder = () => {
     });
   }, [products, searchTerm, selectedCategory]);
 
+  // Group filtered products by Category
+  const groupedProducts = useMemo(() => {
+    const groups = {};
+    (filteredProducts || []).forEach(p => {
+      const cat = p.category && typeof p.category === 'string' && p.category.trim() ? p.category.trim() : 'General / Other';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(p);
+    });
+    return groups;
+  }, [filteredProducts]);
+
+  const [collapsedCategories, setCollapsedCategories] = useState({});
+
+  const toggleCategoryCollapse = (catName) => {
+    setCollapsedCategories(prev => ({
+      ...prev,
+      [catName]: !prev[catName]
+    }));
+  };
+
   // Filtered Customers for Modal
   const filteredCustomers = customers.filter(c =>
     c.name.toLowerCase().includes(partySearch.toLowerCase()) ||
@@ -547,11 +567,16 @@ export const CreateOrder = () => {
               </div>
 
               {/* Category Dropdown Selector */}
-              <div className="relative shrink-0 min-w-[140px]">
+              <div className="relative shrink-0 min-w-[150px]">
                 <select
                   id="pos-category-dropdown"
                   value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedCategory(e.target.value);
+                    if (e.target.value !== 'All') {
+                      setCollapsedCategories(prev => ({ ...prev, [e.target.value]: false }));
+                    }
+                  }}
                   className={`w-full border rounded-2xl py-2.5 pl-3 pr-8 text-xs font-bold outline-none transition cursor-pointer appearance-none ${
                     selectedCategory !== 'All' ? 'border-brand-500 text-brand-600 dark:text-brand-400 font-extrabold' : ''
                   } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
@@ -628,175 +653,273 @@ export const CreateOrder = () => {
               </div>
             </div>
 
+            {/* Category Quick Pills Strip */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('All')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                  selectedCategory === 'All'
+                    ? 'bg-brand-500 text-white shadow-xs'
+                    : theme === 'dark'
+                      ? 'bg-slate-900/80 text-slate-300 border border-slate-700 hover:bg-slate-800'
+                      : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200'
+                }`}
+              >
+                <span>All</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold ${
+                  selectedCategory === 'All' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+                }`}>
+                  {products.length}
+                </span>
+              </button>
+
+              {availableCategories.map(cat => {
+                const count = categoryCounts[cat] || 0;
+                const isSelected = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setCollapsedCategories(prev => ({ ...prev, [cat]: false }));
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-brand-500 text-white shadow-xs'
+                        : theme === 'dark'
+                          ? 'bg-slate-900/80 text-slate-300 border border-slate-700 hover:bg-slate-800'
+                          : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200'
+                    }`}
+                  >
+                    <span>{cat}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
           </div>
 
-          {/* Scrollable Products Catalog Area */}
-          <div className="max-h-[720px] overflow-y-auto pr-1 space-y-2">
-            {filteredProducts.length === 0 ? (
+          {/* Scrollable Products Catalog Area (Grouped by Category) */}
+          <div className="max-h-[720px] overflow-y-auto pr-1 space-y-4">
+            {Object.keys(groupedProducts).length === 0 ? (
               <div className="py-24 text-center space-y-2">
                 <Wheat className="w-10 h-10 text-slate-400 mx-auto stroke-[1.5]" />
                 <p className="text-xs text-slate-400 font-bold">
                   {t('noProductsMatch')}
                 </p>
               </div>
-            ) : viewMode === 'grid' ? (
-              /* GRID VIEW: Responsive 2 or 3 Columns of Commodity Cards */
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                {filteredProducts.map(p => {
-                  const cartItem = cart.find(i => i.productId === p.id);
-                  const isOutOfStock = p.stockQty <= 0;
-
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => !isOutOfStock && addToCart(p)}
-                      className={`p-3.5 rounded-2xl border flex flex-col justify-between transition cursor-pointer relative group ${
-                        cartItem
-                          ? 'border-brand-500 bg-brand-500/5 shadow-xs ring-1 ring-brand-500/30'
-                          : isOutOfStock
-                            ? 'opacity-60 border-slate-200 dark:border-slate-800'
-                            : theme === 'dark'
-                              ? 'bg-slate-900/60 border-slate-700 hover:border-slate-500 hover:bg-slate-900'
-                              : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-white'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-start justify-between gap-1">
-                          <span className="font-black text-xs leading-snug line-clamp-2 group-hover:text-brand-500 transition">
-                            {p.name}
-                          </span>
-                        </div>
-                        <div className="mt-1.5 flex items-center justify-between text-[10px]">
-                          <span className="text-slate-400 truncate max-w-[80px]">{p.category}</span>
-                          <span className={`px-1.5 py-0.5 rounded-md font-extrabold shrink-0 ${
-                            isOutOfStock
-                              ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
-                              : p.stockQty <= (p.minStock || 10)
-                                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                                : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                          }`}>
-                            {p.stockQty} {p.unit || t('kg')}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
-                        <div className="font-black text-xs text-brand-500 font-mono">
-                          Rs. {Number(p.sellingPrice).toLocaleString()}
-                        </div>
-
-                        {/* Quick +/- Action */}
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          {cartItem ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => updateItemQty(p.id, -1)}
-                                className="w-5 h-5 rounded-md bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-rose-500 hover:text-white transition cursor-pointer font-bold text-xs"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="text-xs font-black text-brand-600 dark:text-brand-400 w-4 text-center">
-                                {cartItem.qty}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => updateItemQty(p.id, 1)}
-                                className="w-5 h-5 rounded-md bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition cursor-pointer font-bold text-xs"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={isOutOfStock}
-                              onClick={() => addToCart(p)}
-                              className="w-6 h-6 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white flex items-center justify-center shadow-xs transition cursor-pointer"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             ) : (
-              /* COMPACT LIST VIEW */
-              <div className="space-y-1.5">
-                {filteredProducts.map(p => {
-                  const cartItem = cart.find(i => i.productId === p.id);
-                  const isOutOfStock = p.stockQty <= 0;
+              Object.entries(groupedProducts).map(([categoryName, prods]) => {
+                const isCollapsed = Boolean(collapsedCategories[categoryName]) && !searchTerm;
+                const inCartCount = cart.filter(ci => prods.some(p => p.id === ci.productId)).length;
 
-                  return (
+                return (
+                  <div key={categoryName} className="space-y-2.5">
+                    {/* Collapsible Category Header / Dropdown Banner */}
                     <div
-                      key={p.id}
-                      onClick={() => !isOutOfStock && addToCart(p)}
-                      className={`p-2.5 rounded-2xl border flex items-center justify-between gap-2 transition cursor-pointer ${
-                        cartItem
-                          ? 'border-brand-500 bg-brand-500/5 ring-1 ring-brand-500/30'
-                          : isOutOfStock
-                            ? 'opacity-60 border-slate-200 dark:border-slate-800'
-                            : theme === 'dark'
-                              ? 'bg-slate-900/60 border-slate-700 hover:border-slate-500'
-                              : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                      onClick={() => toggleCategoryCollapse(categoryName)}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl border transition text-left cursor-pointer select-none shadow-2xs ${
+                        theme === 'dark' 
+                          ? 'bg-slate-900/90 border-slate-700 hover:border-slate-500' 
+                          : 'bg-slate-100/90 border-slate-200 hover:border-slate-300'
                       }`}
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-black text-xs truncate">{p.name}</div>
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                          <span>{p.category}</span>
-                          <span>•</span>
-                          <span className={`font-bold ${isOutOfStock ? 'text-rose-500' : 'text-emerald-500'}`}>
-                            {p.stockQty} {p.unit || t('kg')}
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center font-black text-xs">
+                          <Layers className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-xs tracking-tight text-slate-800 dark:text-white">
+                            {categoryName}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                            {prods.length} {prods.length === 1 ? 'product' : 'products'}
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2.5 shrink-0">
-                        <span className="font-black text-xs text-brand-500 font-mono">
-                          Rs. {Number(p.sellingPrice).toLocaleString()}
+                      <div className="flex items-center gap-2">
+                        {inCartCount > 0 && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            {inCartCount} in Cart
+                          </span>
+                        )}
+                        <span className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
+                          {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                         </span>
-
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          {cartItem ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => updateItemQty(p.id, -1)}
-                                className="w-5 h-5 rounded-md bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-rose-500 hover:text-white transition cursor-pointer font-bold text-xs"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="text-xs font-black text-brand-600 dark:text-brand-400 w-4 text-center">
-                                {cartItem.qty}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => updateItemQty(p.id, 1)}
-                                className="w-5 h-5 rounded-md bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition cursor-pointer font-bold text-xs"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={isOutOfStock}
-                              onClick={() => addToCart(p)}
-                              className="w-6 h-6 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white flex items-center justify-center shadow-xs transition cursor-pointer"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+
+                    {/* Category Products (Grid or Compact List) */}
+                    {!isCollapsed && (
+                      viewMode === 'grid' ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                          {prods.map(p => {
+                            const cartItem = cart.find(i => i.productId === p.id);
+                            const isOutOfStock = p.stockQty <= 0;
+
+                            return (
+                              <div
+                                key={p.id}
+                                onClick={() => !isOutOfStock && addToCart(p)}
+                                className={`p-3.5 rounded-2xl border flex flex-col justify-between transition cursor-pointer relative group ${
+                                  cartItem
+                                    ? 'border-brand-500 bg-brand-500/5 shadow-xs ring-1 ring-brand-500/30'
+                                    : isOutOfStock
+                                      ? 'opacity-60 border-slate-200 dark:border-slate-800'
+                                      : theme === 'dark'
+                                        ? 'bg-slate-900/60 border-slate-700 hover:border-slate-500 hover:bg-slate-900'
+                                        : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-white'
+                                }`}
+                              >
+                                <div>
+                                  <div className="flex items-start justify-between gap-1">
+                                    <span className="font-black text-xs leading-snug line-clamp-2 group-hover:text-brand-500 transition">
+                                      {p.name}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1.5 flex items-center justify-between text-[10px]">
+                                    <span className="text-slate-400 truncate max-w-[80px]">{p.category}</span>
+                                    <span className={`px-1.5 py-0.5 rounded-md font-extrabold shrink-0 ${
+                                      isOutOfStock
+                                        ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                                        : p.stockQty <= (p.minStock || 10)
+                                          ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                                          : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                    }`}>
+                                      {p.stockQty} {p.unit || t('kg')}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+                                  <div className="font-black text-xs text-brand-500 font-mono">
+                                    Rs. {Number(p.sellingPrice).toLocaleString()}
+                                  </div>
+
+                                  {/* Quick +/- Action */}
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    {cartItem ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => updateItemQty(p.id, -1)}
+                                          className="w-5 h-5 rounded-md bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-rose-500 hover:text-white transition cursor-pointer font-bold text-xs"
+                                        >
+                                          <Minus className="w-3 h-3" />
+                                        </button>
+                                        <span className="text-xs font-black text-brand-600 dark:text-brand-400 w-4 text-center">
+                                          {cartItem.qty}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => updateItemQty(p.id, 1)}
+                                          className="w-5 h-5 rounded-md bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition cursor-pointer font-bold text-xs"
+                                        >
+                                          <Plus className="w-3 h-3" />
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        disabled={isOutOfStock}
+                                        onClick={() => addToCart(p)}
+                                        className="w-6 h-6 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white flex items-center justify-center shadow-xs transition cursor-pointer"
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {prods.map(p => {
+                            const cartItem = cart.find(i => i.productId === p.id);
+                            const isOutOfStock = p.stockQty <= 0;
+
+                            return (
+                              <div
+                                key={p.id}
+                                onClick={() => !isOutOfStock && addToCart(p)}
+                                className={`p-2.5 rounded-2xl border flex items-center justify-between gap-2 transition cursor-pointer ${
+                                  cartItem
+                                    ? 'border-brand-500 bg-brand-500/5 ring-1 ring-brand-500/30'
+                                    : isOutOfStock
+                                      ? 'opacity-60 border-slate-200 dark:border-slate-800'
+                                      : theme === 'dark'
+                                        ? 'bg-slate-900/60 border-slate-700 hover:border-slate-500'
+                                        : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                                }`}
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-black text-xs truncate">{p.name}</div>
+                                  <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                                    <span>{p.category}</span>
+                                    <span>•</span>
+                                    <span className={`font-bold ${isOutOfStock ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                      {p.stockQty} {p.unit || t('kg')}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2.5 shrink-0">
+                                  <span className="font-black text-xs text-brand-500 font-mono">
+                                    Rs. {Number(p.sellingPrice).toLocaleString()}
+                                  </span>
+
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    {cartItem ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => updateItemQty(p.id, -1)}
+                                          className="w-5 h-5 rounded-md bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-rose-500 hover:text-white transition cursor-pointer font-bold text-xs"
+                                        >
+                                          <Minus className="w-3 h-3" />
+                                        </button>
+                                        <span className="text-xs font-black text-brand-600 dark:text-brand-400 w-4 text-center">
+                                          {cartItem.qty}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => updateItemQty(p.id, 1)}
+                                          className="w-5 h-5 rounded-md bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition cursor-pointer font-bold text-xs"
+                                        >
+                                          <Plus className="w-3 h-3" />
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        disabled={isOutOfStock}
+                                        onClick={() => addToCart(p)}
+                                        className="w-6 h-6 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white flex items-center justify-center shadow-xs transition cursor-pointer"
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
