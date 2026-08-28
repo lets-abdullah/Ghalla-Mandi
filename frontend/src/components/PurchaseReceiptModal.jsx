@@ -309,14 +309,163 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
 
   // Download Purchase Voucher as High Quality A4 PDF Document
   const handleDownloadPDF = async () => {
-    const voucherElement = document.getElementById('purchase-voucher-printable-area');
-    if (!voucherElement) {
-      handlePrint();
-      return;
-    }
-
     try {
       setIsDownloading(true);
+
+      const itemsRowsHtml = items.map((item, idx) => {
+        const itemPrice = Number(item.price || item.rate || item.purchasePrice || item.purchaseprice || 0);
+        const itemQty = Number(item.qty || item.quantity || 1);
+        const itemUnit = item.unit || item.unitName || item.baseUnit || t('kg');
+        const lineTotal = itemPrice * itemQty;
+        const bg = idx % 2 === 1 ? '#f8fafc' : '#ffffff';
+
+        return `
+          <tr style="background: ${bg};">
+            <td style="padding: 8px 10px; font-weight: 700; color: #64748b; text-align: center; border-bottom: 1px solid #e2e8f0; font-size: 11px;">${idx + 1}</td>
+            <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0;">
+              <div style="font-weight: 900; color: #064e3b; font-size: 12px;">${item.name || item.productName || 'Produce Commodity'}</div>
+              <div style="font-size: 10px; color: #94a3b8;">Inward Ghalla Mandi Arrival</div>
+            </td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: #334155; font-family: monospace; border-bottom: 1px solid #e2e8f0; font-size: 12px;">
+              Rs. ${itemPrice.toLocaleString()}
+            </td>
+            <td style="padding: 8px 10px; text-align: center; font-weight: 800; color: #0f172a; border-bottom: 1px solid #e2e8f0; font-size: 12px;">
+              ${itemQty} <span style="font-size: 10px; font-weight: 500; color: #64748b;">${itemUnit}</span>
+            </td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: 900; color: #064e3b; font-family: monospace; border-bottom: 1px solid #e2e8f0; font-size: 12px;">
+              Rs. ${lineTotal.toLocaleString()}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Dedicated A4 Rendering Container at (0,0) behind screen
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.top = '0';
+      container.style.left = '0';
+      container.style.width = '794px';
+      container.style.zIndex = '-99999';
+      container.style.opacity = '1';
+      container.style.pointerEvents = 'none';
+      container.style.background = '#ffffff';
+      container.style.color = '#0f172a';
+      container.style.padding = '24px 30px';
+      container.style.boxSizing = 'border-box';
+      container.style.fontFamily = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+      container.innerHTML = `
+        <div style="width: 100%; box-sizing: border-box;">
+          <!-- Header -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; border-bottom: 2.5px solid #047857; padding-bottom: 12px;">
+            <tr>
+              <td style="vertical-align: middle; width: 60%; padding-bottom: 10px;">
+                <div style="font-size: 22px; font-weight: 900; color: #064e3b; letter-spacing: -0.5px; line-height: 1.1;">${shopTitle}</div>
+                <div style="font-size: 12.5px; font-weight: 700; color: #047857; margin-top: 2px;">${mandiTitle}</div>
+                <div style="font-size: 10px; color: #64748b; margin-top: 2px; font-weight: 600;">INWARD PURCHASE VOUCHER & GRAIN RECEIPT (آمد چٹھہ)</div>
+              </td>
+              <td style="vertical-align: middle; text-align: right; width: 40%; padding-bottom: 10px;">
+                <div style="display: inline-block; background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 8px; padding: 8px 14px; text-align: right;">
+                  <div style="font-size: 9.5px; font-weight: 800; color: #047857; text-transform: uppercase;">PURCHASE VOUCHER</div>
+                  <div style="font-size: 17px; font-weight: 900; color: #064e3b; font-family: monospace; letter-spacing: 0.5px;">${cleanPurchaseNo}</div>
+                  <div style="font-size: 11px; font-weight: 700; color: #475569; margin-top: 2px;">${date}</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Meta Box -->
+          <div style="background: #f0fdf4; border: 1px solid #d1fae5; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="width: 50%; vertical-align: top;">
+                  <div style="font-size: 9.5px; font-weight: 800; color: #047857; text-transform: uppercase;">SUPPLIER / AARTHI:</div>
+                  <div style="font-size: 14px; font-weight: 900; color: #064e3b; margin-top: 2px;">${displaySupplier}</div>
+                  ${supplierCity ? `<div style="font-size: 11px; color: #475569; margin-top: 2px; font-weight: 500;">📍 City: ${supplierCity}</div>` : ''}
+                  ${supplierPhone ? `<div style="font-size: 11px; color: #475569; margin-top: 1px; font-weight: 500;">📞 Phone: ${supplierPhone}</div>` : ''}
+                </td>
+                <td style="width: 50%; vertical-align: top; text-align: right;">
+                  <div style="font-size: 9.5px; font-weight: 800; color: #047857; text-transform: uppercase;">SETTLEMENT MODE:</div>
+                  <div style="font-size: 13.5px; font-weight: 900; color: #064e3b; margin-top: 2px;">${paymentMode}</div>
+                  ${truckNo ? `<div style="font-size: 10.5px; color: #475569; margin-top: 2px; font-weight: 600;">🚛 Truck: ${truckNo}</div>` : ''}
+                  <div style="font-size: 10px; font-weight: 700; color: #059669; margin-top: 3px;">✓ Scale Verified Inward Procurement</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Items Table -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1;">
+            <thead>
+              <tr style="background: #064e3b; color: #ffffff;">
+                <th style="padding: 8px 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; width: 40px; text-align: center;">#</th>
+                <th style="padding: 8px 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; text-align: left;">COMMODITY / PROCUREMENT ITEM</th>
+                <th style="padding: 8px 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; width: 115px; text-align: right;">RATE (PKR)</th>
+                <th style="padding: 8px 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; width: 105px; text-align: center;">QTY / WEIGHT</th>
+                <th style="padding: 8px 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; width: 120px; text-align: right;">TOTAL (PKR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsRowsHtml}
+            </tbody>
+          </table>
+
+          <!-- Totals Section -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 22px;">
+            <tr>
+              <td style="width: 52%; vertical-align: top; padding-right: 16px;">
+                <div style="border: 1px solid #d1fae5; border-radius: 8px; padding: 10px 12px; font-size: 10px; color: #065f46; background: #f0fdf4; line-height: 1.5;">
+                  <div style="font-weight: 800; color: #064e3b; margin-bottom: 3px; font-size: 10.5px;">Purchase Terms:</div>
+                  <div>• Goods inward verified per mandi weighing scale (کنڈا).</div>
+                  <div>• Purchase voucher credited to supplier account.</div>
+                  <div>• Authorized and stamped by Ghalla Mandi ERP.</div>
+                </div>
+              </td>
+              <td style="width: 48%; vertical-align: top;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 11.5px;">
+                  <tr style="background: #064e3b; color: #ffffff; font-weight: 900; font-size: 12.5px;">
+                    <td style="padding: 7px 10px; border-radius: 6px 0 0 6px;">TOTAL AMOUNT:</td>
+                    <td style="padding: 7px 10px; text-align: right; border-radius: 0 6px 6px 0; font-family: monospace; font-size: 13.5px;">Rs. ${totalNum.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 5px 6px 3px; color: #047857; font-weight: 800;">Paid (Counter):</td>
+                    <td style="padding: 5px 6px 3px; text-align: right; font-weight: 800; color: #047857; font-family: monospace;">Rs. ${paidNum.toLocaleString()}</td>
+                  </tr>
+                  ${dueRemaining > 0 ? `
+                    <tr>
+                      <td style="padding: 4px 6px; color: #b45309; font-weight: 800;">Balance Due (Khata):</td>
+                      <td style="padding: 4px 6px; text-align: right; font-weight: 900; color: #b45309; font-family: monospace;">Rs. ${dueRemaining.toLocaleString()}</td>
+                    </tr>
+                  ` : `
+                    <tr>
+                      <td style="padding: 4px 6px; color: #047857; font-weight: 700;">Status:</td>
+                      <td style="padding: 4px 6px; text-align: right; font-weight: 800; color: #047857;">✓ FULLY SETTLED</td>
+                    </tr>
+                  `}
+                </table>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Signatures -->
+          <table style="width: 100%; border-collapse: collapse; margin-top: 28px;">
+            <tr>
+              <td style="width: 50%; vertical-align: bottom;">
+                <div style="text-align: center; width: 180px; border-top: 1.5px dashed #94a3b8; padding-top: 5px; font-size: 10.5px; font-weight: 700; color: #475569;">
+                  Weigher Signature (تولائی کار)
+                </div>
+              </td>
+              <td style="width: 50%; vertical-align: bottom; text-align: right;">
+                <div style="text-align: center; width: 180px; border-top: 1.5px dashed #94a3b8; padding-top: 5px; font-size: 10.5px; font-weight: 700; color: #475569; margin-left: auto;">
+                  Receiver / Munshi (دستخط وصول کنندہ)
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
+
+      document.body.appendChild(container);
 
       const opt = {
         margin: [6, 6, 6, 6],
@@ -328,23 +477,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
           logging: false,
           scrollY: 0,
           scrollX: 0,
-          backgroundColor: '#ffffff',
-          onclone: (clonedDoc) => {
-            const clonedVoucher = clonedDoc.getElementById('purchase-voucher-printable-area');
-            if (clonedVoucher) {
-              clonedVoucher.style.maxHeight = 'none';
-              clonedVoucher.style.overflow = 'visible';
-              clonedVoucher.style.height = 'auto';
-              clonedVoucher.style.width = '100%';
-              clonedVoucher.style.padding = '24px';
-              clonedVoucher.style.background = '#ffffff';
-              const scrollWrappers = clonedVoucher.querySelectorAll('.overflow-x-auto, .overflow-y-auto');
-              scrollWrappers.forEach(w => {
-                w.style.overflow = 'visible';
-                w.style.maxHeight = 'none';
-              });
-            }
-          }
+          backgroundColor: '#ffffff'
         },
         jsPDF: { 
           unit: 'mm', 
@@ -353,7 +486,8 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
         }
       };
 
-      await html2pdf().set(opt).from(voucherElement).save();
+      await html2pdf().set(opt).from(container).save();
+      document.body.removeChild(container);
     } catch (err) {
       console.error('Failed to download purchase voucher PDF, falling back to print dialog:', err);
       handlePrint();
@@ -365,12 +499,12 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto no-scrollbar print:p-0 print:bg-white print:static"
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto no-scrollbar print:p-0 print:bg-white print:static"
     >
       {/* Modal Container */}
       <div 
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-xl rounded-2xl sm:rounded-3xl card-shadow border overflow-hidden flex flex-col my-auto max-h-[94vh] print:max-h-none print:shadow-none print:border-none print:w-full print:max-w-none print:rounded-none ${
+        className={`w-full max-w-xl rounded-2xl sm:rounded-3xl shadow-2xl border overflow-hidden flex flex-col my-auto print:shadow-none print:border-none print:w-full print:max-w-none print:rounded-none ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}
       >
@@ -394,9 +528,9 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
           </button>
         </div>
 
-        {/* Printable Purchase Voucher Body Area */}
+        {/* Printable Purchase Voucher Body Area - Fully visible without internal scrolling */}
         <div
-          className="flex-1 overflow-y-auto no-scrollbar p-3.5 sm:p-5 space-y-3 sm:space-y-3.5 text-slate-800 bg-white"
+          className="p-3.5 sm:p-5 space-y-3 text-slate-800 bg-white"
           id="purchase-voucher-printable-area"
         >
           {/* Header Badge & Procurement Branding */}
