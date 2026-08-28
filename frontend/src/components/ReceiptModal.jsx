@@ -379,17 +379,17 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto print:p-0 print:bg-white print:static"
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto no-scrollbar print:p-0 print:bg-white print:static"
     >
       {/* Modal Container */}
       <div 
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-3xl rounded-2xl sm:rounded-3xl card-shadow border overflow-hidden flex flex-col my-auto max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:w-full print:max-w-none print:rounded-none ${
+        className={`w-full max-w-3xl rounded-2xl sm:rounded-3xl card-shadow border overflow-hidden flex flex-col my-auto max-h-[94vh] print:max-h-none print:shadow-none print:border-none print:w-full print:max-w-none print:rounded-none ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}
       >
         {/* Modal Top Header Bar */}
-        <div className={`px-4 sm:px-6 py-3 border-b flex items-center justify-between gap-2 shrink-0 ${
+        <div className={`px-4 sm:px-6 py-2.5 sm:py-3 border-b flex items-center justify-between gap-2 shrink-0 ${
           theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-100'
         }`}>
           <div className="flex items-center gap-2 min-w-0">
@@ -415,17 +415,17 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
 
         {/* Printable Receipt Body Area */}
         <div
-          className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5 text-slate-800 bg-white"
+          className="flex-1 overflow-y-auto no-scrollbar p-3.5 sm:p-5 md:p-6 space-y-3 sm:space-y-4 text-slate-800 bg-white"
           id="receipt-printable-area"
         >
           {/* Header Banner */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 sm:pb-4 border-b-2 border-slate-900">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 pb-2.5 sm:pb-3 border-b-2 border-slate-900">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-black shrink-0">
-                <Wheat className="w-6 h-6 stroke-[2.2]" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-black shrink-0">
+                <Wheat className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">
+                <h2 className="text-base sm:text-lg md:text-xl font-black text-slate-900 tracking-tight leading-tight">
                   {shopTitle}
                 </h2>
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
@@ -434,17 +434,17 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
               </div>
             </div>
 
-            <div className="w-full sm:w-auto text-left sm:text-right bg-slate-50 sm:bg-transparent p-2.5 sm:p-0 rounded-xl sm:rounded-none border sm:border-0 border-slate-100 flex sm:block justify-between items-center">
+            <div className="w-full sm:w-auto text-left sm:text-right bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-xl sm:rounded-none border sm:border-0 border-slate-100 flex sm:block justify-between items-center">
               <div>
-                <div className="text-[10px] font-extrabold uppercase text-slate-400">INVOICE NO.</div>
-                <div className="font-mono font-black text-base sm:text-lg text-slate-900">{cleanOrderId}</div>
+                <div className="text-[9px] font-extrabold uppercase text-slate-400">INVOICE NO.</div>
+                <div className="font-mono font-black text-sm sm:text-base md:text-lg text-slate-900">{cleanOrderId}</div>
               </div>
-              <div className="text-[11px] font-semibold text-slate-500">{date}</div>
+              <div className="text-[10px] sm:text-[11px] font-semibold text-slate-500">{date}</div>
             </div>
           </div>
 
           {/* Customer & Payment Meta Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
             <div className="space-y-1 sm:border-r sm:border-slate-200/80 sm:pr-3">
               <span className="text-[10px] font-black uppercase text-slate-400 block">{t('customerLabel') || 'Billed To (خریدار)'}:</span>
               <div className="font-black text-sm text-slate-900">{displayCustomer}</div>
@@ -452,11 +452,11 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
               {customerPhone && <div className="text-[11px] text-slate-600 font-medium">📞 {customerPhone}</div>}
             </div>
 
-            <div className="space-y-1 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200 sm:pl-1">
+            <div className="space-y-1 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-slate-200 sm:pl-1">
               <span className="text-[10px] font-black uppercase text-slate-400 block">{t('paymentMethodLabel') || 'Payment Mode'}:</span>
               <div className="font-black text-sm text-brand-600">{paymentMethod}</div>
               {saleNote && <div className="text-[11px] text-slate-500 italic">📝 {saleNote}</div>}
-              <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-1">
+              <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-0.5">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Counter POS Verified & Dispatched
               </div>
             </div>
@@ -464,7 +464,7 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
 
           {/* Items Table with Horizontal Scroll for Mobile */}
           <div className="border border-slate-200 rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto no-scrollbar">
               <table className="w-full text-left border-collapse min-w-[440px] sm:min-w-0">
                 <thead>
                   <tr className="bg-slate-900 text-white text-[10px] font-black uppercase tracking-wider">
