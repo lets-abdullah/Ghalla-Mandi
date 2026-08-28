@@ -309,29 +309,57 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
 
   // Download Purchase Voucher as High Quality A4 PDF Document
   const handleDownloadPDF = async () => {
-    // Directly trigger high-resolution A4 print / Save as PDF engine
-    handlePrint();
+    const voucherElement = document.getElementById('purchase-voucher-printable-area');
+    if (!voucherElement) return;
+
+    try {
+      setIsDownloading(true);
+
+      const opt = {
+        margin: [6, 6, 6, 6],
+        filename: `Purchase_Voucher_${cleanPurchaseNo.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          logging: false,
+          backgroundColor: '#ffffff'
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait' 
+        }
+      };
+
+      await html2pdf().set(opt).from(voucherElement).save();
+    } catch (err) {
+      console.error('Failed to download purchase voucher PDF:', err);
+      alert('Could not generate PDF download. Please try Print Receipt.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static"
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static overflow-y-auto no-scrollbar"
     >
-      {/* Modal Container with guaranteed pinned header and footer */}
+      {/* Modal Container */}
       <div 
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-xl rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:w-full print:max-w-none print:rounded-none ${
+        className={`w-full max-w-xl rounded-2xl shadow-2xl border overflow-hidden flex flex-col my-auto print:shadow-none print:border-none print:w-full print:max-w-none print:rounded-none ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}
       >
-        {/* Modal Top Header Bar - Always Pinned */}
-        <div className={`px-4 sm:px-6 py-2.5 border-b flex items-center justify-between gap-2 shrink-0 ${
+        {/* Modal Top Header Bar */}
+        <div className={`px-3 sm:px-4 py-2 border-b flex items-center justify-between gap-2 shrink-0 ${
           theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-emerald-950/10 border-slate-100'
         }`}>
-          <div className="flex items-center gap-2 min-w-0">
-            <Truck className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span className="font-black text-xs sm:text-sm uppercase tracking-wider text-slate-800 dark:text-white truncate">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-white truncate">
               Goods Inward & Purchase Voucher
             </span>
           </div>
@@ -339,152 +367,151 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer shrink-0"
+            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer shrink-0"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Printable Purchase Voucher Body Area - Clean scrollable if content exceeds height, no ugly scrollbars */}
+        {/* Printable Compact Purchase Voucher Body Area */}
         <div
-          className="flex-1 overflow-y-auto no-scrollbar p-3.5 sm:p-5 space-y-2.5 sm:space-y-3 text-slate-800 bg-white"
+          className="p-3 sm:p-4 space-y-2 text-slate-800 bg-white"
           id="purchase-voucher-printable-area"
         >
           {/* Header Badge & Procurement Branding */}
-          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 sm:p-3.5 text-center space-y-1">
-            <div className="flex items-center justify-center gap-2 text-emerald-800 font-black text-base sm:text-lg">
-              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
-                <Truck className="w-4 h-4 stroke-[2.2]" />
+          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2 text-center space-y-0.5">
+            <div className="flex items-center justify-center gap-1.5 text-emerald-800 font-black text-sm sm:text-base">
+              <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                <Truck className="w-3.5 h-3.5 stroke-[2.2]" />
               </div>
               <span className="truncate">{shopTitle}</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-xs">
-              <Scale className="w-3 h-3" />
+            <div className="inline-flex items-center gap-1 px-2 py-0.2 bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider rounded-full shadow-xs">
+              <Scale className="w-2.5 h-2.5" />
               <span>GOODS INWARD & PROCUREMENT VOUCHER</span>
             </div>
-            <p className="text-[11px] font-bold text-emerald-700">
-              خریداری رسید / مال آمد بل (Mandi Arrival Voucher)
-            </p>
           </div>
 
           {/* Metadata Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 text-xs bg-slate-50 border border-slate-100 rounded-2xl p-3">
+          <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 border border-slate-100 rounded-xl p-2">
             <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Voucher No</span>
-              <span className="font-black text-emerald-700 text-sm font-mono">{cleanPurchaseNo}</span>
+              <span className="text-[9px] uppercase font-bold text-slate-400 block">Voucher No</span>
+              <span className="font-black text-emerald-700 text-xs font-mono">{cleanPurchaseNo}</span>
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">{t('date')}</span>
-              <span className="font-bold text-slate-800">{date}</span>
+              <span className="text-[9px] uppercase font-bold text-slate-400 block">{t('date')}</span>
+              <span className="font-bold text-slate-800 text-xs">{date}</span>
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">{t('supplierFirmName')}</span>
-              <span className="font-extrabold text-slate-900">{displaySupplier} {supplierCity ? `(${supplierCity})` : ''}</span>
-              {supplierPhone && <div className="text-[11px] text-slate-500 font-mono">📞 {supplierPhone}</div>}
+              <span className="text-[9px] uppercase font-bold text-slate-400 block">{t('supplierFirmName')}</span>
+              <span className="font-bold text-slate-900 text-xs truncate block">{displaySupplier}</span>
+              {(supplierCity || supplierPhone) && (
+                <div className="text-[10px] text-slate-500 font-mono">
+                  {supplierCity ? `📍 ${supplierCity}` : ''} {supplierPhone ? `📞 ${supplierPhone}` : ''}
+                </div>
+              )}
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">{t('paymentMethodLabel')}</span>
-              <span className="font-bold text-slate-800">{paymentMode}</span>
-              {truckNo && <div className="text-[11px] text-slate-500 font-medium">🚛 Truck: {truckNo}</div>}
+              <span className="text-[9px] uppercase font-bold text-slate-400 block">{t('paymentMethodLabel')}</span>
+              <span className="font-bold text-slate-800 text-xs">{paymentMode}</span>
+              {truckNo && <div className="text-[10px] text-slate-500 font-medium">🚛 Truck: {truckNo}</div>}
             </div>
           </div>
 
-          {/* Commodities / Inward Goods Table with Scroll */}
-          <div className="border border-slate-100 rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left border-collapse min-w-[360px] sm:min-w-0">
-                <thead>
-                  <tr className="bg-emerald-900 text-white text-[10px] font-black uppercase tracking-wider">
-                    <th className="py-2 px-3">COMMODITY / ITEM</th>
-                    <th className="py-2 px-3 text-center w-24">QTY / WEIGHT</th>
-                    <th className="py-2 px-3 text-right w-28">TOTAL (PKR)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {items.map((item, idx) => {
-                    const itemPrice = Number(item.price || item.rate || 0);
-                    const itemQty = Number(item.qty || 1);
-                    const itemUnit = item.unit || item.unitName || t('kg');
-                    const lineTotal = Number(item.total) || (itemPrice * itemQty);
+          {/* Commodities / Inward Goods Table */}
+          <div className="border border-slate-100 rounded-xl overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-emerald-900 text-white text-[9px] font-black uppercase tracking-wider">
+                  <th className="py-1 px-2">COMMODITY / ITEM</th>
+                  <th className="py-1 px-2 text-center w-20">QTY</th>
+                  <th className="py-1 px-2 text-right w-24">TOTAL (PKR)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {items.map((item, idx) => {
+                  const itemPrice = Number(item.price || item.rate || 0);
+                  const itemQty = Number(item.qty || 1);
+                  const itemUnit = item.unit || item.unitName || t('kg');
+                  const lineTotal = Number(item.total) || (itemPrice * itemQty);
 
-                    return (
-                      <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}>
-                        <td className="p-3">
-                          <div className="font-extrabold text-emerald-950 text-xs">{item.name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">Rate: Rs. {itemPrice.toLocaleString()} / {itemUnit}</div>
-                        </td>
-                        <td className="p-3 text-center font-black text-slate-800 whitespace-nowrap">
-                          {itemQty} {itemUnit}
-                        </td>
-                        <td className="p-3 text-right font-black text-emerald-800 font-mono whitespace-nowrap">
-                          Rs. {lineTotal.toLocaleString()}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  return (
+                    <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}>
+                      <td className="py-1 px-2">
+                        <div className="font-bold text-emerald-950 text-xs">{item.name}</div>
+                        <div className="text-[9px] text-slate-400 font-mono">Rate: Rs. {itemPrice.toLocaleString()} / {itemUnit}</div>
+                      </td>
+                      <td className="py-1 px-2 text-center font-bold text-slate-800 text-xs whitespace-nowrap">
+                        {itemQty} {itemUnit}
+                      </td>
+                      <td className="py-1 px-2 text-right font-bold text-emerald-800 font-mono text-xs whitespace-nowrap">
+                        Rs. {lineTotal.toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           {/* Calculations Summary Section */}
-          <div className="border border-slate-200 rounded-2xl p-3.5 sm:p-4 space-y-2 text-xs bg-slate-50">
-            <div className="flex justify-between items-center text-sm font-black text-slate-900">
+          <div className="border border-slate-200 rounded-xl p-2.5 space-y-1 text-xs bg-slate-50">
+            <div className="flex justify-between items-center text-xs font-black text-slate-900">
               <span>{t('totalAmount')} (PKR):</span>
-              <span className="text-base text-emerald-700 font-mono">Rs. {totalNum.toLocaleString()}</span>
+              <span className="text-sm text-emerald-700 font-mono">Rs. {totalNum.toLocaleString()}</span>
             </div>
 
-            <div className="flex justify-between items-center text-emerald-700 font-bold">
+            <div className="flex justify-between items-center text-emerald-700 font-bold text-[11px]">
               <span>{t('paid')} ({t('cashOnCounter')}):</span>
               <span className="font-mono">Rs. {paidNum.toLocaleString()}</span>
             </div>
 
             {dueRemaining > 0 ? (
-              <div className="flex justify-between items-center text-amber-700 font-black pt-1.5 border-t border-slate-200">
-                <span>{t('remainingDue')} ({t('mandiLedger')}):</span>
-                <span className="font-mono">Rs. {dueRemaining.toLocaleString()}</span>
+              <div className="flex justify-between items-center text-amber-700 font-bold pt-1 border-t border-slate-200 text-[11px]">
+                <span>{t('remainingDue')}:</span>
+                <span className="font-mono font-black">Rs. {dueRemaining.toLocaleString()}</span>
               </div>
             ) : (
-              <div className="flex justify-between items-center text-emerald-700 font-black pt-1.5 border-t border-slate-200">
+              <div className="flex justify-between items-center text-emerald-700 font-bold pt-1 border-t border-slate-200 text-[10px]">
                 <span>{t('status')}:</span>
                 <span>{t('settled')} (100% Paid)</span>
               </div>
             )}
 
             {note && (
-              <div className="pt-2 text-[10px] text-slate-400 italic">
+              <div className="pt-1 text-[9px] text-slate-400 italic">
                 <strong>Remarks:</strong> {note}
               </div>
             )}
           </div>
 
           {/* Mandi Weighment Sign-off footer */}
-          <div className="border border-dashed border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] text-slate-500">
-            <div className="text-center w-36 border-t border-slate-300 pt-1 font-bold">
+          <div className="border border-dashed border-slate-200 rounded-xl p-2 flex items-center justify-between gap-2 text-[9px] text-slate-500">
+            <div className="text-center w-28 border-t border-slate-300 pt-0.5 font-bold">
               Weigher (تولائی کار)
             </div>
             <div className="flex items-center gap-1 text-emerald-700 font-bold">
-              <ShieldCheck className="w-4 h-4" />
-              <span>Goods Inward Verified</span>
+              <ShieldCheck className="w-3 h-3" />
+              <span>Scale Verified</span>
             </div>
-            <div className="text-center w-36 border-t border-slate-300 pt-1 font-bold">
+            <div className="text-center w-28 border-t border-slate-300 pt-0.5 font-bold">
               Receiver / Munshi
             </div>
           </div>
         </div>
 
         {/* Modal Actions Footer */}
-        <div className={`p-3 sm:p-4 border-t flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 print:hidden shrink-0 ${
+        <div className={`p-2.5 border-t flex items-center justify-between gap-2 print:hidden shrink-0 ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'
         }`}>
           <button
             type="button"
             onClick={onClose}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
               theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
             }`}
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
             <span>{t('close')}</span>
           </button>
 
@@ -493,17 +520,17 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
               type="button"
               onClick={handleDownloadPDF}
               disabled={isDownloading}
-              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer"
-              title="Download purchase voucher as A4 PDF file"
+              className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              title="Download purchase voucher as A4 PDF file directly"
             >
               {isDownloading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Generating...</span>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Downloading...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
                   <span>Download PDF</span>
                 </>
               )}
@@ -512,10 +539,10 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
             <button
               type="button"
               onClick={handlePrint}
-              className="flex-1 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-900/20 flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
               title="Print purchase arrival voucher"
             >
-              <Printer className="w-4 h-4" />
+              <Printer className="w-3.5 h-3.5" />
               <span>Print Receipt</span>
             </button>
           </div>

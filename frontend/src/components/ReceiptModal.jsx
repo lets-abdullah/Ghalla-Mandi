@@ -323,189 +323,214 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
 
   // Download Receipt as High Quality A4 PDF Document
   const handleDownloadPDF = async () => {
-    // Directly trigger high-resolution A4 print / Save as PDF engine
-    handlePrint();
+    const receiptElement = document.getElementById('receipt-printable-area');
+    if (!receiptElement) return;
+
+    try {
+      setIsDownloading(true);
+
+      const opt = {
+        margin: [6, 6, 6, 6],
+        filename: `Invoice_${cleanOrderId.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          logging: false,
+          backgroundColor: '#ffffff'
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait' 
+        }
+      };
+
+      await html2pdf().set(opt).from(receiptElement).save();
+    } catch (err) {
+      console.error('Failed to download receipt PDF:', err);
+      alert('Could not generate PDF download. Please try Print (A4).');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static"
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static overflow-y-auto no-scrollbar"
     >
-      {/* Modal Container with guaranteed pinned header and footer */}
+      {/* Modal Container */}
       <div 
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-3xl rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:w-full print:max-w-none print:rounded-none ${
+        className={`w-full max-w-2xl rounded-2xl shadow-2xl border overflow-hidden flex flex-col my-auto print:shadow-none print:border-none print:w-full print:max-w-none print:rounded-none ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}
       >
-        {/* Modal Top Header Bar - Always Pinned */}
-        <div className={`px-4 sm:px-6 py-2.5 border-b flex items-center justify-between gap-2 shrink-0 ${
+        {/* Modal Top Header Bar */}
+        <div className={`px-3 sm:px-4 py-2 border-b flex items-center justify-between gap-2 shrink-0 ${
           theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-100'
         }`}>
-          <div className="flex items-center gap-2 min-w-0">
-            <Wheat className="w-5 h-5 text-brand-500 shrink-0" />
-            <span className="font-black text-xs sm:text-sm uppercase tracking-wider text-slate-800 dark:text-white truncate">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Wheat className="w-4 h-4 text-brand-500 shrink-0" />
+            <span className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-white truncate">
               {t('receiptTaxInvoice') || 'Sales Tax Invoice'}
             </span>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <span className="hidden xs:inline-block px-2.5 py-0.5 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold text-[11px] border border-brand-500/20">
+            <span className="hidden xs:inline-block px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold text-[10px] border border-brand-500/20">
               A4 Format
             </span>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+              className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Printable Receipt Body Area - Clean scrollable if content exceeds height, no ugly scrollbars */}
+        {/* Printable Compact Receipt Body Area */}
         <div
-          className="flex-1 overflow-y-auto no-scrollbar p-3.5 sm:p-5 space-y-2.5 sm:space-y-3 text-slate-800 bg-white"
+          className="p-3 sm:p-4 space-y-2 text-slate-800 bg-white"
           id="receipt-printable-area"
         >
           {/* Header Banner */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2.5 border-b-2 border-slate-900">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b-2 border-slate-900">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-black shrink-0">
-                <Wheat className="w-5 h-5 stroke-[2.2]" />
+              <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-black shrink-0">
+                <Wheat className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight">
+                <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight">
                   {shopTitle}
                 </h2>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
                   {mandiTitle}
                 </p>
               </div>
             </div>
 
-            <div className="w-full sm:w-auto text-left sm:text-right bg-slate-50 sm:bg-transparent p-1.5 sm:p-0 rounded-xl sm:rounded-none border sm:border-0 border-slate-100 flex sm:block justify-between items-center">
-              <div>
-                <div className="text-[9px] font-extrabold uppercase text-slate-400">INVOICE NO.</div>
-                <div className="font-mono font-black text-sm sm:text-base text-slate-900">{cleanOrderId}</div>
-              </div>
-              <div className="text-[10px] sm:text-[11px] font-semibold text-slate-500">{date}</div>
+            <div className="text-right bg-slate-50 sm:bg-transparent px-2 py-1 sm:p-0 rounded-lg border sm:border-0 border-slate-100">
+              <div className="text-[8px] font-extrabold uppercase text-slate-400">INVOICE NO.</div>
+              <div className="font-mono font-black text-xs sm:text-sm text-slate-900">{cleanOrderId}</div>
+              <div className="text-[9px] font-semibold text-slate-500">{date}</div>
             </div>
           </div>
 
           {/* Customer & Payment Meta Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
-            <div className="space-y-0.5 sm:border-r sm:border-slate-200/80 sm:pr-2">
-              <span className="text-[10px] font-black uppercase text-slate-400 block">{t('customerLabel') || 'Billed To (خریدار)'}:</span>
-              <div className="font-black text-sm text-slate-900">{displayCustomer}</div>
-              {customerCity && <div className="text-[11px] text-slate-600 font-medium">📍 {customerCity}</div>}
-              {customerPhone && <div className="text-[11px] text-slate-600 font-medium">📞 {customerPhone}</div>}
+          <div className="grid grid-cols-2 gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+            <div className="space-y-0.5 border-r border-slate-200/80 pr-2">
+              <span className="text-[9px] font-black uppercase text-slate-400 block">{t('customerLabel') || 'Billed To (خریدار)'}:</span>
+              <div className="font-black text-xs text-slate-900 truncate">{displayCustomer}</div>
+              {(customerCity || customerPhone) && (
+                <div className="text-[10px] text-slate-500 font-medium truncate">
+                  {customerCity ? `📍 ${customerCity}` : ''} {customerPhone ? `📞 ${customerPhone}` : ''}
+                </div>
+              )}
             </div>
 
-            <div className="space-y-0.5 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-200 sm:pl-1">
-              <span className="text-[10px] font-black uppercase text-slate-400 block">{t('paymentMethodLabel') || 'Payment Mode'}:</span>
-              <div className="font-black text-sm text-brand-600">{paymentMethod}</div>
-              {saleNote && <div className="text-[11px] text-slate-500 italic">📝 {saleNote}</div>}
-              <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-0.5">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Counter POS Verified & Dispatched
+            <div className="space-y-0.5 pl-1">
+              <span className="text-[9px] font-black uppercase text-slate-400 block">{t('paymentMethodLabel') || 'Payment Mode'}:</span>
+              <div className="font-black text-xs text-brand-600">{paymentMethod}</div>
+              <div className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Counter POS Verified & Dispatched
               </div>
             </div>
           </div>
 
-          {/* Items Table with Horizontal Scroll for Mobile */}
-          <div className="border border-slate-200 rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left border-collapse min-w-[440px] sm:min-w-0">
-                <thead>
-                  <tr className="bg-slate-900 text-white text-[10px] font-black uppercase tracking-wider">
-                    <th className="py-2.5 px-3 w-10 text-center">#</th>
-                    <th className="py-2.5 px-3">{t('item') || 'Item / Commodity'}</th>
-                    <th className="py-2.5 px-3 text-right">{t('price') || 'Rate'}</th>
-                    <th className="py-2.5 px-3 text-center">{t('qty') || 'Qty / Weight'}</th>
-                    <th className="py-2.5 px-3 text-right">{t('total') || 'Total'}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {items.map((item, idx) => {
-                    const itemPrice = Number(item.price || item.rate || 0);
-                    const itemQty = Number(item.qty || 1);
-                    const itemUnit = item.unit || item.unitName || t('kg');
-                    const lineTotal = itemPrice * itemQty;
+          {/* Items Table */}
+          <div className="border border-slate-200 rounded-xl overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-900 text-white text-[9px] font-black uppercase tracking-wider">
+                  <th className="py-1 px-2 w-7 text-center">#</th>
+                  <th className="py-1 px-2">{t('item') || 'Item / Commodity'}</th>
+                  <th className="py-1 px-2 text-right">{t('price') || 'Rate'}</th>
+                  <th className="py-1 px-2 text-center">{t('qty') || 'Qty'}</th>
+                  <th className="py-1 px-2 text-right">{t('total') || 'Total'}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {items.map((item, idx) => {
+                  const itemPrice = Number(item.price || item.rate || 0);
+                  const itemQty = Number(item.qty || 1);
+                  const itemUnit = item.unit || item.unitName || t('kg');
+                  const lineTotal = itemPrice * itemQty;
 
-                    return (
-                      <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}>
-                        <td className="py-2.5 px-3 font-bold text-slate-400 text-center">{idx + 1}</td>
-                        <td className="py-2.5 px-3">
-                          <div className="font-black text-slate-900">{item.name}</div>
-                          <div className="text-[10px] text-slate-400">Commodity Produce</div>
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-600">
-                          Rs. {itemPrice.toLocaleString()}
-                        </td>
-                        <td className="py-2.5 px-3 text-center font-black text-slate-800 whitespace-nowrap">
-                          {itemQty} <span className="text-[10px] text-slate-500 font-normal">{itemUnit}</span>
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-black text-slate-900 whitespace-nowrap">
-                          Rs. {lineTotal.toLocaleString()}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  return (
+                    <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}>
+                      <td className="py-1 px-2 font-bold text-slate-400 text-center text-[10px]">{idx + 1}</td>
+                      <td className="py-1 px-2">
+                        <span className="font-bold text-slate-900 text-xs">{item.name}</span>
+                      </td>
+                      <td className="py-1 px-2 text-right font-mono text-slate-600 text-xs">
+                        Rs. {itemPrice.toLocaleString()}
+                      </td>
+                      <td className="py-1 px-2 text-center font-bold text-slate-800 text-xs whitespace-nowrap">
+                        {itemQty} <span className="text-[9px] text-slate-500 font-normal">{itemUnit}</span>
+                      </td>
+                      <td className="py-1 px-2 text-right font-mono font-bold text-slate-900 text-xs whitespace-nowrap">
+                        Rs. {lineTotal.toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           {/* Calculations Summary Section */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-            <div className="order-2 sm:order-1 text-[10px] text-slate-400 space-y-1.5 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <p className="font-bold text-slate-700">Terms & Mandi Conditions:</p>
+          <div className="grid grid-cols-2 gap-2 pt-0.5">
+            <div className="text-[8.5px] text-slate-500 space-y-0.5 p-2 rounded-lg bg-slate-50 border border-slate-200 leading-tight">
+              <p className="font-bold text-slate-700">Terms & Conditions:</p>
               <p>• Goods once sold are verified per standard Ghalla Mandi trade rules.</p>
               <p>• Official sales tax invoice & cash memo gate pass.</p>
-              <p>• Thank you for your valued business with {shopTitle}!</p>
+              <p>• Thank you for your business with {shopTitle}!</p>
             </div>
 
-            <div className="order-1 sm:order-2 space-y-1.5 text-xs">
-              <div className="flex justify-between items-center text-slate-600 font-semibold">
-                <span>{t('subtotal') || 'Gross Subtotal'}:</span>
-                <span className="font-bold font-mono text-slate-800">Rs. {Number(subtotal).toLocaleString()}</span>
+            <div className="space-y-0.5 text-xs">
+              <div className="flex justify-between items-center text-slate-600 font-semibold px-1 text-[11px]">
+                <span>Subtotal:</span>
+                <span className="font-mono text-slate-800">Rs. {Number(subtotal).toLocaleString()}</span>
               </div>
 
               {discount > 0 && (
-                <div className="flex justify-between items-center text-emerald-600 font-bold">
-                  <span>{t('discount') || 'Discount'}:</span>
+                <div className="flex justify-between items-center text-emerald-600 font-bold px-1 text-[11px]">
+                  <span>Discount:</span>
                   <span className="font-mono">- Rs. {Number(discount).toLocaleString()}</span>
                 </div>
               )}
 
               {tax > 0 && (
-                <div className="flex justify-between items-center text-amber-600 font-bold">
-                  <span>{t('taxGST') || 'Mandi Tax / GST'}:</span>
+                <div className="flex justify-between items-center text-amber-600 font-bold px-1 text-[11px]">
+                  <span>Tax:</span>
                   <span className="font-mono">+ Rs. {Number(tax).toLocaleString()}</span>
                 </div>
               )}
 
-              <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-900 text-white font-black text-sm">
-                <span>{t('grandTotal') || 'GRAND TOTAL'}:</span>
-                <span className="font-mono text-base">
+              <div className="flex justify-between items-center px-2 py-1 rounded-lg bg-slate-900 text-white font-black text-xs">
+                <span>GRAND TOTAL:</span>
+                <span className="font-mono text-xs">
                   Rs. {Number(grandTotal).toLocaleString()}
                 </span>
               </div>
 
-              <div className="flex justify-between items-center text-emerald-700 font-bold px-1">
-                <span>{t('paid') || 'Amount Paid (وصول)'}:</span>
+              <div className="flex justify-between items-center text-emerald-700 font-bold px-1 text-[11px]">
+                <span>Paid:</span>
                 <span className="font-mono">Rs. {Number(paidAmount).toLocaleString()}</span>
               </div>
 
               {dueRemaining > 0 ? (
-                <div className="flex justify-between items-center text-amber-700 font-extrabold px-1">
-                  <span>{t('remainingDueKhata') || 'Balance Due (ادھار / کھاتہ)'}:</span>
-                  <span className="font-mono">Rs. {Number(dueRemaining).toLocaleString()}</span>
+                <div className="flex justify-between items-center text-amber-700 font-bold px-1 text-[11px]">
+                  <span>Balance Due:</span>
+                  <span className="font-mono font-black">Rs. {Number(dueRemaining).toLocaleString()}</span>
                 </div>
               ) : (
-                <div className="flex justify-between items-center text-emerald-600 font-bold px-1 text-[11px]">
-                  <span>Settlement Status:</span>
+                <div className="flex justify-between items-center text-emerald-600 font-bold px-1 text-[10px]">
+                  <span>Settlement:</span>
                   <span>✓ FULLY PAID (صاف)</span>
                 </div>
               )}
@@ -513,28 +538,28 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
           </div>
 
           {/* Signatures */}
-          <div className="pt-6 flex flex-col sm:flex-row justify-between items-center sm:items-end gap-6 sm:gap-4 border-t border-slate-100">
-            <div className="text-center w-40 sm:w-44 border-t-2 border-dashed border-slate-300 pt-2 text-[10px] font-bold text-slate-500">
-              Customer Signature (دستخط خریدار)
+          <div className="pt-2 flex justify-between items-end border-t border-slate-100 text-[9px] text-slate-500 font-semibold">
+            <div className="text-center border-t border-dashed border-slate-300 pt-1 w-32">
+              Customer Signature
             </div>
-            <div className="text-center w-40 sm:w-44 border-t-2 border-dashed border-slate-300 pt-2 text-[10px] font-bold text-slate-500">
-              Authorized Signature & Stamp (مہر منشی)
+            <div className="text-center border-t border-dashed border-slate-300 pt-1 w-32">
+              Authorized Signature & Stamp
             </div>
           </div>
         </div>
 
-        {/* Modal Actions Footer: Close | Download PDF | Print */}
-        <div className={`p-3 sm:p-4 border-t flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 print:hidden shrink-0 ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'
+        {/* Modal Actions Footer */}
+        <div className={`p-2.5 border-t flex items-center justify-between gap-2 print:hidden shrink-0 ${
+          theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'
         }`}>
           <button
             type="button"
             onClick={onClose}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+              theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
             }`}
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
             <span>{t('close')}</span>
           </button>
 
@@ -544,17 +569,17 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
               type="button"
               onClick={handleDownloadPDF}
               disabled={isDownloading}
-              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer"
-              title="Download official receipt as A4 PDF file"
+              className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              title="Download official receipt as A4 PDF file directly"
             >
               {isDownloading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Generating...</span>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Downloading...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
                   <span>Download PDF</span>
                 </>
               )}
@@ -564,10 +589,10 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
             <button
               type="button"
               onClick={handlePrint}
-              className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-black transition shadow-md shadow-brand-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
               title="Print A4 receipt"
             >
-              <Printer className="w-4 h-4" />
+              <Printer className="w-3.5 h-3.5" />
               <span>Print (A4)</span>
             </button>
           </div>
