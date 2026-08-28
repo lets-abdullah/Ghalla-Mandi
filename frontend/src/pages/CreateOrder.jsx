@@ -652,58 +652,6 @@ export const CreateOrder = () => {
                 </button>
               </div>
             </div>
-
-            {/* Category Quick Pills Strip */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('All')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
-                  selectedCategory === 'All'
-                    ? 'bg-brand-500 text-white shadow-xs'
-                    : theme === 'dark'
-                      ? 'bg-slate-900/80 text-slate-300 border border-slate-700 hover:bg-slate-800'
-                      : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200'
-                }`}
-              >
-                <span>All</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold ${
-                  selectedCategory === 'All' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
-                }`}>
-                  {products.length}
-                </span>
-              </button>
-
-              {availableCategories.map(cat => {
-                const count = categoryCounts[cat] || 0;
-                const isSelected = selectedCategory === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => {
-                      setSelectedCategory(cat);
-                      setCollapsedCategories(prev => ({ ...prev, [cat]: false }));
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
-                      isSelected
-                        ? 'bg-brand-500 text-white shadow-xs'
-                        : theme === 'dark'
-                          ? 'bg-slate-900/80 text-slate-300 border border-slate-700 hover:bg-slate-800'
-                          : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200'
-                    }`}
-                  >
-                    <span>{cat}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
-                    }`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
           </div>
 
           {/* Scrollable Products Catalog Area (Grouped by Category) */}
