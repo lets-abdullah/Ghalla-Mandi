@@ -281,7 +281,7 @@ export const Ledger = () => {
           ref: p.purchaseNo || `PUR-${p.id}`,
           txType: 'Purchases',
           desc: `Purchase: Inward stock procurement`,
-          debit: Number(p.amount || 0),
+          debit: Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0),
           credit: 0,
           items: pItems,
           productNames: '',
@@ -1210,20 +1210,18 @@ export const Ledger = () => {
               <div className="flex items-center gap-2">
                 <span className={`px-3 py-1.5 rounded-2xl text-xs font-black border uppercase tracking-wider flex items-center gap-1.5 ${
                   (activeCustomer?.balance || 0) > 0
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                    : (activeCustomer?.balance || 0) < 0
-                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                    ? isSupplier
+                      ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                     : 'bg-slate-500/10 text-slate-500 border-slate-500/30'
                 }`}>
                   <span className={`w-2 h-2 rounded-full ${
-                    (activeCustomer?.balance || 0) > 0 ? 'bg-emerald-500' : (activeCustomer?.balance || 0) < 0 ? 'bg-rose-500' : 'bg-slate-400'
+                    (activeCustomer?.balance || 0) > 0 ? (isSupplier ? 'bg-rose-500' : 'bg-emerald-500') : 'bg-slate-400'
                   }`}></span>
                   <span>
                     {(activeCustomer?.balance || 0) > 0
-                      ? 'Status: Receivable'
-                      : (activeCustomer?.balance || 0) < 0
-                      ? 'Status: Payable'
-                      : 'Status: Settled (Zero)'}
+                      ? (isSupplier ? 'Status: Payable (Due)' : 'Status: Receivable (Due)')
+                      : 'Status: Settled (Cleared)'}
                   </span>
                 </span>
               </div>
@@ -1235,7 +1233,9 @@ export const Ledger = () => {
               <div className={`p-3.5 rounded-2xl border ${
                 theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
               }`}>
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Debit (Sales)</div>
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  {isSupplier ? 'Total Debit (Purchases)' : 'Total Debit (Sales)'}
+                </div>
                 <div className="text-lg font-mono font-black text-blue-600 dark:text-blue-400 mt-1">
                   Rs. {(activeCustomer?.totalDebit || 0).toLocaleString()}
                 </div>
@@ -1245,7 +1245,9 @@ export const Ledger = () => {
               <div className={`p-3.5 rounded-2xl border ${
                 theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
               }`}>
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Credit (Payments)</div>
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  {isSupplier ? 'Total Credit (Payments Out)' : 'Total Credit (Payments)'}
+                </div>
                 <div className="text-lg font-mono font-black text-emerald-600 dark:text-emerald-400 mt-1">
                   Rs. {(activeCustomer?.totalCredit || 0).toLocaleString()}
                 </div>
@@ -1254,22 +1256,18 @@ export const Ledger = () => {
               {/* Current Net Balance */}
               <div className={`p-3.5 rounded-2xl border ${
                 (activeCustomer?.balance || 0) > 0
-                  ? theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-emerald-50/70 border-emerald-200'
-                  : (activeCustomer?.balance || 0) < 0
-                  ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-rose-50/70 border-rose-200'
+                  ? isSupplier
+                    ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-rose-50/70 border-rose-200'
+                    : theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-emerald-50/70 border-emerald-200'
                   : theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
               }`}>
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Current Balance</div>
                 <div className={`text-lg font-mono font-black mt-1 ${
                   (activeCustomer?.balance || 0) > 0
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : (activeCustomer?.balance || 0) < 0
-                    ? 'text-rose-600 dark:text-rose-400'
+                    ? isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
                     : 'text-slate-600 dark:text-slate-300'
                 }`}>
-                  {(activeCustomer?.balance || 0) < 0
-                    ? `-Rs. ${Math.abs(activeCustomer?.balance || 0).toLocaleString()}`
-                    : `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}`}
+                  Rs. {(activeCustomer?.balance || 0).toLocaleString()}
                 </div>
               </div>
             </div>

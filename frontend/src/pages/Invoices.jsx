@@ -568,21 +568,26 @@ export const Invoices = () => {
                 </tr>
               ) : (
                 filteredInvoices.map(inv => {
-                  const upfrontPaid = Number(inv.paidAmount || 0);
-                  // Add any direct payments made from Ledger for this customer/supplier
+                  const upfrontPaid = Number(inv.paidAmount || (inv.status === 'Paid' ? inv.amount : 0));
                   const partyType = isPurchases ? 'Supplier' : 'Customer';
                   const partyName = (inv.partyName || inv.customerName || inv.supplierName || '').trim().toLowerCase();
                   const partyId = inv.customerId || inv.supplierId;
+
+                  // Direct payment specifically linked to this document
                   const directPaid = (paymentLogs || []).filter(p =>
                     (p.type === partyType || p.partyType === partyType) &&
                     (
-                      (partyId && p.partyId && String(p.partyId) === String(partyId)) ||
-                      (p.saleId && String(p.saleId) === String(inv.id)) ||
-                      (partyName && p.partyName && p.partyName.trim().toLowerCase() === partyName)
+                      (isPurchases && p.purchaseId && String(p.purchaseId) === String(inv.id)) ||
+                      (!isPurchases && p.saleId && String(p.saleId) === String(inv.id)) ||
+                      (inv.invoiceNo && p.ref && p.ref.includes(inv.invoiceNo)) ||
+                      (inv.purchaseNo && p.ref && p.ref.includes(inv.purchaseNo))
                     )
                   ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-                  const paid = upfrontPaid + directPaid;
+
                   const total = Number(inv.amount || 0);
+                  const retAmt = Number(inv.returnAmount || 0);
+                  const netTotal = Math.max(0, total - retAmt);
+                  const paid = Math.min(netTotal, upfrontPaid + directPaid);
 
                   return (
                     <tr

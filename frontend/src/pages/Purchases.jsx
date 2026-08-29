@@ -847,11 +847,20 @@ export const Purchases = () => {
                 </tr>
               ) : (
                 filteredPurchases.map(p => {
-                  const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
+                  const upfrontPaid = Number(p.paidAmount ?? p.paidamount ?? (p.paymentStatus === 'Paid' ? (p.amount ?? p.grandTotal ?? p.grandtotal ?? 0) : 0));
+                  const directPaid = (paymentLogs || []).filter(pl =>
+                    (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
+                    (
+                      (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+                      (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+                    )
+                  ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
                   const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
                   const retAmt = Number(p.returnAmount ?? 0);
-                  const due = Math.max(0, total - paid - retAmt);
-                  const status = due === 0 && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
+                  const netTotal = Math.max(0, total - retAmt);
+                  const paid = Math.min(netTotal, upfrontPaid + directPaid);
+                  const due = Math.max(0, netTotal - paid);
+                  const status = (due === 0 && total > 0) || p.paymentStatus === 'Paid' ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
 
                   return (
                     <tr key={p.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'

@@ -232,7 +232,7 @@ const SuppliedProductsCombobox = ({
 };
 
 export const Suppliers = () => {
-  const { suppliers = [], products = [], categories = [], purchases = [], paymentLogs = [], addSupplier, updateSupplier, deleteSupplier, addProduct, addCategory } = useERP();
+  const { suppliers = [], products = [], categories = [], purchases = [], purchaseReturns = [], paymentLogs = [], addSupplier, updateSupplier, deleteSupplier, addProduct, addCategory } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -523,13 +523,54 @@ export const Suppliers = () => {
     }
   };
 
+  // Processed Suppliers with Live Financial Balances (Synchronized with Purchases, Returns & PaymentLogs)
+  const processedSuppliers = useMemo(() => {
+    return suppliers.map(sup => {
+      const supPurchases = (purchases || []).filter(p =>
+        p.supplierId === sup.id ||
+        (p.supplierName && p.supplierName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase()) ||
+        (p.supplier && p.supplier.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
+      );
+      const totalPurchase = supPurchases.reduce((acc, p) => acc + Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0), 0);
+      const upfrontPaid = supPurchases.reduce((acc, p) => acc + Number(p.paidAmount ?? p.paidamount ?? (p.paymentStatus === 'Paid' ? (p.amount ?? p.grandTotal ?? p.grandtotal ?? 0) : 0)), 0);
+
+      const directPaid = (paymentLogs || []).filter(p =>
+        (p.type === 'Supplier' || p.partyType === 'Supplier') &&
+        (
+          (p.partyId && String(p.partyId) === String(sup.id)) ||
+          (p.partyName && p.partyName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+      const returnAmt = (purchaseReturns || []).filter(r =>
+        r.supplierId === sup.id ||
+        (r.supplierName && r.supplierName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+      const netPurchaseTarget = Math.max(0, totalPurchase - returnAmt);
+      const totalPaid = Math.min(netPurchaseTarget, upfrontPaid + directPaid);
+      const balance = Math.max(0, netPurchaseTarget - totalPaid);
+
+      return {
+        ...sup,
+        totalPurchases: totalPurchase,
+        totalPaid,
+        returnAmount: returnAmt,
+        balance,
+        status: balance > 0 ? 'Payable' : 'Settled',
+        purchasesCount: supPurchases.length
+      };
+    });
+  }, [suppliers, purchases, purchaseReturns, paymentLogs]);
+
   // Metrics
-  const totalSuppliersCount = suppliers.length;
-  const totalPayablesAmount = suppliers.reduce((acc, s) => acc + Math.max(0, Number(s.balance) || 0), 0);
-  const activeSuppliersCount = suppliers.filter(s => (s.status || 'Active') === 'Active').length;
+  const totalSuppliersCount = processedSuppliers.length;
+  const totalPayablesAmount = processedSuppliers.reduce((acc, s) => acc + s.balance, 0);
+  const settledSuppliersCount = processedSuppliers.filter(s => s.balance === 0).length;
+  const activeSuppliersCount = processedSuppliers.filter(s => (s.status || 'Active') === 'Active').length;
 
   // Filtered Suppliers List
-  const filteredSuppliers = suppliers.filter(s => {
+  const filteredSuppliers = processedSuppliers.filter(s => {
     // 1. Specific Supplier filter
     if (selectedSupplierFilter !== 'All' && s.id !== selectedSupplierFilter && s.name !== selectedSupplierFilter) {
       return false;
@@ -651,7 +692,7 @@ export const Suppliers = () => {
             <span>Settled</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
-            {suppliers.filter(s => (Number(s.balance) || 0) === 0).length}
+            {settledSuppliersCount}
           </div>
         </div>
       </div>
