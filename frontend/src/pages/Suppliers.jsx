@@ -26,7 +26,9 @@ import {
   Landmark,
   Hash,
   ChevronDown,
-  RotateCcw
+  RotateCcw,
+  BookOpen,
+  CreditCard
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
