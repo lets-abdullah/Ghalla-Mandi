@@ -29,7 +29,7 @@ import { SaleReturnModal } from '../components/SaleReturnModal';
 import { EditSaleModal } from '../components/EditSaleModal';
 
 export const Sales = () => {
-  const { sales = [], saleReturns = [], customers = [], recordPayment } = useERP();
+  const { sales = [], saleReturns = [], customers = [], paymentLogs = [], recordPayment } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
@@ -560,7 +560,19 @@ export const Sales = () => {
                 </tr>
               ) : (
                 filteredSales.map(s => {
-                  const paid = Number(s.paidAmount || 0);
+                  const upfrontPaid = Number(s.paidAmount || 0);
+                  // Add direct payments made via Ledger/Khata payment modal for this sale's customer
+                  const directPaid = (paymentLogs || []).filter(p =>
+                    (p.type === 'Customer' || p.partyType === 'Customer') &&
+                    (
+                      (p.partyId && s.customerId && String(p.partyId) === String(s.customerId)) ||
+                      (p.partyId && s.customerId && String(p.partyId) === String(s.id)) ||
+                      (p.saleId && String(p.saleId) === String(s.id)) ||
+                      (p.partyName && (s.partyName || s.customerName) &&
+                        p.partyName.trim().toLowerCase() === (s.partyName || s.customerName || '').trim().toLowerCase())
+                    )
+                  ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+                  const paid = upfrontPaid + directPaid;
                   const total = Number(s.amount || s.grandTotal || 0);
                   const retAmt = Number(s.returnAmount || 0);
                   const due = Math.max(0, total - paid - retAmt);

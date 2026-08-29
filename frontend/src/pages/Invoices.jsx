@@ -29,7 +29,7 @@ import { ReceiptModal } from '../components/ReceiptModal';
 import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
 
 export const Invoices = () => {
-  const { sales = [], purchases = [], customers = [], suppliers = [], products = [] } = useERP();
+  const { sales = [], purchases = [], customers = [], suppliers = [], products = [], paymentLogs = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -568,7 +568,20 @@ export const Invoices = () => {
                 </tr>
               ) : (
                 filteredInvoices.map(inv => {
-                  const paid = Number(inv.paidAmount || 0);
+                  const upfrontPaid = Number(inv.paidAmount || 0);
+                  // Add any direct payments made from Ledger for this customer/supplier
+                  const partyType = isPurchases ? 'Supplier' : 'Customer';
+                  const partyName = (inv.partyName || inv.customerName || inv.supplierName || '').trim().toLowerCase();
+                  const partyId = inv.customerId || inv.supplierId;
+                  const directPaid = (paymentLogs || []).filter(p =>
+                    (p.type === partyType || p.partyType === partyType) &&
+                    (
+                      (partyId && p.partyId && String(p.partyId) === String(partyId)) ||
+                      (p.saleId && String(p.saleId) === String(inv.id)) ||
+                      (partyName && p.partyName && p.partyName.trim().toLowerCase() === partyName)
+                    )
+                  ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+                  const paid = upfrontPaid + directPaid;
                   const total = Number(inv.amount || 0);
 
                   return (
@@ -619,17 +632,23 @@ export const Invoices = () => {
                         </div>
                       </td>
 
-                      {/* 7. Status (Paid / Partially Paid / Unpaid) */}
-                      <td className="py-3.5 px-4 text-center">
-                        <span className={`font-extrabold text-xs whitespace-nowrap ${inv.status === 'Paid'
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : inv.status === 'Partial'
-                            ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-rose-600 dark:text-rose-400'
-                          }`}>
-                          {inv.status === 'Paid' ? 'Paid' : inv.status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
-                        </span>
-                      </td>
+                      {/* 7. Status (Paid / Partially Paid / Unpaid) — computed from actual paid+paymentLogs */}
+                      {(() => {
+                        const retAmt = Number(inv.returnAmount || 0);
+                        const computedStatus = paid >= (total - retAmt) && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+                        return (
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`font-extrabold text-xs whitespace-nowrap ${computedStatus === 'Paid'
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : computedStatus === 'Partial'
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-rose-600 dark:text-rose-400'
+                              }`}>
+                              {computedStatus === 'Paid' ? 'Paid' : computedStatus === 'Partial' ? 'Partially Paid' : 'Unpaid'}
+                            </span>
+                          </td>
+                        );
+                      })()}
 
                       {/* 8. Actions: View / Print A4 */}
                       <td className="py-3.5 px-4 text-center">
