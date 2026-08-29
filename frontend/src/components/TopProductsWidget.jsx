@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TrendingUp, PackagePlus, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useERP } from '../context/ERPContext';
@@ -6,9 +6,47 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const TopProductsWidget = () => {
-  const { products } = useERP();
+  const { products = [], sales = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
+
+  const topProducts = useMemo(() => {
+    const productStats = new Map();
+
+    (products || []).forEach(p => {
+      productStats.set(String(p.id), {
+        ...p,
+        totalSoldQty: 0,
+        totalRevenue: 0
+      });
+    });
+
+    (sales || []).forEach(s => {
+      const items = s.cart || s.items || [];
+      if (Array.isArray(items)) {
+        items.forEach(it => {
+          const pId = String(it.productId || it.id);
+          const found = productStats.get(pId) || (products || []).find(p => p.name?.toLowerCase() === (it.name || it.productName || '').toLowerCase());
+          if (found) {
+            const key = String(found.id);
+            if (!productStats.has(key)) {
+              productStats.set(key, { ...found, totalSoldQty: 0, totalRevenue: 0 });
+            }
+            const stat = productStats.get(key);
+            stat.totalSoldQty += Number(it.qty || it.enteredQty || 1);
+            stat.totalRevenue += Number(it.total || ((it.qty || 1) * (it.rate || it.price || 0)));
+          }
+        });
+      }
+    });
+
+    const list = Array.from(productStats.values());
+    return list.sort((a, b) => {
+      if (b.totalSoldQty !== a.totalSoldQty) return b.totalSoldQty - a.totalSoldQty;
+      if (b.totalRevenue !== a.totalRevenue) return b.totalRevenue - a.totalRevenue;
+      return (Number(b.stockQty) || 0) - (Number(a.stockQty) || 0);
+    }).slice(0, 4);
+  }, [products, sales]);
 
   return (
     <div className={`h-full border rounded-2xl p-5 card-shadow flex flex-col justify-between transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
@@ -26,7 +64,7 @@ export const TopProductsWidget = () => {
           </Link>
         </div>
 
-        {products.length === 0 ? (
+        {topProducts.length === 0 ? (
           <div className={`flex-1 flex flex-col items-center justify-center p-6 text-center rounded-xl border border-dashed ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60 text-slate-300' : 'bg-slate-50/70 border-slate-200 text-slate-600'
             }`}>
             <PackagePlus className="w-8 h-8 text-slate-400 mb-2" />
@@ -41,7 +79,7 @@ export const TopProductsWidget = () => {
           </div>
         ) : (
           <div className="space-y-3 flex-1">
-            {products.slice(0, 4).map((item, idx) => (
+            {topProducts.map((item, idx) => (
               <div key={item.id} className={`flex items-center justify-between p-2 rounded-xl border border-transparent transition ${theme === 'dark' ? 'hover:bg-slate-700/60 hover:border-slate-700' : 'hover:bg-slate-50 hover:border-slate-100'
                 }`}>
                 <div className="flex items-center gap-3">
@@ -50,7 +88,9 @@ export const TopProductsWidget = () => {
                   </div>
                   <div>
                     <div className="text-xs font-bold">{item.name}</div>
-                    <div className="text-[11px] text-slate-400">{item.category}</div>
+                    <div className="text-[11px] text-slate-400">
+                      {item.totalSoldQty > 0 ? `${item.totalSoldQty.toLocaleString()} ${item.unit || 'KG'} sold` : item.category}
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
@@ -65,3 +105,5 @@ export const TopProductsWidget = () => {
     </div>
   );
 };
+
+export default TopProductsWidget;

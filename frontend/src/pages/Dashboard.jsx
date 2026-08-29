@@ -18,7 +18,7 @@ import { useNavigate } from 'react-router-dom';
 export const Dashboard = () => {
   const { t } = useLocale();
   const { user } = useAuth();
-  const { sales = [], purchases = [], customers = [], suppliers = [], products = [], saleReturns = [], purchaseReturns = [] } = useERP();
+  const { sales = [], purchases = [], customers = [], suppliers = [], products = [], saleReturns = [], purchaseReturns = [], paymentLogs = [] } = useERP();
   const navigate = useNavigate();
   const [activeInvoice, setActiveInvoice] = useState(null);
   const [showQuickSaleModal, setShowQuickSaleModal] = useState(false);
@@ -84,7 +84,11 @@ export const Dashboard = () => {
   const allTimeSaleReturnsVal = saleReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
   const netAllTimeSales = Math.max(0, allTimeGrossSales - allTimeSaleReturnsVal);
 
-  // Combined Customer Receivables (Regular + Walk-in Customers)
+  const allTimeGrossPurchases = purchases.reduce((acc, p) => acc + (Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0), 0);
+  const allTimePurchaseReturnsVal = purchaseReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+  const netAllTimePurchases = Math.max(0, allTimeGrossPurchases - allTimePurchaseReturnsVal);
+
+  // Combined Live Customer Receivables (Synchronized with Khata & PaymentLogs)
   const { totalCustomerDues, regularDues, walkinDues, totalDueAccountsCount } = useMemo(() => {
     const processedCustNames = new Set();
     const processedCustIds = new Set();
@@ -102,13 +106,25 @@ export const Dashboard = () => {
         (s.partyName && s.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
       );
       const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+
+      const directPaid = (paymentLogs || []).filter(p =>
+        (p.type === 'Customer' || p.partyType === 'Customer') &&
+        (
+          (p.partyId && String(p.partyId) === String(cust.id)) ||
+          (p.partyName && p.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
       const returnAmt = (saleReturns || []).filter(r =>
         r.customerId === cust.id ||
         (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
       ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-      
-      const bal = Number(cust.balance !== undefined ? cust.balance : Math.max(0, totalSale - totalPaid - returnAmt));
+
+      const netSaleTarget = Math.max(0, totalSale - returnAmt);
+      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
+      const bal = Math.max(0, netSaleTarget - totalPaid);
+
       if (bal > 0) {
         regDues += bal;
         regDueCount += 1;
@@ -137,11 +153,24 @@ export const Dashboard = () => {
     walkinSalesMap.forEach((val, key) => {
       const custSales = val.sales;
       const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+
+      const directPaid = (paymentLogs || []).filter(p =>
+        (p.type === 'Customer' || p.partyType === 'Customer') &&
+        (
+          (p.partyName && p.partyName.trim().toLowerCase() === key) ||
+          (p.partyId && String(p.partyId).toLowerCase() === `walkin-${key}`)
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
       const returnAmt = (saleReturns || []).filter(r =>
         r.customerName && r.customerName.trim().toLowerCase() === key
       ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-      const bal = Math.max(0, totalSale - totalPaid - returnAmt);
+
+      const netSaleTarget = Math.max(0, totalSale - returnAmt);
+      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
+      const bal = Math.max(0, netSaleTarget - totalPaid);
+
       if (bal > 0) {
         wDues += bal;
         wDueCount += 1;
@@ -154,10 +183,51 @@ export const Dashboard = () => {
       walkinDues: wDues,
       totalDueAccountsCount: regDueCount + wDueCount
     };
-  }, [customers, sales, saleReturns]);
+  }, [customers, sales, saleReturns, paymentLogs]);
 
-  // Balance & stock metrics
-  const totalPayables = suppliers.reduce((acc, s) => acc + Math.max(0, Number(s.balance) || 0), 0);
+  // Combined Live Supplier Payables (Synchronized with Suppliers Directory & PaymentLogs)
+  const { totalPayables, dueSuppliersCount } = useMemo(() => {
+    let payables = 0;
+    let dueCount = 0;
+
+    (suppliers || []).forEach(sup => {
+      const supPurchases = (purchases || []).filter(p =>
+        p.supplierId === sup.id ||
+        (p.supplierName && p.supplierName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase()) ||
+        (p.supplier && p.supplier.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
+      );
+      const totalPurchase = supPurchases.reduce((acc, p) => acc + Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0), 0);
+      const upfrontPaid = supPurchases.reduce((acc, p) => acc + Number(p.paidAmount ?? p.paidamount ?? (p.paymentStatus === 'Paid' ? (p.amount ?? p.grandTotal ?? p.grandtotal ?? 0) : 0)), 0);
+
+      const directPaid = (paymentLogs || []).filter(p =>
+        (p.type === 'Supplier' || p.partyType === 'Supplier') &&
+        (
+          (p.partyId && String(p.partyId) === String(sup.id)) ||
+          (p.partyName && p.partyName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+      const returnAmt = (purchaseReturns || []).filter(r =>
+        r.supplierId === sup.id ||
+        (r.supplierName && r.supplierName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+      const netPurchaseTarget = Math.max(0, totalPurchase - returnAmt);
+      const totalPaid = Math.min(netPurchaseTarget, upfrontPaid + directPaid);
+      const bal = Math.max(0, netPurchaseTarget - totalPaid);
+
+      if (bal > 0) {
+        payables += bal;
+        dueCount += 1;
+      }
+    });
+
+    return {
+      totalPayables: payables,
+      dueSuppliersCount: dueCount
+    };
+  }, [suppliers, purchases, purchaseReturns, paymentLogs]);
+
   const totalStockQty = products.reduce((acc, p) => acc + (Number(p.stockQty ?? p.stockqty) || 0), 0);
   const totalInventoryValue = products.reduce((acc, p) => acc + ((Number(p.stockQty ?? p.stockqty) || 0) * (Number(p.purchasePrice ?? p.purchaseprice) || 0)), 0);
 
@@ -169,7 +239,11 @@ export const Dashboard = () => {
         <KPICard
           title="Today's Sales"
           amount={`Rs. ${netTodaySales.toLocaleString()}`}
-          subtext={`${todaySales.length} ${todaySales.length === 1 ? 'sale' : 'sales'} today`}
+          subtext={
+            netTodaySales > 0
+              ? `${todaySales.length} sale${todaySales.length === 1 ? '' : 's'} today • Net Total: Rs. ${netAllTimeSales.toLocaleString()}`
+              : `Total Sales: Rs. ${netAllTimeSales.toLocaleString()} (${sales.length} orders)`
+          }
           icon={ShoppingBag}
           color="emerald"
           onClick={() => navigate('/sales')}
@@ -179,7 +253,11 @@ export const Dashboard = () => {
         <KPICard
           title="Today's Purchases"
           amount={`Rs. ${netTodayPurchases.toLocaleString()}`}
-          subtext={`${todayPurchases.length} ${todayPurchases.length === 1 ? 'purchase' : 'purchases'} today`}
+          subtext={
+            netTodayPurchases > 0
+              ? `${todayPurchases.length} purchase${todayPurchases.length === 1 ? '' : 's'} today • Net Total: Rs. ${netAllTimePurchases.toLocaleString()}`
+              : `Total Purchases: Rs. ${netAllTimePurchases.toLocaleString()} (${purchases.length} inward)`
+          }
           icon={ShoppingCart}
           color="blue"
           onClick={() => navigate('/purchases')}
@@ -189,7 +267,7 @@ export const Dashboard = () => {
         <KPICard
           title="Stock & Inventory"
           amount={`Rs. ${totalInventoryValue.toLocaleString()}`}
-          subtext={`${totalStockQty.toLocaleString()} units in stock`}
+          subtext={`${totalStockQty.toLocaleString()} units • ${products.length} commodities`}
           icon={TrendingUp}
           color="amber"
           onClick={() => navigate('/reports?type=Stock')}
@@ -200,9 +278,11 @@ export const Dashboard = () => {
           title="Customer Dues"
           amount={`Rs. ${totalCustomerDues.toLocaleString()}`}
           subtext={
-            walkinDues > 0
-              ? `Regular: Rs. ${regularDues.toLocaleString()} • Walk-in: Rs. ${walkinDues.toLocaleString()}`
-              : `${totalDueAccountsCount} accounts with pending dues`
+            totalCustomerDues > 0
+              ? walkinDues > 0
+                ? `Regular: Rs. ${regularDues.toLocaleString()} • Walk-in: Rs. ${walkinDues.toLocaleString()}`
+                : `${totalDueAccountsCount} accounts with pending dues`
+              : 'All customer accounts settled (Rs. 0)'
           }
           icon={Users}
           color="amber"
@@ -213,7 +293,11 @@ export const Dashboard = () => {
         <KPICard
           title="Supplier Dues"
           amount={`Rs. ${totalPayables.toLocaleString()}`}
-          subtext={`${suppliers.length} total suppliers`}
+          subtext={
+            totalPayables > 0
+              ? `${dueSuppliersCount} suppliers with pending dues`
+              : 'All supplier accounts settled (Rs. 0)'
+          }
           icon={CreditCard}
           color="rose"
           onClick={() => navigate('/suppliers')}

@@ -6,42 +6,82 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const RecentTransactionsTable = ({ onViewInvoice }) => {
-  const { sales, purchases } = useERP();
+  const { sales = [], purchases = [], paymentLogs = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
   const combined = [
     ...(sales || []).map(s => {
-      const amt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.grandtotal !== undefined ? s.grandtotal : 0)));
+      const upfrontPaid = Number(s.paidAmount ?? s.paidamount ?? (s.status === 'Paid' ? (s.amount ?? s.grandTotal ?? s.grandtotal ?? 0) : 0));
+      const directPaid = (paymentLogs || []).filter(p =>
+        (p.type === 'Customer' || p.partyType === 'Customer') &&
+        (
+          (s.customerId && p.partyId && String(p.partyId) === String(s.customerId)) ||
+          (s.partyName && p.partyName && p.partyName.trim().toLowerCase() === (s.partyName || '').trim().toLowerCase()) ||
+          (s.id && p.saleId && String(p.saleId) === String(s.id)) ||
+          (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+      const total = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? 0);
+      const retAmt = Number(s.returnAmount || 0);
+      const netTotal = Math.max(0, total - retAmt);
+      const paid = Math.min(netTotal, upfrontPaid + directPaid);
+      const due = Math.max(0, netTotal - paid);
+      const isPaid = (due === 0 && total > 0) || s.status === 'Paid';
+      const isPartial = !isPaid && paid > 0;
+
       return {
         id: s.id,
         type: t('sales'),
         rawType: 'Sale',
-        invoiceNo: s.invoiceNo || s.invoiceno || '',
+        invoiceNo: s.invoiceNo || s.invoiceno || `INV-${s.id}`,
         partyName: s.partyName || s.partyname || s.customerName || 'Customer',
-        date: s.date || 'N/A',
-        amount: amt.toLocaleString(),
-        status: s.status === 'Paid' ? t('paid') : s.status === 'Partial' ? t('partial') : t('pending'),
-        rawStatus: s.status || 'Pending'
+        date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString() : 'N/A'),
+        rawDate: s.created_at || s.createdAt || s.date,
+        amount: total.toLocaleString(),
+        status: isPaid ? t('paid') : isPartial ? t('partial') : t('pending'),
+        rawStatus: isPaid ? 'Paid' : isPartial ? 'Partial' : 'Pending'
       };
     }),
     ...(purchases || []).map(p => {
-      const amt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
-      const isPaid = (p.status || p.paymentStatus) === 'Paid';
-      const isPartial = (p.status || p.paymentStatus) === 'Partial';
+      const upfrontPaid = Number(p.paidAmount ?? p.paidamount ?? (p.paymentStatus === 'Paid' ? (p.amount ?? p.grandTotal ?? p.grandtotal ?? 0) : 0));
+      const directPaid = (paymentLogs || []).filter(pl =>
+        (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
+        (
+          (p.supplierId && pl.partyId && String(pl.partyId) === String(p.supplierId)) ||
+          (p.supplier && pl.partyName && pl.partyName.trim().toLowerCase() === (p.supplier || '').trim().toLowerCase()) ||
+          (p.id && pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+          (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+        )
+      ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+
+      const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
+      const retAmt = Number(p.returnAmount || 0);
+      const netTotal = Math.max(0, total - retAmt);
+      const paid = Math.min(netTotal, upfrontPaid + directPaid);
+      const due = Math.max(0, netTotal - paid);
+      const isPaid = (due === 0 && total > 0) || p.paymentStatus === 'Paid';
+      const isPartial = !isPaid && paid > 0;
+
       return {
         id: p.id,
         type: t('purchases'),
         rawType: 'Purchase',
-        invoiceNo: p.purchaseNo || p.purchaseno || '',
+        invoiceNo: p.purchaseNo || p.purchaseno || `PUR-${p.id}`,
         partyName: p.supplier || p.supplierName || p.suppliername || 'Supplier',
-        date: p.date || 'N/A',
-        amount: amt.toLocaleString(),
+        date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A'),
+        rawDate: p.created_at || p.createdAt || p.date,
+        amount: total.toLocaleString(),
         status: isPaid ? t('paid') : isPartial ? t('partial') : t('pending'),
-        rawStatus: p.status || p.paymentStatus || 'Pending'
+        rawStatus: isPaid ? 'Paid' : isPartial ? 'Partial' : 'Pending'
       };
     })
-  ].slice(0, 5);
+  ].sort((a, b) => {
+    const timeA = new Date(a.rawDate || 0).getTime() || Number(a.id) || 0;
+    const timeB = new Date(b.rawDate || 0).getTime() || Number(b.id) || 0;
+    return timeB - timeA;
+  }).slice(0, 5);
 
   return (
     <div className={`border rounded-2xl p-5 card-shadow transition-colors ${
