@@ -328,7 +328,7 @@ export const Invoices = () => {
         }],
         totalAmount: Number(inv.amount || 0),
         paidAmount: Number(inv.paidAmount || 0),
-        paymentMode: inv.paymentMode || 'Supplier Credit (Khata)',
+        paymentMode: inv.paymentMode || 'Supplier Khata',
         note: inv.note || 'Official Purchase Voucher'
       });
     }

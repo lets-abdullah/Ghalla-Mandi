@@ -1160,7 +1160,7 @@ export const CreateOrder = () => {
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { key: 'Cash', label: 'Cash', icon: DollarSign },
-                  { key: 'Credit', label: 'Credit', icon: Wallet },
+                  { key: 'Credit', label: 'Khata', icon: Wallet },
                   { key: 'Bank', label: 'Bank Transfer', icon: Building2 },
                   { key: 'Card', label: 'Card Payment', icon: CreditCard }
                 ].map(mode => (
@@ -1544,7 +1544,7 @@ export const CreateOrder = () => {
 
                     <div>
                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Credit Limit (PKR)
+                        Khata Limit (PKR)
                       </label>
                       <input
                         type="number"
@@ -1567,7 +1567,7 @@ export const CreateOrder = () => {
                         className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                           }`}
                       >
-                        <option value="Cash / Credit">Cash / Regular Khata</option>
+                        <option value="Cash / Credit">Cash / Khata</option>
                         <option value="Cash on Delivery">Cash on Delivery</option>
                         <option value="7 Days">Weekly (7 Days)</option>
                         <option value="15 Days">15 Days</option>

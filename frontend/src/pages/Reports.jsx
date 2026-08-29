@@ -1303,12 +1303,12 @@ export const Reports = () => {
 
       // KPI Summary Block
       csvContent += makeRow(['--- EXECUTIVE SALES & REVENUE SUMMARY ---'], COLS);
-      csvContent += makeRow(['Gross Sales (Rs.)', num(filteredGrossSales), 'Net Sales (Rs.)', num(filteredNetSales), 'Cash Collected (Rs.)', num(filteredCashSales), 'Credit Receivables (Rs.)', num(filteredCreditSales), ''], COLS);
+      csvContent += makeRow(['Gross Sales (Rs.)', num(filteredGrossSales), 'Net Sales (Rs.)', num(filteredNetSales), 'Cash Collected (Rs.)', num(filteredCashSales), 'Khata Receivables (Rs.)', num(filteredCreditSales), ''], COLS);
       csvContent += makeRow(['Total Invoices Count', filteredInvoicesCount, 'Total Qty Sold', num(filteredTotalQty), 'Total Trade Discount', num(filteredDiscount), 'Avg Order Value (Rs.)', num(filteredAvgInvoiceValue), ''], COLS);
 
       // Section 1: Date-Wise Sales Breakdown
-      csvContent += makeSectionHeader('1. DATE-WISE SALES & CASH/CREDIT SETTLEMENT', COLS);
-      csvContent += makeRow(['Date', 'Invoices Count', 'Products Sold Summary', 'Total Qty Sold', 'Gross Sales (Rs.)', 'Discount (Rs.)', 'Net Sales (Rs.)', 'Cash Received (Rs.)', 'Credit Balance (Rs.)'], COLS);
+      csvContent += makeSectionHeader('1. DATE-WISE SALES & CASH/KHATA SETTLEMENT', COLS);
+      csvContent += makeRow(['Date', 'Invoices Count', 'Products Sold Summary', 'Total Qty Sold', 'Gross Sales (Rs.)', 'Discount (Rs.)', 'Net Sales (Rs.)', 'Cash Received (Rs.)', 'Khata Due (Rs.)'], COLS);
 
       dateWiseSalesData.forEach(d => {
         csvContent += makeRow([
@@ -2073,7 +2073,7 @@ export const Reports = () => {
             )}
           </div>
 
-          {/* 8 Overall Sales Summary Cards Grid */}
+          {/* 4 Overall Sales Summary Cards Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {/* 1. Gross Sales */}
             <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
@@ -2084,71 +2084,33 @@ export const Reports = () => {
               </div>
             </div>
 
-            {/* 2. Net Sales */}
+            {/* 2. Net Revenue */}
             <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
-              <div className="text-[10px] font-black uppercase text-slate-400">Net Sales</div>
-              <div className="text-lg font-black font-mono mt-1 text-brand-500">
+              <div className="text-[10px] font-black uppercase text-slate-400">Net Revenue</div>
+              <div className="text-lg font-black font-mono mt-1 text-brand-600 dark:text-brand-400">
                 Rs. {filteredNetSales.toLocaleString()}
               </div>
             </div>
 
-            {/* 3. Total Invoices */}
+            {/* 3. Cash Received */}
             <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
-              <div className="text-[10px] font-black uppercase text-slate-400">Total Invoices</div>
-              <div className="text-lg font-black font-mono mt-1 text-blue-600 dark:text-blue-400">
-                {filteredInvoicesCount} <span className="text-xs font-normal">Orders</span>
-              </div>
-            </div>
-
-            {/* 4. Total Quantity Sold */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="text-[10px] font-black uppercase text-slate-400">Total Items / Qty</div>
-              <div className="text-lg font-black font-mono mt-1 text-purple-600 dark:text-purple-400">
-                {filteredTotalQty.toLocaleString()} <span className="text-xs font-normal">Units</span>
-              </div>
-            </div>
-
-            {/* 5. Cash Sales */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="text-[10px] font-black uppercase text-slate-400">Cash Collections</div>
+              <div className="text-[10px] font-black uppercase text-slate-400">Cash Received</div>
               <div className="text-lg font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
                 Rs. {filteredCashSales.toLocaleString()}
               </div>
             </div>
 
-            {/* 6. Credit Sales */}
+            {/* 4. Khata Due */}
             <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
-              <div className="text-[10px] font-black uppercase text-slate-400">Credit (Khata) Due</div>
+              <div className="text-[10px] font-black uppercase text-slate-400">Khata (Udhaar) Due</div>
               <div className="text-lg font-black font-mono mt-1 text-amber-600 dark:text-amber-400">
                 Rs. {filteredCreditSales.toLocaleString()}
               </div>
             </div>
-
-            {/* 7. Total Discount */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="text-[10px] font-black uppercase text-slate-400">Total Discount</div>
-              <div className="text-lg font-black font-mono mt-1 text-rose-500">
-                Rs. {filteredDiscount.toLocaleString()}
-              </div>
-            </div>
-
-            {/* 8. Average Invoice Value */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="text-[10px] font-black uppercase text-slate-400">Avg. Invoice Value</div>
-              <div className="text-lg font-black font-mono mt-1 text-indigo-600 dark:text-indigo-400">
-                Rs. {filteredAvgInvoiceValue.toLocaleString()}
-              </div>
-            </div>
           </div>
-
-
 
           {/* ========================================================================= */}
           {/* SECTION 1: DATE-WISE SALES */}
@@ -2179,7 +2141,7 @@ export const Reports = () => {
                       <th className="py-2.5 px-3 text-right">Discount</th>
                       <th className="py-2.5 px-3 text-right font-black text-brand-500">Net Sales</th>
                       <th className="py-2.5 px-3 text-right text-emerald-600">Cash</th>
-                      <th className="py-2.5 px-3 text-right text-amber-600">Credit</th>
+                      <th className="py-2.5 px-3 text-right text-amber-600">Khata Due</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
@@ -3011,7 +2973,7 @@ export const Reports = () => {
                 >
                   <option value="All">All Modes</option>
                   <option value="Cash">Cash</option>
-                  <option value="Credit">Credit (Khata)</option>
+                  <option value="Credit">Khata</option>
                   <option value="Bank">Bank / Online</option>
                 </select>
               </div>
