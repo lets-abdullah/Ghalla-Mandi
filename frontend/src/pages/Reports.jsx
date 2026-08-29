@@ -679,51 +679,13 @@ export const Reports = () => {
 
   const filteredExpensesTotal = useMemo(() => filteredExpensesList.reduce((sum, e) => sum + e.amount, 0), [filteredExpensesList]);
 
-  // Deep Analytical Breakdown for Expense Reports (Distinct from operational recording page)
-  const expenseAnalytics = useMemo(() => {
-    const total = filteredExpensesTotal;
-    const catMap = {};
-    let cashAmt = 0;
-    let bankAmt = 0;
-    const uniqueDays = new Set();
+  const expenseCashTotal = useMemo(() => {
+    return filteredExpensesList.filter(e => e.mode === 'Cash').reduce((sum, e) => sum + e.amount, 0);
+  }, [filteredExpensesList]);
 
-    filteredExpensesList.forEach(e => {
-      catMap[e.category] = (catMap[e.category] || 0) + e.amount;
-      if (e.mode === 'Cash') cashAmt += e.amount;
-      else bankAmt += e.amount;
-      if (e.date) uniqueDays.add(e.date);
-    });
-
-    let topCategory = 'No Expenses';
-    let topCategoryAmount = 0;
-    Object.entries(catMap).forEach(([cat, amt]) => {
-      if (amt > topCategoryAmount) {
-        topCategory = cat;
-        topCategoryAmount = amt;
-      }
-    });
-
-    const topCategoryPct = total > 0 ? ((topCategoryAmount / total) * 100).toFixed(1) : '0';
-    const cashPct = total > 0 ? Math.round((cashAmt / total) * 100) : 100;
-    const bankPct = total > 0 ? 100 - cashPct : 0;
-    const daysCount = Math.max(1, uniqueDays.size);
-    const dailyAvg = Math.round(total / daysCount);
-    const overheadRatio = totalNetSales > 0 ? ((total / totalNetSales) * 100).toFixed(1) : null;
-
-    return {
-      total,
-      topCategory,
-      topCategoryAmount,
-      topCategoryPct,
-      cashAmt,
-      bankAmt,
-      cashPct,
-      bankPct,
-      dailyAvg,
-      daysCount,
-      overheadRatio
-    };
-  }, [filteredExpensesList, filteredExpensesTotal, totalNetSales]);
+  const expenseBankTotal = useMemo(() => {
+    return filteredExpensesList.filter(e => e.mode !== 'Cash').reduce((sum, e) => sum + e.amount, 0);
+  }, [filteredExpensesList]);
 
   const paginatedExpenses = useMemo(() => {
     const start = (expPage - 1) * expPageSize;
@@ -770,7 +732,7 @@ export const Reports = () => {
       );
       const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
       const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
-      
+
       const directPaid = (paymentLogs || []).filter(p =>
         (p.type === 'Customer' || p.partyType === 'Customer') &&
         (
@@ -820,7 +782,7 @@ export const Reports = () => {
       const custSales = val.sales;
       const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
       const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
-      
+
       const directPaid = (paymentLogs || []).filter(p =>
         (p.type === 'Customer' || p.partyType === 'Customer') &&
         (
@@ -1855,16 +1817,6 @@ export const Reports = () => {
 
         {/* Print & CSV Export Buttons */}
         <div className="flex items-center gap-2.5">
-          {reportType === 'Expenses' && (
-            <button
-              onClick={() => setShowAddExpenseModal(true)}
-              className="flex items-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-md shadow-rose-500/20 transition cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Record Expense</span>
-            </button>
-          )}
-
           <button
             onClick={() => window.print()}
             className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -2837,88 +2789,71 @@ export const Reports = () => {
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'Expenses' && (
         <div className="space-y-5">
-          {/* Analytical Intelligence Cards (Distinct from operational /expenses page) */}
+          {/* Simple, Clean, Natural Expense Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {/* 1. Total Period Expenses (Gross Overhead Burden) */}
+            {/* 1. Total Expenses */}
             <div
               onClick={() => handleResetExpFilters()}
-              className={`p-4 rounded-2xl border card-shadow card-hover transition-all cursor-pointer space-y-1.5 ${
-                theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-br from-rose-50/50 to-white border-rose-200 text-slate-900'
-              }`}
-              title="Click to reset filters and view full period expenses"
+              className={`p-4 rounded-2xl border card-shadow card-hover transition-all cursor-pointer space-y-1 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}
+              title="Click to reset filters"
             >
-              <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                <span>Period Expenses</span>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                  Gross Overhead
-                </span>
+              <div className="text-[11px] font-bold uppercase text-slate-400">
+                Total Expenses
               </div>
               <div className="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
                 Rs. {filteredExpensesTotal.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-medium truncate">
-                {expenseAnalytics.overheadRatio ? `${expenseAnalytics.overheadRatio}% of Net Sales Revenue` : `${filteredExpensesList.length} Active Vouchers`}
+              <div className="text-[11px] text-slate-400 font-medium">
+                Total in selected date & filter
               </div>
             </div>
 
-            {/* 2. Top Cost Center (Major Expense Driver) */}
+            {/* 2. Paid in Cash */}
             <div
-              className={`p-4 rounded-2xl border card-shadow space-y-1.5 ${
-                theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-br from-amber-50/50 to-white border-amber-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-2xl border card-shadow space-y-1 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}
             >
-              <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                <span>Top Cost Center</span>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                  {expenseAnalytics.topCategoryPct}% Share
-                </span>
+              <div className="text-[11px] font-bold uppercase text-slate-400">
+                Paid in Cash
               </div>
-              <div className="text-base font-black truncate text-amber-600 dark:text-amber-400" title={expenseAnalytics.topCategory}>
-                {expenseAnalytics.topCategory.split(' (')[0]}
+              <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                Rs. {expenseCashTotal.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-medium font-mono">
-                Rs. {expenseAnalytics.topCategoryAmount.toLocaleString()} ({expenseAnalytics.topCategoryPct}% of Overheads)
+              <div className="text-[11px] text-slate-400 font-medium">
+                Paid from counter cash
               </div>
             </div>
 
-            {/* 3. Daily Operating Run-Rate */}
+            {/* 3. Paid via Bank / Online */}
             <div
-              className={`p-4 rounded-2xl border card-shadow space-y-1.5 ${
-                theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-2xl border card-shadow space-y-1 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}
             >
-              <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                <span>Daily Run-Rate</span>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                  Burn Rate
-                </span>
+              <div className="text-[11px] font-bold uppercase text-slate-400">
+                Paid via Bank / Transfer
               </div>
               <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">
-                Rs. {expenseAnalytics.dailyAvg.toLocaleString()}
-                <span className="text-xs font-normal text-slate-400">/day</span>
+                Rs. {expenseBankTotal.toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-400 font-medium">
-                Average across {expenseAnalytics.daysCount} active spending days
+              <div className="text-[11px] text-slate-400 font-medium">
+                Bank / online transfers
               </div>
             </div>
 
-            {/* 4. Settlement Channels (Cash vs Bank Mix) */}
+            {/* 4. Total Entries */}
             <div
-              className={`p-4 rounded-2xl border card-shadow space-y-1.5 ${
-                theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/50 to-white border-emerald-200 text-slate-900'
-              }`}
+              className={`p-4 rounded-2xl border card-shadow space-y-1 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                }`}
             >
-              <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                <span>Settlement Split</span>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  Liquidity Mix
-                </span>
+              <div className="text-[11px] font-bold uppercase text-slate-400">
+                Expense Entries
               </div>
-              <div className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-                {expenseAnalytics.cashPct}% Cash • {expenseAnalytics.bankPct}% Bank
+              <div className="text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
+                {filteredExpensesList.length} <span className="text-sm font-bold">Vouchers</span>
               </div>
-              <div className="text-[10px] text-slate-400 font-medium font-mono">
-                Cash: Rs. {expenseAnalytics.cashAmt.toLocaleString()} | Bank: Rs. {expenseAnalytics.bankAmt.toLocaleString()}
+              <div className="text-[11px] text-slate-400 font-medium">
+                Recorded expense vouchers
               </div>
             </div>
           </div>
