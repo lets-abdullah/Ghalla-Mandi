@@ -14,7 +14,8 @@ import {
   X,
   Clock,
   Filter,
-  Sparkles
+  Sparkles,
+  ChevronDown
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -406,34 +407,41 @@ export const NotificationCenter = () => {
             </div>
           </div>
 
-          {/* Category Tabs (Touch scrollable) */}
-          <div className="px-2.5 sm:px-3 pt-2 pb-1.5 flex items-center gap-1 overflow-x-auto scrollbar-none touch-pan-x border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-900/30 shrink-0">
-            {['All', 'Unread', 'Stock', 'Transactions', 'Khata'].map((tab) => {
-              const isActive = activeTab === tab;
-              const count = tab === 'Unread' 
-                ? unreadCount 
-                : tab === 'All' 
-                  ? notifications.length 
-                  : notifications.filter(n => n.category === tab).length;
+          {/* Category Filter Dropdown */}
+          <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between gap-2.5 shrink-0">
+            <div className="flex items-center gap-1.5 text-slate-400 shrink-0">
+              <Filter className="w-3.5 h-3.5 text-brand-500" />
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Filter:</span>
+            </div>
 
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold whitespace-nowrap transition cursor-pointer flex items-center gap-1 shrink-0 ${
-                    isActive
-                      ? 'bg-brand-500 text-white shadow-xs'
-                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
-                  }`}
-                >
-                  <span>{tab}</span>
-                  <span className={`text-[9px] px-1 rounded-full font-bold ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
+            <div className="relative flex-1">
+              <select
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
+                className={`w-full border rounded-xl pl-3 pr-8 py-1.5 text-xs font-bold outline-none cursor-pointer h-[34px] appearance-none transition focus:border-brand-500 ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="All">All Notifications ({notifications.length})</option>
+                <option value="Unread">Unread ({unreadCount})</option>
+                <option value="Stock">Stock Alerts ({notifications.filter(n => n.category === 'Stock').length})</option>
+                <option value="Transactions">Transactions ({notifications.filter(n => n.category === 'Transactions').length})</option>
+                <option value="Khata">Khata & Dues ({notifications.filter(n => n.category === 'Khata').length})</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {activeTab !== 'All' && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('All')}
+                className="h-[34px] px-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-[11px] font-bold shrink-0 flex items-center gap-1"
+                title="Reset to All"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span className="hidden xs:inline">All</span>
+              </button>
+            )}
           </div>
 
           {/* Notification List (Scrollable) */}
