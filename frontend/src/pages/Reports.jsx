@@ -13,7 +13,17 @@ import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 
 export const Reports = () => {
-  const { sales, purchases, products, customers, suppliers, saleReturns = [], purchaseReturns = [] } = useERP();
+  const {
+    sales = [],
+    purchases = [],
+    products = [],
+    customers = [],
+    suppliers = [],
+    categories = [],
+    paymentLogs = [],
+    saleReturns = [],
+    purchaseReturns = []
+  } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const { shop, user } = useAuth();
