@@ -27,7 +27,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const Khata = () => {
-  const { customers = [], sales = [], saleReturns = [], recordPayment, updateCustomer, addCustomer } = useERP();
+  const { customers = [], sales = [], saleReturns = [], paymentLogs = [], recordPayment, updateCustomer, addCustomer } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -162,13 +162,24 @@ export const Khata = () => {
         (s.partyName && s.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
       );
       const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      
+      const directPaid = (paymentLogs || []).filter(p =>
+        (p.type === 'Customer' || p.partyType === 'Customer') &&
+        (
+          (p.partyId && String(p.partyId) === String(cust.id)) ||
+          (p.partyName && p.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+      const totalPaid = upfrontPaid + directPaid;
+
       const returnAmt = (saleReturns || []).filter(r =>
         r.customerId === cust.id ||
         (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
       ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
       
-      const balance = Number(cust.balance !== undefined ? cust.balance : Math.max(0, totalSale - totalPaid - returnAmt));
+      const balance = Math.max(0, totalSale - totalPaid - returnAmt);
       const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
       const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
 
@@ -211,10 +222,22 @@ export const Khata = () => {
     walkinSalesMap.forEach((val, key) => {
       const custSales = val.sales;
       const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      
+      const directPaid = (paymentLogs || []).filter(p =>
+        (p.type === 'Customer' || p.partyType === 'Customer') &&
+        (
+          (p.partyName && p.partyName.trim().toLowerCase() === key) ||
+          (p.partyId && String(p.partyId).toLowerCase() === `walkin-${key}`)
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+      const totalPaid = upfrontPaid + directPaid;
+
       const returnAmt = (saleReturns || []).filter(r =>
         r.customerName && r.customerName.trim().toLowerCase() === key
       ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
       const balance = Math.max(0, totalSale - totalPaid - returnAmt);
 
       list.push({
@@ -235,7 +258,7 @@ export const Khata = () => {
     });
 
     return list;
-  }, [customers, sales, saleReturns]);
+  }, [customers, sales, saleReturns, paymentLogs]);
 
   // Filtered Khata Accounts
   const filteredKhata = useMemo(() => {

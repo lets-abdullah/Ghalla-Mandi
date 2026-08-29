@@ -723,13 +723,24 @@ export const Reports = () => {
         (s.partyName && s.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
       );
       const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      
+      const directPaid = (paymentLogs || []).filter(p =>
+        (p.type === 'Customer' || p.partyType === 'Customer') &&
+        (
+          (p.partyId && String(p.partyId) === String(cust.id)) ||
+          (p.partyName && p.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+      const totalPaid = upfrontPaid + directPaid;
+
       const returnAmt = (saleReturns || []).filter(r =>
         r.customerId === cust.id ||
         (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
       ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
 
-      const bal = Number(cust.balance !== undefined ? cust.balance : Math.max(0, totalSale - totalPaid - returnAmt));
+      const bal = Math.max(0, totalSale - totalPaid - returnAmt);
       if (bal > 0) {
         const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
         list.push({
@@ -762,10 +773,22 @@ export const Reports = () => {
     walkinSalesMap.forEach((val, key) => {
       const custSales = val.sales;
       const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      
+      const directPaid = (paymentLogs || []).filter(p =>
+        (p.type === 'Customer' || p.partyType === 'Customer') &&
+        (
+          (p.partyName && p.partyName.trim().toLowerCase() === key) ||
+          (p.partyId && String(p.partyId).toLowerCase() === `walkin-${key}`)
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+      const totalPaid = upfrontPaid + directPaid;
+
       const returnAmt = (saleReturns || []).filter(r =>
         r.customerName && r.customerName.trim().toLowerCase() === key
       ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
       const bal = Math.max(0, totalSale - totalPaid - returnAmt);
       if (bal > 0) {
         list.push({
@@ -780,7 +803,7 @@ export const Reports = () => {
     });
 
     return list.sort((a, b) => b.balance - a.balance);
-  }, [customers, sales, saleReturns]);
+  }, [customers, sales, saleReturns, paymentLogs]);
 
   const totalCustomerReceivables = useMemo(() => {
     return allCustomerReceivablesList.reduce((sum, c) => sum + c.balance, 0);
