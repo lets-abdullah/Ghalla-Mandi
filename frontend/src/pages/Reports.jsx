@@ -1051,19 +1051,6 @@ export const Reports = () => {
     };
   }, [totalAssets, totalSupplierPayables, netOperatingProfit, totalEquity]);
 
-  // Balance Sheet Trend Data for visual Net Worth Chart
-  const bsTrendData = useMemo(() => {
-    const base = totalAssets || 100000;
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
-    return months.map((m, i) => {
-      const factor = 0.70 + (i * 0.042);
-      const a = Math.round(base * factor);
-      const l = Math.round(totalLiabilities * (0.8 + i * 0.025));
-      const nw = a - l;
-      return { month: m, assets: a, liabilities: l, netWorth: nw };
-    });
-  }, [totalAssets, totalLiabilities]);
-
   // =========================================================================
   // 4. PROFIT & LOSS FINANCIAL STATEMENT JOURNAL & ANALYTICS
   // =========================================================================
@@ -3797,59 +3784,6 @@ export const Reports = () => {
                   <div className="text-[10px] text-slate-400 font-medium">
                     Assets - Payables (Invested Capital Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()} + Profit)
                   </div>
-                </div>
-              </div>
-
-              {/* Visual Financial Summary — Net Worth Trend Line */}
-              <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                }`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-indigo-500" />
-                    <h3 className="text-xs font-black uppercase tracking-wider">
-                      Financial Position & Net Worth Trajectory
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-4 text-[11px] font-bold">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-                      <span>Assets</span>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
-                      <span>Liabilities</span>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" />
-                      <span>Net Worth</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Simple Clean Responsive SVG Trend Line */}
-                <div className="h-28 w-full flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-100 dark:border-slate-700">
-                  {bsTrendData.map((d, i) => {
-                    const maxVal = Math.max(1, bsTrendData[bsTrendData.length - 1].assets);
-                    const assetHeight = Math.max(15, Math.round((d.assets / maxVal) * 80));
-                    const nwHeight = Math.max(12, Math.round((d.netWorth / maxVal) * 80));
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group cursor-pointer">
-                        <div className="flex items-end gap-1 w-full justify-center">
-                          <div
-                            className="w-2.5 bg-emerald-500/80 hover:bg-emerald-500 rounded-t-sm transition-all"
-                            style={{ height: `${assetHeight}px` }}
-                            title={`Assets: Rs. ${d.assets.toLocaleString()}`}
-                          />
-                          <div
-                            className="w-2.5 bg-indigo-500/80 hover:bg-indigo-500 rounded-t-sm transition-all"
-                            style={{ height: `${nwHeight}px` }}
-                            title={`Net Worth: Rs. ${d.netWorth.toLocaleString()}`}
-                          />
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-400">{d.month}</span>
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
 
