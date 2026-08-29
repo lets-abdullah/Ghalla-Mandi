@@ -296,22 +296,22 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-3 overflow-y-auto no-scrollbar print:p-0 print:bg-white print:static"
+      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-1 sm:p-2.5 overflow-hidden print:p-0 print:bg-white print:static"
     >
       {/* Modal Card Container (Compact Height, No Scrollbar) */}
       <div 
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-sm sm:max-w-md rounded-2xl sm:rounded-3xl shadow-2xl border overflow-hidden flex flex-col my-auto transition-all ${
+        className={`w-full max-w-sm sm:max-w-md rounded-2xl shadow-2xl border overflow-hidden flex flex-col my-auto max-h-[96vh] transition-all ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}
       >
         {/* Modal Top Nav Bar */}
-        <div className={`px-4 py-2 sm:py-2.5 border-b flex items-center justify-between gap-2 shrink-0 ${
+        <div className={`px-3 py-2 border-b flex items-center justify-between gap-2 shrink-0 ${
           theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-100'
         }`}>
           <div className="flex items-center gap-1.5 min-w-0">
-            <div className="w-6 h-6 rounded-lg bg-emerald-600/10 text-emerald-600 flex items-center justify-center font-bold shrink-0">
-              <FileText className="w-3.5 h-3.5" />
+            <div className="w-5 h-5 rounded-md bg-emerald-600/10 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+              <FileText className="w-3 h-3" />
             </div>
             <span className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-white truncate">
               Sale Receipt
@@ -325,58 +325,59 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
             <button
               type="button"
               onClick={onClose}
-              className="p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+              className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Modal Body: Centered Reference-Styled Receipt */}
-        <div className="p-2 sm:p-3 bg-slate-100 dark:bg-slate-900/70 flex justify-center">
+        {/* Modal Body: Centered Reference-Styled Receipt with Zoom Out */}
+        <div className="p-1.5 sm:p-2 bg-slate-100 dark:bg-slate-900/70 flex justify-center items-center flex-1 overflow-hidden">
           <div 
             ref={receiptRef}
             id="sale-receipt-card"
             data-receipt-printable="true"
-            className="w-full max-w-[375px] sm:max-w-[390px] bg-white text-slate-900 shadow-md rounded-xl border border-slate-200/90 p-3.5 sm:p-4 space-y-2.5"
+            style={{ zoom: '0.80' }}
+            className="w-full max-w-[370px] sm:max-w-[385px] bg-white text-slate-900 shadow-md rounded-xl border border-slate-200/90 p-3 sm:p-3.5 space-y-2"
           >
             {/* Header: Logo, Shop Name, Ribbon */}
             <div className="text-center">
-              <div className="w-10 h-10 mx-auto rounded-full border-2 border-emerald-600/30 bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-xs">
-                <Wheat className="w-5 h-5 stroke-[2.2]" />
+              <div className="w-9 h-9 mx-auto rounded-full border-2 border-emerald-600/30 bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-xs">
+                <Wheat className="w-4 h-4 stroke-[2.2]" />
               </div>
-              <h1 className="text-base sm:text-lg font-black uppercase text-slate-900 tracking-wider text-center mt-1 leading-tight">
+              <h1 className="text-sm sm:text-base font-black uppercase text-slate-900 tracking-wider text-center mt-1 leading-tight">
                 {shopTitle}
               </h1>
-              <div className="inline-block bg-[#064e3b] text-white font-black text-[10px] sm:text-[11px] uppercase tracking-widest px-6 py-0.5 rounded-xs mt-1.5 shadow-xs">
+              <div className="inline-block bg-[#064e3b] text-white font-black text-[10px] uppercase tracking-widest px-5 py-0.5 rounded-xs mt-1 shadow-xs">
                 SALE RECEIPT
               </div>
             </div>
 
             {/* Receipt No & Date 2-Column Info Bar */}
-            <div className="flex items-center justify-between text-xs pt-1">
+            <div className="flex items-center justify-between text-xs pt-0.5">
               <div className="flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                 <div>
-                  <div className="text-[9px] font-extrabold uppercase text-slate-400">Receipt No.</div>
+                  <div className="text-[8.5px] font-extrabold uppercase text-slate-400">Receipt No.</div>
                   <div className="font-mono font-black text-slate-900 text-xs">{cleanReceiptNo}</div>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5 text-right">
                 <div>
-                  <div className="text-[9px] font-extrabold uppercase text-slate-400">Date & Time</div>
-                  <div className="font-bold text-slate-800 text-[11px]">{date}</div>
+                  <div className="text-[8.5px] font-extrabold uppercase text-slate-400">Date & Time</div>
+                  <div className="font-bold text-slate-800 text-[10.5px]">{date}</div>
                 </div>
                 <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
               </div>
             </div>
 
-            <div className="border-t border-dashed border-slate-300 my-1" />
+            <div className="border-t border-dashed border-slate-300 my-0.5" />
 
             {/* Customer Information */}
             <div className="space-y-0.5 text-xs">
-              <div className="flex items-center gap-1 text-[#047857] font-black text-[11px] uppercase tracking-wider">
+              <div className="flex items-center gap-1 text-[#047857] font-black text-[10.5px] uppercase tracking-wider">
                 <User className="w-3.5 h-3.5 text-emerald-700" />
                 <span>CUSTOMER</span>
               </div>
@@ -384,18 +385,18 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                 {displayCustomer}
               </div>
               {customerPhone && (
-                <div className="flex items-center gap-1 text-[11px] text-slate-600 font-medium pl-4">
+                <div className="flex items-center gap-1 text-[10.5px] text-slate-600 font-medium pl-4">
                   <Phone className="w-3 h-3 text-slate-400" />
                   <span>{customerPhone}</span>
                 </div>
               )}
             </div>
 
-            <div className="border-t border-dashed border-slate-300 my-1" />
+            <div className="border-t border-dashed border-slate-300 my-0.5" />
 
             {/* Items Table */}
             <div>
-              <div className="flex items-center gap-1 text-[#047857] font-black text-[11px] uppercase tracking-wider mb-1.5">
+              <div className="flex items-center gap-1 text-[#047857] font-black text-[10.5px] uppercase tracking-wider mb-1">
                 <ShoppingCart className="w-3.5 h-3.5 text-emerald-700" />
                 <span>ITEMS</span>
               </div>
@@ -403,14 +404,14 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
               <div className="border border-emerald-200/80 rounded-md overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-[#ecfdf5] border-b border-emerald-200/80 text-[#064e3b] text-[9.5px] font-black uppercase">
+                    <tr className="bg-[#ecfdf5] border-b border-emerald-200/80 text-[#064e3b] text-[9px] font-black uppercase">
                       <th className="py-1 px-2 text-left">Item</th>
                       <th className="py-1 px-2 text-center">Qty</th>
                       <th className="py-1 px-2 text-right">Rate (Rs.)</th>
                       <th className="py-1 px-2 text-right">Amount (Rs.)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-[11px]">
+                  <tbody className="divide-y divide-slate-100 text-[10.5px]">
                     {items.map((item, idx) => {
                       const itemPrice = Number(item.price || item.rate || 0);
                       const itemQty = Number(item.qty || 1);
@@ -418,16 +419,16 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
 
                       return (
                         <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}>
-                          <td className="py-1 px-2 font-bold text-slate-900 truncate max-w-[110px]">
+                          <td className="py-0.5 px-2 font-bold text-slate-900 truncate max-w-[110px]">
                             {item.name || 'Commodity'}
                           </td>
-                          <td className="py-1 px-2 text-center font-black text-slate-700">
+                          <td className="py-0.5 px-2 text-center font-black text-slate-700">
                             {itemQty}
                           </td>
-                          <td className="py-1 px-2 text-right font-mono font-bold text-slate-600">
+                          <td className="py-0.5 px-2 text-right font-mono font-bold text-slate-600">
                             {itemPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
-                          <td className="py-1 px-2 text-right font-mono font-black text-slate-900">
+                          <td className="py-0.5 px-2 text-right font-mono font-black text-slate-900">
                             {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
                         </tr>
@@ -438,7 +439,7 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
               </div>
 
               {/* Subtotal & Discount Rows */}
-              <div className="space-y-0.5 text-[11px] pt-1.5 px-1 font-bold">
+              <div className="space-y-0.5 text-[10.5px] pt-1 px-1 font-bold">
                 <div className="flex justify-between items-center text-slate-600">
                   <span>Subtotal</span>
                   <span className="font-mono text-slate-900">
@@ -457,24 +458,24 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
               </div>
 
               {/* Prominent Dark Green Grand Total Banner */}
-              <div className="bg-[#064e3b] text-white px-3 py-1.5 rounded-sm flex justify-between items-center mt-1.5 shadow-xs">
-                <span className="text-[11px] font-black tracking-wider uppercase">GRAND TOTAL</span>
-                <span className="font-mono text-sm sm:text-base font-black">
+              <div className="bg-[#064e3b] text-white px-2.5 py-1 rounded-xs flex justify-between items-center mt-1 shadow-xs">
+                <span className="text-[10px] font-black tracking-wider uppercase">GRAND TOTAL</span>
+                <span className="font-mono text-xs sm:text-sm font-black">
                   Rs. {grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
 
-            <div className="border-t border-dashed border-slate-300 my-1" />
+            <div className="border-t border-dashed border-slate-300 my-0.5" />
 
             {/* Payment Section */}
             <div className="space-y-1 text-xs">
-              <div className="flex items-center gap-1 text-[#047857] font-black text-[11px] uppercase tracking-wider">
+              <div className="flex items-center gap-1 text-[#047857] font-black text-[10.5px] uppercase tracking-wider">
                 <CreditCard className="w-3.5 h-3.5 text-emerald-700" />
                 <span>PAYMENT</span>
               </div>
 
-              <div className="space-y-0.5 text-[11px] px-1 font-bold">
+              <div className="space-y-0.5 text-[10.5px] px-1 font-bold">
                 <div className="flex justify-between items-center text-slate-600">
                   <span>Payment Method</span>
                   <span className="text-slate-900 font-extrabold">{paymentMethod}</span>
@@ -494,20 +495,20 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
               </div>
 
               {/* Status Badge */}
-              <div className="bg-[#f0fdf4] border border-emerald-200 text-emerald-800 rounded-md py-1.5 px-3 flex items-center justify-center gap-1 text-center font-black text-[11px] tracking-wide mt-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+              <div className="bg-[#f0fdf4] border border-emerald-200 text-emerald-800 rounded-md py-1 px-3 flex items-center justify-center gap-1 text-center font-black text-[10px] tracking-wide mt-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-700" />
                 <span>{dueRemaining === 0 ? 'FULLY PAID' : `BALANCE DUE: Rs. ${dueRemaining.toLocaleString()}`}</span>
               </div>
             </div>
 
-            <div className="border-t border-dashed border-slate-300 my-1" />
+            <div className="border-t border-dashed border-slate-300 my-0.5" />
 
             {/* Elegant Footer */}
-            <div className="text-center pt-0.5">
-              <div className="font-serif italic font-bold text-emerald-900 text-sm tracking-wide">
+            <div className="text-center pt-0">
+              <div className="font-serif italic font-bold text-emerald-900 text-xs tracking-wide">
                 — Thank You —
               </div>
-              <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5">
+              <p className="text-[9px] text-slate-400 font-semibold mt-0.2">
                 We appreciate your business
               </p>
             </div>
@@ -515,13 +516,13 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
         </div>
 
         {/* Modal Bottom Actions Bar */}
-        <div className={`p-2.5 sm:p-3 border-t flex items-center justify-between gap-2 shrink-0 ${
+        <div className={`p-2 sm:p-2.5 border-t flex items-center justify-between gap-2 shrink-0 ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'
         }`}>
           <button
             type="button"
             onClick={onClose}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1 ${
               theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
             }`}
           >
@@ -534,7 +535,7 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
               type="button"
               onClick={handleDownloadPDF}
               disabled={isDownloading}
-              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
             >
               {isDownloading ? (
                 <>
@@ -552,7 +553,7 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
             <button
               type="button"
               onClick={handlePrint}
-              className="flex-1 py-2 bg-[#064e3b] hover:bg-emerald-950 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 py-1.5 bg-[#064e3b] hover:bg-emerald-950 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Receipt</span>
