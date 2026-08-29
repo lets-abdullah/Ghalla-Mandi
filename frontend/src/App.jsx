@@ -21,6 +21,7 @@ import { Customers } from './pages/Customers';
 import { Invoices } from './pages/Invoices';
 import { Ledger } from './pages/Ledger';
 import { Khata } from './pages/Khata';
+import { Expenses } from './pages/Expenses';
 import { Reports } from './pages/Reports';
 import { SaleReturns } from './pages/SaleReturns';
 import { PurchaseReturns } from './pages/PurchaseReturns';
@@ -93,6 +94,7 @@ export const App = () => {
                   <Route path="/invoices" element={<MainLayout><Invoices /></MainLayout>} />
                   <Route path="/ledger" element={<MainLayout><Ledger /></MainLayout>} />
                   <Route path="/khata" element={<MainLayout><Khata /></MainLayout>} />
+                  <Route path="/expenses" element={<MainLayout><Expenses /></MainLayout>} />
                   <Route path="/reports" element={<MainLayout><Reports /></MainLayout>} />
                   <Route path="/settings" element={<MainLayout><Settings /></MainLayout>} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />

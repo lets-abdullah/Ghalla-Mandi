@@ -156,34 +156,6 @@ export const Reports = () => {
     }
   }, [expenses]);
 
-  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
-  const [newExpense, setNewExpense] = useState({
-    category: 'Salary (Staff / Workers)',
-    desc: '',
-    mode: 'Cash',
-    amount: ''
-  });
-
-  // Handle Adding Expense
-  const handleAddExpense = (e) => {
-    e.preventDefault();
-    if (!newExpense.amount || Number(newExpense.amount) <= 0) return;
-
-    const entry = {
-      id: Date.now(),
-      date: new Date().toLocaleDateString('en-GB'),
-      ref: `EXP-${Math.floor(100 + Math.random() * 900)}`,
-      category: newExpense.category,
-      desc: newExpense.desc || `${newExpense.category} expense`,
-      mode: newExpense.mode,
-      amount: Number(newExpense.amount)
-    };
-
-    setExpenses(prev => [entry, ...prev]);
-    setShowAddExpenseModal(false);
-    setNewExpense({ category: 'Salary (Staff / Workers)', desc: '', mode: 'Cash', amount: '' });
-  };
-
   const handleDeleteExpense = (id) => {
     setExpenses(prev => prev.filter(e => e.id !== id));
   };
@@ -756,7 +728,7 @@ export const Reports = () => {
         r.customerId === cust.id ||
         (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
       ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-      
+
       const bal = Number(cust.balance !== undefined ? cust.balance : Math.max(0, totalSale - totalPaid - returnAmt));
       if (bal > 0) {
         const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
@@ -853,7 +825,7 @@ export const Reports = () => {
       const pMode = s.paymentMode || s.paymentMethod || 'Cash';
       const isFullPaidMode = pMode === 'Cash' || pMode === 'Bank' || pMode === 'Card' || pMode === 'Bank Transfer' || pMode === 'JazzCash' || pMode === 'Easypaisa';
       const paid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : (s.status === 'Paid' || s.paymentStatus === 'Paid' || isFullPaidMode ? grossAmt : 0)));
-      
+
       if (paid > 0) {
         const chan = getChannel(pMode);
         if (chan === 'wallet') wallet += paid;
@@ -2836,12 +2808,15 @@ export const Reports = () => {
 
             {/* 4. Expense Entries Count */}
             <div
-              onClick={() => setShowAddExpenseModal(true)}
+              onClick={() => navigate('/expenses')}
               className={`p-4 rounded-xl border card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-rose-500/40 text-white' : 'bg-white border-rose-200 text-slate-900'
                 }`}
-              title="Click to Record Expense"
+              title="Click to Open Expenses Page"
             >
-              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Expense Entries</div>
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center justify-between">
+                <span>Expense Entries</span>
+                <span className="text-[9px] text-rose-600 dark:text-rose-400 font-bold hover:underline">Manage Page →</span>
+              </div>
               <div className="text-xl font-black mt-1 font-mono text-slate-900 dark:text-white">
                 {expenses.length} <span className="text-xs font-normal">Vouchers</span>
               </div>
@@ -3637,809 +3612,680 @@ export const Reports = () => {
         </div>
       )}
 
-          {/* ------------------------------------------------------------------------- */}
-          {/* 5. BALANCE SHEET STATEMENT (PROFESSIONAL BANKING & FINANCIAL DASHBOARD) */}
-          {/* ------------------------------------------------------------------------- */}
-          {reportType === 'BalanceSheet' && (
-            <div className="space-y-6">
-              {/* Top Filter Bar - Single Clean Date Filter */}
-              <div className={`p-4 rounded-2xl border card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                }`}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Building className="w-4 h-4 text-indigo-500" />
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                        Balance Sheet Statement
-                      </span>
-                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                        As of {bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Single Clean Date Filter Dropdown & Controls */}
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                      <select
-                        value={bsDateFilter}
-                        onChange={(e) => setBsDateFilter(e.target.value)}
-                        className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      >
-                        <option value="Today">Today ({new Date().toLocaleDateString('en-GB')})</option>
-                        <option value="Yesterday">Yesterday</option>
-                        <option value="This Week">Weekly (This Week)</option>
-                        <option value="This Month">Monthly (This Month)</option>
-                        <option value="All Time">All Time</option>
-                        <option value="Custom">Custom Date Range</option>
-                      </select>
-                    </div>
-
-                    {bsDateFilter === 'Custom' && (
-                      <input
-                        type="date"
-                        value={bsCustomDate}
-                        onChange={(e) => setBsCustomDate(e.target.value)}
-                        className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    )}
-
-                    <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
-                      <span className="text-[11px] text-slate-400 font-medium">Last updated: <strong className="text-slate-600 dark:text-slate-300">{bsLastUpdated}</strong></span>
-                      <button
-                        onClick={handleRefreshBalanceSheet}
-                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-500 transition cursor-pointer"
-                        title="Refresh Balance Sheet"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      </button>
-                      {bsDateFilter !== 'All Time' && (
-                        <button
-                          onClick={handleResetBsFilters}
-                          className="text-[11px] font-bold text-rose-500 hover:underline cursor-pointer ml-1"
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                  </div>
+      {/* ------------------------------------------------------------------------- */}
+      {/* 5. BALANCE SHEET STATEMENT (PROFESSIONAL BANKING & FINANCIAL DASHBOARD) */}
+      {/* ------------------------------------------------------------------------- */}
+      {reportType === 'BalanceSheet' && (
+        <div className="space-y-6">
+          {/* Top Filter Bar - Single Clean Date Filter */}
+          <div className={`p-4 rounded-2xl border card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Building className="w-4 h-4 text-indigo-500" />
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                    Balance Sheet Statement
+                  </span>
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                    As of {bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}
+                  </span>
                 </div>
               </div>
 
-              {/* 4 Distinct Financial Metric Cards with Clear Unique Roles */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                {/* 1. TOTAL ASSETS */}
-                <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200 text-slate-900'
-                  }`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Total Assets
-                    </span>
-                    <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                      <span>Gross Wealth</span>
-                    </span>
-                  </div>
-                  <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-                    Rs. {totalAssets.toLocaleString()}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-medium">
-                    Customer Khata (Rs. {totalCustomerReceivables.toLocaleString()}) + Stock (Rs. {totalStockValuation.toLocaleString()})
-                  </div>
-                </div>
-
-                {/* 2. TOTAL LIABILITIES */}
-                <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200 text-slate-900'
-                  }`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Total Payables
-                    </span>
-                    <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                      <span>External Debt</span>
-                    </span>
-                  </div>
-                  <div className="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
-                    Rs. {totalLiabilities.toLocaleString()}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-medium">
-                    Supplier Khata (Rs. {totalSupplierPayables.toLocaleString()}) + Accrued Expenses
-                  </div>
-                </div>
-
-                {/* 3. OPERATING NET PROFIT */}
-                <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200 text-slate-900'
-                  }`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Operating Profit (P&L)
-                    </span>
-                    <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                      <span>Trading Profit</span>
-                    </span>
-                  </div>
-                  <div className="text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
-                    Rs. {netOperatingProfit.toLocaleString()}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-medium">
-                    Net Sales Margin minus Mandi Operating Expenses
-                  </div>
-                </div>
-
-                {/* 4. NET BUSINESS WORTH */}
-                <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-br from-indigo-50/40 to-white border-indigo-200 text-slate-900'
-                  }`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Net Worth (Equity)
-                    </span>
-                    <span className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono">
-                      Assets − Liabilities
-                    </span>
-                  </div>
-                  <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">
-                    Rs. {totalEquity.toLocaleString()}
-                  </div>
-                  <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 font-mono">
-                    Rs. {totalAssets.toLocaleString()} (Assets) − Rs. {totalLiabilities.toLocaleString()} (Liabilities) = Rs. {totalEquity.toLocaleString()}
-                  </div>
-                </div>
-              </div>
-
-              {/* Two Column Banking Balance Sheet Statement */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {/* ========================================================================= */}
-                {/* LEFT COLUMN: WHAT YOU OWN (ASSETS) */}
-                {/* ========================================================================= */}
-                <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                  }`}>
-                  <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
-                    <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                      <Building className="w-4 h-4" />
-                      <span>What You Own (Assets)</span>
-                    </h3>
-                    <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      Rs. {totalAssets.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 text-xs">
-                    {/* 1. Customer Receivables */}
-                    <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                      }`}>
-                      <div
-                        onClick={() => toggleBsSection('receivables')}
-                        className="flex items-center justify-between cursor-pointer font-bold"
-                      >
-                        <div className="flex items-center gap-2">
-                          {bsExpandedSections.receivables ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                          )}
-                          <span className="text-slate-900 dark:text-white">Receivables (Khata Dues)</span>
-                        </div>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                          Rs. {totalCustomerReceivables.toLocaleString()}
-                        </span>
-                      </div>
-
-                      {bsExpandedSections.receivables && (
-                        <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                          <div className="flex justify-between">
-                            <span>Regular Customer Khata Dues:</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {regularCustomerReceivables.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Walk-in Customer Khata Dues:</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {walkinCustomerReceivables.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-900 dark:text-white">
-                            <span className="font-bold">Total Khata Receivables:</span>
-                            <span className="font-mono font-black text-amber-600 dark:text-amber-400">Rs. {totalCustomerReceivables.toLocaleString()}</span>
-                          </div>
-                          <div className="pt-1 text-right">
-                            <button
-                              onClick={() => {
-                                setBsDrilldownSearch('');
-                                setBsActiveDrilldownModal('customers');
-                              }}
-                              className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                            >
-                              View Customer & Walk-in Ledger →
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 3. Commodity Inventory Assets */}
-                    <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                      }`}>
-                      <div
-                        onClick={() => toggleBsSection('inventory')}
-                        className="flex items-center justify-between cursor-pointer font-bold"
-                      >
-                        <div className="flex items-center gap-2">
-                          {bsExpandedSections.inventory ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                          )}
-                          <span className="text-slate-900 dark:text-white">Inventory / Commodities</span>
-                        </div>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                          Rs. {totalStockValuation.toLocaleString()}
-                        </span>
-                      </div>
-
-                      {bsExpandedSections.inventory && (
-                        <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                          <div className="flex justify-between">
-                            <span>Stock in Warehouse Godown:</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {totalStockValuation.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Damaged / Expired Goods:</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                          </div>
-                          <div className="pt-1 text-right">
-                            <button
-                              onClick={() => {
-                                setBsDrilldownSearch('');
-                                setBsActiveDrilldownModal('stock');
-                              }}
-                              className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                            >
-                              View Stock Valuation →
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Total Assets Summary Line */}
-                    <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-slate-900 dark:text-white">
-                      <span>TOTAL ASSETS:</span>
-                      <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ========================================================================= */}
-                {/* RIGHT COLUMN: WHAT YOU OWE & EQUITY (LIABILITIES & EQUITY) */}
-                {/* ========================================================================= */}
-                <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                  }`}>
-                  <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
-                    <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-rose-600 dark:text-rose-400">
-                      <PieChart className="w-4 h-4" />
-                      <span>What You Owe & Equity</span>
-                    </h3>
-                    <span className="text-[11px] font-mono font-bold text-slate-900 dark:text-white">
-                      Rs. {(totalLiabilities + totalEquity).toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 text-xs">
-                    {/* 1. Supplier Payables & Current Liabilities */}
-                    <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                      }`}>
-                      <div
-                        onClick={() => toggleBsSection('payables')}
-                        className="flex items-center justify-between cursor-pointer font-bold"
-                      >
-                        <div className="flex items-center gap-2">
-                          {bsExpandedSections.payables ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                          )}
-                          <span className="text-slate-900 dark:text-white">Current Liabilities</span>
-                        </div>
-                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
-                          Rs. {totalSupplierPayables.toLocaleString()}
-                        </span>
-                      </div>
-
-                      {bsExpandedSections.payables && (
-                        <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                          <div className="flex justify-between">
-                            <span>Supplier Khata Payables:</span>
-                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Loans & Financing:</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Outstanding Operating Expenses:</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                          </div>
-                          <div className="pt-1 text-right">
-                            <button
-                              onClick={() => {
-                                setBsDrilldownSearch('');
-                                setBsActiveDrilldownModal('suppliers');
-                              }}
-                              className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
-                            >
-                              View Suppliers Ledger →
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 2. Equity & Business Net Worth */}
-                    <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                      }`}>
-                      <div
-                        onClick={() => toggleBsSection('equity')}
-                        className="flex items-center justify-between cursor-pointer font-bold"
-                      >
-                        <div className="flex items-center gap-2">
-                          {bsExpandedSections.equity ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                          )}
-                          <span className="text-slate-900 dark:text-white">Equity & Capital</span>
-                        </div>
-                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                          Rs. {totalEquity.toLocaleString()}
-                        </span>
-                      </div>
-
-                      {bsExpandedSections.equity && (
-                        <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                          <div className="flex justify-between">
-                            <span>Total Gross Assets:</span>
-                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Less: Total Liabilities & Dues:</span>
-                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">- Rs. {totalLiabilities.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
-                            <span>Net Worth (Assets − Liabilities):</span>
-                            <span className="font-mono text-indigo-600 dark:text-indigo-400">Rs. {totalEquity.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between text-[10px] text-slate-400 pt-0.5">
-                            <span>• Owner's Invested Capital: Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()}</span>
-                            <span>• Retained Profit: Rs. {bsEquityBreakdown.retainedProfit.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Total Liabilities + Equity Summary Line */}
-                    <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-slate-900 dark:text-white">
-                      <span>TOTAL LIABILITIES & EQUITY:</span>
-                      <span className="font-mono text-slate-900 dark:text-white">Rs. {(totalLiabilities + totalEquity).toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* 6. BALANCE SHEET INTERACTIVE DRILLDOWN MODALS */}
-          {/* ========================================================================= */}
-          {bsActiveDrilldownModal && (
-            <div
-              onClick={(e) => { if (e.target === e.currentTarget) setBsActiveDrilldownModal(null); }}
-              className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-            >
-              <div className={`rounded-3xl max-w-2xl w-full p-4 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] flex flex-col ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                }`}>
-                <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700">
-                  <div>
-                    <h3 className="text-sm font-black flex items-center gap-2">
-                      {bsActiveDrilldownModal === 'stock' && <Warehouse className="w-4 h-4 text-amber-500" />}
-                      {bsActiveDrilldownModal === 'customers' && <Users className="w-4 h-4 text-emerald-500" />}
-                      {bsActiveDrilldownModal === 'suppliers' && <Building className="w-4 h-4 text-blue-500" />}
-                      {bsActiveDrilldownModal === 'cashBank' && <Wallet className="w-4 h-4 text-purple-500" />}
-                      <span>
-                        {bsActiveDrilldownModal === 'stock' && 'Stock Valuation Breakdown'}
-                        {bsActiveDrilldownModal === 'customers' && 'Customer Khata Receivables Ledger'}
-                        {bsActiveDrilldownModal === 'suppliers' && 'Supplier Payables Ledger'}
-                        {bsActiveDrilldownModal === 'cashBank' && 'Liquid Cash & Bank Accounts'}
-                      </span>
-                    </h3>
-                    <p className="text-[11px] text-slate-400 font-medium">
-                      Itemized live balances supporting the Balance Sheet Statement
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setBsActiveDrilldownModal(null)}
-                    className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              {/* Single Clean Date Filter Dropdown & Controls */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                  <select
+                    value={bsDateFilter}
+                    onChange={(e) => setBsDateFilter(e.target.value)}
+                    className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   >
-                    <X className="w-4 h-4" />
-                  </button>
+                    <option value="Today">Today ({new Date().toLocaleDateString('en-GB')})</option>
+                    <option value="Yesterday">Yesterday</option>
+                    <option value="This Week">Weekly (This Week)</option>
+                    <option value="This Month">Monthly (This Month)</option>
+                    <option value="All Time">All Time</option>
+                    <option value="Custom">Custom Date Range</option>
+                  </select>
                 </div>
 
-                {/* Modal Search Bar */}
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                {bsDateFilter === 'Custom' && (
                   <input
-                    type="text"
-                    value={bsDrilldownSearch}
-                    onChange={(e) => setBsDrilldownSearch(e.target.value)}
-                    placeholder="Search items, names, phone..."
-                    className={`w-full pl-8 pr-3 py-1.5 border rounded-xl text-xs font-bold outline-none focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                    type="date"
+                    value={bsCustomDate}
+                    onChange={(e) => setBsCustomDate(e.target.value)}
+                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
+                )}
+
+                <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
+                  <span className="text-[11px] text-slate-400 font-medium">Last updated: <strong className="text-slate-600 dark:text-slate-300">{bsLastUpdated}</strong></span>
+                  <button
+                    onClick={handleRefreshBalanceSheet}
+                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-500 transition cursor-pointer"
+                    title="Refresh Balance Sheet"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                  {bsDateFilter !== 'All Time' && (
+                    <button
+                      onClick={handleResetBsFilters}
+                      className="text-[11px] font-bold text-rose-500 hover:underline cursor-pointer ml-1"
+                    >
+                      Reset
+                    </button>
+                  )}
                 </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Modal Content Table */}
-                <div className="overflow-y-auto overflow-x-auto flex-1 text-xs">
-                  {/* 1. Stock Valuation Details */}
-                  {bsActiveDrilldownModal === 'stock' && (
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                          <th className="py-2 px-2.5">Product</th>
-                          <th className="py-2 px-2">Category</th>
-                          <th className="py-2 px-2 text-center">Available Stock</th>
-                          <th className="py-2 px-2 text-right">Purchase Rate</th>
-                          <th className="py-2 px-2.5 text-right font-black">Stock Value</th>
-                        </tr>
-                      </thead>
-                      <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                        {(filteredStock || []).filter(p => p.name.toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (p.category || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase())).map((p, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                            <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{p.name}</td>
-                            <td className="py-2.5 px-2 text-slate-500">{p.category}</td>
-                            <td className="py-2.5 px-2 text-center font-mono">{p.qty} {p.unit}</td>
-                            <td className="py-2.5 px-2 text-right font-mono text-slate-500">Rs. {p.purchaseRate}/{p.unit}</td>
-                            <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {p.stockVal.toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 text-xs font-black">
-                          <td colSpan={4} className="py-2.5 px-2.5 uppercase">Total Warehouse Stock Valuation</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono text-emerald-600">Rs. {totalStockValuation.toLocaleString()}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  )}
+          {/* 4 Distinct Financial Metric Cards with Clear Unique Roles */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* 1. TOTAL ASSETS */}
+            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                  Total Assets
+                </span>
+                <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                  <span>Gross Wealth</span>
+                </span>
+              </div>
+              <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                Rs. {totalAssets.toLocaleString()}
+              </div>
+            </div>
 
-                  {/* 2. Customer Receivables Details (Regular + Walk-in) */}
-                  {bsActiveDrilldownModal === 'customers' && (
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                          <th className="py-2 px-2.5">Customer Party</th>
-                          <th className="py-2 px-2">Type</th>
-                          <th className="py-2 px-2">Phone</th>
-                          <th className="py-2 px-2">City / Location</th>
-                          <th className="py-2 px-2.5 text-right font-black">Khata Due</th>
-                        </tr>
-                      </thead>
-                      <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                        {allCustomerReceivablesList.filter(c =>
-                          (c.name || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
-                          (c.phone || '').includes(bsDrilldownSearch) ||
-                          (c.type || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
-                          (c.city || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase())
-                        ).map((c, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                            <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{c.name}</td>
-                            <td className="py-2.5 px-2">
-                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                                c.type.includes('Walk-in') 
-                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' 
-                                  : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                              }`}>
-                                {c.type}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-2 text-slate-500 font-mono">{c.phone || '—'}</td>
-                            <td className="py-2.5 px-2 text-slate-500">{c.city || 'Local Mandi'}</td>
-                            <td className="py-2.5 px-2.5 text-right font-mono font-bold text-amber-600 dark:text-amber-400">
-                              Rs. {c.balance.toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 text-xs font-black">
-                          <td colSpan={4} className="py-2.5 px-2.5 uppercase">Total Customer Khata Receivables (Regular + Walk-in)</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono text-amber-600">Rs. {totalCustomerReceivables.toLocaleString()}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  )}
+            {/* 2. TOTAL LIABILITIES */}
+            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                  Total Payables
+                </span>
+                <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                  <span>External Debt</span>
+                </span>
+              </div>
+              <div className="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
+                Rs. {totalLiabilities.toLocaleString()}
+              </div>
+            </div>
 
-                  {/* 3. Supplier Payables Details */}
-                  {bsActiveDrilldownModal === 'suppliers' && (
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                          <th className="py-2 px-2.5">Supplier Firm</th>
-                          <th className="py-2 px-2">Phone</th>
-                          <th className="py-2 px-2">Supplied Goods</th>
-                          <th className="py-2 px-2.5 text-right font-black">Payable Due</th>
-                        </tr>
-                      </thead>
-                      <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                        {(suppliers || []).filter(s => (s.name || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (s.phone || '').includes(bsDrilldownSearch)).map((s, idx) => {
-                          const bal = Math.max(0, Number(s.balance !== undefined ? s.balance : s.openingBalance || 0));
-                          return (
-                            <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                              <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{s.name}</td>
-                              <td className="py-2.5 px-2 text-slate-500 font-mono">{s.phone || '—'}</td>
-                              <td className="py-2.5 px-2 text-slate-500">{(s.suppliedProducts || []).join(', ') || 'General Commodity'}</td>
-                              <td className="py-2.5 px-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {bal.toLocaleString()}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 text-xs font-black">
-                          <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Due to Suppliers</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono text-rose-600">Rs. {totalSupplierPayables.toLocaleString()}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  )}
+            {/* 3. OPERATING NET PROFIT */}
+            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                  Operating Profit (P&L)
+                </span>
+                <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <span>Trading Profit</span>
+                </span>
+              </div>
+              <div className="text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
+                Rs. {netOperatingProfit.toLocaleString()}
+              </div>
+            </div>
 
-                  {/* 4. Cash & Bank Accounts Details (Fully Functional Live Channels & Ledger) */}
-                  {bsActiveDrilldownModal === 'cashBank' && (
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-[11px] font-black uppercase text-slate-400 mb-1 tracking-wider">
-                          1. Liquid Accounts & Channels Summary
-                        </h4>
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                              <th className="py-2 px-2.5">Account / Channel</th>
-                              <th className="py-2 px-2">Type</th>
-                              <th className="py-2 px-2">Description / Mode</th>
-                              <th className="py-2 px-2.5 text-right font-black">Liquid Balance</th>
-                            </tr>
-                          </thead>
-                          <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                            <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                              <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Shop Cash Counter Drawer</td>
-                              <td className="py-2.5 px-2">
-                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                  Physical Cash
-                                </span>
-                              </td>
-                              <td className="py-2.5 px-2 text-slate-500 font-medium">Safe & Counter Cash Drawer</td>
-                              <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {cashInHand.toLocaleString()}</td>
-                            </tr>
-                            <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                              <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Bank Accounts & Online Transfers</td>
-                              <td className="py-2.5 px-2">
-                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                                  Bank / Card
-                                </span>
-                              </td>
-                              <td className="py-2.5 px-2 text-slate-500 font-medium">Bank Transfer, Cards & Raast Payments</td>
-                              <td className="py-2.5 px-2.5 text-right font-mono font-bold text-blue-600 dark:text-blue-400">Rs. {bankBalance.toLocaleString()}</td>
-                            </tr>
-                            <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                              <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Mobile Digital Wallets</td>
-                              <td className="py-2.5 px-2">
-                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                                  Mobile Wallet
-                                </span>
-                              </td>
-                              <td className="py-2.5 px-2 text-slate-500 font-medium">JazzCash & Easypaisa Merchant Wallets</td>
-                              <td className="py-2.5 px-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {walletBalance.toLocaleString()}</td>
-                            </tr>
-                          </tbody>
-                          <tfoot>
-                            <tr className="border-t-2 text-xs font-black">
-                              <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Liquid Cash & Bank Funds</td>
-                              <td className="py-2.5 px-2.5 text-right font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidFunds.toLocaleString()}</td>
-                            </tr>
-                          </tfoot>
-                        </table>
+            {/* 4. NET BUSINESS WORTH */}
+            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-br from-indigo-50/40 to-white border-indigo-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                  Net Worth
+                </span>
+                <span className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono">
+                  Assets − Liabilities
+                </span>
+              </div>
+              <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">
+                Rs. {totalEquity.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          {/* Two Column Banking Balance Sheet Statement */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* ========================================================================= */}
+            {/* LEFT COLUMN: WHAT YOU OWN (ASSETS) */}
+            {/* ========================================================================= */}
+            <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
+                <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <Building className="w-4 h-4" />
+                  <span>What You Own (Assets)</span>
+                </h3>
+                <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  Rs. {totalAssets.toLocaleString()}
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                {/* 1. Customer Receivables */}
+                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                  <div
+                    onClick={() => toggleBsSection('receivables')}
+                    className="flex items-center justify-between cursor-pointer font-bold"
+                  >
+                    <div className="flex items-center gap-2">
+                      {bsExpandedSections.receivables ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                      )}
+                      <span className="text-slate-900 dark:text-white">Receivables (Khata Dues)</span>
+                    </div>
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                      Rs. {totalCustomerReceivables.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {bsExpandedSections.receivables && (
+                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <div className="flex justify-between">
+                        <span>Regular Customer Khata Dues:</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {regularCustomerReceivables.toLocaleString()}</span>
                       </div>
-
-                      {/* 2. Itemized Transactions Flow */}
-                      <div className="pt-2">
-                        <h4 className="text-[11px] font-black uppercase text-slate-400 mb-1 tracking-wider">
-                          2. Recent Liquid Fund Transactions Flow ({liquidTransactionsList.length} Entries)
-                        </h4>
-                        <div className="max-h-60 overflow-y-auto border rounded-xl dark:border-slate-700">
-                          <table className="w-full text-left border-collapse text-xs">
-                            <thead>
-                              <tr className={`border-b text-[10px] font-black uppercase text-slate-400 sticky top-0 ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                                <th className="py-2 px-2.5">Date</th>
-                                <th className="py-2 px-2">Source / Reference</th>
-                                <th className="py-2 px-2">Party</th>
-                                <th className="py-2 px-2">Channel</th>
-                                <th className="py-2 px-2 text-center">Type</th>
-                                <th className="py-2 px-2.5 text-right">Amount</th>
-                              </tr>
-                            </thead>
-                            <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                              {liquidTransactionsList.length === 0 ? (
-                                <tr>
-                                  <td colSpan={6} className="py-6 text-center text-slate-400 font-normal">
-                                    No liquid fund transactions logged yet.
-                                  </td>
-                                </tr>
-                              ) : (
-                                liquidTransactionsList.filter(tx =>
-                                  (tx.source || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
-                                  (tx.party || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
-                                  (tx.channel || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase())
-                                ).map((tx, idx) => (
-                                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                                    <td className="py-2 px-2.5 font-mono text-[11px]">{tx.date}</td>
-                                    <td className="py-2 px-2 font-bold text-slate-900 dark:text-white max-w-[140px] truncate">{tx.source}</td>
-                                    <td className="py-2 px-2 text-slate-600 dark:text-slate-300 max-w-[120px] truncate">{tx.party}</td>
-                                    <td className="py-2 px-2">
-                                      <span className="text-[10px] font-bold text-slate-500">{tx.channel}</span>
-                                    </td>
-                                    <td className="py-2 px-2 text-center">
-                                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
-                                        tx.type === 'Inflow'
-                                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                                      }`}>
-                                        {tx.type === 'Inflow' ? '+ Inflow' : '- Outflow'}
-                                      </span>
-                                    </td>
-                                    <td className={`py-2 px-2.5 text-right font-mono font-bold ${
-                                      tx.type === 'Inflow' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                                    }`}>
-                                      Rs. {tx.amount.toLocaleString()}
-                                    </td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
+                      <div className="flex justify-between">
+                        <span>Walk-in Customer Khata Dues:</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {walkinCustomerReceivables.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-900 dark:text-white">
+                        <span className="font-bold">Total Khata Receivables:</span>
+                        <span className="font-mono font-black text-amber-600 dark:text-amber-400">Rs. {totalCustomerReceivables.toLocaleString()}</span>
+                      </div>
+                      <div className="pt-1 text-right">
+                        <button
+                          onClick={() => {
+                            setBsDrilldownSearch('');
+                            setBsActiveDrilldownModal('customers');
+                          }}
+                          className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                        >
+                          View Customer & Walk-in Ledger →
+                        </button>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-2 text-right border-t border-slate-100 dark:border-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => setBsActiveDrilldownModal(null)}
-                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+                {/* 3. Commodity Inventory Assets */}
+                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                  <div
+                    onClick={() => toggleBsSection('inventory')}
+                    className="flex items-center justify-between cursor-pointer font-bold"
                   >
-                    Close Drilldown
-                  </button>
+                    <div className="flex items-center gap-2">
+                      {bsExpandedSections.inventory ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                      )}
+                      <span className="text-slate-900 dark:text-white">Inventory / Commodities</span>
+                    </div>
+                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                      Rs. {totalStockValuation.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {bsExpandedSections.inventory && (
+                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <div className="flex justify-between">
+                        <span>Stock in Warehouse Godown:</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {totalStockValuation.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Damaged / Expired Goods:</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                      </div>
+                      <div className="pt-1 text-right">
+                        <button
+                          onClick={() => {
+                            setBsDrilldownSearch('');
+                            setBsActiveDrilldownModal('stock');
+                          }}
+                          className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                        >
+                          View Stock Valuation →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Total Assets Summary Line */}
+                <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-slate-900 dark:text-white">
+                  <span>TOTAL ASSETS:</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* ========================================================================= */}
-          {/* 3. RECORD OPERATING EXPENSE MODAL */}
-          {/* ========================================================================= */}
-          {showAddExpenseModal && (
-            <div
-              onClick={(e) => { if (e.target === e.currentTarget) setShowAddExpenseModal(false); }}
-              className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-            >
-              <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                }`}>
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
-                  <h3 className="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-                    <DollarSign className="w-5 h-5 text-slate-700" />
-                    <span>Record Operating Expense</span>
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddExpenseModal(false)}
-                    className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+            {/* ========================================================================= */}
+            {/* RIGHT COLUMN: WHAT YOU OWE & EQUITY (LIABILITIES & EQUITY) */}
+            {/* ========================================================================= */}
+            <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
+                <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                  <PieChart className="w-4 h-4" />
+                  <span>What You Owe & Equity</span>
+                </h3>
+                <span className="text-[11px] font-mono font-bold text-slate-900 dark:text-white">
+                  Rs. {(totalLiabilities + totalEquity).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                {/* 1. Supplier Payables & Current Liabilities */}
+                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                  <div
+                    onClick={() => toggleBsSection('payables')}
+                    className="flex items-center justify-between cursor-pointer font-bold"
                   >
-                    <X className="w-5 h-5" />
-                  </button>
+                    <div className="flex items-center gap-2">
+                      {bsExpandedSections.payables ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                      )}
+                      <span className="text-slate-900 dark:text-white">Current Liabilities</span>
+                    </div>
+                    <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                      Rs. {totalSupplierPayables.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {bsExpandedSections.payables && (
+                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <div className="flex justify-between">
+                        <span>Supplier Khata Payables:</span>
+                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Loans & Financing:</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Outstanding Operating Expenses:</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                      </div>
+                      <div className="pt-1 text-right">
+                        <button
+                          onClick={() => {
+                            setBsDrilldownSearch('');
+                            setBsActiveDrilldownModal('suppliers');
+                          }}
+                          className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                        >
+                          View Suppliers Ledger →
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <form onSubmit={handleAddExpense} className="space-y-3.5">
-                  <div>
-                    <label className="text-xs font-bold text-slate-600 block mb-1">
-                      Expense Category
-                    </label>
-                    <select
-                      value={newExpense.category}
-                      onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    >
-                      <option value="Salary (Staff / Workers)">Salary (Staff / Workers)</option>
-                      <option value="Bills (Electricity / Gas / Water)">Bills (Electricity / Gas / Water)</option>
-                      <option value="Transport & Freight (Bilty / Gaari)">Transport & Freight (Bilty / Gaari)</option>
-                      <option value="Shop & Godown Rent">Shop & Godown Rent</option>
-                      <option value="Labour & Loading (Mazdoori / Palla)">Labour & Loading (Mazdoori / Palla)</option>
-                      <option value="Bardana & Bags Purchase">Bardana & Bags Purchase</option>
-                      <option value="Fuel & Generator Diesel">Fuel & Generator Diesel</option>
-                      <option value="Tea & Hospitality (Chai Pani)">Tea & Hospitality (Chai Pani)</option>
-                      <option value="Repair & Maintenance">Repair & Maintenance</option>
-                      <option value="General Miscellaneous">General Miscellaneous</option>
-                    </select>
+                {/* 2. Equity & Business Net Worth */}
+                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                  <div
+                    onClick={() => toggleBsSection('equity')}
+                    className="flex items-center justify-between cursor-pointer font-bold"
+                  >
+                    <div className="flex items-center gap-2">
+                      {bsExpandedSections.equity ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                      )}
+                      <span className="text-slate-900 dark:text-white">Equity & Capital</span>
+                    </div>
+                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                      Rs. {totalEquity.toLocaleString()}
+                    </span>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-slate-600 block mb-1">
-                      Amount (Rs.)
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      required
-                      value={newExpense.amount}
-                      onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                      placeholder="e.g. 5000"
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
+                  {bsExpandedSections.equity && (
+                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <div className="flex justify-between">
+                        <span>Total Gross Assets:</span>
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Less: Total Liabilities & Dues:</span>
+                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">- Rs. {totalLiabilities.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
+                        <span>Net Worth (Assets − Liabilities):</span>
+                        <span className="font-mono text-indigo-600 dark:text-indigo-400">Rs. {totalEquity.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-slate-400 pt-0.5">
+                        <span>• Owner's Invested Capital: Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()}</span>
+                        <span>• Retained Profit: Rs. {bsEquityBreakdown.retainedProfit.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-slate-600 block mb-1">
-                      Description / Remarks
-                    </label>
-                    <input
-                      type="text"
-                      value={newExpense.desc}
-                      onChange={(e) => setNewExpense({ ...newExpense, desc: e.target.value })}
-                      placeholder="e.g. Loading and unloading mazdoori..."
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-600 block mb-1">
-                      Payment Mode
-                    </label>
-                    <select
-                      value={newExpense.mode}
-                      onChange={(e) => setNewExpense({ ...newExpense, mode: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    >
-                      <option value="Cash">Cash (Counter Drawer)</option>
-                      <option value="Bank Transfer">Bank Transfer / Online</option>
-                      <option value="Cheque">Cheque</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddExpenseModal(false)}
-                      className={`w-1/2 py-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${theme === 'dark' ? 'border-slate-700 text-slate-300 hover:bg-slate-700' : 'border-slate-200 text-slate-700 hover:bg-slate-100'
-                        }`}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="w-1/2 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
-                    >
-                      Save Expense
-                    </button>
-                  </div>
-                </form>
+                {/* Total Liabilities + Equity Summary Line */}
+                <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-slate-900 dark:text-white">
+                  <span>TOTAL LIABILITIES & EQUITY:</span>
+                  <span className="font-mono text-slate-900 dark:text-white">Rs. {(totalLiabilities + totalEquity).toLocaleString()}</span>
+                </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
-    );
+      )}
+
+      {/* ========================================================================= */}
+      {/* 6. BALANCE SHEET INTERACTIVE DRILLDOWN MODALS */}
+      {/* ========================================================================= */}
+      {bsActiveDrilldownModal && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setBsActiveDrilldownModal(null); }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
+          <div className={`rounded-3xl max-w-2xl w-full p-4 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] flex flex-col ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700">
+              <div>
+                <h3 className="text-sm font-black flex items-center gap-2">
+                  {bsActiveDrilldownModal === 'stock' && <Warehouse className="w-4 h-4 text-amber-500" />}
+                  {bsActiveDrilldownModal === 'customers' && <Users className="w-4 h-4 text-emerald-500" />}
+                  {bsActiveDrilldownModal === 'suppliers' && <Building className="w-4 h-4 text-blue-500" />}
+                  {bsActiveDrilldownModal === 'cashBank' && <Wallet className="w-4 h-4 text-purple-500" />}
+                  <span>
+                    {bsActiveDrilldownModal === 'stock' && 'Stock Valuation Breakdown'}
+                    {bsActiveDrilldownModal === 'customers' && 'Customer Khata Receivables Ledger'}
+                    {bsActiveDrilldownModal === 'suppliers' && 'Supplier Payables Ledger'}
+                    {bsActiveDrilldownModal === 'cashBank' && 'Liquid Cash & Bank Accounts'}
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Itemized live balances supporting the Balance Sheet Statement
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setBsActiveDrilldownModal(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Search Bar */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={bsDrilldownSearch}
+                onChange={(e) => setBsDrilldownSearch(e.target.value)}
+                placeholder="Search items, names, phone..."
+                className={`w-full pl-8 pr-3 py-1.5 border rounded-xl text-xs font-bold outline-none focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                  }`}
+              />
+            </div>
+
+            {/* Modal Content Table */}
+            <div className="overflow-y-auto overflow-x-auto flex-1 text-xs">
+              {/* 1. Stock Valuation Details */}
+              {bsActiveDrilldownModal === 'stock' && (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                      <th className="py-2 px-2.5">Product</th>
+                      <th className="py-2 px-2">Category</th>
+                      <th className="py-2 px-2 text-center">Available Stock</th>
+                      <th className="py-2 px-2 text-right">Purchase Rate</th>
+                      <th className="py-2 px-2.5 text-right font-black">Stock Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                    {(filteredStock || []).filter(p => p.name.toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (p.category || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase())).map((p, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                        <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{p.name}</td>
+                        <td className="py-2.5 px-2 text-slate-500">{p.category}</td>
+                        <td className="py-2.5 px-2 text-center font-mono">{p.qty} {p.unit}</td>
+                        <td className="py-2.5 px-2 text-right font-mono text-slate-500">Rs. {p.purchaseRate}/{p.unit}</td>
+                        <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {p.stockVal.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 text-xs font-black">
+                      <td colSpan={4} className="py-2.5 px-2.5 uppercase">Total Warehouse Stock Valuation</td>
+                      <td className="py-2.5 px-2.5 text-right font-mono text-emerald-600">Rs. {totalStockValuation.toLocaleString()}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+
+              {/* 2. Customer Receivables Details (Regular + Walk-in) */}
+              {bsActiveDrilldownModal === 'customers' && (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                      <th className="py-2 px-2.5">Customer Party</th>
+                      <th className="py-2 px-2">Type</th>
+                      <th className="py-2 px-2">Phone</th>
+                      <th className="py-2 px-2">City / Location</th>
+                      <th className="py-2 px-2.5 text-right font-black">Khata Due</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                    {allCustomerReceivablesList.filter(c =>
+                      (c.name || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
+                      (c.phone || '').includes(bsDrilldownSearch) ||
+                      (c.type || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
+                      (c.city || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase())
+                    ).map((c, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                        <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{c.name}</td>
+                        <td className="py-2.5 px-2">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${c.type.includes('Walk-in')
+                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                            : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                            }`}>
+                            {c.type}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-2 text-slate-500 font-mono">{c.phone || '—'}</td>
+                        <td className="py-2.5 px-2 text-slate-500">{c.city || 'Local Mandi'}</td>
+                        <td className="py-2.5 px-2.5 text-right font-mono font-bold text-amber-600 dark:text-amber-400">
+                          Rs. {c.balance.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 text-xs font-black">
+                      <td colSpan={4} className="py-2.5 px-2.5 uppercase">Total Customer Khata Receivables (Regular + Walk-in)</td>
+                      <td className="py-2.5 px-2.5 text-right font-mono text-amber-600">Rs. {totalCustomerReceivables.toLocaleString()}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+
+              {/* 3. Supplier Payables Details */}
+              {bsActiveDrilldownModal === 'suppliers' && (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                      <th className="py-2 px-2.5">Supplier Firm</th>
+                      <th className="py-2 px-2">Phone</th>
+                      <th className="py-2 px-2">Supplied Goods</th>
+                      <th className="py-2 px-2.5 text-right font-black">Payable Due</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                    {(suppliers || []).filter(s => (s.name || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (s.phone || '').includes(bsDrilldownSearch)).map((s, idx) => {
+                      const bal = Math.max(0, Number(s.balance !== undefined ? s.balance : s.openingBalance || 0));
+                      return (
+                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{s.name}</td>
+                          <td className="py-2.5 px-2 text-slate-500 font-mono">{s.phone || '—'}</td>
+                          <td className="py-2.5 px-2 text-slate-500">{(s.suppliedProducts || []).join(', ') || 'General Commodity'}</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {bal.toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 text-xs font-black">
+                      <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Due to Suppliers</td>
+                      <td className="py-2.5 px-2.5 text-right font-mono text-rose-600">Rs. {totalSupplierPayables.toLocaleString()}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+
+              {/* 4. Cash & Bank Accounts Details (Fully Functional Live Channels & Ledger) */}
+              {bsActiveDrilldownModal === 'cashBank' && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-[11px] font-black uppercase text-slate-400 mb-1 tracking-wider">
+                      1. Liquid Accounts & Channels Summary
+                    </h4>
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                          <th className="py-2 px-2.5">Account / Channel</th>
+                          <th className="py-2 px-2">Type</th>
+                          <th className="py-2 px-2">Description / Mode</th>
+                          <th className="py-2 px-2.5 text-right font-black">Liquid Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Shop Cash Counter Drawer</td>
+                          <td className="py-2.5 px-2">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              Physical Cash
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-2 text-slate-500 font-medium">Safe & Counter Cash Drawer</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {cashInHand.toLocaleString()}</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Bank Accounts & Online Transfers</td>
+                          <td className="py-2.5 px-2">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                              Bank / Card
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-2 text-slate-500 font-medium">Bank Transfer, Cards & Raast Payments</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-blue-600 dark:text-blue-400">Rs. {bankBalance.toLocaleString()}</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Mobile Digital Wallets</td>
+                          <td className="py-2.5 px-2">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                              Mobile Wallet
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-2 text-slate-500 font-medium">JazzCash & Easypaisa Merchant Wallets</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {walletBalance.toLocaleString()}</td>
+                        </tr>
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 text-xs font-black">
+                          <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Liquid Cash & Bank Funds</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidFunds.toLocaleString()}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+
+                  {/* 2. Itemized Transactions Flow */}
+                  <div className="pt-2">
+                    <h4 className="text-[11px] font-black uppercase text-slate-400 mb-1 tracking-wider">
+                      2. Recent Liquid Fund Transactions Flow ({liquidTransactionsList.length} Entries)
+                    </h4>
+                    <div className="max-h-60 overflow-y-auto border rounded-xl dark:border-slate-700">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className={`border-b text-[10px] font-black uppercase text-slate-400 sticky top-0 ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                            <th className="py-2 px-2.5">Date</th>
+                            <th className="py-2 px-2">Source / Reference</th>
+                            <th className="py-2 px-2">Party</th>
+                            <th className="py-2 px-2">Channel</th>
+                            <th className="py-2 px-2 text-center">Type</th>
+                            <th className="py-2 px-2.5 text-right">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                          {liquidTransactionsList.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="py-6 text-center text-slate-400 font-normal">
+                                No liquid fund transactions logged yet.
+                              </td>
+                            </tr>
+                          ) : (
+                            liquidTransactionsList.filter(tx =>
+                              (tx.source || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
+                              (tx.party || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
+                              (tx.channel || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase())
+                            ).map((tx, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                                <td className="py-2 px-2.5 font-mono text-[11px]">{tx.date}</td>
+                                <td className="py-2 px-2 font-bold text-slate-900 dark:text-white max-w-[140px] truncate">{tx.source}</td>
+                                <td className="py-2 px-2 text-slate-600 dark:text-slate-300 max-w-[120px] truncate">{tx.party}</td>
+                                <td className="py-2 px-2">
+                                  <span className="text-[10px] font-bold text-slate-500">{tx.channel}</span>
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${tx.type === 'Inflow'
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                    }`}>
+                                    {tx.type === 'Inflow' ? '+ Inflow' : '- Outflow'}
+                                  </span>
+                                </td>
+                                <td className={`py-2 px-2.5 text-right font-mono font-bold ${tx.type === 'Inflow' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                                  }`}>
+                                  Rs. {tx.amount.toLocaleString()}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 text-right border-t border-slate-100 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setBsActiveDrilldownModal(null)}
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              >
+                Close Drilldown
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
 };
 
 export default Reports;
