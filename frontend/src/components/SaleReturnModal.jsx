@@ -82,7 +82,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
 
   const [selectedItemIdx, setSelectedItemIdx] = useState(0);
   const [returnQty, setReturnQty] = useState('');
-  const [reason, setReason] = useState('Quality / Defect Rejection');
+  const [reason, setReason] = useState('Kharab Maal');
   const [refundMode, setRefundMode] = useState('Ledger'); // 'Ledger' | 'Cash'
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedReturn, setCompletedReturn] = useState(null);
@@ -379,19 +379,33 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
                       Return Reason
                     </label>
-                    <select
+                    <input
+                      type="text"
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
+                      placeholder="e.g. Kharab Maal, Wazan Farq"
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
-                    >
-                      <option value="Quality / Defect Rejection">Quality / Defect Rejection</option>
-                      <option value="High Moisture / Weight Dispute">High Moisture / Weight Dispute</option>
-                      <option value="Damaged Packing / Bags">Damaged Packing / Bags</option>
-                      <option value="Customer Order Cancelled">Customer Order Cancelled</option>
-                      <option value="Other Reason">Other Reason</option>
-                    </select>
+                    />
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {['Kharab Maal', 'Wazan Farq', 'Damage Bag', 'Order Cancel', 'Rate Farq'].map(tag => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setReason(tag)}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition cursor-pointer ${
+                            reason === tag
+                              ? 'bg-brand-500 text-white border-brand-600 shadow-2xs'
+                              : theme === 'dark'
+                              ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                              : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div>
