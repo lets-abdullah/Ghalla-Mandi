@@ -3773,16 +3773,15 @@ export const Reports = () => {
                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                       Net Worth (Equity)
                     </span>
-                    <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                      <span>Net Solvency</span>
+                    <span className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono">
+                      Assets − Liabilities
                     </span>
                   </div>
                   <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">
                     Rs. {totalEquity.toLocaleString()}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-medium">
-                    Assets - Payables (Invested Capital Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()} + Profit)
+                  <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 font-mono">
+                    Rs. {totalAssets.toLocaleString()} (Assets) − Rs. {totalLiabilities.toLocaleString()} (Liabilities) = Rs. {totalEquity.toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -3995,16 +3994,20 @@ export const Reports = () => {
                       {bsExpandedSections.equity && (
                         <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
                           <div className="flex justify-between">
-                            <span>Owner's Opening Capital:</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()}</span>
+                            <span>Total Gross Assets:</span>
+                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Current Year Retained Profit:</span>
-                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {bsEquityBreakdown.retainedProfit.toLocaleString()}</span>
+                            <span>Less: Total Liabilities & Dues:</span>
+                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">- Rs. {totalLiabilities.toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
-                            <span>Total Net Business Value:</span>
+                            <span>Net Worth (Assets − Liabilities):</span>
                             <span className="font-mono text-indigo-600 dark:text-indigo-400">Rs. {totalEquity.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] text-slate-400 pt-0.5">
+                            <span>• Owner's Invested Capital: Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()}</span>
+                            <span>• Retained Profit: Rs. {bsEquityBreakdown.retainedProfit.toLocaleString()}</span>
                           </div>
                         </div>
                       )}
