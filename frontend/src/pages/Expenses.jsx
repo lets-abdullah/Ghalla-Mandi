@@ -274,18 +274,19 @@ export const Expenses = () => {
         )}
       </div>
 
-      {/* KPI Cards Strip */}
+      {/* Operational Cashier KPI Cards Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div className={`p-4 rounded-2xl border card-shadow space-y-1.5 ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
         }`}>
           <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
-            <span>Today's Expenses</span>
+            <span>Today's Outflow</span>
             <Clock className="w-3.5 h-3.5 text-amber-500" />
           </div>
           <div className="text-xl font-black font-mono text-amber-600 dark:text-amber-400">
             Rs. {stats.todayTotal.toLocaleString()}
           </div>
+          <div className="text-[10px] text-slate-400 font-medium">Counter spend today</div>
         </div>
 
         <div className={`p-4 rounded-2xl border card-shadow space-y-1.5 ${
@@ -298,6 +299,7 @@ export const Expenses = () => {
           <div className="text-xl font-black font-mono text-indigo-600 dark:text-indigo-400">
             Rs. {stats.monthTotal.toLocaleString()}
           </div>
+          <div className="text-[10px] text-slate-400 font-medium">Current month total</div>
         </div>
 
         <div className={`p-4 rounded-2xl border card-shadow space-y-1.5 ${
@@ -310,18 +312,20 @@ export const Expenses = () => {
           <div className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">
             Rs. {stats.cashTotal.toLocaleString()}
           </div>
+          <div className="text-[10px] text-slate-400 font-medium">Drawer cash paid</div>
         </div>
 
         <div className={`p-4 rounded-2xl border card-shadow space-y-1.5 ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
         }`}>
           <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
-            <span>Total Recorded</span>
-            <Receipt className="w-3.5 h-3.5 text-rose-500" />
+            <span>Bank & Online</span>
+            <CreditCard className="w-3.5 h-3.5 text-purple-500" />
           </div>
-          <div className="text-xl font-black font-mono text-rose-600 dark:text-rose-400">
-            Rs. {stats.allTotal.toLocaleString()}
+          <div className="text-xl font-black font-mono text-purple-600 dark:text-purple-400">
+            Rs. {stats.bankTotal.toLocaleString()}
           </div>
+          <div className="text-[10px] text-slate-400 font-medium">{stats.count} total vouchers recorded</div>
         </div>
       </div>
 
