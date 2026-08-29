@@ -725,9 +725,92 @@ export const Reports = () => {
   const grossOperatingProfit = useMemo(() => Math.max(0, totalNetSales - cogs), [totalNetSales, cogs]);
   const netOperatingProfit = useMemo(() => grossOperatingProfit - totalExpensesAmount, [grossOperatingProfit, totalExpensesAmount]);
 
+  // Combined Customer Receivables List (Regular + Walk-in Customers) for Balance Sheet
+  const allCustomerReceivablesList = useMemo(() => {
+    const list = [];
+    const processedCustNames = new Set();
+    const processedCustIds = new Set();
+
+    // 1. Regular / Registered Customers
+    (customers || []).forEach(cust => {
+      processedCustIds.add(cust.id);
+      if (cust.name) processedCustNames.add(cust.name.trim().toLowerCase());
+
+      const custSales = (sales || []).filter(s =>
+        s.customerId === cust.id ||
+        (s.partyName && s.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
+      );
+      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
+      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      const returnAmt = (saleReturns || []).filter(r =>
+        r.customerId === cust.id ||
+        (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+      
+      const bal = Number(cust.balance !== undefined ? cust.balance : Math.max(0, totalSale - totalPaid - returnAmt));
+      if (bal > 0) {
+        const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
+        list.push({
+          id: cust.id,
+          name: cust.name,
+          phone: cust.phone || '',
+          city: cust.city || cust.address || 'Local Mandi',
+          type: isWalkin ? 'Walk-in Customer' : 'Regular Party',
+          balance: bal
+        });
+      }
+    });
+
+    // 2. Walk-in / Counter Sales not in customers table
+    const walkinSalesMap = new Map();
+    (sales || []).forEach(s => {
+      const isRegisteredCust = (s.customerId && processedCustIds.has(s.customerId)) ||
+        (s.partyName && processedCustNames.has(s.partyName.trim().toLowerCase()));
+
+      if (!isRegisteredCust) {
+        const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
+        const key = rawName.toLowerCase();
+        if (!walkinSalesMap.has(key)) {
+          walkinSalesMap.set(key, { name: rawName, sales: [] });
+        }
+        walkinSalesMap.get(key).sales.push(s);
+      }
+    });
+
+    walkinSalesMap.forEach((val, key) => {
+      const custSales = val.sales;
+      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
+      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      const returnAmt = (saleReturns || []).filter(r =>
+        r.customerName && r.customerName.trim().toLowerCase() === key
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+      const bal = Math.max(0, totalSale - totalPaid - returnAmt);
+      if (bal > 0) {
+        list.push({
+          id: `walkin-${key}`,
+          name: val.name,
+          phone: '',
+          city: 'Counter Sales',
+          type: 'Walk-in Customer',
+          balance: bal
+        });
+      }
+    });
+
+    return list.sort((a, b) => b.balance - a.balance);
+  }, [customers, sales, saleReturns]);
+
   const totalCustomerReceivables = useMemo(() => {
-    return (customers || []).reduce((sum, c) => sum + Math.max(0, Number(c.balance !== undefined ? c.balance : c.openingBalance || 0)), 0);
-  }, [customers]);
+    return allCustomerReceivablesList.reduce((sum, c) => sum + c.balance, 0);
+  }, [allCustomerReceivablesList]);
+
+  const regularCustomerReceivables = useMemo(() => {
+    return allCustomerReceivablesList.filter(c => !c.type.includes('Walk-in')).reduce((sum, c) => sum + c.balance, 0);
+  }, [allCustomerReceivablesList]);
+
+  const walkinCustomerReceivables = useMemo(() => {
+    return allCustomerReceivablesList.filter(c => c.type.includes('Walk-in')).reduce((sum, c) => sum + c.balance, 0);
+  }, [allCustomerReceivablesList]);
 
   const totalSupplierPayables = useMemo(() => {
     return (suppliers || []).reduce((sum, s) => sum + Math.max(0, Number(s.balance !== undefined ? s.balance : s.openingBalance || 0)), 0);
@@ -3663,12 +3746,16 @@ export const Reports = () => {
                       {bsExpandedSections.receivables && (
                         <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
                           <div className="flex justify-between">
-                            <span>Customer Khata Receivables:</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {totalCustomerReceivables.toLocaleString()}</span>
+                            <span>Regular Customer Khata Dues:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {regularCustomerReceivables.toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Other Business Advances:</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                            <span>Walk-in Customer Khata Dues:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {walkinCustomerReceivables.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-900 dark:text-white">
+                            <span className="font-bold">Total Khata Receivables:</span>
+                            <span className="font-mono font-black text-amber-600 dark:text-amber-400">Rs. {totalCustomerReceivables.toLocaleString()}</span>
                           </div>
                           <div className="pt-1 text-right">
                             <button
@@ -3678,7 +3765,7 @@ export const Reports = () => {
                               }}
                               className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
                             >
-                              View Customers Ledger →
+                              View Customer & Walk-in Ledger →
                             </button>
                           </div>
                         </div>
@@ -3937,33 +4024,47 @@ export const Reports = () => {
                     </table>
                   )}
 
-                  {/* 2. Customer Receivables Details */}
+                  {/* 2. Customer Receivables Details (Regular + Walk-in) */}
                   {bsActiveDrilldownModal === 'customers' && (
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
                           <th className="py-2 px-2.5">Customer Party</th>
+                          <th className="py-2 px-2">Type</th>
                           <th className="py-2 px-2">Phone</th>
-                          <th className="py-2 px-2">City / Address</th>
-                          <th className="py-2 px-2.5 text-right font-black">Receivable Due</th>
+                          <th className="py-2 px-2">City / Location</th>
+                          <th className="py-2 px-2.5 text-right font-black">Khata Due</th>
                         </tr>
                       </thead>
                       <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                        {(customers || []).filter(c => (c.name || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (c.phone || '').includes(bsDrilldownSearch)).map((c, idx) => {
-                          const bal = Math.max(0, Number(c.balance !== undefined ? c.balance : c.openingBalance || 0));
-                          return (
-                            <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                              <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{c.name}</td>
-                              <td className="py-2.5 px-2 text-slate-500 font-mono">{c.phone || '—'}</td>
-                              <td className="py-2.5 px-2 text-slate-500">{c.city || c.address || 'Local Mandi'}</td>
-                              <td className="py-2.5 px-2.5 text-right font-mono font-bold text-amber-600 dark:text-amber-400">Rs. {bal.toLocaleString()}</td>
-                            </tr>
-                          );
-                        })}
+                        {allCustomerReceivablesList.filter(c =>
+                          (c.name || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
+                          (c.phone || '').includes(bsDrilldownSearch) ||
+                          (c.type || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
+                          (c.city || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase())
+                        ).map((c, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                            <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{c.name}</td>
+                            <td className="py-2.5 px-2">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                c.type.includes('Walk-in') 
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' 
+                                  : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                              }`}>
+                                {c.type}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-2 text-slate-500 font-mono">{c.phone || '—'}</td>
+                            <td className="py-2.5 px-2 text-slate-500">{c.city || 'Local Mandi'}</td>
+                            <td className="py-2.5 px-2.5 text-right font-mono font-bold text-amber-600 dark:text-amber-400">
+                              Rs. {c.balance.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 text-xs font-black">
-                          <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Pending Customer Receivables</td>
+                          <td colSpan={4} className="py-2.5 px-2.5 uppercase">Total Customer Khata Receivables (Regular + Walk-in)</td>
                           <td className="py-2.5 px-2.5 text-right font-mono text-amber-600">Rs. {totalCustomerReceivables.toLocaleString()}</td>
                         </tr>
                       </tfoot>
