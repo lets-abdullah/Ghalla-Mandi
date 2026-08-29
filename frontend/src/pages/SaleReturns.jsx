@@ -450,21 +450,7 @@ export const SaleReturns = () => {
                 </div>
               </div>
 
-              {/* 4. Reason / Notes */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 block mb-1">Reason / Notes</label>
-                <input
-                  type="text"
-                  value={editForm.reason}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, reason: e.target.value }))}
-                  placeholder="e.g. Kharab Maal, Wazan Farq"
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-orange-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
-
-              {/* 5. Modal Action Buttons */}
+              {/* Modal Action Buttons */}
               <div className="flex gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-700">
                 <button
                   type="button"

@@ -79,7 +79,6 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
 
   const [selectedItemIdx, setSelectedItemIdx] = useState(0);
   const [returnQty, setReturnQty] = useState('');
-  const [reason, setReason] = useState('Wazan Farq');
   const [refundMode, setRefundMode] = useState('Ledger'); // 'Ledger' | 'Cash'
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedReturn, setCompletedReturn] = useState(null);
@@ -158,7 +157,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
         }],
         refundAmount: refundAmount,
         refundMode: refundMode,
-        reason: reason,
+        reason: 'Purchase Return',
         date: new Date().toLocaleDateString('en-GB')
       });
 
@@ -374,56 +373,21 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                   </div>
                 </div>
 
-                {/* Return Reason & Settlement Mode */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Return Reason
-                    </label>
-                    <input
-                      type="text"
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      placeholder="e.g. Kharab Maal, Wazan Farq"
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                    />
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {['Wazan Farq', 'Kharab Maal', 'Nami / Moisture', 'Damage Bag', 'Rate Farq'].map(tag => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => setReason(tag)}
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition cursor-pointer ${
-                            reason === tag
-                              ? 'bg-rose-500 text-white border-rose-600 shadow-2xs'
-                              : theme === 'dark'
-                              ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
-                              : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                      Settlement Mode
-                    </label>
-                    <select
-                      value={refundMode}
-                      onChange={(e) => setRefundMode(e.target.value)}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                    >
-                      <option value="Ledger">Supplier Khata (Debit Note)</option>
-                      <option value="Cash">Cash Return (Refund)</option>
-                    </select>
-                  </div>
+                {/* Settlement Mode */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Settlement Mode
+                  </label>
+                  <select
+                    value={refundMode}
+                    onChange={(e) => setRefundMode(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="Ledger">Supplier Khata (Debit Note)</option>
+                    <option value="Cash">Cash Return (Refund)</option>
+                  </select>
                 </div>
               </>
             )}
