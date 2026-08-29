@@ -75,12 +75,6 @@ export const Ledger = () => {
   const [viewingEntry, setViewingEntry] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paymentForm, setPaymentForm] = useState({
-    partyId: '',
-    amount: '',
-    paymentMode: 'Cash',
-    note: 'Account settlement entry'
-  });
 
   // Sync state with customerId query parameter
   useEffect(() => {
@@ -569,24 +563,55 @@ export const Ledger = () => {
     window.print();
   };
 
-  // Record Payment Submit Handler
+  // Record Payment State
+  const [paymentForm, setPaymentForm] = useState({
+    partyType: isSupplier ? 'Supplier' : 'Customer',
+    partyId: '',
+    partyName: '',
+    amount: '',
+    paymentMode: 'Cash',
+    note: 'Account settlement entry'
+  });
+
+  // Record Payment Submit Handler (Handles both Customer and Supplier)
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
-    if (!paymentForm.partyId || isSubmitting) return;
+    if (!paymentForm.partyId || isSubmitting) {
+      alert('Please select a customer or supplier party.');
+      return;
+    }
 
     const amt = Math.max(1, Number(paymentForm.amount) || 0);
+    if (!amt) {
+      alert('Please enter a valid payment amount.');
+      return;
+    }
+
+    const isSup = paymentForm.partyType === 'Supplier';
+    const partyList = isSup ? suppliers : customerEntities;
+    const selectedEntity = partyList.find(p => String(p.id) === String(paymentForm.partyId));
+    const finalPartyName = selectedEntity?.name || paymentForm.partyName || (isSup ? 'Supplier' : 'Customer');
+
     setIsSubmitting(true);
     try {
       await recordPayment({
-        partyId: paymentForm.partyId,
-        partyType: isSupplier ? 'Supplier' : 'Customer',
+        partyId: String(paymentForm.partyId).startsWith('walkin-') ? null : paymentForm.partyId,
+        partyName: finalPartyName,
+        partyType: paymentForm.partyType,
         amount: amt,
         paymentMode: paymentForm.paymentMode,
-        note: paymentForm.note
+        note: paymentForm.note || `${paymentForm.partyType} ledger payment entry`
       });
 
       setShowPaymentModal(false);
-      setPaymentForm({ partyId: '', amount: '', paymentMode: 'Cash', note: 'Account settlement entry' });
+      setPaymentForm({
+        partyType: isSupplier ? 'Supplier' : 'Customer',
+        partyId: '',
+        partyName: '',
+        amount: '',
+        paymentMode: 'Cash',
+        note: 'Account settlement entry'
+      });
     } catch (err) {
       alert(err.message || 'Payment recording failed');
     } finally {
@@ -1486,118 +1511,246 @@ export const Ledger = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* RECORD PAYMENT MODAL */}
+      {/* RECORD PAYMENT MODAL (Supports both Customer Inflow & Supplier Outflow) */}
       {/* ========================================================================= */}
-      {showPaymentModal && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setShowPaymentModal(false); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-base font-extrabold flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-emerald-600" /> Record Ledger Payment
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowPaymentModal(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {showPaymentModal && (() => {
+        const isSup = paymentForm.partyType === 'Supplier';
+        const partyList = isSup ? (suppliers || []) : customerEntities;
+        const currentSelectedParty = partyList.find(p => String(p.id) === String(paymentForm.partyId));
+        const currentBal = Number(currentSelectedParty?.balance || 0);
+        const payAmt = Number(paymentForm.amount) || 0;
+        const projectedBal = currentBal - payAmt;
 
-            <form onSubmit={handlePaymentSubmit} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Select Customer / Party *</label>
-                <select
-                  required
-                  value={paymentForm.partyId}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, partyId: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                >
-                  <option value="">Choose Party</option>
-                  {customerEntities.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.customerType} • Bal: Rs. {p.balance.toLocaleString()})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Amount (Rs.) *</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  placeholder="Enter payment amount"
-                  value={paymentForm.amount}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Payment Mode</label>
-                  <select
-                    value={paymentForm.paymentMode}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, paymentMode: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    <option value="Cash">Cash on Counter</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Online">Online</option>
-                    <option value="Cheque">Cheque</option>
-                  </select>
+        return (
+          <div
+            onClick={(e) => { if (e.target === e.currentTarget) setShowPaymentModal(false); }}
+            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          >
+            <div className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold">Record Ledger Payment</h3>
+                    <p className="text-[11px] text-slate-400 font-bold">Post financial settlement for Customer or Supplier</p>
+                  </div>
                 </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Payment Note</label>
-                  <input
-                    type="text"
-                    value={paymentForm.note}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
-                    placeholder="e.g. Account settlement"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowPaymentModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Saving...' : 'Save Payment'}</span>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Party Type Segmented Switcher */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-black">
+                <button
+                  type="button"
+                  onClick={() => setPaymentForm(prev => ({ ...prev, partyType: 'Customer', partyId: '', amount: '' }))}
+                  className={`py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    !isSup
+                      ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Customer (Payment In)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentForm(prev => ({ ...prev, partyType: 'Supplier', partyId: '', amount: '' }))}
+                  className={`py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    isSup
+                      ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Supplier (Payment Out)</span>
+                </button>
+              </div>
+
+              <form onSubmit={handlePaymentSubmit} className="space-y-3.5">
+                {/* 1. Party Selector */}
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                    Select {isSup ? 'Supplier' : 'Customer / Party'} *
+                  </label>
+                  <select
+                    required
+                    value={paymentForm.partyId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      const selected = partyList.find(p => String(p.id) === String(id));
+                      setPaymentForm(prev => ({
+                        ...prev,
+                        partyId: id,
+                        partyName: selected?.name || '',
+                        amount: selected?.balance && Math.abs(selected.balance) > 0 ? String(Math.abs(selected.balance)) : prev.amount
+                      }));
+                    }}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[40px] ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="">Choose {isSup ? 'Supplier' : 'Customer'}</option>
+                    {partyList.map(p => {
+                      const bal = Number(p.balance || 0);
+                      const isNeg = bal < 0;
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.customerType || (isSup ? 'Supplier' : 'Customer')} • Bal: {isNeg ? `-Rs. ${Math.abs(bal).toLocaleString()}` : `Rs. ${bal.toLocaleString()}`})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Live Balance Summary Strip (when party is chosen) */}
+                {currentSelectedParty && (
+                  <div className={`p-3 rounded-2xl border grid grid-cols-3 gap-2 text-center text-xs ${
+                    theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50/80 border-slate-200'
+                  }`}>
+                    <div>
+                      <div className="text-[9px] font-black uppercase text-slate-400">Current Balance</div>
+                      <div className={`font-mono font-black mt-0.5 text-xs ${
+                        currentBal > 0 ? 'text-emerald-600 dark:text-emerald-400' :
+                        currentBal < 0 ? 'text-rose-600 dark:text-rose-400' :
+                        'text-slate-400'
+                      }`}>
+                        {currentBal < 0 ? `-Rs. ${Math.abs(currentBal).toLocaleString()}` : `Rs. ${currentBal.toLocaleString()}`}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[9px] font-black uppercase text-slate-400">Paying Amount</div>
+                      <div className="font-mono font-black mt-0.5 text-xs text-blue-600 dark:text-blue-400">
+                        Rs. {payAmt.toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[9px] font-black uppercase text-slate-400">New Balance</div>
+                      <div className={`font-mono font-black mt-0.5 text-xs ${
+                        projectedBal > 0 ? 'text-emerald-600 dark:text-emerald-400' :
+                        projectedBal < 0 ? 'text-rose-600 dark:text-rose-400' :
+                        'text-slate-400'
+                      }`}>
+                        {projectedBal < 0 ? `-Rs. ${Math.abs(projectedBal).toLocaleString()}` : `Rs. ${projectedBal.toLocaleString()}`}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Amount Input & Quick Fill */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-slate-400">Amount (Rs.) *</label>
+                    {currentSelectedParty && Math.abs(currentBal) > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentForm(prev => ({ ...prev, amount: String(Math.abs(currentBal)) }))}
+                        className="text-[10px] font-black text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                      >
+                        Set Full Balance (Rs. {Math.abs(currentBal).toLocaleString()})
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    placeholder="Enter payment amount"
+                    value={paymentForm.amount}
+                    onChange={(e) => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  />
+
+                  {/* Preset Quick Fill Pills */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[500, 1000, 2000, 5000, 10000].map(val => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setPaymentForm(prev => ({ ...prev, amount: String(val) }))}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
+                          theme === 'dark'
+                            ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
+                            : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        +Rs. {val.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Payment Mode & Notes */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Payment Mode</label>
+                    <select
+                      value={paymentForm.paymentMode}
+                      onChange={(e) => setPaymentForm(prev => ({ ...prev, paymentMode: e.target.value }))}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <option value="Cash">Cash on Counter</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Online">Online / Wallet</option>
+                      <option value="Cheque">Cheque</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Payment Note</label>
+                    <input
+                      type="text"
+                      value={paymentForm.note}
+                      onChange={(e) => setPaymentForm(prev => ({ ...prev, note: e.target.value }))}
+                      placeholder="e.g. Settlement receipt"
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* 4. Action Buttons */}
+                <div className="flex gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentModal(false)}
+                    className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{isSubmitting ? 'Saving...' : 'Save Payment'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
