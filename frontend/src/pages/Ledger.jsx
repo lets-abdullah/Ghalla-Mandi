@@ -564,7 +564,7 @@ export const Ledger = () => {
             <span>Balance Due</span>
           </div>
           <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${balanceDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-amber-600'}`}>
-{balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : 'Rs. 0'}
+            {balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : 'Rs. 0'}
           </div>
         </div>
       </div>
@@ -649,7 +649,7 @@ export const Ledger = () => {
                   </>
                 ) : (
                   <>
-                    <option value="All">All Customers (Regular & Walk-in)</option>
+                    <option value="All">All Customers</option>
                     {customerDropdownList.regular.length > 0 && (
                       <optgroup label="Regular Parties">
                         {customerDropdownList.regular.map(p => (
