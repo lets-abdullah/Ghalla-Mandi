@@ -18,7 +18,9 @@ import {
   List,
   MapPin,
   Phone,
-  Edit3
+  Edit3,
+  ShoppingBag,
+  AlertCircle
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -63,13 +65,26 @@ export const Khata = () => {
 
   const handleOpenEditModal = (item) => {
     const fullCust = customers.find(c => c.id === item.id) || item;
-    setEditingKhataCust(item);
+    const custSales = (sales || []).filter(s =>
+      s.customerId === item.id ||
+      (s.partyName && s.partyName.trim().toLowerCase() === (item.name || '').trim().toLowerCase())
+    );
+    const totalSale = item.totalSale !== undefined ? item.totalSale : custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
+    const totalPaid = item.totalPaid !== undefined ? item.totalPaid : custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+    const initialDue = Number(fullCust.balance !== undefined ? fullCust.balance : item.balance) || 0;
+
+    setEditingKhataCust({
+      ...item,
+      totalSale,
+      totalPaid,
+      initialDue
+    });
     setEditForm({
       name: fullCust.name || item.name || '',
       businessName: fullCust.businessName || fullCust.shopName || item.businessName || '',
       phone: fullCust.phone || item.phone || '',
       city: fullCust.city || item.city || '',
-      balance: Number(fullCust.balance !== undefined ? fullCust.balance : item.balance) || 0,
+      balance: initialDue,
       customerType: fullCust.customerType || item.customerType || 'Regular Customer'
     });
   };
@@ -888,7 +903,7 @@ export const Khata = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setEditingKhataCust(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
+          <div className={`rounded-3xl max-w-xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
@@ -898,7 +913,7 @@ export const Khata = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold">Edit Khata Account</h3>
-                  <p className="text-[11px] text-slate-400 font-bold">Update customer details and balance</p>
+                  <p className="text-[11px] text-slate-400 font-bold">Review customer ledger & manage remaining balance</p>
                 </div>
               </div>
               <button
@@ -908,6 +923,74 @@ export const Khata = () => {
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* Financial Ledger Metrics Banner (Total Amount, Paid Amount, Remaining Due) */}
+            <div className="grid grid-cols-3 gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
+              {/* 1. Total Bill / Purchases */}
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-slate-400">Total Billed</span>
+                  <ShoppingBag className="w-3 h-3 text-blue-500" />
+                </div>
+                <div className="text-xs sm:text-sm font-black font-mono text-slate-800 dark:text-slate-200">
+                  Rs. {Number(editingKhataCust.totalSale || 0).toLocaleString()}
+                </div>
+                <div className="text-[9px] text-slate-400 font-semibold">Total Purchases</div>
+              </div>
+
+              {/* 2. Paid Amount */}
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-slate-400">Total Paid</span>
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                </div>
+                <div className="text-xs sm:text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                  Rs. {Number(editingKhataCust.totalPaid || 0).toLocaleString()}
+                </div>
+                <div className="text-[9px] text-slate-400 font-semibold">Received so far</div>
+              </div>
+
+              {/* 3. Remaining Due Balance */}
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-slate-400">Remaining Due</span>
+                  <AlertCircle className="w-3 h-3 text-amber-500" />
+                </div>
+                <div className={`text-xs sm:text-sm font-black font-mono ${
+                  Number(editForm.balance) === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400'
+                }`}>
+                  Rs. {Number(editForm.balance || 0).toLocaleString()}
+                </div>
+                <div className="text-[9px] text-slate-400 font-semibold">Khata Balance</div>
+              </div>
+            </div>
+
+            {/* Quick Balance Settlement Shortcuts */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
+              <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 font-bold text-[11px]">
+                <span>Quick Settlement:</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Click to clear or reset dues</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setEditForm(prev => ({ ...prev, balance: 0 }))}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] transition cursor-pointer shadow-xs flex items-center gap-1"
+                >
+                  <Check className="w-3 h-3" />
+                  <span>Mark Fully Paid (Rs. 0 Due)</span>
+                </button>
+                {editingKhataCust.initialDue !== undefined && editingKhataCust.initialDue !== Number(editForm.balance) && (
+                  <button
+                    type="button"
+                    onClick={() => setEditForm(prev => ({ ...prev, balance: editingKhataCust.initialDue }))}
+                    className="px-2 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-[10px] transition cursor-pointer hover:bg-slate-300"
+                  >
+                    Reset (Rs. {editingKhataCust.initialDue.toLocaleString()})
+                  </button>
+                )}
+              </div>
             </div>
 
             <form onSubmit={handleSaveKhataEdit} className="space-y-3.5">
@@ -985,16 +1068,38 @@ export const Khata = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Account Balance (Rs.)</label>
-                  <input
-                    type="number"
-                    value={editForm.balance}
-                    onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })}
-                    placeholder="0"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono text-amber-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-400">Remaining Due Balance (Rs.)</label>
+                    {Number(editForm.balance) === 0 ? (
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Cleared</span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-amber-500">Pending Due</span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={editForm.balance}
+                      onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })}
+                      placeholder="0"
+                      className={`w-full border rounded-xl px-3 py-2 pr-14 text-xs font-black outline-none focus:border-brand-500 font-mono ${
+                        Number(editForm.balance) === 0
+                          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
+                          : 'text-amber-500 dark:text-amber-400 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEditForm(prev => ({ ...prev, balance: 0 }))}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white text-[10px] font-bold transition cursor-pointer"
+                      title="Set to Rs. 0 (Fully Paid)"
+                    >
+                      Set 0
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1 font-medium">
+                    Input 0 to mark fully cleared, or adjust to custom remaining amount.
+                  </p>
                 </div>
               </div>
 
