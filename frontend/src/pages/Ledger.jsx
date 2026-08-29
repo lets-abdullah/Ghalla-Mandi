@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Printer,
@@ -16,31 +16,60 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Eye,
-  CreditCard
+  CreditCard,
+  ArrowLeft,
+  ArrowRight,
+  Plus,
+  Building2,
+  LayoutGrid,
+  List,
+  Wallet,
+  Phone,
+  MapPin,
+  FileText
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const Ledger = () => {
-  const { customers = [], suppliers = [], products = [], sales = [], purchases = [], paymentLogs = [], saleReturns = [], purchaseReturns = [], recordPayment } = useERP();
+  const {
+    customers = [],
+    suppliers = [],
+    products = [],
+    sales = [],
+    purchases = [],
+    paymentLogs = [],
+    saleReturns = [],
+    purchaseReturns = [],
+    recordPayment
+  } = useERP();
+
   const { theme } = useTheme();
   const { t } = useLocale();
-  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Ledger mode: 'Customer' (default) or 'Supplier'
   const typeParam = searchParams.get('type');
   const isSupplier = typeParam && (typeParam.toLowerCase() === 'supplier' || typeParam.toLowerCase() === 'suppliers');
   const customerIdParam = searchParams.get('customerId');
 
-  // Filters State
-  const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Customer' | 'Walk-in Customer'
+  // Active view: 'All' (Customer List View) OR specific party ID / Name (Customer Complete Ledger View)
   const [selectedPartyId, setSelectedPartyId] = useState(customerIdParam || 'All');
-  const [selectedProductFilter, setSelectedProductFilter] = useState('All');
+
+  // Customer List View Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Customer' | 'Walk-in Customer'
+  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Receivable' | 'Payable' | 'Settled'
+  const [viewMode, setViewMode] = useState('table'); // 'table' | 'card'
+
+  // Single Customer Ledger View Filters
   const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'This Week' | 'This Month' | 'Custom'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [txTypeFilter, setTxTypeFilter] = useState('All'); // 'All' | 'Sales' | 'Payments' | 'Returns'
+  const [txSearchQuery, setTxSearchQuery] = useState('');
 
   // Modals state
   const [viewingEntry, setViewingEntry] = useState(null);
@@ -53,12 +82,24 @@ export const Ledger = () => {
     note: 'Account settlement entry'
   });
 
-  // Sync with customerId from URL if present
+  // Sync state with customerId query parameter
   useEffect(() => {
     if (customerIdParam) {
       setSelectedPartyId(customerIdParam);
     }
   }, [customerIdParam]);
+
+  // Keyboard Escape listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (viewingEntry) setViewingEntry(null);
+        else if (showPaymentModal) setShowPaymentModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewingEntry, showPaymentModal]);
 
   // Robust Date Parser helper
   const parseLedgerDate = (dateStr) => {
@@ -121,98 +162,7 @@ export const Ledger = () => {
     return true;
   };
 
-  // Grouped Customers list for Ledger Dropdown (Regular & Walk-in)
-  const customerDropdownList = useMemo(() => {
-    const regular = [];
-    const walkinMap = new Map();
-
-    // 1. Registered Customers
-    (customers || []).forEach(c => {
-      const isWalkin = (c.customerType || c.customertype || '').toLowerCase().includes('walk-in');
-      if (isWalkin) {
-        const rawName = (c.name || 'Walk-in Customer').trim();
-        const key = rawName.toLowerCase();
-        if (!walkinMap.has(key)) {
-          walkinMap.set(key, {
-            id: c.id || `walkin-${rawName}`,
-            rawName,
-            name: rawName,
-            city: c.city || 'Walk-in Party',
-            type: 'Walk-in'
-          });
-        }
-      } else {
-        regular.push({
-          id: c.id,
-          name: c.name,
-          city: c.city || 'Local Mandi',
-          type: 'Regular'
-        });
-      }
-    });
-
-    // 2. Walk-in customers extracted from sales
-    (sales || []).forEach(s => {
-      const custObj = (customers || []).find(c => c.id === s.customerId || c.name === s.partyName);
-      const isWalkin = !custObj || (custObj?.customerType || s.customerType || '').toLowerCase().includes('walk-in');
-      if (isWalkin) {
-        const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
-        const key = rawName.toLowerCase();
-        if (!walkinMap.has(key)) {
-          walkinMap.set(key, {
-            id: `walkin-${rawName}`,
-            rawName,
-            name: rawName,
-            city: 'Walk-in Party',
-            type: 'Walk-in'
-          });
-        }
-      }
-    });
-
-    // 3. Payment logs
-    (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer').forEach(p => {
-      const custObj = (customers || []).find(c => c.id === p.partyId || c.name === p.partyName);
-      const isWalkin = !custObj || (custObj?.customerType || '').toLowerCase().includes('walk-in');
-      if (isWalkin) {
-        const rawName = (p.partyName || custObj?.name || 'Walk-in Customer').trim();
-        const key = rawName.toLowerCase();
-        if (!walkinMap.has(key)) {
-          walkinMap.set(key, {
-            id: `walkin-${rawName}`,
-            rawName,
-            name: rawName,
-            city: 'Walk-in Party',
-            type: 'Walk-in'
-          });
-        }
-      }
-    });
-
-    // 4. Sale returns
-    (saleReturns || []).forEach(r => {
-      const custObj = (customers || []).find(c => c.id === r.customerId || c.name === r.customerName);
-      const isWalkin = !custObj || (custObj?.customerType || '').toLowerCase().includes('walk-in');
-      if (isWalkin) {
-        const rawName = (r.customerName || custObj?.name || 'Walk-in Customer').trim();
-        const key = rawName.toLowerCase();
-        if (!walkinMap.has(key)) {
-          walkinMap.set(key, {
-            id: `walkin-${rawName}`,
-            rawName,
-            name: rawName,
-            city: 'Walk-in Party',
-            type: 'Walk-in'
-          });
-        }
-      }
-    });
-
-    const walkin = Array.from(walkinMap.values());
-    return { regular, walkin };
-  }, [customers, sales, paymentLogs, saleReturns]);
-
-  // Build Chronological Ledger Entries
+  // Build Chronological Ledger Entries across all data
   const rawLedgerEntries = useMemo(() => {
     const entries = [];
 
@@ -224,13 +174,14 @@ export const Ledger = () => {
           (s.partyName || '').toLowerCase().includes('walk-in') || !s.customerId;
         const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
         const rawParty = (s.partyName || s.customerName || 'Walk-in Customer').trim();
-        const partyId = s.customerId || custObj?.id || `walkin-${rawParty}`;
+        const partyId = s.customerId ? String(s.customerId) : (custObj?.id ? String(custObj.id) : `walkin-${rawParty}`);
         const partyName = custObj?.name || rawParty;
 
         const itemsSummary = Array.isArray(s.cart) && s.cart.length > 0
           ? s.cart.map(i => `${i.name} (${i.qty} ${i.unitName || i.unit || 'KG'})`).join(', ')
           : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
 
+        // 1. Sale Invoice Entry (Debit)
         entries.push({
           id: `sale-${s.id}`,
           rawDate: s.date,
@@ -240,13 +191,13 @@ export const Ledger = () => {
           customerType: custType,
           ref: s.invoiceNo || 'SALE',
           txType: 'Sales',
-          desc: itemsSummary,
+          desc: `Invoice: ${itemsSummary}`,
           debit: Number(s.amount || s.grandTotal || 0),
           credit: 0,
           notes: s.note || ''
         });
 
-        // Direct cash payment on counter
+        // 2. Direct payment received on counter (Credit)
         const paidAmt = Number(s.paidAmount || (s.status === 'Paid' ? (s.amount || s.grandTotal) : 0));
         if (paidAmt > 0) {
           entries.push({
@@ -256,25 +207,25 @@ export const Ledger = () => {
             partyId,
             partyName,
             customerType: custType,
-            ref: `RCP-${s.invoiceNo}`,
+            ref: `RCP-${s.invoiceNo || s.id}`,
             txType: 'Payments',
-            desc: `Cash Received against ${s.invoiceNo}`,
+            desc: `Payment Received against ${s.invoiceNo || 'Sale'}`,
             debit: 0,
             credit: paidAmt,
             items: s.cart || s.items || [],
-            productNames: ((s.cart || s.items || []).map(i => i.name || i.productName).join(' ') + ' ' + (s.productName || '')).trim(),
+            productNames: '',
             notes: s.paymentMode || 'Counter Payment'
           });
         }
       });
 
-      // Additional Standalone Payment Logs
+      // Additional Standalone Payment Logs (Credit)
       (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer').forEach(p => {
-        const custObj = customers.find(c => c.id === p.partyId || c.name === p.partyName);
+        const custObj = customers.find(c => String(c.id) === String(p.partyId) || c.name === p.partyName);
         const isWalkin = (custObj?.customerType || '').toLowerCase().includes('walk-in') || !custObj;
         const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
         const rawParty = (p.partyName || custObj?.name || 'Customer').trim();
-        const partyId = p.partyId || custObj?.id || `walkin-${rawParty}`;
+        const partyId = p.partyId ? String(p.partyId) : (custObj?.id ? String(custObj.id) : `walkin-${rawParty}`);
 
         entries.push({
           id: `pay-${p.id}`,
@@ -285,7 +236,7 @@ export const Ledger = () => {
           customerType: custType,
           ref: p.ref || `PAY-${p.id}`,
           txType: 'Payments',
-          desc: `Account Payment (${p.mode || p.paymentMode || 'Cash'})`,
+          desc: `Payment: ${p.mode || p.paymentMode || 'Cash'}`,
           debit: 0,
           credit: Number(p.amount || 0),
           items: [],
@@ -294,13 +245,13 @@ export const Ledger = () => {
         });
       });
 
-      // Sale Returns
+      // Sale Returns (Credit)
       (saleReturns || []).forEach(r => {
-        const custObj = customers.find(c => c.id === r.customerId || c.name === r.customerName);
+        const custObj = customers.find(c => String(c.id) === String(r.customerId) || c.name === r.customerName);
         const isWalkin = (custObj?.customerType || '').toLowerCase().includes('walk-in') || !custObj;
         const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
         const rawParty = (r.customerName || custObj?.name || 'Customer').trim();
-        const partyId = r.customerId || custObj?.id || `walkin-${rawParty}`;
+        const partyId = r.customerId ? String(r.customerId) : (custObj?.id ? String(custObj.id) : `walkin-${rawParty}`);
 
         entries.push({
           id: `ret-${r.id}`,
@@ -311,53 +262,53 @@ export const Ledger = () => {
           customerType: custType,
           ref: r.returnNo || `RET-${r.id}`,
           txType: 'Returns',
-          desc: `Sale Return Credit (${r.refundMode || 'Ledger'})`,
+          desc: `Return: ${r.reason || 'Sale Return Credit'}`,
           debit: 0,
           credit: Number(r.refundAmount || 0),
           items: r.items || [],
-          productNames: ((r.items || []).map(i => i.name || i.productName).join(' ')).trim(),
+          productNames: '',
           notes: r.reason || ''
         });
       });
     } else {
       // Supplier Ledger Transactions
       (purchases || []).forEach(p => {
-        const supObj = suppliers.find(s => s.id === p.supplierId || s.name === (p.supplier || p.supplierName));
+        const supObj = suppliers.find(s => String(s.id) === String(p.supplierId) || s.name === (p.supplier || p.supplierName));
+        const partyId = p.supplierId ? String(p.supplierId) : (supObj?.id ? String(supObj.id) : null);
         const pItems = p.cart || p.items || [];
-        const pProdNames = (Array.isArray(pItems) ? pItems.map(i => i.name || i.productName).join(' ') : '') + ' ' + (p.productName || (typeof p.items === 'string' ? p.items : ''));
 
         entries.push({
           id: `pur-${p.id}`,
           rawDate: p.date,
           date: p.date || 'N/A',
-          partyId: p.supplierId || supObj?.id || null,
+          partyId,
           partyName: p.supplier || p.supplierName || 'Supplier',
           customerType: 'Supplier',
-          ref: p.purchaseNo || 'PUR',
+          ref: p.purchaseNo || `PUR-${p.id}`,
           txType: 'Purchases',
-          desc: `Purchase Inward Entry`,
-          debit: 0,
-          credit: Number(p.amount || 0),
+          desc: `Purchase: Inward stock procurement`,
+          debit: Number(p.amount || 0),
+          credit: 0,
           items: pItems,
-          productNames: pProdNames.trim(),
+          productNames: '',
           notes: ''
         });
       });
 
       (paymentLogs || []).filter(p => p.type === 'Supplier' || p.partyType === 'Supplier').forEach(p => {
-        const supObj = suppliers.find(s => s.id === p.partyId || s.name === p.partyName);
+        const supObj = suppliers.find(s => String(s.id) === String(p.partyId) || s.name === p.partyName);
         entries.push({
           id: `pay-sup-${p.id}`,
           rawDate: p.date,
           date: p.date || 'N/A',
-          partyId: p.partyId || supObj?.id || null,
+          partyId: p.partyId ? String(p.partyId) : (supObj?.id ? String(supObj.id) : null),
           partyName: p.partyName || supObj?.name || 'Supplier',
           customerType: 'Supplier',
           ref: p.ref || `PAY-${p.id}`,
           txType: 'Payments',
           desc: `Supplier Payment Out (${p.mode || p.paymentMode || 'Cash'})`,
-          debit: Number(p.amount || 0),
-          credit: 0,
+          debit: 0,
+          credit: Number(p.amount || 0),
           items: [],
           productNames: '',
           notes: p.note || ''
@@ -365,27 +316,27 @@ export const Ledger = () => {
       });
 
       (purchaseReturns || []).forEach(r => {
-        const supObj = suppliers.find(s => s.id === r.supplierId || s.name === r.supplierName);
+        const supObj = suppliers.find(s => String(s.id) === String(r.supplierId) || s.name === r.supplierName);
         entries.push({
           id: `pret-${r.id}`,
           rawDate: r.date,
           date: r.date || 'N/A',
-          partyId: r.supplierId || supObj?.id || null,
+          partyId: r.supplierId ? String(r.supplierId) : (supObj?.id ? String(supObj.id) : null),
           partyName: r.supplierName || supObj?.name || 'Supplier',
           customerType: 'Supplier',
           ref: r.returnNo || `PR-${r.id}`,
           txType: 'Returns',
-          desc: `Purchase Return Debit Note (${r.refundMode || 'Ledger'})`,
-          debit: Number(r.refundAmount || 0),
-          credit: 0,
+          desc: `Purchase Return (${r.refundMode || 'Ledger'})`,
+          debit: 0,
+          credit: Number(r.refundAmount || 0),
           items: r.items || [],
-          productNames: ((r.items || []).map(i => i.name || i.productName).join(' ')).trim(),
+          productNames: '',
           notes: r.reason || ''
         });
       });
     }
 
-    // Sort chronologically by date
+    // Sort chronologically (oldest to newest)
     entries.sort((a, b) => {
       const da = parseLedgerDate(a.rawDate) || new Date(0);
       const db = parseLedgerDate(b.rawDate) || new Date(0);
@@ -395,83 +346,230 @@ export const Ledger = () => {
     return entries;
   }, [sales, purchases, paymentLogs, saleReturns, purchaseReturns, customers, suppliers, isSupplier]);
 
-  // Filter and Calculate Running Balance
-  const filteredLedger = useMemo(() => {
-    let runningBalance = 0;
+  // Aggregate Customer / Party Entities for the Customer-First List View
+  const customerEntities = useMemo(() => {
+    const map = new Map();
 
-    return rawLedgerEntries.filter(entry => {
-      // 1. Party Filter (Supplier or Customer)
-      if (selectedPartyId !== 'All') {
-        const selLower = String(selectedPartyId).trim().toLowerCase();
-        const entryIdLower = String(entry.partyId || '').trim().toLowerCase();
-        const entryNameLower = String(entry.partyName || '').trim().toLowerCase();
+    // 1. Initialize registered entities
+    if (!isSupplier) {
+      (customers || []).forEach(cust => {
+        const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
+        const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
+        const key = String(cust.id);
+        map.set(key, {
+          id: key,
+          name: cust.name,
+          businessName: cust.businessName || cust.shopName || '',
+          phone: cust.phone || '',
+          city: cust.city || 'Local Mandi',
+          customerType: custType,
+          isWalkin,
+          totalDebit: 0,
+          totalCredit: 0,
+          txCount: 0,
+          lastTxDate: null
+        });
+      });
+    } else {
+      (suppliers || []).forEach(sup => {
+        const key = String(sup.id);
+        map.set(key, {
+          id: key,
+          name: sup.name,
+          businessName: sup.businessName || '',
+          phone: sup.phone || '',
+          city: sup.city || 'Local Mandi',
+          customerType: 'Supplier',
+          isWalkin: false,
+          totalDebit: 0,
+          totalCredit: 0,
+          txCount: 0,
+          lastTxDate: null
+        });
+      });
+    }
 
-        const matchId = entryIdLower === selLower;
-        const matchName = entryNameLower === selLower;
-        const matchWalkinId = selLower === `walkin-${entryNameLower}` || entryIdLower === `walkin-${selLower}`;
-        if (!matchId && !matchName && !matchWalkinId) return false;
+    // 2. Aggregate transactions from rawLedgerEntries
+    rawLedgerEntries.forEach(entry => {
+      let key = String(entry.partyId || '').trim();
+      if (!key || key === 'null' || key === 'undefined') {
+        key = `walkin-${(entry.partyName || 'Walk-in Customer').trim()}`;
       }
 
-      // 2. Customer Type Filter
-      if (!isSupplier) {
-        const isWalkin = (entry.customerType || '').toLowerCase().includes('walk-in');
-        if (customerTypeFilter === 'Regular Customer' && isWalkin) return false;
-        if (customerTypeFilter === 'Walk-in Customer' && !isWalkin) return false;
-      }
-
-      // 3. Product Filter
-      if (selectedProductFilter !== 'All') {
-        const prodMatch = (entry.productNames || '').toLowerCase().includes(selectedProductFilter.toLowerCase()) ||
-          (entry.items || []).some(it =>
-            (it.name || it.productName || '').toLowerCase() === selectedProductFilter.toLowerCase() ||
-            it.productId === selectedProductFilter
-          );
-        if (!prodMatch && (entry.txType === 'Sales' || entry.txType === 'Purchases' || entry.txType === 'Returns')) {
-          return false;
+      if (!map.has(key)) {
+        // Look up by matching name
+        const matchKey = Array.from(map.keys()).find(k => (map.get(k).name || '').trim().toLowerCase() === (entry.partyName || '').trim().toLowerCase());
+        if (matchKey) {
+          key = matchKey;
+        } else {
+          const isWalkin = (entry.customerType || '').toLowerCase().includes('walk-in') || !isSupplier;
+          map.set(key, {
+            id: key,
+            name: entry.partyName || 'Walk-in Customer',
+            businessName: isWalkin ? 'Walk-in Party' : '',
+            phone: '',
+            city: 'Local Mandi',
+            customerType: entry.customerType || (isSupplier ? 'Supplier' : 'Walk-in Customer'),
+            isWalkin,
+            totalDebit: 0,
+            totalCredit: 0,
+            txCount: 0,
+            lastTxDate: null
+          });
         }
       }
 
-      // 4. Date Filter
-      if (!matchDate(entry.rawDate)) return false;
+      const entity = map.get(key);
+      entity.totalDebit += Number(entry.debit || 0);
+      entity.totalCredit += Number(entry.credit || 0);
+      entity.txCount += 1;
+      if (entry.date && entry.date !== 'N/A') {
+        entity.lastTxDate = entry.date;
+      }
+    });
 
-      // 5. Transaction Type Filter
-      if (txTypeFilter === 'Sales' && entry.txType !== 'Sales' && entry.txType !== 'Purchases') return false;
-      if (txTypeFilter === 'Payments' && entry.txType !== 'Payments') return false;
-      if (txTypeFilter === 'Returns' && entry.txType !== 'Returns') return false;
+    // 3. Compute final balance & status for each customer entity
+    const list = Array.from(map.values()).map(entity => {
+      const balance = entity.totalDebit - entity.totalCredit;
+      let status = 'Settled';
+      if (balance > 0) status = 'Receivable';
+      else if (balance < 0) status = 'Payable';
+
+      return {
+        ...entity,
+        balance,
+        status
+      };
+    });
+
+    // Sort by largest financial activity first
+    return list.sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance));
+  }, [customers, suppliers, rawLedgerEntries, isSupplier]);
+
+  // Filtered Customer Entities for the Customer List View
+  const filteredCustomerEntities = useMemo(() => {
+    return customerEntities.filter(c => {
+      // Customer Type Filter
+      if (customerTypeFilter === 'Regular Customer' && c.isWalkin) return false;
+      if (customerTypeFilter === 'Walk-in Customer' && !c.isWalkin) return false;
+
+      // Status Filter
+      if (statusFilter === 'Receivable' && c.balance <= 0) return false;
+      if (statusFilter === 'Payable' && c.balance >= 0) return false;
+      if (statusFilter === 'Settled' && c.balance !== 0) return false;
+
+      // Search Query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const nameMatch = (c.name || '').toLowerCase().includes(q);
+        const shopMatch = (c.businessName || '').toLowerCase().includes(q);
+        const phoneMatch = (c.phone || '').toLowerCase().includes(q);
+        const cityMatch = (c.city || '').toLowerCase().includes(q);
+        if (!nameMatch && !shopMatch && !phoneMatch && !cityMatch) return false;
+      }
 
       return true;
-    }).map(entry => {
+    });
+  }, [customerEntities, customerTypeFilter, statusFilter, searchQuery]);
+
+  // Customer List Aggregate KPI Totals
+  const totalReceivable = useMemo(() => {
+    return customerEntities.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0);
+  }, [customerEntities]);
+
+  const totalPayable = useMemo(() => {
+    return customerEntities.reduce((sum, c) => sum + (c.balance < 0 ? Math.abs(c.balance) : 0), 0);
+  }, [customerEntities]);
+
+  const settledCount = useMemo(() => {
+    return customerEntities.filter(c => c.balance === 0).length;
+  }, [customerEntities]);
+
+  // Currently Selected Active Customer Object (when viewing complete ledger)
+  const activeCustomer = useMemo(() => {
+    if (selectedPartyId === 'All') return null;
+    const selLower = String(selectedPartyId).trim().toLowerCase();
+    return customerEntities.find(c =>
+      String(c.id).toLowerCase() === selLower ||
+      (c.name || '').trim().toLowerCase() === selLower ||
+      `walkin-${(c.name || '').trim().toLowerCase()}` === selLower
+    ) || {
+      id: selectedPartyId,
+      name: selectedPartyId,
+      businessName: '',
+      phone: '',
+      city: 'Local Mandi',
+      customerType: 'Party Account',
+      balance: 0,
+      totalDebit: 0,
+      totalCredit: 0,
+      status: 'Settled'
+    };
+  }, [customerEntities, selectedPartyId]);
+
+  // Single Customer Chronological Ledger with Running Balance
+  const singleCustomerLedger = useMemo(() => {
+    if (selectedPartyId === 'All') return [];
+    const selLower = String(selectedPartyId).trim().toLowerCase();
+
+    // 1. Filter transactions belonging to this customer
+    const partyEntries = rawLedgerEntries.filter(entry => {
+      const entryIdLower = String(entry.partyId || '').trim().toLowerCase();
+      const entryNameLower = String(entry.partyName || '').trim().toLowerCase();
+
+      const matchId = entryIdLower === selLower;
+      const matchName = entryNameLower === selLower;
+      const matchWalkinId = selLower === `walkin-${entryNameLower}` || entryIdLower === `walkin-${selLower}`;
+
+      return matchId || matchName || matchWalkinId;
+    });
+
+    // 2. Compute Running Balance chronologically
+    let runningBalance = 0;
+    const computed = partyEntries.map(entry => {
       runningBalance += (entry.debit - entry.credit);
       return {
         ...entry,
         runningBalance
       };
-    }).reverse();
-  }, [rawLedgerEntries, selectedPartyId, selectedProductFilter, customerTypeFilter, dateFilterType, customStartDate, customEndDate, txTypeFilter, isSupplier]);
+    });
 
-  // Aggregate stats (clean terminology, no Cr / Dr)
-  const totalSalesAmount = filteredLedger.reduce((sum, e) => sum + e.debit, 0);
-  const totalPaymentsAmount = filteredLedger.reduce((sum, e) => sum + e.credit, 0);
-  const balanceDue = Math.max(0, totalSalesAmount - totalPaymentsAmount);
+    // 3. Apply inside-ledger filters (date, txType, search)
+    return computed.filter(entry => {
+      if (!matchDate(entry.rawDate)) return false;
+      if (txTypeFilter === 'Sales' && entry.txType !== 'Sales' && entry.txType !== 'Purchases') return false;
+      if (txTypeFilter === 'Payments' && entry.txType !== 'Payments') return false;
+      if (txTypeFilter === 'Returns' && entry.txType !== 'Returns') return false;
+      if (txSearchQuery.trim()) {
+        const q = txSearchQuery.toLowerCase().trim();
+        const refMatch = (entry.ref || '').toLowerCase().includes(q);
+        const descMatch = (entry.desc || '').toLowerCase().includes(q);
+        if (!refMatch && !descMatch) return false;
+      }
+      return true;
+    }).reverse(); // Latest transaction at the top for reading
+  }, [rawLedgerEntries, selectedPartyId, dateFilterType, customStartDate, customEndDate, txTypeFilter, txSearchQuery]);
 
-  const isAnyFilterActive = (
-    customerTypeFilter !== 'All' ||
-    selectedPartyId !== 'All' ||
-    dateFilterType !== 'All' ||
-    customStartDate !== '' ||
-    customEndDate !== '' ||
-    txTypeFilter !== 'All'
-  );
-
-  const resetAllFilters = () => {
-    setCustomerTypeFilter('All');
-    setSelectedPartyId('All');
-    setDateFilterType('All');
-    setCustomStartDate('');
-    setCustomEndDate('');
+  // Handle Switching to a Customer's Ledger
+  const handleOpenCustomerLedger = (cust) => {
+    setSelectedPartyId(String(cust.id));
     setTxTypeFilter('All');
+    setDateFilterType('All');
+    setTxSearchQuery('');
   };
 
+  // Handle Going Back to Customers List
+  const handleBackToCustomers = () => {
+    setSelectedPartyId('All');
+    setSearchParams(isSupplier ? { type: 'Supplier' } : {});
+  };
+
+  // Print Ledger Function
+  const handlePrintLedger = () => {
+    window.print();
+  };
+
+  // Record Payment Submit Handler
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     if (!paymentForm.partyId || isSubmitting) return;
@@ -498,438 +596,807 @@ export const Ledger = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
+      {/* ========================================================================= */}
+      {/* 1. TOP HEADER & ACTION BAR */}
+      {/* ========================================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-brand-500" />
-            <span>{isSupplier ? 'Supplier Ledger' : 'Customer Ledger'}</span>
-          </h1>
+          <div className="flex items-center gap-2">
+            {selectedPartyId !== 'All' && (
+              <button
+                type="button"
+                onClick={handleBackToCustomers}
+                className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition cursor-pointer"
+                title="Back to Customers"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
+            <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
+              <BookOpen className="w-6 h-6 text-brand-500" />
+              <span>
+                {selectedPartyId === 'All'
+                  ? (isSupplier ? 'Supplier Ledger' : 'Customer Ledger')
+                  : `${activeCustomer?.name || 'Customer'} — Complete Ledger`}
+              </span>
+            </h1>
+          </div>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Complete transaction history of sales, purchases, and payments
+            {selectedPartyId === 'All'
+              ? 'Select any customer entity to view their detailed chronological ledger statement'
+              : `Complete statement of all invoices, payments, and running balance for ${activeCustomer?.name}`}
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => setShowPaymentModal(true)}
-            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
-          >
-            <CreditCard className="w-4 h-4" />
-            <span>Record Payment</span>
-          </button>
-
-          <button
-            onClick={() => window.print()}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print Ledger</span>
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Cards Row (Clean user-friendly labels without Cr/Dr) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Total Sales / Purchases */}
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-          }`}>
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <ArrowUpRight className="w-4 h-4 text-blue-600" />
-            <span>{isSupplier ? 'Total Purchases' : 'Total Sales'}</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
-            Rs. {totalSalesAmount.toLocaleString()}
-          </div>
-        </div>
-
-        {/* Total Payments */}
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-          }`}>
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <ArrowDownLeft className="w-4 h-4 text-emerald-600" />
-            <span>Total Payments</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
-            Rs. {totalPaymentsAmount.toLocaleString()}
-          </div>
-        </div>
-
-        {/* Balance Due (Clean simple balance) */}
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
-          }`}>
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-amber-600" />
-            <span>Balance Due</span>
-          </div>
-          <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${balanceDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-amber-600'}`}>
-            {balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : 'Rs. 0'}
-          </div>
-        </div>
-      </div>
-
-      {/* Ledger Filter Toolbar */}
-      <div className={`border rounded-3xl p-3.5 sm:p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-        }`}>
-        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3">
-          {/* 1. Customer Type (Only if Customer Ledger) OR Supplier Selector (If Supplier Ledger) */}
-          {isSupplier ? (
-            <div className="flex-1 min-w-[140px]">
-              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-                <UserCheck className="w-3.5 h-3.5 text-brand-500" />
-                <span>Supplier</span>
-              </label>
-              <select
-                value={selectedPartyId}
-                onChange={(e) => setSelectedPartyId(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+          {selectedPartyId !== 'All' ? (
+            <>
+              <button
+                type="button"
+                onClick={handleBackToCustomers}
+                className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                }`}
               >
-                <option value="All">All Suppliers</option>
-                {suppliers.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} {p.city ? `(${p.city})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div className="flex-1 min-w-[130px]">
-              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-brand-500" />
-                <span>Customer Type</span>
-              </label>
-              <select
-                value={customerTypeFilter}
-                onChange={(e) => {
-                  setCustomerTypeFilter(e.target.value);
-                  setSelectedPartyId('All');
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Customers</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePrintLedger}
+                className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                }`}
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print Ledger</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentForm({
+                    partyId: activeCustomer?.id || '',
+                    amount: Math.abs(activeCustomer?.balance || 0) || '',
+                    paymentMode: 'Cash',
+                    note: `Settlement for ${activeCustomer?.name}`
+                  });
+                  setShowPaymentModal(true);
                 }}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
               >
-                <option value="All">All Customer Types</option>
-                <option value="Regular Customer">Regular Customers ({customerDropdownList.regular.length})</option>
-                <option value="Walk-in Customer">Walk-in Customers ({customerDropdownList.walkin.length})</option>
-              </select>
-            </div>
-          )}
-
-          {/* 2. Select Customer (if Customer Ledger) OR Product (if Supplier Ledger) */}
-          {!isSupplier ? (
-            <div className="flex-1 min-w-[140px]">
-              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-blue-500" />
-                <span>{customerTypeFilter === 'Walk-in Customer' ? 'Walk-in Customer' : customerTypeFilter === 'Regular Customer' ? 'Regular Customer' : 'Customer'}</span>
-              </label>
-              <select
-                value={selectedPartyId}
-                onChange={(e) => setSelectedPartyId(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              >
-                {customerTypeFilter === 'Walk-in Customer' ? (
-                  <>
-                    <option value="All">All Walk-in Customers ({customerDropdownList.walkin.length})</option>
-                    {customerDropdownList.walkin.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} (Walk-in)
-                      </option>
-                    ))}
-                  </>
-                ) : customerTypeFilter === 'Regular Customer' ? (
-                  <>
-                    <option value="All">All Regular Customers ({customerDropdownList.regular.length})</option>
-                    {customerDropdownList.regular.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} {p.city ? `(${p.city})` : ''}
-                      </option>
-                    ))}
-                  </>
-                ) : (
-                  <>
-                    <option value="All">All Customers</option>
-                    {customerDropdownList.regular.length > 0 && (
-                      <optgroup label="Regular Parties">
-                        {customerDropdownList.regular.map(p => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} {p.city ? `(${p.city})` : ''}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    {customerDropdownList.walkin.length > 0 && (
-                      <optgroup label="Walk-in Parties">
-                        {customerDropdownList.walkin.map(p => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} (Walk-in)
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                  </>
-                )}
-              </select>
-            </div>
+                <Plus className="w-4 h-4" />
+                <span>Record Payment</span>
+              </button>
+            </>
           ) : (
-            <div className="flex-1 min-w-[140px]">
-              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-                <Package className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Product</span>
-              </label>
-              <select
-                value={selectedProductFilter}
-                onChange={(e) => setSelectedProductFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+            <>
+              <button
+                type="button"
+                onClick={handlePrintLedger}
+                className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                }`}
               >
-                <option value="All">All Products</option>
-                {products.map(p => (
-                  <option key={p.id} value={p.name}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
+                <Printer className="w-4 h-4" />
+                <span>Print Summary</span>
+              </button>
 
-          {/* 3. Product (for Customer Ledger) OR Date Filter (for Supplier Ledger) */}
-          {!isSupplier ? (
-            <div className="flex-1 min-w-[140px]">
-              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-                <Package className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Product</span>
-              </label>
-              <select
-                value={selectedProductFilter}
-                onChange={(e) => setSelectedProductFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentForm({
+                    partyId: '',
+                    amount: '',
+                    paymentMode: 'Cash',
+                    note: 'Account settlement entry'
+                  });
+                  setShowPaymentModal(true);
+                }}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
               >
-                <option value="All">All Products</option>
-                {products.map(p => (
-                  <option key={p.id} value={p.name}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div className="flex-1 min-w-[130px]">
-              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Date Filter</span>
-              </label>
-              <select
-                value={dateFilterType}
-                onChange={(e) => setDateFilterType(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              >
-                <option value="All">All Dates</option>
-                <option value="Today">Today</option>
-                <option value="This Week">This Week</option>
-                <option value="This Month">This Month</option>
-                <option value="Custom">Custom Date Range</option>
-              </select>
-            </div>
-          )}
-
-          {/* 4. Date Filter (for Customer Ledger) OR Transaction Type (for Supplier Ledger) */}
-          {!isSupplier ? (
-            <div className="flex-1 min-w-[130px]">
-              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Date Filter</span>
-              </label>
-              <select
-                value={dateFilterType}
-                onChange={(e) => setDateFilterType(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              >
-                <option value="All">All Dates</option>
-                <option value="Today">Today</option>
-                <option value="This Week">This Week</option>
-                <option value="This Month">This Month</option>
-                <option value="Custom">Custom Date Range</option>
-              </select>
-            </div>
-          ) : (
-            <div className="flex-1 min-w-[130px]">
-              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-                <Filter className="w-3.5 h-3.5 text-amber-500" />
-                <span>Transaction Type</span>
-              </label>
-              <select
-                value={txTypeFilter}
-                onChange={(e) => setTxTypeFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              >
-                <option value="All">All Transactions</option>
-                <option value="Sales">Purchases</option>
-                <option value="Payments">Payments</option>
-                <option value="Returns">Returns</option>
-              </select>
-            </div>
-          )}
-
-          {/* 5. Transaction Type (Only for Customer Ledger) */}
-          {!isSupplier && (
-            <div className="flex-1 min-w-[130px]">
-              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-                <Filter className="w-3.5 h-3.5 text-amber-500" />
-                <span>Transaction Type</span>
-              </label>
-              <select
-                value={txTypeFilter}
-                onChange={(e) => setTxTypeFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              >
-                <option value="All">All Transactions</option>
-                <option value="Sales">Sales</option>
-                <option value="Payments">Payments</option>
-                <option value="Returns">Returns</option>
-              </select>
-            </div>
-          )}
-
-          {/* Inline Reset Filters Button */}
-          {isAnyFilterActive && (
-            <button
-              type="button"
-              onClick={resetAllFilters}
-              className="h-[38px] px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center justify-center gap-1.5"
-              title="Reset all filters"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Reset Filters</span>
-            </button>
+                <CreditCard className="w-4 h-4" />
+                <span>Record Payment</span>
+              </button>
+            </>
           )}
         </div>
-
-        {/* Custom Date Pickers (if Custom is chosen) */}
-        {dateFilterType === 'Custom' && (
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-            <span className="text-xs font-bold text-slate-400">Date Range:</span>
-            <input
-              type="date"
-              value={customStartDate}
-              onChange={(e) => setCustomStartDate(e.target.value)}
-              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-            />
-            <span className="text-xs text-slate-400 font-bold">to</span>
-            <input
-              type="date"
-              value={customEndDate}
-              onChange={(e) => setCustomEndDate(e.target.value)}
-              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-            />
-          </div>
-        )}
       </div>
 
-      {/* Main Compact Ledger Table */}
-      <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
-            <thead>
-              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                }`}>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Customer</th>
-                <th className="py-3 px-3">Voucher #</th>
-                <th className="py-3 px-4 text-right">Sale</th>
-                <th className="py-3 px-4 text-right">Payment</th>
-                <th className="py-3 px-4 text-right font-black">Balance</th>
-                <th className="py-3 px-4 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+      {/* ========================================================================= */}
+      {/* VIEW A: CUSTOMER LIST / ENTITY DIRECTORY (DEFAULT) */}
+      {/* ========================================================================= */}
+      {selectedPartyId === 'All' ? (
+        <div className="space-y-4">
+          {/* 4 Financial Condition KPI Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* 1. Total Receivable */}
+            <div
+              onClick={() => setStatusFilter(statusFilter === 'Receivable' ? 'All' : 'Receivable')}
+              className={`p-4 rounded-2xl border transition cursor-pointer card-hover card-shadow ${
+                statusFilter === 'Receivable'
+                  ? 'ring-2 ring-emerald-500'
+                  : ''
+              } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-emerald-50/60 to-white border-emerald-200/80'}`}
+            >
+              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>Total Receivable</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50"></span>
+              </div>
+              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-emerald-600 dark:text-emerald-400">
+                Rs. {totalReceivable.toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                🟢 Positive Balance (Owed to Mandi)
+              </div>
+            </div>
+
+            {/* 2. Total Payable */}
+            <div
+              onClick={() => setStatusFilter(statusFilter === 'Payable' ? 'All' : 'Payable')}
+              className={`p-4 rounded-2xl border transition cursor-pointer card-hover card-shadow ${
+                statusFilter === 'Payable'
+                  ? 'ring-2 ring-rose-500'
+                  : ''
+              } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-rose-50/60 to-white border-rose-200/80'}`}
+            >
+              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>Total Payable</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs shadow-rose-500/50"></span>
+              </div>
+              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-rose-600 dark:text-rose-400">
+                Rs. -{totalPayable.toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                🔴 Negative Balance (Mandi Owes)
+              </div>
+            </div>
+
+            {/* 3. Settled Accounts */}
+            <div
+              onClick={() => setStatusFilter(statusFilter === 'Settled' ? 'All' : 'Settled')}
+              className={`p-4 rounded-2xl border transition cursor-pointer card-hover card-shadow ${
+                statusFilter === 'Settled'
+                  ? 'ring-2 ring-slate-400'
+                  : ''
+              } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
+            >
+              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>Settled Accounts</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+              </div>
+              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-slate-700 dark:text-slate-200">
+                {settledCount} Accounts
+              </div>
+              <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                ⚪ Zero Balance (Fully Cleared)
+              </div>
+            </div>
+
+            {/* 4. Total Active Customers */}
+            <div
+              onClick={() => { setStatusFilter('All'); setCustomerTypeFilter('All'); }}
+              className={`p-4 rounded-2xl border transition cursor-pointer card-hover card-shadow ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
+              }`}
+            >
+              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>Total Entities</span>
+                <Users className="w-3.5 h-3.5 text-blue-500" />
+              </div>
+              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-blue-600 dark:text-blue-400">
+                {customerEntities.length} Parties
+              </div>
+              <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                Regular & Walk-in Accounts
+              </div>
+            </div>
+          </div>
+
+          {/* Filter & Search Toolbar */}
+          <div className={`border rounded-3xl p-3.5 sm:p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Search input */}
+              <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}>
-              {filteredLedger.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
-                    No ledger transactions found matching the selected criteria.
-                  </td>
-                </tr>
-              ) : (
-                filteredLedger.map(entry => {
-                  return (
-                    <tr
-                      key={entry.id}
-                      className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
-                    >
-                      {/* 1. Date */}
-                      <td className="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono text-xs">
-                        {entry.date}
-                      </td>
+                <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search customer by name, shop, phone or city..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-transparent text-xs font-bold outline-none placeholder:font-normal placeholder-slate-400"
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600 p-0.5">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
 
-                      {/* 2. Customer */}
-                      <td className="py-3 px-4">
-                        <div className="font-extrabold text-slate-900 dark:text-white">
-                          {entry.partyName}
-                        </div>
-                      </td>
+              {/* Customer Type Filter */}
+              {!isSupplier && (
+                <div className="w-full sm:w-44">
+                  <select
+                    value={customerTypeFilter}
+                    onChange={(e) => setCustomerTypeFilter(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="All">All Customer Types</option>
+                    <option value="Regular Customer">Regular Customers</option>
+                    <option value="Walk-in Customer">Walk-in Customers</option>
+                  </select>
+                </div>
+              )}
 
-                      {/* 3. Voucher # */}
-                      <td className="py-3 px-3 font-mono font-bold text-blue-600 dark:text-blue-400">
-                        {entry.ref}
-                      </td>
+              {/* Condition / Status Filter */}
+              <div className="w-full sm:w-44">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Conditions</option>
+                  <option value="Receivable">🟢 Receivable (Positive)</option>
+                  <option value="Payable">🔴 Payable (Negative)</option>
+                  <option value="Settled">⚪ Settled (Zero)</option>
+                </select>
+              </div>
 
-                      {/* 4. Sale */}
-                      <td className="py-3 px-4 text-right font-mono font-black">
-                        {entry.debit > 0 ? (
-                          <span className="text-blue-600 dark:text-blue-400">
-                            Rs. {entry.debit.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-slate-300 dark:text-slate-600">-</span>
-                        )}
-                      </td>
+              {/* View Switcher */}
+              <div className={`flex items-center border rounded-xl p-0.5 h-[38px] shrink-0 ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'
+              }`}>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    viewMode === 'table'
+                      ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>Table</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('card')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    viewMode === 'card'
+                      ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Cards</span>
+                </button>
+              </div>
 
-                      {/* 5. Payment */}
-                      <td className="py-3 px-4 text-right font-mono font-black">
-                        {entry.credit > 0 ? (
-                          <span className="text-emerald-600 dark:text-emerald-400">
-                            Rs. {entry.credit.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-slate-300 dark:text-slate-600">-</span>
-                        )}
-                      </td>
+              {/* Reset Filters */}
+              {(customerTypeFilter !== 'All' || statusFilter !== 'All' || searchQuery) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerTypeFilter('All');
+                    setStatusFilter('All');
+                    setSearchQuery('');
+                  }}
+                  className="h-[38px] px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center justify-center gap-1.5"
+                  title="Reset all filters"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+          </div>
 
-                      {/* 6. Running Balance (Pure Price Only) */}
-                      <td className="py-3 px-4 text-right font-mono font-black text-xs">
-                        <span className={entry.runningBalance > 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}>
-                          Rs. {entry.runningBalance.toLocaleString()}
-                        </span>
-                      </td>
+          {/* Customer Entities View (Table or Cards) */}
+          {viewMode === 'table' ? (
+            <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+            }`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+                  <thead>
+                    <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
+                      theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                    }`}>
+                      <th className="py-3.5 px-4">Customer Entity</th>
+                      <th className="py-3.5 px-4 text-right">Debit (Sales)</th>
+                      <th className="py-3.5 px-4 text-right">Credit (Payments)</th>
+                      <th className="py-3.5 px-4 text-right font-black">Current Balance</th>
+                      <th className="py-3.5 px-4 text-center">Status</th>
+                      <th className="py-3.5 px-4 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                    {filteredCustomerEntities.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
+                          No customer entities found matching your criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredCustomerEntities.map(cust => {
+                        const isPos = cust.balance > 0;
+                        const isNeg = cust.balance < 0;
+                        const isZero = cust.balance === 0;
 
-                      {/* 7. Action: View Ledger / Details */}
-                      <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => setViewingEntry(entry)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${theme === 'dark'
-                            ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400'
-                            : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
+                        return (
+                          <tr
+                            key={cust.id}
+                            onClick={() => handleOpenCustomerLedger(cust)}
+                            className={`transition cursor-pointer ${
+                              theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50/90'
                             }`}
-                          title="View Transaction Details"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>View Ledger</span>
-                        </button>
+                          >
+                            {/* 1. Customer Name & Details */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm shrink-0 border ${
+                                  cust.isWalkin
+                                    ? 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'
+                                    : 'bg-brand-500/10 text-brand-600 border-brand-500/20 dark:text-brand-400'
+                                }`}>
+                                  {cust.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div className="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm flex items-center gap-2">
+                                    <span>{cust.name}</span>
+                                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                                      cust.isWalkin
+                                        ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                                        : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
+                                    }`}>
+                                      {cust.customerType}
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                    {cust.businessName && <span>{cust.businessName} •</span>}
+                                    <span>{cust.city || 'Local Mandi'}</span>
+                                    {cust.txCount > 0 && <span className="text-slate-400">({cust.txCount} transactions)</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* 2. Total Debit */}
+                            <td className="py-3.5 px-4 text-right font-mono font-black text-xs text-blue-600 dark:text-blue-400">
+                              {cust.totalDebit > 0 ? `Rs. ${cust.totalDebit.toLocaleString()}` : '—'}
+                            </td>
+
+                            {/* 3. Total Credit */}
+                            <td className="py-3.5 px-4 text-right font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
+                              {cust.totalCredit > 0 ? `Rs. ${cust.totalCredit.toLocaleString()}` : '—'}
+                            </td>
+
+                            {/* 4. Current Balance */}
+                            <td className="py-3.5 px-4 text-right font-mono font-black text-sm">
+                              <span className={
+                                isPos ? 'text-emerald-600 dark:text-emerald-400' :
+                                isNeg ? 'text-rose-600 dark:text-rose-400' :
+                                'text-slate-400'
+                              }>
+                                {isNeg ? `-Rs. ${Math.abs(cust.balance).toLocaleString()}` : `Rs. ${cust.balance.toLocaleString()}`}
+                              </span>
+                            </td>
+
+                            {/* 5. Condition Status */}
+                            <td className="py-3.5 px-4 text-center">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${
+                                isPos
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                  : isNeg
+                                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                                  : 'bg-slate-500/10 text-slate-500 border-slate-500/30'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  isPos ? 'bg-emerald-500' : isNeg ? 'bg-rose-500' : 'bg-slate-400'
+                                }`}></span>
+                                <span>{isPos ? 'Receivable' : isNeg ? 'Payable' : 'Settled'}</span>
+                              </span>
+                            </td>
+
+                            {/* 6. Action */}
+                            <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenCustomerLedger(cust)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs transition shadow-xs cursor-pointer active:scale-98"
+                              >
+                                <span>View Ledger</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            /* Card Grid View */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredCustomerEntities.map(cust => {
+                const isPos = cust.balance > 0;
+                const isNeg = cust.balance < 0;
+
+                return (
+                  <div
+                    key={cust.id}
+                    onClick={() => handleOpenCustomerLedger(cust)}
+                    className={`p-4 rounded-3xl border card-shadow flex flex-col justify-between transition cursor-pointer card-hover ${
+                      theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="font-extrabold text-base text-slate-900 dark:text-white leading-tight">
+                            {cust.name}
+                          </h4>
+                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                            {cust.businessName ? `${cust.businessName} • ` : ''}{cust.city}
+                          </p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                          cust.isWalkin
+                            ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                            : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
+                        }`}>
+                          {cust.customerType}
+                        </span>
+                      </div>
+
+                      {/* Financial Metrics Strip */}
+                      <div className={`p-3 rounded-2xl border text-center ${
+                        isPos
+                          ? theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-emerald-50/70 border-emerald-200'
+                          : isNeg
+                          ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-rose-50/70 border-rose-200'
+                          : theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50 border-slate-200'
+                      }`}>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current Balance</div>
+                        <div className={`text-lg font-mono font-black mt-0.5 ${
+                          isPos ? 'text-emerald-600 dark:text-emerald-400' :
+                          isNeg ? 'text-rose-600 dark:text-rose-400' :
+                          'text-slate-500'
+                        }`}>
+                          {isNeg ? `-Rs. ${Math.abs(cust.balance).toLocaleString()}` : `Rs. ${cust.balance.toLocaleString()}`}
+                        </div>
+                        <div className="text-[10px] font-bold mt-0.5">
+                          {isPos ? '🟢 Receivable' : isNeg ? '🔴 Payable' : '⚪ Settled'}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className={`p-2 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className="text-[10px] text-slate-400 font-bold">Total Debit</div>
+                          <div className="font-mono font-bold text-blue-600 dark:text-blue-400">
+                            Rs. {cust.totalDebit.toLocaleString()}
+                          </div>
+                        </div>
+                        <div className={`p-2 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className="text-[10px] text-slate-400 font-bold">Total Credit</div>
+                          <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            Rs. {cust.totalCredit.toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-400 font-bold">
+                        {cust.txCount} transactions
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenCustomerLedger(cust);
+                        }}
+                        className="inline-flex items-center gap-1 text-xs font-extrabold text-brand-600 dark:text-brand-400 hover:underline"
+                      >
+                        <span>View Complete Ledger</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* ========================================================================= */
+        /* VIEW B: SINGLE CUSTOMER COMPLETE CHRONOLOGICAL LEDGER STATEMENT */
+        /* ========================================================================= */
+        <div className="space-y-4">
+          {/* Customer Financial Condition Summary Header */}
+          <div className={`p-5 rounded-3xl border card-shadow space-y-4 ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-3.5">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-xs border ${
+                  activeCustomer?.isWalkin
+                    ? 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'
+                    : 'bg-gradient-to-br from-brand-500/20 to-brand-600/10 text-brand-600 dark:text-brand-400 border-brand-500/20'
+                }`}>
+                  {activeCustomer?.name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg sm:text-xl font-black tracking-tight">{activeCustomer?.name}</h2>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${
+                      activeCustomer?.isWalkin
+                        ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 border-slate-300'
+                        : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border-brand-500/20'
+                    }`}>
+                      {activeCustomer?.customerType}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-400 font-semibold mt-0.5">
+                    {activeCustomer?.businessName && <span>{activeCustomer?.businessName}</span>}
+                    {activeCustomer?.phone && <span>• Phone: {activeCustomer?.phone}</span>}
+                    <span>• City: {activeCustomer?.city || 'Local Mandi'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1.5 rounded-2xl text-xs font-black border uppercase tracking-wider flex items-center gap-1.5 ${
+                  (activeCustomer?.balance || 0) > 0
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                    : (activeCustomer?.balance || 0) < 0
+                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                    : 'bg-slate-500/10 text-slate-500 border-slate-500/30'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${
+                    (activeCustomer?.balance || 0) > 0 ? 'bg-emerald-500' : (activeCustomer?.balance || 0) < 0 ? 'bg-rose-500' : 'bg-slate-400'
+                  }`}></span>
+                  <span>
+                    {(activeCustomer?.balance || 0) > 0
+                      ? 'Status: Receivable'
+                      : (activeCustomer?.balance || 0) < 0
+                      ? 'Status: Payable'
+                      : 'Status: Settled (Zero)'}
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            {/* 3 Financial Strip Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Total Debit */}
+              <div className={`p-3.5 rounded-2xl border ${
+                theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Debit (Sales)</div>
+                <div className="text-lg font-mono font-black text-blue-600 dark:text-blue-400 mt-1">
+                  Rs. {(activeCustomer?.totalDebit || 0).toLocaleString()}
+                </div>
+              </div>
+
+              {/* Total Credit */}
+              <div className={`p-3.5 rounded-2xl border ${
+                theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Credit (Payments)</div>
+                <div className="text-lg font-mono font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                  Rs. {(activeCustomer?.totalCredit || 0).toLocaleString()}
+                </div>
+              </div>
+
+              {/* Current Net Balance */}
+              <div className={`p-3.5 rounded-2xl border ${
+                (activeCustomer?.balance || 0) > 0
+                  ? theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-emerald-50/70 border-emerald-200'
+                  : (activeCustomer?.balance || 0) < 0
+                  ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-rose-50/70 border-rose-200'
+                  : theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Current Balance</div>
+                <div className={`text-lg font-mono font-black mt-1 ${
+                  (activeCustomer?.balance || 0) > 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : (activeCustomer?.balance || 0) < 0
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-slate-600 dark:text-slate-300'
+                }`}>
+                  {(activeCustomer?.balance || 0) < 0
+                    ? `-Rs. ${Math.abs(activeCustomer?.balance || 0).toLocaleString()}`
+                    : `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}`}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Statement Transaction Filter Bar */}
+          <div className={`border rounded-3xl p-3.5 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Voucher search */}
+              <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}>
+                <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search voucher # or description..."
+                  value={txSearchQuery}
+                  onChange={(e) => setTxSearchQuery(e.target.value)}
+                  className="w-full bg-transparent text-xs font-bold outline-none placeholder:font-normal placeholder-slate-400"
+                />
+              </div>
+
+              {/* Date Filter */}
+              <div className="w-full sm:w-44">
+                <select
+                  value={dateFilterType}
+                  onChange={(e) => setDateFilterType(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Dates</option>
+                  <option value="Today">Today</option>
+                  <option value="This Week">This Week</option>
+                  <option value="This Month">This Month</option>
+                  <option value="Custom">Custom Date Range</option>
+                </select>
+              </div>
+
+              {/* Tx Type Filter */}
+              <div className="w-full sm:w-44">
+                <select
+                  value={txTypeFilter}
+                  onChange={(e) => setTxTypeFilter(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="All">All Transactions</option>
+                  <option value="Sales">Sales Only</option>
+                  <option value="Payments">Payments Only</option>
+                  <option value="Returns">Returns Only</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Custom Date Pickers */}
+            {dateFilterType === 'Custom' && (
+              <div className="flex flex-wrap items-center gap-2 pt-2 mt-2 border-t border-slate-100 dark:border-slate-700">
+                <span className="text-xs font-bold text-slate-400">Date Range:</span>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+                <span className="text-xs text-slate-400 font-bold">to</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Complete Chronological Statement Table */}
+          <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+                <thead>
+                  <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
+                    theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                  }`}>
+                    <th className="py-3.5 px-4">Date</th>
+                    <th className="py-3.5 px-4">Voucher #</th>
+                    <th className="py-3.5 px-4">Description</th>
+                    <th className="py-3.5 px-4 text-right">Debit</th>
+                    <th className="py-3.5 px-4 text-right">Credit</th>
+                    <th className="py-3.5 px-4 text-right font-black">Running Balance</th>
+                    <th className="py-3.5 px-4 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                  {singleCustomerLedger.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                        No transactions recorded for this customer yet.
                       </td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                  ) : (
+                    singleCustomerLedger.map(entry => {
+                      const isBalPos = entry.runningBalance > 0;
+                      const isBalNeg = entry.runningBalance < 0;
+
+                      return (
+                        <tr
+                          key={entry.id}
+                          className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                        >
+                          {/* 1. Date */}
+                          <td className="py-3.5 px-4 font-mono text-slate-500 dark:text-slate-400">
+                            {entry.date}
+                          </td>
+
+                          {/* 2. Voucher # */}
+                          <td className="py-3.5 px-4 font-mono font-bold text-blue-600 dark:text-blue-400">
+                            {entry.ref}
+                          </td>
+
+                          {/* 3. Description */}
+                          <td className="py-3.5 px-4">
+                            <span className="font-semibold text-slate-900 dark:text-white">{entry.desc}</span>
+                            {entry.notes && <span className="text-[10px] text-slate-400 block">{entry.notes}</span>}
+                          </td>
+
+                          {/* 4. Debit */}
+                          <td className="py-3.5 px-4 text-right font-mono font-black text-blue-600 dark:text-blue-400">
+                            {entry.debit > 0 ? `Rs. ${entry.debit.toLocaleString()}` : '—'}
+                          </td>
+
+                          {/* 5. Credit */}
+                          <td className="py-3.5 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
+                            {entry.credit > 0 ? `Rs. ${entry.credit.toLocaleString()}` : '—'}
+                          </td>
+
+                          {/* 6. Running Balance */}
+                          <td className="py-3.5 px-4 text-right font-mono font-black text-xs">
+                            <span className={
+                              isBalPos ? 'text-emerald-600 dark:text-emerald-400' :
+                              isBalNeg ? 'text-rose-600 dark:text-rose-400' :
+                              'text-slate-400'
+                            }>
+                              {isBalNeg ? `-Rs. ${Math.abs(entry.runningBalance).toLocaleString()}` : `Rs. ${entry.runningBalance.toLocaleString()}`}
+                            </span>
+                          </td>
+
+                          {/* 7. Action */}
+                          <td className="py-3.5 px-4 text-center">
+                            <button
+                              type="button"
+                              onClick={() => setViewingEntry(entry)}
+                              className={`p-1.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                                theme === 'dark'
+                                  ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400'
+                                  : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
+                              }`}
+                              title="View Voucher Details"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ========================================================================= */}
       {/* TRANSACTION DETAILS MODAL */}
@@ -939,8 +1406,9 @@ export const Ledger = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setViewingEntry(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
@@ -960,10 +1428,11 @@ export const Ledger = () => {
               </button>
             </div>
 
-            <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-              }`}>
+            <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${
+              theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+            }`}>
               <div className="flex justify-between items-center text-slate-500">
-                <span>Customer:</span>
+                <span>Party / Customer:</span>
                 <span className="font-extrabold text-slate-900 dark:text-white">{viewingEntry.partyName}</span>
               </div>
               <div className="flex justify-between items-center text-slate-500">
@@ -975,28 +1444,32 @@ export const Ledger = () => {
                 <span className="font-bold text-brand-600">{viewingEntry.txType}</span>
               </div>
               <div className="flex justify-between items-start text-slate-500 pt-1 border-t border-slate-200 dark:border-slate-700">
-                <span>Description / Items:</span>
+                <span>Description:</span>
                 <span className="font-medium text-right max-w-xs text-slate-900 dark:text-white">{viewingEntry.desc}</span>
               </div>
 
               {viewingEntry.debit > 0 && (
                 <div className="flex justify-between items-center text-blue-600 font-black pt-1 border-t border-slate-200 dark:border-slate-700">
-                  <span>Sale Amount:</span>
+                  <span>Debit Amount:</span>
                   <span className="font-mono text-sm">Rs. {viewingEntry.debit.toLocaleString()}</span>
                 </div>
               )}
 
               {viewingEntry.credit > 0 && (
                 <div className="flex justify-between items-center text-emerald-600 font-black pt-1 border-t border-slate-200 dark:border-slate-700">
-                  <span>Payment Received:</span>
+                  <span>Credit Amount:</span>
                   <span className="font-mono text-sm">Rs. {viewingEntry.credit.toLocaleString()}</span>
                 </div>
               )}
 
               <div className="flex justify-between items-center font-black pt-1 border-t border-slate-200 dark:border-slate-700">
-                <span>Account Balance:</span>
-                <span className={`font-mono text-sm ${viewingEntry.runningBalance > 0 ? 'text-amber-500' : 'text-emerald-600'}`}>
-                  Rs. {viewingEntry.runningBalance.toLocaleString()}
+                <span>Running Balance:</span>
+                <span className={`font-mono text-sm ${
+                  viewingEntry.runningBalance > 0 ? 'text-emerald-600' :
+                  viewingEntry.runningBalance < 0 ? 'text-rose-600' :
+                  'text-slate-500'
+                }`}>
+                  {viewingEntry.runningBalance < 0 ? `-Rs. ${Math.abs(viewingEntry.runningBalance).toLocaleString()}` : `Rs. ${viewingEntry.runningBalance.toLocaleString()}`}
                 </span>
               </div>
             </div>
@@ -1012,14 +1485,17 @@ export const Ledger = () => {
         </div>
       )}
 
-      {/* Record Payment Modal */}
+      {/* ========================================================================= */}
+      {/* RECORD PAYMENT MODAL */}
+      {/* ========================================================================= */}
       {showPaymentModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowPaymentModal(false); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
               <h3 className="text-base font-extrabold flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-emerald-600" /> Record Ledger Payment
@@ -1035,46 +1511,21 @@ export const Ledger = () => {
 
             <form onSubmit={handlePaymentSubmit} className="space-y-3.5">
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Select Customer *</label>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Select Customer / Party *</label>
                 <select
                   required
                   value={paymentForm.partyId}
                   onChange={(e) => setPaymentForm({ ...paymentForm, partyId: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
                 >
-                  <option value="">Choose Customer</option>
-                  {isSupplier ? (
-                    suppliers.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} (Rs. {(Number(p.balance) || 0).toLocaleString()})
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      {customerDropdownList.regular.length > 0 && (
-                        <optgroup label="Regular Parties">
-                          {customerDropdownList.regular.map(p => {
-                            const custObj = (customers || []).find(c => c.id === p.id);
-                            return (
-                              <option key={p.id} value={p.id}>
-                                {p.name} (Rs. {(Number(custObj?.balance) || 0).toLocaleString()})
-                              </option>
-                            );
-                          })}
-                        </optgroup>
-                      )}
-                      {customerDropdownList.walkin.length > 0 && (
-                        <optgroup label="Walk-in Parties">
-                          {customerDropdownList.walkin.map(p => (
-                            <option key={p.id} value={p.id}>
-                              {p.name} (Walk-in)
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                    </>
-                  )}
+                  <option value="">Choose Party</option>
+                  {customerEntities.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.customerType} • Bal: Rs. {p.balance.toLocaleString()})
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1087,8 +1538,9 @@ export const Ledger = () => {
                   placeholder="Enter payment amount"
                   value={paymentForm.amount}
                   onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
                 />
               </div>
 
@@ -1098,8 +1550,9 @@ export const Ledger = () => {
                   <select
                     value={paymentForm.paymentMode}
                     onChange={(e) => setPaymentForm({ ...paymentForm, paymentMode: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                   >
                     <option value="Cash">Cash on Counter</option>
                     <option value="Bank Transfer">Bank Transfer</option>
@@ -1115,8 +1568,9 @@ export const Ledger = () => {
                     value={paymentForm.note}
                     onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
                     placeholder="e.g. Account settlement"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                   />
                 </div>
               </div>
@@ -1125,8 +1579,9 @@ export const Ledger = () => {
                 <button
                   type="button"
                   onClick={() => setShowPaymentModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
                 >
                   Cancel
                 </button>
