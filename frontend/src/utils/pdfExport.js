@@ -207,3 +207,87 @@ export const exportSinglePageReceiptPDF = async (element, filename = 'receipt.pd
   pdf.save(filename);
 };
 
+/**
+ * High-Resolution Image (PNG/JPG) Exporter for Mobile & Tablet Receipts.
+ * 
+ * Captures the receipt element at 3x resolution with crisp typography and styling,
+ * downloading it as a high-quality PNG image.
+ * 
+ * @param {HTMLElement} element - The DOM element containing the rendered receipt.
+ * @param {string} filename - The output image file name (e.g., 'Sale_Receipt_SAL-000456.png').
+ * @param {string} format - 'png' or 'jpeg' (default: 'png').
+ * @returns {Promise<void>}
+ */
+export const exportReceiptToImage = async (element, filename = 'receipt.png', format = 'png') => {
+  if (!element) {
+    throw new Error('Receipt element reference not found in DOM.');
+  }
+
+  // 1. Ensure all custom fonts and web typography are loaded
+  if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      // Fallback
+    }
+  }
+
+  // 2. Wait a tick for repaint
+  await new Promise(resolve => setTimeout(resolve, 80));
+
+  // 3. High-resolution canvas snapshot of the receipt
+  const canvas = await html2canvas(element, {
+    scale: 3, // 3x ultra-crisp print-grade resolution
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    scrollX: 0,
+    scrollY: 0,
+    windowWidth: 440,
+    onclone: (clonedDoc) => {
+      const targetId = element.id;
+      const clonedElement = targetId ? clonedDoc.getElementById(targetId) : null;
+      if (clonedElement) {
+        clonedElement.style.position = 'static';
+        clonedElement.style.display = 'block';
+        clonedElement.style.visibility = 'visible';
+        clonedElement.style.opacity = '1';
+        clonedElement.style.overflow = 'visible';
+        clonedElement.style.height = 'auto';
+        clonedElement.style.maxHeight = 'none';
+        clonedElement.style.width = '390px';
+        clonedElement.style.maxWidth = '390px';
+        clonedElement.style.zoom = '1';
+        clonedElement.style.transform = 'none';
+        clonedElement.style.boxShadow = 'none';
+        clonedElement.style.borderRadius = '8px';
+        clonedElement.style.border = '1px solid #e2e8f0';
+        clonedElement.style.backgroundColor = '#ffffff';
+        clonedElement.style.color = '#0f172a';
+        clonedElement.style.margin = '0 auto';
+
+        const allNodes = clonedElement.querySelectorAll('*');
+        allNodes.forEach(node => {
+          node.style.zoom = '1';
+        });
+      }
+    }
+  });
+
+  if (!canvas || canvas.width === 0 || canvas.height === 0) {
+    throw new Error('Generated image canvas is empty.');
+  }
+
+  const mimeType = format === 'jpeg' || format === 'jpg' ? 'image/jpeg' : 'image/png';
+  const imgData = canvas.toDataURL(mimeType, 1.0);
+
+  // 4. Trigger download
+  const link = document.createElement('a');
+  link.href = imgData;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+

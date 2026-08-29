@@ -1,6 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Printer, 
+  Download,
+  Loader2,
   Wheat, 
   X, 
   CheckCircle2, 
@@ -11,12 +13,14 @@ import {
   ShoppingCart, 
   CreditCard 
 } from 'lucide-react';
+import { exportReceiptToImage } from '../utils/pdfExport';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
 export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
   const { theme } = useTheme();
   const { shop } = useAuth();
+  const [isDownloading, setIsDownloading] = useState(false);
   const receiptRef = useRef(null);
 
   if (!isOpen || !orderData) return null;
@@ -271,6 +275,24 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
     }
   };
 
+  const handleDownloadImage = async () => {
+    try {
+      setIsDownloading(true);
+      const targetElement = receiptRef.current || document.getElementById('sale-receipt-card');
+      if (!targetElement) {
+        throw new Error('Sale receipt printable element not found in DOM.');
+      }
+
+      const filename = `Sale_Receipt_${cleanReceiptNo.replace(/[^a-zA-Z0-9_-]/g, '')}.png`;
+      await exportReceiptToImage(targetElement, filename, 'png');
+    } catch (err) {
+      console.error('Download image error:', err);
+      alert('Could not download receipt image. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div 
       onClick={onClose}
@@ -507,13 +529,34 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
             <span>Close</span>
           </button>
 
+          {/* Desktop/Laptop Only: Print Receipt */}
           <button
             type="button"
             onClick={handlePrint}
-            className="flex-1 py-2 bg-[#064e3b] hover:bg-emerald-950 text-white rounded-xl text-xs font-black transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+            className="hidden md:flex flex-1 py-2 bg-[#064e3b] hover:bg-emerald-950 text-white rounded-xl text-xs font-black transition shadow-sm items-center justify-center gap-2 cursor-pointer"
           >
             <Printer className="w-4 h-4" />
-            <span>Print or Download Receipt</span>
+            <span>Print Receipt</span>
+          </button>
+
+          {/* Mobile/Tablet Only: Download Receipt (High Quality Image) */}
+          <button
+            type="button"
+            onClick={handleDownloadImage}
+            disabled={isDownloading}
+            className="flex md:hidden flex-1 py-2 bg-[#064e3b] hover:bg-emerald-950 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-sm items-center justify-center gap-2 cursor-pointer"
+          >
+            {isDownloading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Downloading...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                <span>Download Receipt</span>
+              </>
+            )}
           </button>
         </div>
       </div>
