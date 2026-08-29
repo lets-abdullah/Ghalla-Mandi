@@ -816,12 +816,179 @@ export const Reports = () => {
     return (suppliers || []).reduce((sum, s) => sum + Math.max(0, Number(s.balance !== undefined ? s.balance : s.openingBalance || 0)), 0);
   }, [suppliers]);
 
-  const cashInHand = useMemo(() => {
-    const netCash = totalSalesCash + totalPurchaseReturnsCash - totalPurchasesPaid - totalExpensesAmount;
-    return Math.max(0, netCash);
-  }, [totalSalesCash, totalPurchaseReturnsCash, totalPurchasesPaid, totalExpensesAmount]);
+  // Dynamic Liquid Funds (Cash, Bank, Mobile Wallets) Calculation
+  const {
+    cashInHand,
+    bankBalance,
+    walletBalance,
+    totalLiquidFunds,
+    liquidTransactionsList
+  } = useMemo(() => {
+    let cash = 0;
+    let bank = 0;
+    let wallet = 0;
+    const txList = [];
 
-  const totalAssets = useMemo(() => cashInHand + totalCustomerReceivables + totalStockValuation, [cashInHand, totalCustomerReceivables, totalStockValuation]);
+    // Helper to categorize channel
+    const getChannel = (modeStr) => {
+      const m = String(modeStr || 'Cash').toLowerCase();
+      if (m.includes('jazz') || m.includes('easy') || m.includes('wallet') || m.includes('upaisa')) return 'wallet';
+      if (m.includes('bank') || m.includes('card') || m.includes('online') || m.includes('cheque') || m.includes('raast') || m.includes('transfer')) return 'bank';
+      return 'cash';
+    };
+
+    // 1. Sales Inflows
+    (sales || []).forEach(s => {
+      const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
+      const paid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.status === 'Paid' ? grossAmt : 0));
+      if (paid > 0) {
+        const chan = getChannel(s.paymentMode || s.paymentMethod);
+        if (chan === 'wallet') wallet += paid;
+        else if (chan === 'bank') bank += paid;
+        else cash += paid;
+
+        txList.push({
+          date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : 'Today'),
+          source: `Sale Receipt (#${s.invoiceNo || s.orderId || s.id || 'N/A'})`,
+          party: s.customerName || s.partyName || 'Counter Sale',
+          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          type: 'Inflow',
+          amount: paid
+        });
+      }
+    });
+
+    // 2. Customer Ledger Payments Inflow
+    (paymentLogs || []).filter(p => p.partyType === 'Customer').forEach(p => {
+      const amt = Number(p.amount || 0);
+      if (amt > 0) {
+        const chan = getChannel(p.mode || p.paymentMode);
+        if (chan === 'wallet') wallet += amt;
+        else if (chan === 'bank') bank += amt;
+        else cash += amt;
+
+        txList.push({
+          date: p.date || 'Today',
+          source: `Customer Khata Settlement (${p.ref || 'Receipt'})`,
+          party: p.partyName || 'Customer',
+          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          type: 'Inflow',
+          amount: amt
+        });
+      }
+    });
+
+    // 3. Purchase Returns Inflow (Refunds received)
+    (purchaseReturns || []).forEach(r => {
+      const refAmt = Number(r.refundAmount || 0);
+      if (refAmt > 0) {
+        const chan = getChannel(r.refundMode);
+        if (chan === 'wallet') wallet += refAmt;
+        else if (chan === 'bank') bank += refAmt;
+        else cash += refAmt;
+
+        txList.push({
+          date: r.date || 'Today',
+          source: `Purchase Return Refund (#${r.returnNo || r.id || 'N/A'})`,
+          party: r.supplierName || 'Supplier',
+          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          type: 'Inflow',
+          amount: refAmt
+        });
+      }
+    });
+
+    // 4. Purchases Outflows
+    (purchases || []).forEach(p => {
+      const grossAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
+      const paid = Number(p.paidAmount !== undefined ? p.paidAmount : (p.status === 'Paid' ? grossAmt : 0));
+      if (paid > 0) {
+        const chan = getChannel(p.paymentMode || p.paymentMethod);
+        if (chan === 'wallet') wallet -= paid;
+        else if (chan === 'bank') bank -= paid;
+        else cash -= paid;
+
+        txList.push({
+          date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Today'),
+          source: `Purchase Voucher (#${p.invoiceNo || p.id || 'N/A'})`,
+          party: p.supplierName || p.supplier || 'Mandi Supplier',
+          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          type: 'Outflow',
+          amount: paid
+        });
+      }
+    });
+
+    // 5. Supplier Ledger Payments Outflow
+    (paymentLogs || []).filter(p => p.partyType === 'Supplier').forEach(p => {
+      const amt = Number(p.amount || 0);
+      if (amt > 0) {
+        const chan = getChannel(p.mode || p.paymentMode);
+        if (chan === 'wallet') wallet -= amt;
+        else if (chan === 'bank') bank -= amt;
+        else cash -= amt;
+
+        txList.push({
+          date: p.date || 'Today',
+          source: `Supplier Payment Settlement (${p.ref || 'Voucher'})`,
+          party: p.partyName || 'Supplier',
+          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          type: 'Outflow',
+          amount: amt
+        });
+      }
+    });
+
+    // 6. Expenses Outflows
+    (expenses || []).forEach(e => {
+      const amt = Number(e.amount || 0);
+      if (amt > 0) {
+        const chan = getChannel(e.mode || e.paymentMode || e.paymentMethod);
+        if (chan === 'wallet') wallet -= amt;
+        else if (chan === 'bank') bank -= amt;
+        else cash -= amt;
+
+        txList.push({
+          date: e.date || 'Today',
+          source: `Expense: ${e.category || 'Shop'} (${e.desc || ''})`,
+          party: e.payee || 'Expense Payee',
+          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          type: 'Outflow',
+          amount: amt
+        });
+      }
+    });
+
+    // 7. Sale Returns Outflows (Refunds given to customers)
+    (saleReturns || []).forEach(r => {
+      const refAmt = Number(r.refundAmount || 0);
+      if (refAmt > 0) {
+        const chan = getChannel(r.refundMode);
+        if (chan === 'wallet') wallet -= refAmt;
+        else if (chan === 'bank') bank -= refAmt;
+        else cash -= refAmt;
+
+        txList.push({
+          date: r.date || 'Today',
+          source: `Sale Return Refund (${r.refundMode || 'Cash'})`,
+          party: r.customerName || 'Customer',
+          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          type: 'Outflow',
+          amount: refAmt
+        });
+      }
+    });
+
+    return {
+      cashInHand: Math.max(0, cash),
+      bankBalance: Math.max(0, bank),
+      walletBalance: Math.max(0, wallet),
+      totalLiquidFunds: Math.max(0, cash) + Math.max(0, bank) + Math.max(0, wallet),
+      liquidTransactionsList: txList
+    };
+  }, [sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns]);
+
+  const totalAssets = useMemo(() => totalLiquidFunds + totalCustomerReceivables + totalStockValuation, [totalLiquidFunds, totalCustomerReceivables, totalStockValuation]);
   const totalLiabilities = useMemo(() => totalSupplierPayables, [totalSupplierPayables]);
   const totalEquity = useMemo(() => totalAssets - totalLiabilities, [totalAssets, totalLiabilities]);
 
@@ -829,13 +996,11 @@ export const Reports = () => {
   const bsCashBreakdown = useMemo(() => {
     return {
       cashInHand: cashInHand,
-      hblBank: 0,
-      meezanBank: 0,
-      jazzCash: 0,
-      easypaisa: 0,
-      total: cashInHand
+      bankBalance: bankBalance,
+      walletBalance: walletBalance,
+      total: totalLiquidFunds
     };
-  }, [cashInHand]);
+  }, [cashInHand, bankBalance, walletBalance, totalLiquidFunds]);
 
   const bsReceivablesBreakdown = useMemo(() => {
     return {
@@ -3541,25 +3706,25 @@ export const Reports = () => {
                 </div>
               </div>
 
-              {/* 3 Main Metric Cards with Movement Badges */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 4 Distinct Financial Metric Cards with Clear Unique Roles */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 {/* 1. TOTAL ASSETS */}
                 <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200 text-slate-900'
                   }`}>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Total Assets
+                      Total Assets (کل اثاثہ جات)
                     </span>
                     <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                       <ArrowUpRight className="w-3.5 h-3.5" />
-                      <span>+8.4% vs prev</span>
+                      <span>Gross Wealth</span>
                     </span>
                   </div>
                   <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
                     Rs. {totalAssets.toLocaleString()}
                   </div>
                   <div className="text-[10px] text-slate-400 font-medium">
-                    Cash + Customer Udhaar + Stock Maal
+                    Cash & Bank (Rs. {totalLiquidFunds.toLocaleString()}) + Khata (Rs. {totalCustomerReceivables.toLocaleString()}) + Stock (Rs. {totalStockValuation.toLocaleString()})
                   </div>
                 </div>
 
@@ -3568,37 +3733,56 @@ export const Reports = () => {
                   }`}>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Total Payables (Udhaar Dena)
+                      Total Payables (کل ادھار دینا)
                     </span>
-                    <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">
-                      <span>0.0% vs prev</span>
+                    <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                      <span>External Debt</span>
                     </span>
                   </div>
                   <div className="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
                     Rs. {totalLiabilities.toLocaleString()}
                   </div>
                   <div className="text-[10px] text-slate-400 font-medium">
-                    Suppliers Ka Udhaar + Baki Kharcha
+                    Supplier Khata (Rs. {totalSupplierPayables.toLocaleString()}) + Kharcha Dues
                   </div>
                 </div>
 
-                {/* 3. NET BUSINESS WORTH */}
+                {/* 3. OPERATING NET PROFIT */}
+                <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200 text-slate-900'
+                  }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                      Operating Profit (کاروباری منافع)
+                    </span>
+                    <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                      <span>P&L Bachat</span>
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
+                    Rs. {netOperatingProfit.toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium">
+                    Net Sales Margin minus Mandi Operating Expenses
+                  </div>
+                </div>
+
+                {/* 4. NET BUSINESS WORTH */}
                 <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-br from-indigo-50/40 to-white border-indigo-200 text-slate-900'
                   }`}>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Net Worth (Asal Sarmaya)
+                      Net Worth (خالص مالیت / ملکیت)
                     </span>
                     <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                       <ArrowUpRight className="w-3.5 h-3.5" />
-                      <span>+12.2% vs prev</span>
+                      <span>Net Solvency</span>
                     </span>
                   </div>
                   <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">
                     Rs. {totalEquity.toLocaleString()}
                   </div>
                   <div className="text-[10px] text-slate-400 font-medium">
-                    Total Assets - Total Payables (Kul Bachat)
+                    Assets - Payables (اصل سرمایہ Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()} + منافع)
                   </div>
                 </div>
               </div>
@@ -3697,16 +3881,20 @@ export const Reports = () => {
                       {bsExpandedSections.cashBank && (
                         <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
                           <div className="flex justify-between">
-                            <span>Cash in Hand (Counter Drawer):</span>
+                            <span>Cash in Hand (Counter Drawer / Safe):</span>
                             <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {cashInHand.toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Bank Accounts (HBL / Meezan):</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                            <span>Bank Accounts (Bank / Card / Online):</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {bankBalance.toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Mobile Wallets (JazzCash / Easypaisa):</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                            <span>Mobile Digital Wallets (JazzCash / Easypaisa):</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {walletBalance.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-900 dark:text-white">
+                            <span className="font-bold">Total Liquid Cash & Bank:</span>
+                            <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidFunds.toLocaleString()}</span>
                           </div>
                           <div className="pt-1 text-right">
                             <button
@@ -3716,7 +3904,7 @@ export const Reports = () => {
                               }}
                               className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
                             >
-                              View Liquid Details →
+                              View Liquid Cash & Bank Ledger →
                             </button>
                           </div>
                         </div>
@@ -4104,50 +4292,122 @@ export const Reports = () => {
                     </table>
                   )}
 
-                  {/* 4. Cash & Bank Accounts Details */}
+                  {/* 4. Cash & Bank Accounts Details (Fully Functional Live Channels & Ledger) */}
                   {bsActiveDrilldownModal === 'cashBank' && (
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
-                          <th className="py-2 px-2.5">Account / Channel</th>
-                          <th className="py-2 px-2">Type</th>
-                          <th className="py-2 px-2">Account #</th>
-                          <th className="py-2 px-2.5 text-right font-black">Liquid Balance</th>
-                        </tr>
-                      </thead>
-                      <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Shop Cash Counter Drawer</td>
-                          <td className="py-2.5 px-2 text-emerald-600 font-bold">Physical Cash</td>
-                          <td className="py-2.5 px-2 text-slate-500 font-mono">DRAWER-01</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600">Rs. {cashInHand.toLocaleString()}</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Habib Bank Limited (HBL)</td>
-                          <td className="py-2.5 px-2 text-blue-600 font-bold">Corporate Current</td>
-                          <td className="py-2.5 px-2 text-slate-500 font-mono">PK64HABB000123456789</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-slate-600">Rs. 0</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Meezan Islamic Banking</td>
-                          <td className="py-2.5 px-2 text-emerald-600 font-bold">Islamic Business</td>
-                          <td className="py-2.5 px-2 text-slate-500 font-mono">PK21MEZN000987654321</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-slate-600">Rs. 0</td>
-                        </tr>
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">JazzCash Merchant Account</td>
-                          <td className="py-2.5 px-2 text-rose-600 font-bold">Mobile Wallet</td>
-                          <td className="py-2.5 px-2 text-slate-500 font-mono">0300-1234567</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-slate-600">Rs. 0</td>
-                        </tr>
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 text-xs font-black">
-                          <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Liquid Cash & Bank Funds</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono text-emerald-600">Rs. {cashInHand.toLocaleString()}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-[11px] font-black uppercase text-slate-400 mb-1 tracking-wider">
+                          1. Liquid Accounts & Channels Summary
+                        </h4>
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`}>
+                              <th className="py-2 px-2.5">Account / Channel</th>
+                              <th className="py-2 px-2">Type</th>
+                              <th className="py-2 px-2">Description / Mode</th>
+                              <th className="py-2 px-2.5 text-right font-black">Liquid Balance</th>
+                            </tr>
+                          </thead>
+                          <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                            <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                              <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Shop Cash Counter Drawer</td>
+                              <td className="py-2.5 px-2">
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                  Physical Cash
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-2 text-slate-500 font-medium">Safe & Counter Cash Drawer</td>
+                              <td className="py-2.5 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {cashInHand.toLocaleString()}</td>
+                            </tr>
+                            <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                              <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Bank Accounts & Online Transfers</td>
+                              <td className="py-2.5 px-2">
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                  Bank / Card
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-2 text-slate-500 font-medium">Bank Transfer, Cards & Raast Payments</td>
+                              <td className="py-2.5 px-2.5 text-right font-mono font-bold text-blue-600 dark:text-blue-400">Rs. {bankBalance.toLocaleString()}</td>
+                            </tr>
+                            <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                              <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Mobile Digital Wallets</td>
+                              <td className="py-2.5 px-2">
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                                  Mobile Wallet
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-2 text-slate-500 font-medium">JazzCash & Easypaisa Merchant Wallets</td>
+                              <td className="py-2.5 px-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {walletBalance.toLocaleString()}</td>
+                            </tr>
+                          </tbody>
+                          <tfoot>
+                            <tr className="border-t-2 text-xs font-black">
+                              <td colSpan={3} className="py-2.5 px-2.5 uppercase">Total Liquid Cash & Bank Funds</td>
+                              <td className="py-2.5 px-2.5 text-right font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidFunds.toLocaleString()}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+
+                      {/* 2. Itemized Transactions Flow */}
+                      <div className="pt-2">
+                        <h4 className="text-[11px] font-black uppercase text-slate-400 mb-1 tracking-wider">
+                          2. Recent Liquid Fund Transactions Flow ({liquidTransactionsList.length} Entries)
+                        </h4>
+                        <div className="max-h-60 overflow-y-auto border rounded-xl dark:border-slate-700">
+                          <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                              <tr className={`border-b text-[10px] font-black uppercase text-slate-400 sticky top-0 ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                                <th className="py-2 px-2.5">Date</th>
+                                <th className="py-2 px-2">Source / Reference</th>
+                                <th className="py-2 px-2">Party</th>
+                                <th className="py-2 px-2">Channel</th>
+                                <th className="py-2 px-2 text-center">Type</th>
+                                <th className="py-2 px-2.5 text-right">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                              {liquidTransactionsList.length === 0 ? (
+                                <tr>
+                                  <td colSpan={6} className="py-6 text-center text-slate-400 font-normal">
+                                    No liquid fund transactions logged yet.
+                                  </td>
+                                </tr>
+                              ) : (
+                                liquidTransactionsList.filter(tx =>
+                                  (tx.source || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
+                                  (tx.party || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) ||
+                                  (tx.channel || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase())
+                                ).map((tx, idx) => (
+                                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                                    <td className="py-2 px-2.5 font-mono text-[11px]">{tx.date}</td>
+                                    <td className="py-2 px-2 font-bold text-slate-900 dark:text-white max-w-[140px] truncate">{tx.source}</td>
+                                    <td className="py-2 px-2 text-slate-600 dark:text-slate-300 max-w-[120px] truncate">{tx.party}</td>
+                                    <td className="py-2 px-2">
+                                      <span className="text-[10px] font-bold text-slate-500">{tx.channel}</span>
+                                    </td>
+                                    <td className="py-2 px-2 text-center">
+                                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
+                                        tx.type === 'Inflow'
+                                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                      }`}>
+                                        {tx.type === 'Inflow' ? '+ Inflow' : '- Outflow'}
+                                      </span>
+                                    </td>
+                                    <td className={`py-2 px-2.5 text-right font-mono font-bold ${
+                                      tx.type === 'Inflow' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                                    }`}>
+                                      Rs. {tx.amount.toLocaleString()}
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
 
