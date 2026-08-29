@@ -164,11 +164,20 @@ export const exportSinglePageReceiptPDF = async (element, filename = 'receipt.pd
         clonedElement.style.overflow = 'visible';
         clonedElement.style.height = 'auto';
         clonedElement.style.maxHeight = 'none';
+        clonedElement.style.width = '420px';
+        clonedElement.style.maxWidth = '420px';
+        clonedElement.style.zoom = '1';
+        clonedElement.style.transform = 'none';
         clonedElement.style.boxShadow = 'none';
         clonedElement.style.borderRadius = '0px';
         clonedElement.style.border = 'none';
         clonedElement.style.backgroundColor = '#ffffff';
         clonedElement.style.color = '#0f172a';
+
+        const allNodes = clonedElement.querySelectorAll('*');
+        allNodes.forEach(node => {
+          node.style.zoom = '1';
+        });
       }
     }
   });

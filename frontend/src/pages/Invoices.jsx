@@ -641,7 +641,7 @@ export const Invoices = () => {
                             title="View & Print Official A4 Document"
                           >
                             <Printer className="w-3.5 h-3.5" />
-                            <span>Print A4</span>
+                            <span>Print Invoice</span>
                           </button>
                         </div>
                       </td>
