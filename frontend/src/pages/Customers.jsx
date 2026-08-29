@@ -30,7 +30,7 @@ import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
 
 export const Customers = () => {
-  const { customers = [], sales = [], addCustomer, updateCustomer, deleteCustomer } = useERP();
+  const { customers = [], sales = [], saleReturns = [], paymentLogs = [], addCustomer, updateCustomer, deleteCustomer } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -79,18 +79,114 @@ export const Customers = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showAddModal, editingCustomer, viewingCustomer]);
 
+  // Aggregate unified customer list (Registered + Walk-in parties)
+  const allCustomerList = useMemo(() => {
+    const list = [];
+    const processedCustNames = new Set();
+    const processedCustIds = new Set();
+
+    // 1. Process all registered customer accounts
+    (customers || []).forEach(cust => {
+      processedCustIds.add(cust.id);
+      if (cust.name) processedCustNames.add(cust.name.trim().toLowerCase());
+
+      const custSales = (sales || []).filter(s =>
+        s.customerId === cust.id ||
+        (s.partyName && s.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
+      );
+      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
+      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? (s.amount || s.grandTotal) : 0)), 0);
+      const returnAmt = (saleReturns || []).filter(r =>
+        r.customerId === cust.id ||
+        (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+      const balance = Number(cust.balance !== undefined ? cust.balance : Math.max(0, totalSale - totalPaid - returnAmt));
+      const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
+      const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
+
+      list.push({
+        ...cust,
+        id: cust.id,
+        name: cust.name,
+        businessName: cust.businessName || cust.shopName || '',
+        phone: cust.phone || '',
+        whatsapp: cust.whatsapp || '',
+        email: cust.email || '',
+        city: cust.city || 'Local Mandi',
+        address: cust.address || '',
+        customerType: custType,
+        balance,
+        status: cust.status || 'Active',
+        ordersCount: custSales.length,
+        totalSales: totalSale,
+        totalPaid,
+        isRegistered: true
+      });
+    });
+
+    // 2. Process Walk-in / Counter Sales not attached to a registered customer ID
+    const walkinSalesMap = new Map();
+    (sales || []).forEach(s => {
+      const isRegisteredCust = (s.customerId && processedCustIds.has(s.customerId)) ||
+        (s.partyName && processedCustNames.has(s.partyName.trim().toLowerCase()));
+
+      if (!isRegisteredCust) {
+        const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
+        const key = rawName.toLowerCase();
+        if (!walkinSalesMap.has(key)) {
+          walkinSalesMap.set(key, {
+            name: rawName,
+            sales: []
+          });
+        }
+        walkinSalesMap.get(key).sales.push(s);
+      }
+    });
+
+    walkinSalesMap.forEach((val, key) => {
+      const custSales = val.sales;
+      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
+      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? (s.amount || s.grandTotal) : 0)), 0);
+      const returnAmt = (saleReturns || []).filter(r =>
+        r.customerName && r.customerName.trim().toLowerCase() === key
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+      const balance = Math.max(0, totalSale - totalPaid - returnAmt);
+
+      list.push({
+        id: `walkin-${val.name}`,
+        name: val.name,
+        businessName: 'Walk-in Party',
+        phone: 'Counter Sale',
+        whatsapp: '',
+        email: '',
+        city: 'Local Mandi',
+        address: 'Walk-in Counter',
+        customerType: 'Walk-in Customer',
+        balance,
+        status: 'Active',
+        ordersCount: custSales.length,
+        totalSales: totalSale,
+        totalPaid,
+        isRegistered: false
+      });
+    });
+
+    return list;
+  }, [customers, sales, saleReturns, paymentLogs]);
+
   // Aggregate stats
-  const totalCustomers = customers.length;
-  const regularCount = customers.filter(c => {
+  const totalCustomers = allCustomerList.length;
+  const regularCount = allCustomerList.filter(c => {
     const type = (c.customerType || '').toLowerCase();
     return type.includes('regular') || !type.includes('walk-in');
   }).length;
-  const walkinCount = customers.filter(c => (c.customerType || '').toLowerCase().includes('walk-in')).length;
-  const totalReceivables = customers.reduce((acc, c) => acc + Math.max(0, Number(c.balance || 0)), 0);
+  const walkinCount = allCustomerList.filter(c => (c.customerType || '').toLowerCase().includes('walk-in')).length;
+  const totalReceivables = allCustomerList.reduce((acc, c) => acc + Math.max(0, Number(c.balance || 0)), 0);
 
   // Filtered Customers Array
   const filteredCustomers = useMemo(() => {
-    return customers.filter(c => {
+    return allCustomerList.filter(c => {
       // Customer Type Filter
       const isWalkin = (c.customerType || '').toLowerCase().includes('walk-in');
       if (customerTypeFilter === 'Regular Customer' && isWalkin) return false;
@@ -108,7 +204,7 @@ export const Customers = () => {
 
       return true;
     }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-  }, [customers, customerTypeFilter, balanceFilter, statusFilter]);
+  }, [allCustomerList, customerTypeFilter, balanceFilter, statusFilter]);
 
   const isAnyFilterActive = (
     customerTypeFilter !== 'All' ||
@@ -195,23 +291,35 @@ export const Customers = () => {
     }
 
     try {
-      await updateCustomer(editingCustomer.id, {
-        name: editingCustomer.name.trim(),
-        shopName: editingCustomer.businessName ? editingCustomer.businessName.trim() : (editingCustomer.shopName ? editingCustomer.shopName.trim() : ''),
-        businessName: editingCustomer.businessName ? editingCustomer.businessName.trim() : (editingCustomer.shopName ? editingCustomer.shopName.trim() : ''),
-        phone: editingCustomer.phone ? editingCustomer.phone.trim() : 'N/A',
-        whatsapp: editingCustomer.whatsapp ? editingCustomer.whatsapp.trim() : '',
-        email: editingCustomer.email ? editingCustomer.email.trim() : '',
-        city: editingCustomer.city ? editingCustomer.city.trim() : 'Local Mandi',
-        address: editingCustomer.address ? editingCustomer.address.trim() : '',
-        customerType: editingCustomer.customerType || 'Regular Customer',
-        balance: Number(editingCustomer.balance) || 0,
-        bankName: editingCustomer.bankName ? editingCustomer.bankName.trim() : '',
-        accountTitle: editingCustomer.accountTitle ? editingCustomer.accountTitle.trim() : '',
-        accountNumber: (editingCustomer.accountNumber || editingCustomer.iban) ? (editingCustomer.accountNumber || editingCustomer.iban).trim() : '',
-        status: editingCustomer.status || 'Active',
-        notes: editingCustomer.notes ? editingCustomer.notes.trim() : ''
-      });
+      if (editingCustomer.isRegistered) {
+        await updateCustomer(editingCustomer.id, {
+          name: editingCustomer.name.trim(),
+          shopName: editingCustomer.businessName ? editingCustomer.businessName.trim() : (editingCustomer.shopName ? editingCustomer.shopName.trim() : ''),
+          businessName: editingCustomer.businessName ? editingCustomer.businessName.trim() : (editingCustomer.shopName ? editingCustomer.shopName.trim() : ''),
+          phone: editingCustomer.phone ? editingCustomer.phone.trim() : 'N/A',
+          whatsapp: editingCustomer.whatsapp ? editingCustomer.whatsapp.trim() : '',
+          email: editingCustomer.email ? editingCustomer.email.trim() : '',
+          city: editingCustomer.city ? editingCustomer.city.trim() : 'Local Mandi',
+          address: editingCustomer.address ? editingCustomer.address.trim() : '',
+          customerType: editingCustomer.customerType || 'Regular Customer',
+          balance: Number(editingCustomer.balance) || 0,
+          bankName: editingCustomer.bankName ? editingCustomer.bankName.trim() : '',
+          accountTitle: editingCustomer.accountTitle ? editingCustomer.accountTitle.trim() : '',
+          accountNumber: (editingCustomer.accountNumber || editingCustomer.iban) ? (editingCustomer.accountNumber || editingCustomer.iban).trim() : '',
+          status: editingCustomer.status || 'Active',
+          notes: editingCustomer.notes ? editingCustomer.notes.trim() : ''
+        });
+      } else {
+        await addCustomer({
+          name: editingCustomer.name.trim(),
+          shopName: editingCustomer.businessName ? editingCustomer.businessName.trim() : '',
+          businessName: editingCustomer.businessName ? editingCustomer.businessName.trim() : '',
+          phone: editingCustomer.phone ? editingCustomer.phone.trim() : 'N/A',
+          city: editingCustomer.city ? editingCustomer.city.trim() : 'Local Mandi',
+          balance: Number(editingCustomer.balance) || 0,
+          customerType: editingCustomer.customerType || 'Walk-in Customer'
+        });
+      }
 
       setEditingCustomer(null);
     } catch (err) {
