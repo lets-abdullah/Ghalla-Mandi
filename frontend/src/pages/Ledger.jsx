@@ -86,12 +86,11 @@ export const Ledger = () => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         if (viewingEntry) setViewingEntry(null);
-        else if (showPaymentModal) setShowPaymentModal(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [viewingEntry, showPaymentModal]);
+  }, [viewingEntry]);
 
   // Robust Date Parser helper
   const parseLedgerDate = (dateStr) => {
