@@ -460,18 +460,18 @@ export const Ledger = () => {
             <span>Balance Due</span>
           </div>
           <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${balanceDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-amber-600'}`}>
-            {balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : 'Rs. 0'}
+{balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : 'Rs. 0'}
           </div>
         </div>
       </div>
 
       {/* Ledger Filter Toolbar */}
-      <div className={`border rounded-3xl p-4 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      <div className={`border rounded-3xl p-3.5 sm:p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
-        <div className={`grid grid-cols-1 sm:grid-cols-2 ${isSupplier ? 'lg:grid-cols-4' : 'lg:grid-cols-5'} gap-3`}>
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3">
           {/* 1. Customer Type (Only if Customer Ledger) OR Supplier Selector (If Supplier Ledger) */}
           {isSupplier ? (
-            <div>
+            <div className="flex-1 min-w-[140px]">
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <UserCheck className="w-3.5 h-3.5 text-brand-500" />
                 <span>Supplier</span>
@@ -479,7 +479,7 @@ export const Ledger = () => {
               <select
                 value={selectedPartyId}
                 onChange={(e) => setSelectedPartyId(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Suppliers</option>
@@ -491,7 +491,7 @@ export const Ledger = () => {
               </select>
             </div>
           ) : (
-            <div>
+            <div className="flex-1 min-w-[130px]">
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <Users className="w-3.5 h-3.5 text-brand-500" />
                 <span>Customer Type</span>
@@ -499,7 +499,7 @@ export const Ledger = () => {
               <select
                 value={customerTypeFilter}
                 onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Customer Types</option>
@@ -511,7 +511,7 @@ export const Ledger = () => {
 
           {/* 2. Select Customer (if Customer Ledger) OR Product (if Supplier Ledger) */}
           {!isSupplier ? (
-            <div>
+            <div className="flex-1 min-w-[140px]">
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <User className="w-3.5 h-3.5 text-blue-500" />
                 <span>Customer</span>
@@ -519,7 +519,7 @@ export const Ledger = () => {
               <select
                 value={selectedPartyId}
                 onChange={(e) => setSelectedPartyId(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Customers</option>
@@ -531,7 +531,7 @@ export const Ledger = () => {
               </select>
             </div>
           ) : (
-            <div>
+            <div className="flex-1 min-w-[140px]">
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <Package className="w-3.5 h-3.5 text-emerald-500" />
                 <span>Product</span>
@@ -539,7 +539,7 @@ export const Ledger = () => {
               <select
                 value={selectedProductFilter}
                 onChange={(e) => setSelectedProductFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Products</option>
@@ -552,7 +552,7 @@ export const Ledger = () => {
 
           {/* 3. Product (for Customer Ledger) OR Date Filter (for Supplier Ledger) */}
           {!isSupplier ? (
-            <div>
+            <div className="flex-1 min-w-[140px]">
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <Package className="w-3.5 h-3.5 text-emerald-500" />
                 <span>Product</span>
@@ -560,7 +560,7 @@ export const Ledger = () => {
               <select
                 value={selectedProductFilter}
                 onChange={(e) => setSelectedProductFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Products</option>
@@ -570,7 +570,7 @@ export const Ledger = () => {
               </select>
             </div>
           ) : (
-            <div>
+            <div className="flex-1 min-w-[130px]">
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                 <span>Date Filter</span>
@@ -578,7 +578,7 @@ export const Ledger = () => {
               <select
                 value={dateFilterType}
                 onChange={(e) => setDateFilterType(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Dates</option>
@@ -592,7 +592,7 @@ export const Ledger = () => {
 
           {/* 4. Date Filter (for Customer Ledger) OR Transaction Type (for Supplier Ledger) */}
           {!isSupplier ? (
-            <div>
+            <div className="flex-1 min-w-[130px]">
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                 <span>Date Filter</span>
@@ -600,7 +600,7 @@ export const Ledger = () => {
               <select
                 value={dateFilterType}
                 onChange={(e) => setDateFilterType(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Dates</option>
@@ -611,7 +611,7 @@ export const Ledger = () => {
               </select>
             </div>
           ) : (
-            <div>
+            <div className="flex-1 min-w-[130px]">
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <Filter className="w-3.5 h-3.5 text-amber-500" />
                 <span>Transaction Type</span>
@@ -619,7 +619,7 @@ export const Ledger = () => {
               <select
                 value={txTypeFilter}
                 onChange={(e) => setTxTypeFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Transactions</option>
@@ -632,7 +632,7 @@ export const Ledger = () => {
 
           {/* 5. Transaction Type (Only for Customer Ledger) */}
           {!isSupplier && (
-            <div>
+            <div className="flex-1 min-w-[130px]">
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <Filter className="w-3.5 h-3.5 text-amber-500" />
                 <span>Transaction Type</span>
@@ -640,7 +640,7 @@ export const Ledger = () => {
               <select
                 value={txTypeFilter}
                 onChange={(e) => setTxTypeFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Transactions</option>
@@ -650,51 +650,45 @@ export const Ledger = () => {
               </select>
             </div>
           )}
+
+          {/* Inline Reset Filters Button */}
+          {isAnyFilterActive && (
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="h-[38px] px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center justify-center gap-1.5"
+              title="Reset all filters"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Reset Filters</span>
+            </button>
+          )}
         </div>
 
-        {/* Row 2: Custom Date Pickers + Reset */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
-          <div className="text-xs text-slate-400 font-bold hidden sm:block">
-            {isSupplier ? 'Supplier purchase bills and payment records' : 'Customer sales invoices and payment records'}
+        {/* Custom Date Pickers (if Custom is chosen) */}
+        {dateFilterType === 'Custom' && (
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+            <span className="text-xs font-bold text-slate-400">Date Range:</span>
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={(e) => setCustomStartDate(e.target.value)}
+              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+            />
+            <span className="text-xs text-slate-400 font-bold">to</span>
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+            />
           </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {dateFilterType === 'Custom' && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-400">Date Range:</span>
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-                <span className="text-xs text-slate-400 font-bold">to</span>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-              </div>
-            )}
-
-            {isAnyFilterActive && (
-              <button
-                type="button"
-                onClick={resetAllFilters}
-                className="px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Reset Filters</span>
-              </button>
-            )}
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Main Compact Ledger Table (No Large Description Column, No Horizontal Scroll) */}
+      {/* Main Compact Ledger Table */}
       <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
         <div className="overflow-x-auto">

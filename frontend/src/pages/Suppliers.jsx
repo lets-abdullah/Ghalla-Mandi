@@ -25,7 +25,8 @@ import {
   FolderPlus,
   Landmark,
   Hash,
-  ChevronDown
+  ChevronDown,
+  RotateCcw
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -610,6 +611,18 @@ export const Suppliers = () => {
     return true;
   }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
 
+  const isAnyFilterActive = (
+    selectedSupplierFilter !== 'All' ||
+    selectedProductFilter !== 'All' ||
+    statusFilter !== 'All'
+  );
+
+  const resetAllFilters = () => {
+    setSelectedSupplierFilter('All');
+    setSelectedProductFilter('All');
+    setStatusFilter('All');
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -658,7 +671,7 @@ export const Suppliers = () => {
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div
-          onClick={() => { setStatusFilter('All'); setSelectedProductFilter('All'); }}
+          onClick={() => { setStatusFilter('All'); setSelectedProductFilter('All'); setSelectedSupplierFilter('All'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
             }`}
         >
@@ -701,48 +714,79 @@ export const Suppliers = () => {
       </div>
 
       {/* Unified Filter Toolbar: [Supplier] [Product] [Status] */}
-      <div className={`p-4 rounded-2xl border card-shadow flex flex-wrap items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      <div className={`p-3.5 sm:p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-2.5">
           {/* Supplier Selector */}
-          <select
-            value={selectedSupplierFilter}
-            onChange={(e) => setSelectedSupplierFilter(e.target.value)}
-            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-          >
-            <option value="All">All Suppliers</option>
-            {suppliers.map(s => (
-              <option key={s.id} value={s.id}>{s.name} ({s.city || 'Mandi'})</option>
-            ))}
-          </select>
+          <div className="flex-1 min-w-[140px]">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <UserCheck className="w-3.5 h-3.5 text-blue-500" />
+              <span>Supplier</span>
+            </label>
+            <select
+              value={selectedSupplierFilter}
+              onChange={(e) => setSelectedSupplierFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+            >
+              <option value="All">All Suppliers</option>
+              {suppliers.map(s => (
+                <option key={s.id} value={s.id}>{s.name} ({s.city || 'Mandi'})</option>
+              ))}
+            </select>
+          </div>
 
           {/* Product Filter */}
-          <select
-            value={selectedProductFilter}
-            onChange={(e) => setSelectedProductFilter(e.target.value)}
-            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-          >
-            <option value="All">All Products</option>
-            {products.map(p => (
-              <option key={p.id} value={p.name}>{p.name}</option>
-            ))}
-          </select>
+          <div className="flex-1 min-w-[140px]">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Package className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Product</span>
+            </label>
+            <select
+              value={selectedProductFilter}
+              onChange={(e) => setSelectedProductFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+            >
+              <option value="All">All Products</option>
+              {products.map(p => (
+                <option key={p.id} value={p.name}>{p.name}</option>
+              ))}
+            </select>
+          </div>
 
           {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-          >
-            <option value="All">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-            <option value="Payable">Due / Payable</option>
-            <option value="Settled">Settled / Rs. 0</option>
-          </select>
+          <div className="flex-1 min-w-[140px]">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-amber-500" />
+              <span>Status</span>
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Payable">Due / Payable</option>
+              <option value="Settled">Settled / Rs. 0</option>
+            </select>
+          </div>
+
+          {/* Inline Reset Button */}
+          {isAnyFilterActive && (
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="h-[38px] px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center justify-center gap-1.5"
+              title="Reset all filters"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset Filters</span>
+            </button>
+          )}
         </div>
       </div>
 

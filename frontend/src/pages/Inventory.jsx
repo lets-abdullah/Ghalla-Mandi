@@ -494,17 +494,16 @@ export const Inventory = () => {
       <div className={`p-3.5 rounded-2xl border card-shadow space-y-3 ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
       }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 items-center">
-          
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-2.5">
           {/* 1. Date Filter */}
-          <div>
+          <div className="flex-1 min-w-[120px]">
             <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
               Date
             </label>
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
                 theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
             >
@@ -518,14 +517,14 @@ export const Inventory = () => {
           </div>
 
           {/* 2. Product Filter */}
-          <div>
+          <div className="flex-1 min-w-[120px]">
             <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
               Product
             </label>
             <select
               value={selectedProduct}
               onChange={(e) => setSelectedProduct(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
                 theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
             >
@@ -537,14 +536,14 @@ export const Inventory = () => {
           </div>
 
           {/* 3. Movement Type */}
-          <div>
+          <div className="flex-1 min-w-[120px]">
             <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
               Movement Type
             </label>
             <select
               value={movementTypeFilter}
               onChange={(e) => setMovementTypeFilter(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
                 theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
             >
@@ -557,14 +556,14 @@ export const Inventory = () => {
           </div>
 
           {/* 4. Reference / Source */}
-          <div>
+          <div className="flex-1 min-w-[130px]">
             <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
               Reference / Source
             </label>
             <select
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
                 theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
             >
@@ -579,7 +578,7 @@ export const Inventory = () => {
           </div>
 
           {/* 5. Search Bar */}
-          <div>
+          <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
               Search
             </label>
@@ -589,13 +588,26 @@ export const Inventory = () => {
                 placeholder="Product, reference, note..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full border rounded-xl pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                className={`w-full border rounded-xl pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${
                   theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
               />
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             </div>
           </div>
+
+          {/* Inline Reset Button */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="h-[38px] px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center justify-center gap-1.5"
+              title="Reset all filters"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Reset Filters</span>
+            </button>
+          )}
         </div>
 
         {/* Custom Date Pickers (Shown only when dateFilter is 'Custom') */}
@@ -623,22 +635,6 @@ export const Inventory = () => {
                 }`}
               />
             </div>
-          </div>
-        )}
-
-        {/* Active Filter Indicators */}
-        {hasActiveFilters && (
-          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
-            <span className="text-slate-400 font-medium">
-              Showing <span className="font-bold text-slate-800 dark:text-white font-mono">{filteredTransactions.length}</span> of {allTransactions.length} movements
-            </span>
-            <button
-              onClick={handleResetFilters}
-              className="text-[11px] font-bold text-rose-500 hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <X className="w-3 h-3" />
-              <span>Reset Filters</span>
-            </button>
           </div>
         )}
       </div>

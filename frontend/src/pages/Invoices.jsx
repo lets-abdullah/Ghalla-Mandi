@@ -418,11 +418,11 @@ export const Invoices = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className={`border rounded-3xl p-4 sm:p-5 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      <div className={`border rounded-3xl p-3.5 sm:p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3">
           {/* 1. Select Party */}
-          <div>
+          <div className="flex-1 min-w-[150px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <User className="w-3.5 h-3.5 text-blue-500" />
               <span>{isPurchases ? 'Supplier / Vendor' : 'Customer'}</span>
@@ -430,7 +430,7 @@ export const Invoices = () => {
             <select
               value={selectedPartyId}
               onChange={(e) => setSelectedPartyId(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
             >
               <option value="All">All {isPurchases ? 'Suppliers' : 'Customers'}</option>
@@ -442,8 +442,8 @@ export const Invoices = () => {
             </select>
           </div>
 
-          {/* 3. Product Filter */}
-          <div>
+          {/* 2. Product Filter */}
+          <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <ShoppingBag className="w-3.5 h-3.5 text-emerald-500" />
               <span>Commodity / Item</span>
@@ -451,7 +451,7 @@ export const Invoices = () => {
             <select
               value={selectedProductFilter}
               onChange={(e) => setSelectedProductFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
             >
               <option value="All">All Commodities</option>
@@ -461,8 +461,8 @@ export const Invoices = () => {
             </select>
           </div>
 
-          {/* 4. Date Filter */}
-          <div>
+          {/* 3. Date Filter */}
+          <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-indigo-500" />
               <span>Billing Period</span>
@@ -470,7 +470,7 @@ export const Invoices = () => {
             <select
               value={dateFilterType}
               onChange={(e) => setDateFilterType(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
             >
               <option value="All">All Time</option>
@@ -482,8 +482,8 @@ export const Invoices = () => {
             </select>
           </div>
 
-          {/* 5. Payment Status */}
-          <div>
+          {/* 4. Payment Status */}
+          <div className="flex-1 min-w-[130px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-amber-500" />
               <span>Clearance Status</span>
@@ -491,7 +491,7 @@ export const Invoices = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
             >
               <option value="All">All Statuses</option>
@@ -500,47 +500,44 @@ export const Invoices = () => {
               <option value="Pending">Unpaid</option>
             </select>
           </div>
-        </div>
 
-        {/* Row 2: Custom Date Pickers & Reset */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/80">
-          {dateFilterType === 'Custom' && (
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div>
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  title="From Date"
-                />
-              </div>
-              <span className="text-xs text-slate-400 font-bold">to</span>
-              <div>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  title="To Date"
-                />
-              </div>
-            </div>
-          )}
-
+          {/* Inline Reset Button */}
           {isAnyFilterActive && (
             <button
               type="button"
               onClick={resetAllFilters}
-              className="px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
+              className="h-[38px] px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center justify-center gap-1.5"
+              title="Reset all filters"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Reset Filters</span>
             </button>
           )}
         </div>
+
+        {/* Custom Date Pickers (Shown only when 'Custom' date range is picked) */}
+        {dateFilterType === 'Custom' && (
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/80">
+            <span className="text-[11px] font-bold text-slate-400">Date Range:</span>
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={(e) => setCustomStartDate(e.target.value)}
+              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              title="From Date"
+            />
+            <span className="text-xs text-slate-400 font-bold">to</span>
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+              className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              title="To Date"
+            />
+          </div>
+        )}
       </div>
 
       {/* Official Invoices Table */}

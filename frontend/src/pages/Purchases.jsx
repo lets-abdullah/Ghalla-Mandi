@@ -587,6 +587,24 @@ export const Purchases = () => {
     return timeB - timeA;
   });
 
+  const isAnyFilterActive = (
+    selectedSupplierFilter !== 'All' ||
+    selectedProductFilter !== 'All' ||
+    dateFilterType !== 'All' ||
+    filterType !== 'All' ||
+    customStartDate !== '' ||
+    customEndDate !== ''
+  );
+
+  const resetAllFilters = () => {
+    setSelectedSupplierFilter('All');
+    setSelectedProductFilter('All');
+    setDateFilterType('All');
+    setFilterType('All');
+    setCustomStartDate('');
+    setCustomEndDate('');
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header Banner */}
@@ -683,11 +701,11 @@ export const Purchases = () => {
       </div>
 
       {/* Unified Filter Toolbar: [Supplier] [Product] [Date] [Status] */}
-      <div className={`p-4 rounded-3xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      <div className={`p-3.5 sm:p-4 rounded-3xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3">
           {/* 1. Supplier */}
-          <div>
+          <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <UserCheck className="w-3.5 h-3.5 text-blue-500" />
               <span>Supplier</span>
@@ -695,7 +713,7 @@ export const Purchases = () => {
             <select
               value={selectedSupplierFilter}
               onChange={(e) => setSelectedSupplierFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
             >
               <option value="All">All Suppliers</option>
@@ -705,8 +723,8 @@ export const Purchases = () => {
             </select>
           </div>
 
-          {/* 3. Product */}
-          <div>
+          {/* 2. Product */}
+          <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Package className="w-3.5 h-3.5 text-emerald-500" />
               <span>Product</span>
@@ -714,7 +732,7 @@ export const Purchases = () => {
             <select
               value={selectedProductFilter}
               onChange={(e) => setSelectedProductFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
             >
               <option value="All">All Products</option>
@@ -724,8 +742,8 @@ export const Purchases = () => {
             </select>
           </div>
 
-          {/* 4. Date Filter */}
-          <div>
+          {/* 3. Date Filter */}
+          <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5 text-indigo-500" />
               <span>Date Filter</span>
@@ -733,7 +751,7 @@ export const Purchases = () => {
             <select
               value={dateFilterType}
               onChange={(e) => setDateFilterType(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
             >
               <option value="All">All Dates</option>
@@ -745,8 +763,8 @@ export const Purchases = () => {
             </select>
           </div>
 
-          {/* 5. Status */}
-          <div>
+          {/* 4. Status */}
+          <div className="flex-1 min-w-[130px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5 text-amber-500" />
               <span>Status</span>
@@ -754,7 +772,7 @@ export const Purchases = () => {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
             >
               <option value="All">All Statuses</option>
@@ -764,6 +782,19 @@ export const Purchases = () => {
               <option value="Returns">Show Returns</option>
             </select>
           </div>
+
+          {/* Inline Reset Button */}
+          {isAnyFilterActive && (
+            <button
+              type="button"
+              onClick={resetAllFilters}
+              className="h-[38px] px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center justify-center gap-1.5"
+              title="Reset all filters"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset Filters</span>
+            </button>
+          )}
         </div>
 
         {/* Custom Date Pickers (if Custom is selected) */}

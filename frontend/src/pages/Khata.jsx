@@ -338,12 +338,12 @@ export const Khata = () => {
       </div>
 
       {/* Khata Filter Toolbar */}
-      <div className={`border rounded-3xl p-4 card-shadow space-y-3 ${
+      <div className={`border rounded-3xl p-3.5 sm:p-4 card-shadow ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
           {/* 1. Customer Type */}
-          <div>
+          <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-brand-500" />
               <span>Customer Type</span>
@@ -351,7 +351,7 @@ export const Khata = () => {
             <select
               value={customerTypeFilter}
               onChange={(e) => setCustomerTypeFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${
                 theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
             >
@@ -362,7 +362,7 @@ export const Khata = () => {
           </div>
 
           {/* 2. Balance Status */}
-          <div>
+          <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-amber-500" />
               <span>Balance Status</span>
@@ -370,7 +370,7 @@ export const Khata = () => {
             <select
               value={balanceStatusFilter}
               onChange={(e) => setBalanceStatusFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${
                 theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}
             >
@@ -379,20 +379,20 @@ export const Khata = () => {
               <option value="Clear">Clear (Zero Balance)</option>
             </select>
           </div>
-        </div>
 
-        {isAnyFilterActive && (
-          <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-700/80">
+          {/* Inline Reset Button */}
+          {isAnyFilterActive && (
             <button
               type="button"
               onClick={resetAllFilters}
-              className="px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center gap-1.5"
+              className="h-[38px] px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center justify-center gap-1.5"
+              title="Reset all filters"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Reset Filters</span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* VIEW MODE: TABLE VIEW OR CARD VIEW */}

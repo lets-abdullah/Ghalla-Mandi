@@ -137,34 +137,40 @@ export const PurchaseReturns = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className={`border rounded-2xl p-4 card-shadow flex items-center justify-between gap-4 ${
+      <div className={`border rounded-2xl p-3.5 sm:p-4 card-shadow ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
-        <div className="flex items-center gap-3">
-          <label className="text-xs font-bold text-slate-400">Filter By Mode:</label>
-          <select
-            value={modeFilter}
-            onChange={(e) => setModeFilter(e.target.value)}
-            className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-            }`}
-          >
-            <option value="All">All Return Modes</option>
-            <option value="Cash">Cash Refunds</option>
-            <option value="Ledger">Supplier Dues Deducted</option>
-          </select>
-        </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+          <div className="flex-1 min-w-[160px]">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <RotateCcw className="w-3.5 h-3.5 text-brand-500" />
+              <span>Filter By Return Mode</span>
+            </label>
+            <select
+              value={modeFilter}
+              onChange={(e) => setModeFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer h-[38px] ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="All">All Return Modes</option>
+              <option value="Cash">Cash Refunds</option>
+              <option value="Ledger">Supplier Dues Deducted</option>
+            </select>
+          </div>
 
-        {modeFilter !== 'All' && (
-          <button
-            type="button"
-            onClick={() => setModeFilter('All')}
-            className="px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold flex items-center gap-1.5"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Reset Filter</span>
-          </button>
-        )}
+          {modeFilter !== 'All' && (
+            <button
+              type="button"
+              onClick={() => setModeFilter('All')}
+              className="h-[38px] px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center justify-center gap-1.5"
+              title="Reset all filters"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Reset Filter</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Purchase Returns Table */}
