@@ -3723,7 +3723,7 @@ export const Reports = () => {
                   }`}>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Total Assets (کل اثاثہ جات)
+                      Total Assets
                     </span>
                     <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                       <ArrowUpRight className="w-3.5 h-3.5" />
@@ -3743,7 +3743,7 @@ export const Reports = () => {
                   }`}>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Total Payables (کل ادھار دینا)
+                      Total Payables
                     </span>
                     <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400">
                       <span>External Debt</span>
@@ -3753,7 +3753,7 @@ export const Reports = () => {
                     Rs. {totalLiabilities.toLocaleString()}
                   </div>
                   <div className="text-[10px] text-slate-400 font-medium">
-                    Supplier Khata (Rs. {totalSupplierPayables.toLocaleString()}) + Kharcha Dues
+                    Supplier Khata (Rs. {totalSupplierPayables.toLocaleString()}) + Accrued Expenses
                   </div>
                 </div>
 
@@ -3762,10 +3762,10 @@ export const Reports = () => {
                   }`}>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Operating Profit (کاروباری منافع)
+                      Operating Profit (P&L)
                     </span>
                     <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                      <span>P&L Bachat</span>
+                      <span>Trading Profit</span>
                     </span>
                   </div>
                   <div className="text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
@@ -3781,7 +3781,7 @@ export const Reports = () => {
                   }`}>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      Net Worth (خالص مالیت / ملکیت)
+                      Net Worth (Equity)
                     </span>
                     <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                       <ArrowUpRight className="w-3.5 h-3.5" />
@@ -3792,7 +3792,7 @@ export const Reports = () => {
                     Rs. {totalEquity.toLocaleString()}
                   </div>
                   <div className="text-[10px] text-slate-400 font-medium">
-                    Assets - Payables (اصل سرمایہ Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()} + منافع)
+                    Assets - Payables (Invested Capital Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()} + Profit)
                   </div>
                 </div>
               </div>
