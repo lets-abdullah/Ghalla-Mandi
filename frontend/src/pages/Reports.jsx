@@ -849,10 +849,13 @@ export const Reports = () => {
 
     // 1. Sales Inflows
     (sales || []).forEach(s => {
-      const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
-      const paid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.status === 'Paid' ? grossAmt : 0));
+      const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.grandtotal !== undefined ? s.grandtotal : 0)));
+      const pMode = s.paymentMode || s.paymentMethod || 'Cash';
+      const isFullPaidMode = pMode === 'Cash' || pMode === 'Bank' || pMode === 'Card' || pMode === 'Bank Transfer' || pMode === 'JazzCash' || pMode === 'Easypaisa';
+      const paid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : (s.status === 'Paid' || s.paymentStatus === 'Paid' || isFullPaidMode ? grossAmt : 0)));
+      
       if (paid > 0) {
-        const chan = getChannel(s.paymentMode || s.paymentMethod);
+        const chan = getChannel(pMode);
         if (chan === 'wallet') wallet += paid;
         else if (chan === 'bank') bank += paid;
         else cash += paid;
