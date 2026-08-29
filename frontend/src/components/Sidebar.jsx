@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Warehouse, ShoppingCart,
   Receipt, Users, UserCheck, BookOpen, FileText,
-  BarChart3, Settings, Wheat, LogOut, Headphones, MessageSquare, Phone, X, PlusCircle,
+  BarChart3, Settings, Wheat, LogOut, X, PlusCircle,
   ChevronLeft, ChevronRight, ChevronDown,
   TrendingUp, DollarSign, RotateCcw, PieChart, Building,
   CreditCard
@@ -20,7 +20,6 @@ export const Sidebar = () => {
   const { isCollapsed, isMobile, isMobileOpen, toggleSidebar, closeMobileMenu } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-  const [showSupportModal, setShowSupportModal] = useState(false);
 
   const isRTL = locale === 'ur';
   const isDark = theme === 'dark';
@@ -45,7 +44,7 @@ export const Sidebar = () => {
 
   const isReportsActive = location.pathname === '/reports';
 
-  // Collapsible dropdown states
+  // Collapsible dropdown states for full expanded mode
   const [salesOpen, setSalesOpen] = useState(true);
   const [purchasesOpen, setPurchasesOpen] = useState(true);
   const [reportsOpen, setReportsOpen] = useState(true);
@@ -88,7 +87,8 @@ export const Sidebar = () => {
   // ─── Sidebar Inner Content ───
   const sidebarInner = (
     <div className={`
-      w-full h-full flex flex-col justify-between p-3.5 select-none overflow-y-auto transition-colors
+      w-full h-full flex flex-col justify-between p-3.5 select-none transition-colors
+      ${effectivelyCollapsed ? 'overflow-visible' : 'overflow-y-auto'}
       ${isDark ? 'bg-slate-900 border-r border-slate-800 text-white' : 'bg-white border-r border-slate-200 text-slate-800'}
     `}>
       {/* Brand Header */}
@@ -202,24 +202,102 @@ export const Sidebar = () => {
             )}
           </NavLink>
 
-          {/* 3. Sales ▾ (Collapsible Dropdown Group) */}
+          {/* 3. Sales ▾ (Collapsible Dropdown Group & Compact Flyout Popover) */}
           {effectivelyCollapsed ? (
-            <NavLink
-              to="/sales"
-              onClick={handleLinkClick}
-              title={t('sales')}
-              className={({ isActive }) =>
-                `flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all relative group ${isSalesActive
+            <div className="relative group/menu">
+              <button
+                type="button"
+                className={`w-full flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isSalesActive
                   ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                }`
-              }
-            >
-              <Receipt className="w-4 h-4 shrink-0 stroke-[2.2]" />
-              <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-                {t('sales')}
+                }`}
+              >
+                <Receipt className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              </button>
+
+              {/* Flyout Submenu on Hover / Focus */}
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5 before:-right-4' : 'left-full ml-3.5 before:-left-4'} w-52 hidden group-hover/menu:block hover:block z-50 before:absolute before:inset-y-0 before:w-4 before:content-['']`}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
+                  {/* Category Header */}
+                  <div className="px-3 py-1.5 text-[11px] font-black uppercase text-brand-600 dark:text-brand-400 border-b border-slate-100 dark:border-slate-700/60 flex items-center gap-2">
+                    <Receipt className="w-3.5 h-3.5" />
+                    <span>{t('sales')}</span>
+                  </div>
+
+                  <Link
+                    to="/sales"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/sales')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Receipt className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('sales')}</span>
+                  </Link>
+
+                  <Link
+                    to="/customers"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/customers')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('customers')}</span>
+                  </Link>
+
+                  <Link
+                    to="/invoices?type=Sales"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/invoices', 'Sales')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('saleInvoices')}</span>
+                  </Link>
+
+                  <Link
+                    to="/ledger?type=Customer"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Customer')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('customerLedger')}</span>
+                  </Link>
+
+                  <Link
+                    to="/khata"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/khata')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <CreditCard className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>Khata</span>
+                  </Link>
+
+                  <Link
+                    to="/sale-returns"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/sale-returns')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>Sale Returns</span>
+                  </Link>
+                </div>
               </div>
-            </NavLink>
+            </div>
           ) : (
             <div className="space-y-1">
               <button
@@ -316,24 +394,90 @@ export const Sidebar = () => {
             </div>
           )}
 
-          {/* 4. Purchases ▾ (Collapsible Dropdown Group) */}
+          {/* 4. Purchases ▾ (Collapsible Dropdown Group & Compact Flyout Popover) */}
           {effectivelyCollapsed ? (
-            <NavLink
-              to="/purchases"
-              onClick={handleLinkClick}
-              title={t('purchases')}
-              className={({ isActive }) =>
-                `flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all relative group ${isPurchasesActive
+            <div className="relative group/menu">
+              <button
+                type="button"
+                className={`w-full flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isPurchasesActive
                   ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                }`
-              }
-            >
-              <ShoppingCart className="w-4 h-4 shrink-0 stroke-[2.2]" />
-              <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-                {t('purchases')}
+                }`}
+              >
+                <ShoppingCart className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              </button>
+
+              {/* Flyout Submenu on Hover / Focus */}
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5 before:-right-4' : 'left-full ml-3.5 before:-left-4'} w-52 hidden group-hover/menu:block hover:block z-50 before:absolute before:inset-y-0 before:w-4 before:content-['']`}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
+                  {/* Category Header */}
+                  <div className="px-3 py-1.5 text-[11px] font-black uppercase text-brand-600 dark:text-brand-400 border-b border-slate-100 dark:border-slate-700/60 flex items-center gap-2">
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    <span>{t('purchases')}</span>
+                  </div>
+
+                  <Link
+                    to="/purchases"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchases')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('purchases')}</span>
+                  </Link>
+
+                  <Link
+                    to="/suppliers"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/suppliers') || isSubActive('/suppliers/new')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <UserCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('suppliers')}</span>
+                  </Link>
+
+                  <Link
+                    to="/invoices?type=Purchases"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/invoices', 'Purchases')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('purchaseInvoices')}</span>
+                  </Link>
+
+                  <Link
+                    to="/ledger?type=Supplier"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Supplier')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('supplierLedger')}</span>
+                  </Link>
+
+                  <Link
+                    to="/purchase-returns"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchase-returns')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>Purchase Returns</span>
+                  </Link>
+                </div>
               </div>
-            </NavLink>
+            </div>
           ) : (
             <div className="space-y-1">
               <button
@@ -460,24 +604,90 @@ export const Sidebar = () => {
             )}
           </NavLink>
 
-          {/* 7. Reports ▾ (Collapsible Dropdown Group) */}
+          {/* 7. Reports ▾ (Collapsible Dropdown Group & Compact Flyout Popover) */}
           {effectivelyCollapsed ? (
-            <NavLink
-              to="/reports"
-              onClick={handleLinkClick}
-              title={t('reports')}
-              className={({ isActive }) =>
-                `flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all relative group ${isReportsActive
+            <div className="relative group/menu">
+              <button
+                type="button"
+                className={`w-full flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isReportsActive
                   ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                }`
-              }
-            >
-              <BarChart3 className="w-4 h-4 shrink-0 stroke-[2.2]" />
-              <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-                {t('reports')}
+                }`}
+              >
+                <BarChart3 className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              </button>
+
+              {/* Flyout Submenu on Hover / Focus */}
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5 before:-right-4' : 'left-full ml-3.5 before:-left-4'} w-56 hidden group-hover/menu:block hover:block z-50 before:absolute before:inset-y-0 before:w-4 before:content-['']`}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
+                  {/* Category Header */}
+                  <div className="px-3 py-1.5 text-[11px] font-black uppercase text-brand-600 dark:text-brand-400 border-b border-slate-100 dark:border-slate-700/60 flex items-center gap-2">
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    <span>{t('reports')}</span>
+                  </div>
+
+                  <Link
+                    to="/reports?type=Stock"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Stock') || (location.pathname === '/reports' && (!location.search || location.search === '?type=Stock'))
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Warehouse className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('stockReport') || 'Stock Report'}</span>
+                  </Link>
+
+                  <Link
+                    to="/reports?type=Sales"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Sales')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <TrendingUp className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('salesReport') || 'Sales & Profit Report'}</span>
+                  </Link>
+
+                  <Link
+                    to="/reports?type=Expenses"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Expenses')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <DollarSign className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('expenseReport') || 'Expense Report'}</span>
+                  </Link>
+
+                  <Link
+                    to="/reports?type=ProfitLoss"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'ProfitLoss')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <PieChart className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('profitLoss') || 'Profit & Loss'}</span>
+                  </Link>
+
+                  <Link
+                    to="/reports?type=BalanceSheet"
+                    onClick={handleLinkClick}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'BalanceSheet')
+                      ? 'bg-brand-500 text-white font-black'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Building className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                    <span>{t('balanceSheet') || 'Balance Sheet'}</span>
+                  </Link>
+                </div>
               </div>
-            </NavLink>
+            </div>
           ) : (
             <div className="space-y-1">
               <button
@@ -585,40 +795,8 @@ export const Sidebar = () => {
         </nav>
       </div>
 
-      {/* Contact Support & Sign Out */}
-      <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
-        {/* Support Widget */}
-        {!effectivelyCollapsed ? (
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50/60 dark:from-emerald-950/30 dark:to-teal-950/20 border border-emerald-200/80 dark:border-emerald-800/40 rounded-2xl p-3 text-center shadow-2xs">
-            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center mx-auto mb-1 shadow-2xs">
-              <Headphones className="w-4 h-4" />
-            </div>
-            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">{t('needHelp')}</h4>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2">{t('dedicatedSupport')}</p>
-            <button
-              type="button"
-              onClick={() => setShowSupportModal(true)}
-              className="w-full py-1.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>{t('contactSupport')}</span>
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowSupportModal(true)}
-            className="w-full p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center transition cursor-pointer relative group shadow-2xs"
-            title={t('contactSupport')}
-          >
-            <Headphones className="w-4 h-4" />
-            <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-              {t('contactSupport')}
-            </div>
-          </button>
-        )}
-
-        {/* Logout Button */}
+      {/* Sign Out (Clean bottom section without Need Help card) */}
+      <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
         <button
           type="button"
           onClick={handleLogout}
@@ -666,69 +844,9 @@ export const Sidebar = () => {
           {sidebarInner}
         </aside>
       )}
-
-      {/* Support Helpline Modal */}
-      {showSupportModal && (
-        <div 
-          onClick={() => setShowSupportModal(false)}
-          className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className={`rounded-3xl max-w-sm w-full p-5 sm:p-6 card-shadow space-y-4 border my-auto max-h-[90vh] overflow-y-auto ${
-              isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}
-          >
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-              <div className="flex items-center gap-2">
-                <Headphones className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-extrabold text-base">{t('contactMandiSupport')}</h3>
-              </div>
-              <button 
-                type="button" 
-                onClick={() => setShowSupportModal(false)} 
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <a
-                href="https://wa.me/923001234567?text=Hello%2C%20I%20need%20help%20with%20Ghallah%20Mandi%20ERP."
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`p-3 rounded-2xl border flex items-center gap-3 cursor-pointer transition-colors ${
-                  isDark ? 'bg-slate-900 border-slate-700 hover:bg-emerald-950/40 hover:border-emerald-700' : 'bg-slate-50 border-slate-200 hover:bg-emerald-50 hover:border-emerald-200'
-                }`}
-              >
-                <Phone className="w-4 h-4 text-emerald-600" />
-                <div>
-                  <div className="font-bold">{t('supportHelpline')}</div>
-                  <div className="text-slate-400 font-mono">+92 300 1234567</div>
-                </div>
-              </a>
-
-              <a
-                href="https://mail.google.com/mail/?view=cm&fs=1&to=support@ghallamandi.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`p-3 rounded-2xl border flex items-center gap-3 cursor-pointer transition-colors ${
-                  isDark ? 'bg-slate-900 border-slate-700 hover:bg-blue-950/40 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:bg-blue-50 hover:border-blue-200'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4 text-brand-600" />
-                <div>
-                  <div className="font-bold">{t('emailAssistance')}</div>
-                  <div className="text-slate-400 font-mono">support@ghallamandi.com</div>
-                </div>
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };
 
 export default Sidebar;
+
