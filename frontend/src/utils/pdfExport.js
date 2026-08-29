@@ -114,3 +114,87 @@ export const exportReceiptToPDF = async (element, filename = 'receipt.pdf') => {
   // 7. Save file to disk
   pdf.save(filename);
 };
+
+/**
+ * Single-Page Compact POS Receipt PDF Exporter.
+ * 
+ * Generates a perfectly proportioned single-page PDF matching the exact
+ * receipt geometry with zero blank pages, no scrollbars, and zero clipping.
+ * 
+ * @param {HTMLElement} element - The DOM element containing the rendered receipt.
+ * @param {string} filename - The output PDF file name.
+ * @param {Object} options - Optional settings (width in mm, margin).
+ * @returns {Promise<void>}
+ */
+export const exportSinglePageReceiptPDF = async (element, filename = 'receipt.pdf', options = {}) => {
+  if (!element) {
+    throw new Error('Receipt element reference not found in DOM.');
+  }
+
+  // 1. Ensure all fonts and typography are loaded
+  if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      // Fallback
+    }
+  }
+
+  // 2. Wait a tick for repaint
+  await new Promise(resolve => setTimeout(resolve, 80));
+
+  // 3. High-resolution canvas snapshot of the receipt
+  const canvas = await html2canvas(element, {
+    scale: 2.5, // Crisp 300+ DPI print quality
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    scrollX: 0,
+    scrollY: 0,
+    windowWidth: element.scrollWidth || 500,
+    onclone: (clonedDoc) => {
+      const targetId = element.id;
+      const clonedElement = targetId ? clonedDoc.getElementById(targetId) : null;
+      if (clonedElement) {
+        clonedElement.style.position = 'static';
+        clonedElement.style.display = 'block';
+        clonedElement.style.visibility = 'visible';
+        clonedElement.style.opacity = '1';
+        clonedElement.style.overflow = 'visible';
+        clonedElement.style.height = 'auto';
+        clonedElement.style.maxHeight = 'none';
+        clonedElement.style.boxShadow = 'none';
+        clonedElement.style.borderRadius = '0px';
+        clonedElement.style.border = 'none';
+        clonedElement.style.backgroundColor = '#ffffff';
+        clonedElement.style.color = '#0f172a';
+      }
+    }
+  });
+
+  if (!canvas || canvas.width === 0 || canvas.height === 0) {
+    throw new Error('Generated canvas is empty.');
+  }
+
+  const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+  // 4. Calculate exact single-page dimensions based on canvas aspect ratio
+  const receiptWidthMm = options.width || 120; // 120mm wide clean receipt format
+  const marginMm = options.margin ?? 6; // 6mm margin
+  const printableWidth = receiptWidthMm - (marginMm * 2);
+  const printableHeight = (canvas.height * printableWidth) / canvas.width;
+  const receiptHeightMm = printableHeight + (marginMm * 2);
+
+  // 5. Initialize single-page jsPDF document matching exact receipt height
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: [receiptWidthMm, receiptHeightMm],
+    compress: true
+  });
+
+  pdf.addImage(imgData, 'JPEG', marginMm, marginMm, printableWidth, printableHeight, undefined, 'FAST');
+  pdf.save(filename);
+};
+
