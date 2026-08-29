@@ -306,57 +306,20 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
             </div>
           </div>
 
-          {/* Payment & Invoice Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80">
-            {/* Left: Paid Amount & Notes */}
-            <div className="space-y-2.5">
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                  Amount Paid to Supplier Now (PKR)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-1.5 text-xs font-black font-mono outline-none focus:border-brand-500 text-emerald-600 ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'
-                    }`}
-                />
+          {/* Purchase Summary */}
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80">
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <div className="text-[10px] font-black uppercase text-slate-400">Total Items</div>
+                <div className="font-mono font-black text-sm text-slate-800 dark:text-slate-200 mt-0.5">{items.length}</div>
               </div>
-
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                  Voucher Notes / Vehicle #
-                </label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. Truck # FSD-1234 / Commission terms"
-                  className={`w-full border rounded-xl px-3 py-1.5 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
-                />
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <div className="text-[10px] font-black uppercase text-slate-400">Paid Amount</div>
+                <div className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400 mt-0.5">Rs. {Number(purchase.paidAmount || purchase.paidamount || 0).toLocaleString()}</div>
               </div>
-            </div>
-
-            {/* Right: Calculated Totals */}
-            <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
-              <div className="flex justify-between items-center text-slate-500">
-                <span>Total Items:</span>
-                <span className="font-mono font-bold">{items.length} items</span>
-              </div>
-              <div className="flex justify-between items-center pt-1.5 border-t border-slate-100 dark:border-slate-700 text-sm font-black text-slate-900 dark:text-white">
-                <span>Grand Total:</span>
-                <span className="font-mono text-brand-600 dark:text-brand-400">Rs. {grandTotal.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center text-slate-500">
-                <span>Paid:</span>
-                <span className="font-mono font-bold text-emerald-600">Rs. {Number(paidAmount || 0).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center pt-1 text-xs font-extrabold text-rose-500">
-                <span>Remaining Payable:</span>
-                <span className="font-mono">Rs. {remainingDue.toLocaleString()}</span>
+              <div className="p-2.5 rounded-xl bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800">
+                <div className="text-[10px] font-black uppercase text-brand-600 dark:text-brand-400">Grand Total</div>
+                <div className="font-mono font-black text-sm text-brand-600 dark:text-brand-400 mt-0.5">Rs. {grandTotal.toLocaleString()}</div>
               </div>
             </div>
           </div>
