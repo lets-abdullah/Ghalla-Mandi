@@ -29,7 +29,7 @@ import { ReceiptModal } from '../components/ReceiptModal';
 import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
 
 export const Invoices = () => {
-  const { sales = [], purchases = [], customers = [], suppliers = [], products = [], paymentLogs = [] } = useERP();
+  const { sales = [], purchases = [], saleReturns = [], purchaseReturns = [], customers = [], suppliers = [], products = [], paymentLogs = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -250,18 +250,66 @@ export const Invoices = () => {
     });
   }, [rawList, selectedPartyId, selectedProductFilter, dateFilterType, customStartDate, customEndDate, statusFilter]);
 
-  // Summary Metrics
+  // Summary Metrics (Synchronized with Khata, Ledger & PaymentLogs)
   const totalBilledVolume = useMemo(() => {
     return filteredInvoices.reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
   }, [filteredInvoices]);
 
-  const totalSettledAmount = useMemo(() => {
-    return filteredInvoices.reduce((sum, inv) => sum + Number(inv.paidAmount || 0), 0);
-  }, [filteredInvoices]);
+  const { totalSettledAmount, totalOutstandingDue } = useMemo(() => {
+    const partyType = isPurchases ? 'Supplier' : 'Customer';
+    const partyMap = new Map();
 
-  const totalOutstandingDue = useMemo(() => {
-    return filteredInvoices.reduce((sum, inv) => sum + Number(inv.dueAmount || 0), 0);
-  }, [filteredInvoices]);
+    filteredInvoices.forEach(inv => {
+      const key = (inv.partyId ? String(inv.partyId) : (inv.partyName || 'party')).trim().toLowerCase();
+      if (!partyMap.has(key)) {
+        partyMap.set(key, {
+          partyId: inv.partyId,
+          partyName: inv.partyName || '',
+          invoices: []
+        });
+      }
+      partyMap.get(key).invoices.push(inv);
+    });
+
+    let totalCollected = 0;
+    let totalDue = 0;
+
+    partyMap.forEach(group => {
+      const groupTotal = group.invoices.reduce((acc, inv) => acc + Number(inv.amount || 0), 0);
+      const groupUpfrontPaid = group.invoices.reduce((acc, inv) => acc + Number(inv.paidAmount || (inv.status === 'Paid' ? inv.amount : 0)), 0);
+
+      const groupDirectPaid = (paymentLogs || []).filter(p =>
+        (p.type === partyType || p.partyType === partyType) &&
+        (
+          (group.partyId && p.partyId && String(p.partyId) === String(group.partyId)) ||
+          (group.partyName && p.partyName && p.partyName.trim().toLowerCase() === group.partyName.trim().toLowerCase()) ||
+          group.invoices.some(inv => (
+            (isPurchases && p.purchaseId && String(p.purchaseId) === String(inv.id)) ||
+            (!isPurchases && p.saleId && String(p.saleId) === String(inv.id)) ||
+            (inv.invoiceNo && p.ref && p.ref.includes(inv.invoiceNo))
+          ))
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+      const groupReturnAmt = (isPurchases ? purchaseReturns : (saleReturns || [])).filter(r =>
+        (group.partyId && (r.customerId === group.partyId || r.supplierId === group.partyId)) ||
+        (group.partyName && (r.customerName?.toLowerCase() === group.partyName.toLowerCase() || r.supplierName?.toLowerCase() === group.partyName.toLowerCase())) ||
+        group.invoices.some(inv => (r.saleId && String(r.saleId) === String(inv.id)) || (r.purchaseId && String(r.purchaseId) === String(inv.id)))
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+      const groupNetTarget = Math.max(0, groupTotal - groupReturnAmt);
+      const groupPaid = Math.min(groupNetTarget, groupUpfrontPaid + groupDirectPaid);
+      const groupOutstanding = Math.max(0, groupNetTarget - groupPaid);
+
+      totalCollected += groupPaid;
+      totalDue += groupOutstanding;
+    });
+
+    return {
+      totalSettledAmount: totalCollected,
+      totalOutstandingDue: totalDue
+    };
+  }, [filteredInvoices, paymentLogs, isPurchases, saleReturns, purchaseReturns]);
 
   const isAnyFilterActive =
     dateFilterType !== 'All' ||

@@ -209,21 +209,64 @@ export const Sales = () => {
     }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
   }, [saleReturns, selectedCustomerId]);
 
-  // Aggregate Metrics based on Filtered Sales
+  // Aggregate Metrics based on Filtered Sales (Synchronized with Khata & PaymentLogs)
   const totalFilteredSalesVolume = filteredSales.reduce(
     (acc, s) => acc + (Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0),
     0
   );
-  const totalFilteredCashReceived = filteredSales.reduce(
-    (acc, s) => acc + (Number(s.paidAmount ?? s.paidamount) || 0),
-    0
-  );
-  const totalFilteredOutstandingDue = filteredSales.reduce((acc, s) => {
-    const amt = Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0;
-    const paid = Number(s.paidAmount ?? s.paidamount) || 0;
-    const ret = Number(s.returnAmount || 0);
-    return acc + Math.max(0, amt - paid - ret);
-  }, 0);
+
+  const { totalFilteredCashReceived, totalFilteredOutstandingDue } = useMemo(() => {
+    // Group filtered sales by customer/party to attribute upfront + direct payments accurately
+    const partyMap = new Map();
+    filteredSales.forEach(s => {
+      const key = (s.customerId ? String(s.customerId) : (s.partyName || s.customerName || 'walk-in')).trim().toLowerCase();
+      if (!partyMap.has(key)) {
+        partyMap.set(key, {
+          customerId: s.customerId,
+          partyName: s.partyName || s.customerName || '',
+          sales: []
+        });
+      }
+      partyMap.get(key).sales.push(s);
+    });
+
+    let totalCollected = 0;
+    let totalOutstanding = 0;
+
+    partyMap.forEach(group => {
+      const groupSalesTotal = group.sales.reduce((acc, s) => acc + Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? 0), 0);
+      const groupUpfrontPaid = group.sales.reduce((acc, s) => acc + Number(s.paidAmount ?? s.paidamount ?? (s.paymentStatus === 'Paid' ? (s.amount ?? s.grandTotal ?? s.grandtotal ?? 0) : 0)), 0);
+
+      const groupDirectPaid = (paymentLogs || []).filter(p =>
+        (p.type === 'Customer' || p.partyType === 'Customer') &&
+        (
+          (group.customerId && p.partyId && String(p.partyId) === String(group.customerId)) ||
+          (group.partyName && p.partyName && p.partyName.trim().toLowerCase() === group.partyName.trim().toLowerCase()) ||
+          group.sales.some(s => s.id && p.saleId && String(p.saleId) === String(s.id)) ||
+          group.sales.some(s => s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+      const groupReturnAmt = (saleReturns || []).filter(r =>
+        (group.customerId && r.customerId && String(r.customerId) === String(group.customerId)) ||
+        (group.partyName && r.customerName && r.customerName.trim().toLowerCase() === group.partyName.trim().toLowerCase()) ||
+        group.sales.some(s => s.id && r.saleId && String(r.saleId) === String(s.id)) ||
+        group.sales.some(s => s.invoiceNo && r.saleInvoiceNo && r.saleInvoiceNo.includes(s.invoiceNo))
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+      const groupNetTarget = Math.max(0, groupSalesTotal - groupReturnAmt);
+      const groupPaid = Math.min(groupNetTarget, groupUpfrontPaid + groupDirectPaid);
+      const groupDue = Math.max(0, groupNetTarget - groupPaid);
+
+      totalCollected += groupPaid;
+      totalOutstanding += groupDue;
+    });
+
+    return {
+      totalFilteredCashReceived: totalCollected,
+      totalFilteredOutstandingDue: totalOutstanding
+    };
+  }, [filteredSales, paymentLogs, saleReturns]);
 
   // Check if any filter is active
   const isAnyFilterActive = (

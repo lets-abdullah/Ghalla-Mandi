@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShoppingCart,
@@ -457,17 +457,63 @@ export const Purchases = () => {
     }
   };
 
-  // Calculations for KPI Header Cards
+  // Calculations for KPI Header Cards (Synchronized with Suppliers, Ledger & PaymentLogs)
   const totalGrossPurchases = purchases.reduce((acc, p) => acc + (Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0), 0);
   const totalPurchaseReturnsVal = (purchaseReturns || []).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
   const totalNetPurchases = Math.max(0, totalGrossPurchases - totalPurchaseReturnsVal);
-  const totalPaidOut = purchases.reduce((acc, p) => acc + (Number(p.paidAmount ?? p.paidamount) || 0), 0);
-  const totalOutstandingPayable = purchases.reduce((acc, p) => {
-    const amt = Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0;
-    const paid = Number(p.paidAmount ?? p.paidamount) || 0;
-    const ret = Number(p.returnAmount || 0);
-    return acc + Math.max(0, amt - paid - ret);
-  }, 0);
+
+  const { totalPaidOut, totalOutstandingPayable } = useMemo(() => {
+    const partyMap = new Map();
+    (purchases || []).forEach(p => {
+      const key = (p.supplierId ? String(p.supplierId) : (p.supplier || p.supplierName || 'supplier')).trim().toLowerCase();
+      if (!partyMap.has(key)) {
+        partyMap.set(key, {
+          supplierId: p.supplierId,
+          supplierName: p.supplier || p.supplierName || '',
+          purchases: []
+        });
+      }
+      partyMap.get(key).purchases.push(p);
+    });
+
+    let totalPaid = 0;
+    let totalDue = 0;
+
+    partyMap.forEach(group => {
+      const groupTotal = group.purchases.reduce((acc, p) => acc + Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0), 0);
+      const groupUpfrontPaid = group.purchases.reduce((acc, p) => acc + Number(p.paidAmount ?? p.paidamount ?? (p.paymentStatus === 'Paid' ? (p.amount ?? p.grandTotal ?? p.grandtotal ?? 0) : 0)), 0);
+
+      const groupDirectPaid = (paymentLogs || []).filter(p =>
+        (p.type === 'Supplier' || p.partyType === 'Supplier') &&
+        (
+          (group.supplierId && p.partyId && String(p.partyId) === String(group.supplierId)) ||
+          (group.supplierName && p.partyName && p.partyName.trim().toLowerCase() === group.supplierName.trim().toLowerCase()) ||
+          group.purchases.some(pur => (
+            (pur.id && p.purchaseId && String(p.purchaseId) === String(pur.id)) ||
+            (pur.purchaseNo && p.ref && p.ref.includes(pur.purchaseNo))
+          ))
+        )
+      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+      const groupReturnAmt = (purchaseReturns || []).filter(r =>
+        (group.supplierId && r.supplierId === group.supplierId) ||
+        (group.supplierName && r.supplierName?.toLowerCase() === group.supplierName.toLowerCase()) ||
+        group.purchases.some(pur => pur.id && r.purchaseId && String(r.purchaseId) === String(pur.id))
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+      const groupNetTarget = Math.max(0, groupTotal - groupReturnAmt);
+      const groupSettled = Math.min(groupNetTarget, groupUpfrontPaid + groupDirectPaid);
+      const groupOutstanding = Math.max(0, groupNetTarget - groupSettled);
+
+      totalPaid += groupSettled;
+      totalDue += groupOutstanding;
+    });
+
+    return {
+      totalPaidOut: totalPaid,
+      totalOutstandingPayable: totalDue
+    };
+  }, [purchases, paymentLogs, purchaseReturns]);
 
   // Robust Date Parser helper
   const parsePurchaseDate = (dateStr) => {
