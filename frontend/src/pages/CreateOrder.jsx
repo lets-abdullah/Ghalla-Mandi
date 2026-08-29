@@ -1452,7 +1452,7 @@ export const CreateOrder = () => {
 
                     <div>
                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Shop / Firm Name
+                        Shop
                       </label>
                       <input
                         type="text"
@@ -1495,7 +1495,7 @@ export const CreateOrder = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                     <div>
                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Phone / Mobile *
+                        Phone
                       </label>
                       <input
                         type="tel"
@@ -1512,7 +1512,7 @@ export const CreateOrder = () => {
 
                     <div>
                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        WhatsApp / Alt Phone
+                        WhatsApp
                       </label>
                       <input
                         type="tel"
@@ -1529,7 +1529,7 @@ export const CreateOrder = () => {
 
                     <div>
                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        City / Mandi *
+                        City
                       </label>
                       <input
                         type="text"
@@ -1544,7 +1544,7 @@ export const CreateOrder = () => {
 
                     <div>
                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Address / Shop #
+                        Address
                       </label>
                       <input
                         type="text"
@@ -1658,7 +1658,7 @@ export const CreateOrder = () => {
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Account # / IBAN
+                        Account
                       </label>
                       <input
                         type="text"
@@ -1678,7 +1678,7 @@ export const CreateOrder = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        CNIC / National ID
+                        CNIC
                       </label>
                       <input
                         type="text"
@@ -1693,7 +1693,7 @@ export const CreateOrder = () => {
 
                     <div>
                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Notes / Guarantor Reference
+                        Notes
                       </label>
                       <input
                         type="text"
