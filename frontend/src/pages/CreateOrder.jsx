@@ -451,11 +451,6 @@ export const CreateOrder = () => {
       return;
     }
 
-    if (remainingDue > 0 && (!selectedParty || customerType !== 'Regular Party')) {
-      alert('Khata (Udhaar) is only available for Saved / Permanent Customers. Please select or add a Customer to record Khata balance, or collect full cash.');
-      return;
-    }
-
     // Stock validation check
     for (const item of cart) {
       const liveProd = products.find(p => p.id === item.productId);
@@ -1176,10 +1171,6 @@ export const CreateOrder = () => {
                       setPaymentMode(mode.key);
                       if (mode.key === 'Credit') {
                         setAmountReceived('0');
-                        if (customerType === 'Walk-in Customer') {
-                          setCustomerType('Regular Party');
-                          if (!selectedParty) setShowCustomerModal(true);
-                        }
                       } else if (amountReceived === '0' || mode.key === 'Bank' || mode.key === 'Card') {
                         setAmountReceived(netGrandTotal.toString());
                       }
