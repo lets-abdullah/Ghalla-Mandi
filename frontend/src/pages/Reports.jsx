@@ -158,7 +158,7 @@ export const Reports = () => {
 
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [newExpense, setNewExpense] = useState({
-    category: 'Labour & Loading (Palla)',
+    category: 'Salary (Staff / Workers)',
     desc: '',
     mode: 'Cash',
     amount: ''
@@ -181,7 +181,7 @@ export const Reports = () => {
 
     setExpenses(prev => [entry, ...prev]);
     setShowAddExpenseModal(false);
-    setNewExpense({ category: 'Labour & Loading (Palla)', desc: '', mode: 'Cash', amount: '' });
+    setNewExpense({ category: 'Salary (Staff / Workers)', desc: '', mode: 'Cash', amount: '' });
   };
 
   const handleDeleteExpense = (id) => {
@@ -2891,13 +2891,16 @@ export const Reports = () => {
                     }`}
                 >
                   <option value="All">All Categories</option>
-                  <option value="Labour & Loading (Palla)">Labour & Loading (Palla)</option>
-                  <option value="Bardana / Bags">Bardana / Bags</option>
-                  <option value="Freight & Transport">Freight & Transport</option>
-                  <option value="Electricity & Fuel">Electricity & Fuel</option>
-                  <option value="Tea & Refreshments">Tea & Refreshments</option>
-                  <option value="Shop Rent">Shop Rent</option>
-                  <option value="General Misc">General Misc</option>
+                  <option value="Salary (Staff / Workers)">Salary (Staff / Workers)</option>
+                  <option value="Bills (Electricity / Gas / Water)">Bills (Electricity / Gas / Water)</option>
+                  <option value="Transport & Freight (Bilty / Gaari)">Transport & Freight (Bilty / Gaari)</option>
+                  <option value="Shop & Godown Rent">Shop & Godown Rent</option>
+                  <option value="Labour & Loading (Mazdoori / Palla)">Labour & Loading (Mazdoori / Palla)</option>
+                  <option value="Bardana & Bags Purchase">Bardana & Bags Purchase</option>
+                  <option value="Fuel & Generator Diesel">Fuel & Generator Diesel</option>
+                  <option value="Tea & Hospitality (Chai Pani)">Tea & Hospitality (Chai Pani)</option>
+                  <option value="Repair & Maintenance">Repair & Maintenance</option>
+                  <option value="General Miscellaneous">General Miscellaneous</option>
                 </select>
 
                 {/* Payment Mode */}
@@ -4356,13 +4359,16 @@ export const Reports = () => {
                       className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-slate-800 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                         }`}
                     >
-                      <option value="Labour & Loading (Palla)">Labour & Loading (Palla / Mazdoori)</option>
-                      <option value="Bardana / Bags">Bardana / Bags Purchase</option>
-                      <option value="Freight & Transport">Freight & Truck Transport (Bilty)</option>
-                      <option value="Electricity & Fuel">Electricity & Generator Diesel</option>
-                      <option value="Tea & Refreshments">Tea & Customer Hospitality</option>
-                      <option value="Shop Rent">Shop & Godown Rent</option>
-                      <option value="General Misc">General Miscellaneous</option>
+                      <option value="Salary (Staff / Workers)">Salary (Staff / Workers)</option>
+                      <option value="Bills (Electricity / Gas / Water)">Bills (Electricity / Gas / Water)</option>
+                      <option value="Transport & Freight (Bilty / Gaari)">Transport & Freight (Bilty / Gaari)</option>
+                      <option value="Shop & Godown Rent">Shop & Godown Rent</option>
+                      <option value="Labour & Loading (Mazdoori / Palla)">Labour & Loading (Mazdoori / Palla)</option>
+                      <option value="Bardana & Bags Purchase">Bardana & Bags Purchase</option>
+                      <option value="Fuel & Generator Diesel">Fuel & Generator Diesel</option>
+                      <option value="Tea & Hospitality (Chai Pani)">Tea & Hospitality (Chai Pani)</option>
+                      <option value="Repair & Maintenance">Repair & Maintenance</option>
+                      <option value="General Miscellaneous">General Miscellaneous</option>
                     </select>
                   </div>
 
