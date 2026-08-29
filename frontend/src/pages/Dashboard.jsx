@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ShoppingBag, ShoppingCart, DollarSign,
   TrendingUp, Users, CreditCard
@@ -84,8 +84,79 @@ export const Dashboard = () => {
   const allTimeSaleReturnsVal = saleReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
   const netAllTimeSales = Math.max(0, allTimeGrossSales - allTimeSaleReturnsVal);
 
+  // Combined Customer Receivables (Regular + Walk-in Customers)
+  const { totalCustomerDues, regularDues, walkinDues, totalDueAccountsCount } = useMemo(() => {
+    const processedCustNames = new Set();
+    const processedCustIds = new Set();
+
+    // 1. Regular / Saved Customers
+    let regDues = 0;
+    let regDueCount = 0;
+
+    (customers || []).forEach(cust => {
+      processedCustIds.add(cust.id);
+      if (cust.name) processedCustNames.add(cust.name.trim().toLowerCase());
+
+      const custSales = (sales || []).filter(s =>
+        s.customerId === cust.id ||
+        (s.partyName && s.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
+      );
+      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
+      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      const returnAmt = (saleReturns || []).filter(r =>
+        r.customerId === cust.id ||
+        (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+      
+      const bal = Number(cust.balance !== undefined ? cust.balance : Math.max(0, totalSale - totalPaid - returnAmt));
+      if (bal > 0) {
+        regDues += bal;
+        regDueCount += 1;
+      }
+    });
+
+    // 2. Walk-in / Counter Sales
+    const walkinSalesMap = new Map();
+    (sales || []).forEach(s => {
+      const isRegisteredCust = (s.customerId && processedCustIds.has(s.customerId)) ||
+        (s.partyName && processedCustNames.has(s.partyName.trim().toLowerCase()));
+
+      if (!isRegisteredCust) {
+        const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
+        const key = rawName.toLowerCase();
+        if (!walkinSalesMap.has(key)) {
+          walkinSalesMap.set(key, { name: rawName, sales: [] });
+        }
+        walkinSalesMap.get(key).sales.push(s);
+      }
+    });
+
+    let wDues = 0;
+    let wDueCount = 0;
+
+    walkinSalesMap.forEach((val, key) => {
+      const custSales = val.sales;
+      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
+      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      const returnAmt = (saleReturns || []).filter(r =>
+        r.customerName && r.customerName.trim().toLowerCase() === key
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+      const bal = Math.max(0, totalSale - totalPaid - returnAmt);
+      if (bal > 0) {
+        wDues += bal;
+        wDueCount += 1;
+      }
+    });
+
+    return {
+      totalCustomerDues: regDues + wDues,
+      regularDues: regDues,
+      walkinDues: wDues,
+      totalDueAccountsCount: regDueCount + wDueCount
+    };
+  }, [customers, sales, saleReturns]);
+
   // Balance & stock metrics
-  const totalReceivables = customers.reduce((acc, c) => acc + Math.max(0, Number(c.balance) || 0), 0);
   const totalPayables = suppliers.reduce((acc, s) => acc + Math.max(0, Number(s.balance) || 0), 0);
   const totalStockQty = products.reduce((acc, p) => acc + (Number(p.stockQty ?? p.stockqty) || 0), 0);
   const totalInventoryValue = products.reduce((acc, p) => acc + ((Number(p.stockQty ?? p.stockqty) || 0) * (Number(p.purchasePrice ?? p.purchaseprice) || 0)), 0);
@@ -124,14 +195,18 @@ export const Dashboard = () => {
           onClick={() => navigate('/reports?type=Stock')}
         />
 
-        {/* 4. Customer Receivables */}
+        {/* 4. Customer Receivables (Regular + Walk-in) */}
         <KPICard
           title="Customer Dues"
-          amount={`Rs. ${totalReceivables.toLocaleString()}`}
-          subtext={`${customers.length} total customers`}
+          amount={`Rs. ${totalCustomerDues.toLocaleString()}`}
+          subtext={
+            walkinDues > 0
+              ? `Regular: Rs. ${regularDues.toLocaleString()} • Walk-in: Rs. ${walkinDues.toLocaleString()}`
+              : `${totalDueAccountsCount} accounts with pending dues`
+          }
           icon={Users}
           color="amber"
-          onClick={() => navigate('/customers')}
+          onClick={() => navigate('/khata')}
         />
 
         {/* 5. Supplier Payables */}
