@@ -783,7 +783,7 @@ export const Settings = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: SHOP & MANDI PROFILE (Rich Mandi Business Identity & Settings) */}
+      {/* TAB 3: SHOP & MANDI PROFILE (Business Identity, Contacts & Banking) */}
       {/* ========================================================================= */}
       {activeTab === 'shop' && (
         <div className={`border rounded-3xl p-6 md:p-8 card-shadow space-y-8 transition-colors ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
@@ -796,31 +796,31 @@ export const Settings = () => {
             <div>
               <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Shop & Mandi Profile</h3>
               <p className="text-xs text-slate-400 font-medium">
-                Configure your Mandi trade firm, commission structure, license & banking credentials for receipts and invoices
+                Configure your business details, contacts, and banking information for receipts and invoices
               </p>
             </div>
           </div>
 
           <form onSubmit={handleShopProfileSave} className="space-y-8">
-            {/* PART 1: Business Identity & Mandi Location */}
+            {/* PART 1: Business Identity */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-brand-600 dark:text-brand-400 border-b border-slate-100 dark:border-slate-700/60 pb-1.5">
                 <Store className="w-4 h-4" />
-                <span>1. Mandi Trade Firm & Market Identity</span>
+                <span>1. Business Identity</span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-                {/* Shop / Business Name */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                {/* Business Name */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Shop / Business Name <span className="text-rose-500">*</span>
+                    Business Name <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <Store className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Shaheen Grain Commission Agent"
+                      placeholder="e.g. Shaheen Traders"
                       value={shopName}
                       onChange={(e) => setShopName(e.target.value)}
                       className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
@@ -829,10 +829,10 @@ export const Settings = () => {
                   </div>
                 </div>
 
-                {/* Business Type */}
+                {/* Trade Type */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Business / Trade Type
+                    Trade Type
                   </label>
                   <div className="relative">
                     <Briefcase className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -851,16 +851,16 @@ export const Settings = () => {
                   </div>
                 </div>
 
-                {/* Shop Number / Stall Number */}
+                {/* Khata Number */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Shop / Stall / Khata Number
+                    Khata Number
                   </label>
                   <div className="relative">
                     <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="e.g. Shop # 42, Block B"
+                      placeholder="e.g. Shop 42, Block B"
                       value={shopNo}
                       onChange={(e) => setShopNo(e.target.value)}
                       className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
@@ -872,13 +872,13 @@ export const Settings = () => {
                 {/* Mandi Name */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Mandi Name / Grain Market
+                    Mandi Name
                   </label>
                   <div className="relative">
                     <Wheat className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="e.g. Ghalla Mandi Multan, Grain Market Okara"
+                      placeholder="e.g. Ghalla Mandi Multan"
                       value={mandiName}
                       onChange={(e) => setMandiName(e.target.value)}
                       className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
@@ -887,16 +887,16 @@ export const Settings = () => {
                   </div>
                 </div>
 
-                {/* Gate / Sector / Block */}
+                {/* Mandi Gate */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Mandi Gate / Block / Sector
+                    Mandi Gate
                   </label>
                   <div className="relative">
                     <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="e.g. Gate # 2, Block C"
+                      placeholder="e.g. Gate 2, Block C"
                       value={mandiGate}
                       onChange={(e) => setMandiGate(e.target.value)}
                       className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
@@ -905,208 +905,10 @@ export const Settings = () => {
                   </div>
                 </div>
 
-                {/* Market Committee License Number */}
+                {/* Primary Commodities */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Market Committee License #
-                  </label>
-                  <div className="relative">
-                    <FileText className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. MC-MUL-2026-482"
-                      value={licenseNo}
-                      onChange={(e) => setLicenseNo(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* NTN Number */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    NTN (National Tax Number)
-                  </label>
-                  <div className="relative">
-                    <CreditCard className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. 1234567-8"
-                      value={ntnNumber}
-                      onChange={(e) => setNtnNumber(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* STRN Number */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    STRN / Sales Tax Reg. #
-                  </label>
-                  <div className="relative">
-                    <Receipt className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. 32-77-8761-001-19"
-                      value={strnNumber}
-                      onChange={(e) => setStrnNumber(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* PART 2: Business Contact & Mandi Operations */}
-            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-700/60 pb-1.5">
-                <Phone className="w-4 h-4" />
-                <span>2. Business Contacts & Commission Rates</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-                {/* Business Landline / Phone */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Business Phone / Landline
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      maxLength={11}
-                      placeholder="03001234567"
-                      value={businessPhone}
-                      onChange={(e) => setBusinessPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Business WhatsApp */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Official Business WhatsApp
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      maxLength={11}
-                      placeholder="03001234567"
-                      value={businessWhatsapp}
-                      onChange={(e) => setBusinessWhatsapp(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Business Email */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Business Email
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="email"
-                      placeholder="shaheen@mandi.pk"
-                      value={businessEmail}
-                      onChange={(e) => setBusinessEmail(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Complete Business Address */}
-                <div className="md:col-span-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Complete Business Address
-                  </label>
-                  <div className="relative">
-                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Shop # 42, Block B, New Ghalla Mandi, Vehari Road, Multan"
-                      value={businessAddress}
-                      onChange={(e) => setBusinessAddress(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Mandi City */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    City / Mandi Location
-                  </label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Multan"
-                      value={shopCity}
-                      onChange={(e) => setShopCity(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Default Arhat Commission % */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Default Arhat / Commission Rate (%)
-                  </label>
-                  <div className="relative">
-                    <Percent className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="100"
-                      placeholder="2.0"
-                      value={defaultCommission}
-                      onChange={(e) => setDefaultCommission(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Default Labour / Mazdoori per Mann */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Default Mazdoori (Rs. / Mann)
-                  </label>
-                  <div className="relative">
-                    <Scale className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="25"
-                      value={defaultLabourRate}
-                      onChange={(e) => setDefaultLabourRate(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Primary Commodities Traded */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Primary Commodities Traded
+                    Primary Commodities
                   </label>
                   <div className="relative">
                     <Wheat className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1123,24 +925,128 @@ export const Settings = () => {
               </div>
             </div>
 
-            {/* PART 3: Bank & Settlement Details */}
+            {/* PART 2: Contact Information */}
             <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 border-b border-slate-100 dark:border-slate-700/60 pb-1.5">
-                <Landmark className="w-4 h-4" />
-                <span>3. Banking & Settlement Accounts (For Receipts & Invoices)</span>
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-700/60 pb-1.5">
+                <Phone className="w-4 h-4" />
+                <span>2. Contact Information</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+                {/* Phone */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Phone
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={11}
+                      placeholder="03001234567"
+                      value={businessPhone}
+                      onChange={(e) => setBusinessPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+                </div>
+
+                {/* WhatsApp */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    WhatsApp
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={11}
+                      placeholder="03001234567"
+                      value={businessWhatsapp}
+                      onChange={(e) => setBusinessWhatsapp(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      placeholder="shaheen@traders.com"
+                      value={businessEmail}
+                      onChange={(e) => setBusinessEmail(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Business Address */}
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Business Address
+                  </label>
+                  <div className="relative">
+                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Shop 42, Block B, New Ghalla Mandi, Vehari Road, Multan"
+                      value={businessAddress}
+                      onChange={(e) => setBusinessAddress(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+                </div>
+
+                {/* City */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    City
+                  </label>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Multan"
+                      value={shopCity}
+                      onChange={(e) => setShopCity(e.target.value)}
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PART 3: Banking Details */}
+            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 border-b border-slate-100 dark:border-slate-700/60 pb-1.5">
+                <Landmark className="w-4 h-4" />
+                <span>3. Banking Details</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
                 {/* Bank Name */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Primary Bank Name
+                    Bank Name
                   </label>
                   <div className="relative">
                     <Landmark className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="e.g. Meezan Bank, HBL, Bank of Punjab"
+                      placeholder="e.g. Meezan Bank, HBL"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
                       className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
@@ -1149,10 +1055,10 @@ export const Settings = () => {
                   </div>
                 </div>
 
-                {/* Branch Name & Code */}
+                {/* Branch Name */}
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Branch Name & Code
+                    Branch Name
                   </label>
                   <div className="relative">
                     <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1176,7 +1082,7 @@ export const Settings = () => {
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="e.g. Shaheen Traders Commission Agent"
+                      placeholder="e.g. Shaheen Traders"
                       value={accountTitle}
                       onChange={(e) => setAccountTitle(e.target.value)}
                       className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
@@ -1185,10 +1091,10 @@ export const Settings = () => {
                   </div>
                 </div>
 
-                {/* Account Number / IBAN */}
-                <div className="md:col-span-2">
+                {/* Account Number */}
+                <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Account Number / International IBAN
+                    Account Number
                   </label>
                   <div className="relative">
                     <Hash className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1200,26 +1106,6 @@ export const Settings = () => {
                       className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                         }`}
                     />
-                  </div>
-                </div>
-
-                {/* Tax Status */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    FBR Tax Status
-                  </label>
-                  <div className="relative">
-                    <CheckCircle2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <select
-                      value={taxStatus}
-                      onChange={(e) => setTaxStatus(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    >
-                      <option value="Active Taxpayer (Filer)">Active Taxpayer (Filer)</option>
-                      <option value="Non-Filer">Non-Filer</option>
-                      <option value="Tax Exempted / Agricultural Trade">Tax Exempted / Agri Trade</option>
-                    </select>
                   </div>
                 </div>
               </div>
