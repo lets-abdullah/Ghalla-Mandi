@@ -1,13 +1,24 @@
 import React, { useState, useRef } from 'react';
-import { Printer, Download, Wheat, X, CheckCircle2, Loader2 } from 'lucide-react';
-import { exportReceiptToPDF } from '../utils/pdfExport';
+import { 
+  Printer, 
+  Download, 
+  Wheat, 
+  X, 
+  CheckCircle2, 
+  Loader2, 
+  Calendar, 
+  FileText, 
+  User, 
+  Phone, 
+  ShoppingCart, 
+  CreditCard 
+} from 'lucide-react';
+import { exportSinglePageReceiptPDF } from '../utils/pdfExport';
 import { useTheme } from '../context/ThemeContext';
-import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 
 export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
   const { theme } = useTheme();
-  const { t } = useLocale();
   const { shop } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
   const receiptRef = useRef(null);
@@ -15,12 +26,12 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
   if (!isOpen || !orderData) return null;
 
   const {
-    orderId = `GM-ORD-${Math.floor(100000 + Math.random() * 900000)}`,
+    orderId = `SAL-${Math.floor(100000 + Math.random() * 900000)}`,
     date = new Date().toLocaleString('en-PK', {
-      dateStyle: 'short',
-      timeStyle: 'medium'
+      dateStyle: 'medium',
+      timeStyle: 'short'
     }),
-    customerName = t('walkInCustomer'),
+    customerName = 'Customer',
     customerPhone = '',
     customerCity = '',
     items = [],
@@ -33,178 +44,209 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
     saleNote = ''
   } = orderData;
 
-  const cleanOrderId = `#${String(orderId).replace(/[^0-9A-Za-z-]/g, '') || '1786001834582'}`;
-  const dueRemaining = Math.max(0, Number(grandTotal || 0) - Number(paidAmount || 0));
-  const displayCustomer = !customerName || customerName === 'walkInCustomer' ? (t('walkInCustomer') || 'Walk-in Customer') : customerName;
-  const shopTitle = shop?.name || 'GHALLA MANDI ERP';
-  const mandiTitle = shop?.mandiName || 'COMMISSION SHOP & GRAIN WHOLESALE MARKET';
-  const shopPhone = shop?.businessPhone || shop?.phone || '';
+  const cleanReceiptNo = String(orderId).startsWith('SAL-') || String(orderId).startsWith('GM-') || String(orderId).startsWith('INV-')
+    ? String(orderId)
+    : `SAL-${String(orderId).replace(/[^0-9A-Za-z]/g, '') || '000456'}`;
 
-  // Generate standardized A4 HTML document string for Print and PDF Export
-  const generateA4HtmlDocument = () => {
-    const a4ItemsHtml = items.map((item, idx) => {
+  const grandTotalNum = Number(grandTotal || subtotal || 0);
+  const paidNum = Number(paidAmount !== undefined ? paidAmount : grandTotalNum);
+  const discountNum = Number(discount || 0);
+  const calculatedSubtotal = Number(subtotal) > 0 ? Number(subtotal) : (grandTotalNum + discountNum);
+  const dueRemaining = Math.max(0, grandTotalNum - paidNum);
+  const displayCustomer = !customerName || customerName === 'walkInCustomer' ? 'Walk-in Customer' : customerName;
+  const shopTitle = (shop?.name || 'GHALLA MANDI').toUpperCase();
+
+  // Generate clean, isolated single-page print HTML matching reference design
+  const generateSinglePagePrintHtml = () => {
+    const rowsHtml = items.map((item, idx) => {
       const itemPrice = Number(item.price || item.rate || 0);
       const itemQty = Number(item.qty || 1);
-      const itemUnit = item.unit || item.unitName || t('kg');
       const lineTotal = itemPrice * itemQty;
-      const bg = idx % 2 === 1 ? '#f8fafc' : '#ffffff';
 
       return `
-        <tr style="background: ${bg};">
-          <td style="padding: 8px 10px; font-weight: 700; color: #64748b; text-align: center; border-bottom: 1px solid #e2e8f0; font-size: 11px;">${idx + 1}</td>
-          <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0;">
-            <div style="font-weight: 800; color: #0f172a; font-size: 12px; line-height: 1.3;">${item.name}</div>
-            <div style="font-size: 10px; color: #94a3b8; line-height: 1.2;">Ghalla Mandi Produce</div>
-          </td>
-          <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: #334155; border-bottom: 1px solid #e2e8f0; font-size: 12px; font-family: monospace; white-space: nowrap;">
-            Rs. ${itemPrice.toLocaleString()}
-          </td>
-          <td style="padding: 8px 10px; text-align: center; font-weight: 800; color: #0f172a; border-bottom: 1px solid #e2e8f0; font-size: 12px; white-space: nowrap;">
-            ${itemQty} <span style="font-size: 10px; font-weight: normal; color: #64748b;">${itemUnit}</span>
-          </td>
-          <td style="padding: 8px 10px; text-align: right; font-weight: 900; color: #0f172a; border-bottom: 1px solid #e2e8f0; font-size: 12px; font-family: monospace; white-space: nowrap;">
-            Rs. ${lineTotal.toLocaleString()}
-          </td>
+        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 11px;">
+          <td style="padding: 5px 6px; font-weight: 700; color: #0f172a; text-align: left;">${item.name || 'Produce Item'}</td>
+          <td style="padding: 5px 6px; text-align: center; font-weight: 800; color: #334155;">${itemQty}</td>
+          <td style="padding: 5px 6px; text-align: right; font-family: monospace; color: #475569;">${itemPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="padding: 5px 6px; text-align: right; font-weight: 800; font-family: monospace; color: #0f172a;">${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>
       `;
     }).join('');
 
     return `
-      <div style="width: 100%; box-sizing: border-box; background: #ffffff; color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
-        <!-- Header -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; border-bottom: 2.5px solid #0f172a; padding-bottom: 10px;">
-          <tr>
-            <td style="vertical-align: middle; width: 62%; padding-bottom: 8px;">
-              <div style="font-size: 22px; font-weight: 900; color: #0f172a; line-height: 1.1; letter-spacing: -0.5px;">${shopTitle}</div>
-              <div style="font-size: 12px; font-weight: 700; color: #16a34a; margin-top: 3px;">${mandiTitle}</div>
-              <div style="font-size: 10px; color: #64748b; margin-top: 2px; font-weight: 600;">SALES TAX INVOICE & CASH MEMO • GATE PASS ${shopPhone ? `• 📞 ${shopPhone}` : ''}</div>
-            </td>
-            <td style="vertical-align: middle; text-align: right; width: 38%; padding-bottom: 8px;">
-              <div style="display: inline-block; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 6px 14px; text-align: right;">
-                <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">INVOICE NO.</div>
-                <div style="font-size: 15px; font-weight: 900; color: #0f172a; font-family: monospace; letter-spacing: 0.5px; margin-top: 1px;">${cleanOrderId}</div>
-                <div style="font-size: 10.5px; font-weight: 600; color: #475569; margin-top: 2px;">${date}</div>
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Sale Receipt - ${cleanReceiptNo}</title>
+          <style>
+            @page {
+              size: auto;
+              margin: 5mm;
+            }
+            * {
+              box-sizing: border-box;
+              margin: 0;
+              padding: 0;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            body {
+              background: #ffffff;
+              color: #0f172a;
+              width: 100%;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            }
+            .receipt-card {
+              width: 100%;
+              max-width: 420px;
+              margin: 0 auto;
+              padding: 16px 18px;
+              border: 1px solid #cbd5e1;
+              border-radius: 8px;
+              background: #ffffff;
+            }
+            .dashed-sep {
+              border-top: 1px dashed #cbd5e1;
+              margin: 10px 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-card">
+            <!-- Logo & Brand Header -->
+            <div style="text-align: center;">
+              <div style="width: 44px; height: 44px; margin: 0 auto; border-radius: 50%; border: 2px solid #059669; background: #ecfdf5; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                🌾
               </div>
-            </td>
-          </tr>
-        </table>
-
-        <!-- Meta Box -->
-        <table style="width: 100%; border-collapse: collapse; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 14px;">
-          <tr>
-            <td style="width: 50%; vertical-align: top; padding: 10px 14px; border-right: 1px solid #e2e8f0;">
-              <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">BILLED TO:</div>
-              <div style="font-size: 13.5px; font-weight: 900; color: #0f172a; margin-top: 3px; line-height: 1.3;">${displayCustomer}</div>
-              ${customerCity ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">📍 City: ${customerCity}</div>` : ''}
-              ${customerPhone ? `<div style="font-size: 11px; color: #475569; margin-top: 1px;">📞 Phone: ${customerPhone}</div>` : ''}
-            </td>
-            <td style="width: 50%; vertical-align: top; padding: 10px 14px; text-align: right;">
-              <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">PAYMENT METHOD:</div>
-              <div style="font-size: 13.5px; font-weight: 900; color: #16a34a; margin-top: 3px;">${paymentMethod}</div>
-              ${saleNote ? `<div style="font-size: 10px; color: #64748b; font-style: italic; margin-top: 2px;">Note: ${saleNote}</div>` : ''}
-            </td>
-          </tr>
-        </table>
-
-        <!-- Items Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden;">
-          <thead>
-            <tr style="background: #0f172a; color: #ffffff;">
-              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 35px; text-align: center;">#</th>
-              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: left;">ITEM / COMMODITY DESCRIPTION</th>
-              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 110px; text-align: right;">RATE (PKR)</th>
-              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 90px; text-align: center;">QTY / WEIGHT</th>
-              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 120px; text-align: right;">TOTAL (PKR)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsRowsHtml}
-          </tbody>
-        </table>
-
-        <!-- Totals & Terms Section -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-          <tr>
-            <td style="width: 52%; vertical-align: top; padding-right: 14px;">
-              <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-size: 10px; color: #475569; background: #f8fafc; line-height: 1.5;">
-                <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">Terms & Mandi Conditions:</div>
-                <div>• Goods once sold are verified per standard Ghalla Mandi trade rules.</div>
-                <div>• Official sales tax invoice & cash memo gate pass.</div>
-                <div>• Computer-generated voucher by Ghalla Mandi ERP.</div>
-                <div style="margin-top: 4px; font-weight: 700; color: #059669;">Thank you for your valued business!</div>
+              <div style="font-size: 18px; font-weight: 900; color: #0f172a; letter-spacing: 0.5px; margin-top: 6px; text-transform: uppercase;">
+                ${shopTitle}
               </div>
-            </td>
-            <td style="width: 48%; vertical-align: top;">
+              <div style="display: inline-block; background: #064e3b; color: #ffffff; font-size: 10.5px; font-weight: 900; padding: 3px 20px; border-radius: 3px; letter-spacing: 1px; margin-top: 5px; text-transform: uppercase;">
+                SALE RECEIPT
+              </div>
+            </div>
+
+            <!-- Receipt Meta Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 11px;">
+              <div>
+                <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">Receipt No.</div>
+                <div style="font-weight: 900; color: #0f172a; font-family: monospace;">${cleanReceiptNo}</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">Date & Time</div>
+                <div style="font-weight: 700; color: #334155;">${date}</div>
+              </div>
+            </div>
+
+            <div class="dashed-sep"></div>
+
+            <!-- Customer Details -->
+            <div>
+              <div style="font-size: 10px; font-weight: 900; color: #047857; text-transform: uppercase; letter-spacing: 0.5px;">
+                👤 CUSTOMER
+              </div>
+              <div style="font-size: 13px; font-weight: 900; color: #0f172a; margin-top: 2px;">
+                ${displayCustomer}
+              </div>
+              ${customerPhone ? `<div style="font-size: 11px; color: #475569; margin-top: 1px;">📞 ${customerPhone}</div>` : ''}
+              ${customerCity ? `<div style="font-size: 10px; color: #64748b; margin-top: 1px;">📍 ${customerCity}</div>` : ''}
+            </div>
+
+            <div class="dashed-sep"></div>
+
+            <!-- Items Table -->
+            <div>
+              <div style="font-size: 10px; font-weight: 900; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">
+                🛒 ITEMS
+              </div>
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px;">
+                <thead>
+                  <tr style="background: #ecfdf5; border-top: 1px solid #a7f3d0; border-bottom: 1px solid #a7f3d0; color: #064e3b; font-size: 9.5px; font-weight: 900; text-transform: uppercase;">
+                    <th style="padding: 4px 6px; text-align: left;">Item</th>
+                    <th style="padding: 4px 6px; text-align: center;">Qty</th>
+                    <th style="padding: 4px 6px; text-align: right;">Rate (Rs.)</th>
+                    <th style="padding: 4px 6px; text-align: right;">Amount (Rs.)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+
+              <!-- Totals -->
+              <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px;">
+                <tr>
+                  <td style="padding: 3px 6px; color: #475569; font-weight: 700;">Subtotal</td>
+                  <td style="padding: 3px 6px; text-align: right; font-weight: 700; font-family: monospace; color: #334155;">Rs. ${calculatedSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+                ${discountNum > 0 ? `
+                  <tr>
+                    <td style="padding: 3px 6px; color: #047857; font-weight: 700;">Discount</td>
+                    <td style="padding: 3px 6px; text-align: right; font-weight: 700; font-family: monospace; color: #047857;">- Rs. ${discountNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  </tr>
+                ` : ''}
+              </table>
+
+              <!-- Grand Total Banner -->
+              <div style="background: #064e3b; color: #ffffff; padding: 7px 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                <span style="font-size: 11px; font-weight: 900; letter-spacing: 0.5px;">GRAND TOTAL</span>
+                <span style="font-size: 14px; font-weight: 900; font-family: monospace;">Rs. ${grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+
+            <div class="dashed-sep"></div>
+
+            <!-- Payment Section -->
+            <div>
+              <div style="font-size: 10px; font-weight: 900; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                💳 PAYMENT
+              </div>
               <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                 <tr>
-                  <td style="padding: 4px 6px; color: #64748b;">Gross Subtotal:</td>
-                  <td style="padding: 4px 6px; text-align: right; font-weight: 700; font-family: monospace;">Rs. ${Number(subtotal).toLocaleString()}</td>
-                </tr>
-                ${discount > 0 ? `
-                  <tr>
-                    <td style="padding: 4px 6px; color: #16a34a; font-weight: 700;">Discount:</td>
-                    <td style="padding: 4px 6px; text-align: right; font-weight: 700; color: #16a34a; font-family: monospace;">- Rs. ${Number(discount).toLocaleString()}</td>
-                  </tr>
-                ` : ''}
-                ${tax > 0 ? `
-                  <tr>
-                    <td style="padding: 4px 6px; color: #d97706; font-weight: 700;">Mandi Tax / GST:</td>
-                    <td style="padding: 4px 6px; text-align: right; font-weight: 700; color: #d97706; font-family: monospace;">+ Rs. ${Number(tax).toLocaleString()}</td>
-                  </tr>
-                ` : ''}
-                <tr style="background: #0f172a; color: #ffffff; font-weight: 900; font-size: 12px;">
-                  <td style="padding: 7px 8px; border-radius: 4px 0 0 4px;">GRAND TOTAL:</td>
-                  <td style="padding: 7px 8px; text-align: right; border-radius: 0 4px 4px 0; font-family: monospace; font-size: 13px;">Rs. ${Number(grandTotal).toLocaleString()}</td>
+                  <td style="padding: 2px 6px; color: #475569; font-weight: 700;">Payment Method</td>
+                  <td style="padding: 2px 6px; text-align: right; font-weight: 800; color: #0f172a;">${paymentMethod}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 5px 6px 3px; color: #16a34a; font-weight: 700;">Paid (Counter):</td>
-                  <td style="padding: 5px 6px 3px; text-align: right; font-weight: 800; color: #16a34a; font-family: monospace;">Rs. ${Number(paidAmount).toLocaleString()}</td>
+                  <td style="padding: 2px 6px; color: #475569; font-weight: 700;">Paid Amount</td>
+                  <td style="padding: 2px 6px; text-align: right; font-weight: 900; font-family: monospace; color: #047857;">Rs. ${paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
-                ${dueRemaining > 0 ? `
-                  <tr>
-                    <td style="padding: 4px 6px; color: #e11d48; font-weight: 800;">Balance Due (Khata):</td>
-                    <td style="padding: 4px 6px; text-align: right; font-weight: 900; color: #e11d48; font-family: monospace;">Rs. ${Number(dueRemaining).toLocaleString()}</td>
-                  </tr>
-                ` : `
-                  <tr>
-                    <td style="padding: 4px 6px; color: #16a34a; font-weight: 700;">Status:</td>
-                    <td style="padding: 4px 6px; text-align: right; font-weight: 800; color: #16a34a;">✓ FULLY SETTLED</td>
-                  </tr>
-                `}
+                <tr>
+                  <td style="padding: 2px 6px; color: #475569; font-weight: 700;">Balance</td>
+                  <td style="padding: 2px 6px; text-align: right; font-weight: 900; font-family: monospace; color: ${dueRemaining > 0 ? '#b45309' : '#0f172a'};">Rs. ${dueRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
               </table>
-            </td>
-          </tr>
-        </table>
 
-        <!-- Signatures -->
-        <table style="width: 100%; border-collapse: collapse; margin-top: 28px;">
-          <tr>
-            <td style="width: 50%; vertical-align: bottom;">
-              <div style="text-align: center; width: 180px; border-top: 1.5px dashed #94a3b8; padding-top: 5px; font-size: 10px; font-weight: 700; color: #475569;">
-                Customer Signature
+              <!-- Status Badge -->
+              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #047857; text-align: center; padding: 6px; border-radius: 6px; font-size: 11.5px; font-weight: 900; margin-top: 7px; letter-spacing: 0.5px;">
+                ${dueRemaining === 0 ? '✓ FULLY PAID' : `BALANCE DUE: Rs. ${dueRemaining.toLocaleString()}`}
               </div>
-            </td>
-            <td style="width: 50%; vertical-align: bottom; text-align: right;">
-              <div style="text-align: center; width: 180px; border-top: 1.5px dashed #94a3b8; padding-top: 5px; font-size: 10px; font-weight: 700; color: #475569; margin-left: auto;">
-                Authorized Signature & Stamp
+            </div>
+
+            <div class="dashed-sep"></div>
+
+            <!-- Footer -->
+            <div style="text-align: center; padding-top: 2px;">
+              <div style="font-family: Georgia, serif; font-style: italic; font-size: 15px; font-weight: bold; color: #064e3b;">
+                — Thank You —
               </div>
-            </td>
-          </tr>
-        </table>
-      </div>
+              <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">
+                We appreciate your business
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
     `;
   };
 
-  // 100% Reliable Isolated A4 Print
   const handlePrint = () => {
     try {
-      const existingFrame = document.getElementById('receipt-print-frame');
-      if (existingFrame) {
-        existingFrame.remove();
-      }
+      const existingFrame = document.getElementById('sale-receipt-print-frame');
+      if (existingFrame) existingFrame.remove();
 
       const printFrame = document.createElement('iframe');
-      printFrame.id = 'receipt-print-frame';
+      printFrame.id = 'sale-receipt-print-frame';
       printFrame.style.position = 'fixed';
       printFrame.style.right = '0';
       printFrame.style.bottom = '0';
@@ -215,41 +257,7 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
 
       const doc = printFrame.contentWindow.document;
       doc.open();
-
-      doc.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8" />
-            <title>Sales Invoice - ${cleanOrderId}</title>
-            <style>
-              @page {
-                size: A4 portrait;
-                margin: 10mm 12mm;
-              }
-              * {
-                box-sizing: border-box;
-                margin: 0;
-                padding: 0;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-              }
-              body {
-                background: #ffffff;
-                color: #0f172a;
-                width: 100%;
-                margin: 0;
-                padding: 0;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-              }
-            </style>
-          </head>
-          <body>
-            ${generateA4HtmlDocument()}
-          </body>
-        </html>
-      `);
-
+      doc.write(generateSinglePagePrintHtml());
       doc.close();
 
       setTimeout(() => {
@@ -260,27 +268,26 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
             document.body.removeChild(printFrame);
           }
         }, 3000);
-      }, 250);
+      }, 200);
     } catch (err) {
-      console.error('Printing error:', err);
+      console.error('Print error:', err);
       window.print();
     }
   };
 
-  // Download Receipt as High Quality A4 PDF Document
   const handleDownloadPDF = async () => {
     try {
       setIsDownloading(true);
-      const targetElement = receiptRef.current || document.getElementById('receipt-printable-area');
+      const targetElement = receiptRef.current || document.getElementById('sale-receipt-card');
       if (!targetElement) {
-        throw new Error('Receipt printable element not found in DOM.');
+        throw new Error('Sale receipt printable element not found in DOM.');
       }
 
-      const filename = `Invoice_${cleanOrderId.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`;
-      await exportReceiptToPDF(targetElement, filename);
+      const filename = `Sale_Receipt_${cleanReceiptNo.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`;
+      await exportSinglePageReceiptPDF(targetElement, filename, { width: 110, margin: 4 });
     } catch (err) {
-      console.error('Failed to download receipt PDF:', err);
-      alert('Could not generate PDF download. Please try Print (A4).');
+      console.error('PDF error:', err);
+      alert('Could not generate PDF download. Please try Print Receipt.');
     } finally {
       setIsDownloading(false);
     }
@@ -289,130 +296,139 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto no-scrollbar print:p-0 print:bg-white print:static"
+      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-3 overflow-y-auto no-scrollbar print:p-0 print:bg-white print:static"
     >
-      {/* Modal Container */}
+      {/* Modal Card Container (Compact Height, No Scrollbar) */}
       <div 
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-4xl rounded-2xl shadow-2xl border overflow-hidden flex flex-col my-auto max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:w-full print:max-w-none print:rounded-none ${
+        className={`w-full max-w-sm sm:max-w-md rounded-2xl sm:rounded-3xl shadow-2xl border overflow-hidden flex flex-col my-auto transition-all ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}
       >
-        {/* Modal Top Header Bar - Always Pinned */}
-        <div className={`px-4 sm:px-6 py-2.5 sm:py-3 border-b flex items-center justify-between gap-2 shrink-0 ${
+        {/* Modal Top Nav Bar */}
+        <div className={`px-4 py-2 sm:py-2.5 border-b flex items-center justify-between gap-2 shrink-0 ${
           theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-100'
         }`}>
-          <div className="flex items-center gap-2 min-w-0">
-            <Wheat className="w-5 h-5 text-brand-500 shrink-0" />
-            <span className="font-black text-xs sm:text-sm uppercase tracking-wider text-slate-800 dark:text-white truncate">
-              {t('receiptTaxInvoice') || 'Sales Tax Invoice'}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="w-6 h-6 rounded-lg bg-emerald-600/10 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+              <FileText className="w-3.5 h-3.5" />
+            </div>
+            <span className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-white truncate">
+              Sale Receipt
             </span>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="hidden xs:inline-block px-2.5 py-0.5 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold text-[11px] border border-brand-500/20">
-              Standard A4
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-black text-[10px]">
+              Single Page
             </span>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+              className="p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Modal Body: Scrollable Preview of the exact A4 Document */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-5 md:p-6 bg-slate-100 dark:bg-slate-900/80 flex justify-center">
+        {/* Modal Body: Centered Reference-Styled Receipt */}
+        <div className="p-2 sm:p-3 bg-slate-100 dark:bg-slate-900/70 flex justify-center">
           <div 
             ref={receiptRef}
-            id="receipt-printable-area"
+            id="sale-receipt-card"
             data-receipt-printable="true"
-            className="w-full max-w-[794px] bg-white text-slate-900 shadow-md rounded-xl border border-slate-200 p-5 sm:p-7 space-y-4"
+            className="w-full max-w-[375px] sm:max-w-[390px] bg-white text-slate-900 shadow-md rounded-xl border border-slate-200/90 p-3.5 sm:p-4 space-y-2.5"
           >
-            {/* Header Banner */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b-2 border-slate-900">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-black shrink-0">
-                  <Wheat className="w-6 h-6 stroke-[2.2]" />
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">
-                    {shopTitle}
-                  </h2>
-                  <p className="text-[11px] text-emerald-700 font-bold uppercase tracking-wider">
-                    {mandiTitle}
-                  </p>
-                  <p className="text-[10px] text-slate-500 font-semibold">
-                    SALES TAX INVOICE & CASH MEMO • GATE PASS {shopPhone ? `• 📞 ${shopPhone}` : ''}
-                  </p>
-                </div>
+            {/* Header: Logo, Shop Name, Ribbon */}
+            <div className="text-center">
+              <div className="w-10 h-10 mx-auto rounded-full border-2 border-emerald-600/30 bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-xs">
+                <Wheat className="w-5 h-5 stroke-[2.2]" />
               </div>
-
-              <div className="w-full sm:w-auto text-left sm:text-right bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-xl sm:rounded-none border sm:border-0 border-slate-100 flex sm:block justify-between items-center">
-                <div>
-                  <div className="text-[9px] font-extrabold uppercase text-slate-400">INVOICE NO.</div>
-                  <div className="font-mono font-black text-base sm:text-lg text-slate-900">{cleanOrderId}</div>
-                </div>
-                <div className="text-[11px] font-semibold text-slate-500">{date}</div>
+              <h1 className="text-base sm:text-lg font-black uppercase text-slate-900 tracking-wider text-center mt-1 leading-tight">
+                {shopTitle}
+              </h1>
+              <div className="inline-block bg-[#064e3b] text-white font-black text-[10px] sm:text-[11px] uppercase tracking-widest px-6 py-0.5 rounded-xs mt-1.5 shadow-xs">
+                SALE RECEIPT
               </div>
             </div>
 
-            {/* Customer & Payment Meta Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-              <div className="space-y-1 sm:border-r sm:border-slate-200/80 sm:pr-3">
-                <span className="text-[10px] font-black uppercase text-slate-400 block">{t('customerLabel') || 'Billed To'}:</span>
-                <div className="font-black text-sm text-slate-900">{displayCustomer}</div>
-                {customerCity && <div className="text-[11px] text-slate-600 font-medium">📍 City: {customerCity}</div>}
-                {customerPhone && <div className="text-[11px] text-slate-600 font-medium">📞 Phone: {customerPhone}</div>}
-              </div>
-
-              <div className="space-y-1 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-slate-200 sm:pl-1">
-                <span className="text-[10px] font-black uppercase text-slate-400 block">{t('paymentMethodLabel') || 'Payment Mode'}:</span>
-                <div className="font-black text-sm text-brand-600">{paymentMethod}</div>
-                {saleNote && <div className="text-[11px] text-slate-500 italic">📝 Note: {saleNote}</div>}
-                <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-0.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Counter POS Verified & Dispatched
+            {/* Receipt No & Date 2-Column Info Bar */}
+            <div className="flex items-center justify-between text-xs pt-1">
+              <div className="flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <div>
+                  <div className="text-[9px] font-extrabold uppercase text-slate-400">Receipt No.</div>
+                  <div className="font-mono font-black text-slate-900 text-xs">{cleanReceiptNo}</div>
                 </div>
               </div>
+
+              <div className="flex items-center gap-1.5 text-right">
+                <div>
+                  <div className="text-[9px] font-extrabold uppercase text-slate-400">Date & Time</div>
+                  <div className="font-bold text-slate-800 text-[11px]">{date}</div>
+                </div>
+                <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+              </div>
             </div>
+
+            <div className="border-t border-dashed border-slate-300 my-1" />
+
+            {/* Customer Information */}
+            <div className="space-y-0.5 text-xs">
+              <div className="flex items-center gap-1 text-[#047857] font-black text-[11px] uppercase tracking-wider">
+                <User className="w-3.5 h-3.5 text-emerald-700" />
+                <span>CUSTOMER</span>
+              </div>
+              <div className="font-black text-slate-900 text-xs pl-4">
+                {displayCustomer}
+              </div>
+              {customerPhone && (
+                <div className="flex items-center gap-1 text-[11px] text-slate-600 font-medium pl-4">
+                  <Phone className="w-3 h-3 text-slate-400" />
+                  <span>{customerPhone}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-dashed border-slate-300 my-1" />
 
             {/* Items Table */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
-              <div className="overflow-x-auto">
+            <div>
+              <div className="flex items-center gap-1 text-[#047857] font-black text-[11px] uppercase tracking-wider mb-1.5">
+                <ShoppingCart className="w-3.5 h-3.5 text-emerald-700" />
+                <span>ITEMS</span>
+              </div>
+
+              <div className="border border-emerald-200/80 rounded-md overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-900 text-white text-[10px] font-black uppercase tracking-wider">
-                      <th className="py-2.5 px-3 w-10 text-center">#</th>
-                      <th className="py-2.5 px-3">{t('item') || 'Item / Commodity Description'}</th>
-                      <th className="py-2.5 px-3 text-right">{t('price') || 'Rate (PKR)'}</th>
-                      <th className="py-2.5 px-3 text-center">{t('qty') || 'Qty / Weight'}</th>
-                      <th className="py-2.5 px-3 text-right">{t('total') || 'Amount (PKR)'}</th>
+                    <tr className="bg-[#ecfdf5] border-b border-emerald-200/80 text-[#064e3b] text-[9.5px] font-black uppercase">
+                      <th className="py-1 px-2 text-left">Item</th>
+                      <th className="py-1 px-2 text-center">Qty</th>
+                      <th className="py-1 px-2 text-right">Rate (Rs.)</th>
+                      <th className="py-1 px-2 text-right">Amount (Rs.)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs">
+                  <tbody className="divide-y divide-slate-100 text-[11px]">
                     {items.map((item, idx) => {
                       const itemPrice = Number(item.price || item.rate || 0);
                       const itemQty = Number(item.qty || 1);
-                      const itemUnit = item.unit || item.unitName || t('kg');
                       const lineTotal = itemPrice * itemQty;
 
                       return (
-                        <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'}>
-                          <td className="py-2.5 px-3 font-bold text-slate-400 text-center">{idx + 1}</td>
-                          <td className="py-2.5 px-3">
-                            <div className="font-black text-slate-900">{item.name}</div>
-                            <div className="text-[10px] text-slate-400">Ghalla Mandi Produce</div>
+                        <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}>
+                          <td className="py-1 px-2 font-bold text-slate-900 truncate max-w-[110px]">
+                            {item.name || 'Commodity'}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-600">
-                            Rs. {itemPrice.toLocaleString()}
+                          <td className="py-1 px-2 text-center font-black text-slate-700">
+                            {itemQty}
                           </td>
-                          <td className="py-2.5 px-3 text-center font-black text-slate-800 whitespace-nowrap">
-                            {itemQty} <span className="text-[10px] text-slate-500 font-normal">{itemUnit}</span>
+                          <td className="py-1 px-2 text-right font-mono font-bold text-slate-600">
+                            {itemPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-black text-slate-900 whitespace-nowrap">
-                            Rs. {lineTotal.toLocaleString()}
+                          <td className="py-1 px-2 text-right font-mono font-black text-slate-900">
+                            {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
                         </tr>
                       );
@@ -420,122 +436,126 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                   </tbody>
                 </table>
               </div>
-            </div>
 
-            {/* Totals & Terms Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-              <div className="text-[10px] text-slate-500 space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <p className="font-bold text-slate-700">Terms & Mandi Conditions:</p>
-                <p>• Goods once sold are verified per standard Ghalla Mandi trade rules.</p>
-                <p>• Official sales tax invoice & cash memo gate pass.</p>
-                <p>• Computer-generated voucher by Ghalla Mandi ERP.</p>
-                <p className="font-bold text-emerald-700">Thank you for your valued business!</p>
-              </div>
-
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between items-center text-slate-600 font-semibold px-1">
-                  <span>Gross Subtotal:</span>
-                  <span className="font-bold font-mono text-slate-800">Rs. {Number(subtotal).toLocaleString()}</span>
-                </div>
-
-                {discount > 0 && (
-                  <div className="flex justify-between items-center text-emerald-600 font-bold px-1">
-                    <span>Discount:</span>
-                    <span className="font-mono">- Rs. {Number(discount).toLocaleString()}</span>
-                  </div>
-                )}
-
-                {tax > 0 && (
-                  <div className="flex justify-between items-center text-amber-600 font-bold px-1">
-                    <span>Mandi Tax / GST:</span>
-                    <span className="font-mono">+ Rs. {Number(tax).toLocaleString()}</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center p-2 rounded-xl bg-slate-900 text-white font-black text-xs sm:text-sm">
-                  <span>GRAND TOTAL:</span>
-                  <span className="font-mono text-sm sm:text-base">
-                    Rs. {Number(grandTotal).toLocaleString()}
+              {/* Subtotal & Discount Rows */}
+              <div className="space-y-0.5 text-[11px] pt-1.5 px-1 font-bold">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Subtotal</span>
+                  <span className="font-mono text-slate-900">
+                    Rs. {calculatedSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center text-emerald-700 font-bold px-1">
-                  <span>Amount Paid:</span>
-                  <span className="font-mono">Rs. {Number(paidAmount).toLocaleString()}</span>
-                </div>
-
-                {dueRemaining > 0 ? (
-                  <div className="flex justify-between items-center text-rose-600 font-extrabold px-1">
-                    <span>Balance Due (Khata):</span>
-                    <span className="font-mono">Rs. {Number(dueRemaining).toLocaleString()}</span>
-                  </div>
-                ) : (
-                  <div className="flex justify-between items-center text-emerald-600 font-bold px-1 text-[11px]">
-                    <span>Settlement:</span>
-                    <span>✓ FULLY PAID</span>
+                {discountNum > 0 && (
+                  <div className="flex justify-between items-center text-emerald-700">
+                    <span>Discount</span>
+                    <span className="font-mono">
+                      - Rs. {discountNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   </div>
                 )}
               </div>
+
+              {/* Prominent Dark Green Grand Total Banner */}
+              <div className="bg-[#064e3b] text-white px-3 py-1.5 rounded-sm flex justify-between items-center mt-1.5 shadow-xs">
+                <span className="text-[11px] font-black tracking-wider uppercase">GRAND TOTAL</span>
+                <span className="font-mono text-sm sm:text-base font-black">
+                  Rs. {grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
 
-            {/* Signatures */}
-            <div className="pt-5 flex justify-between items-end border-t border-slate-200 text-[10px] text-slate-500 font-bold">
-              <div className="text-center w-36 sm:w-44 border-t-2 border-dashed border-slate-300 pt-1.5">
-                Customer Signature
+            <div className="border-t border-dashed border-slate-300 my-1" />
+
+            {/* Payment Section */}
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center gap-1 text-[#047857] font-black text-[11px] uppercase tracking-wider">
+                <CreditCard className="w-3.5 h-3.5 text-emerald-700" />
+                <span>PAYMENT</span>
               </div>
-              <div className="text-center w-36 sm:w-44 border-t-2 border-dashed border-slate-300 pt-1.5">
-                Authorized Signature & Stamp
+
+              <div className="space-y-0.5 text-[11px] px-1 font-bold">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Payment Method</span>
+                  <span className="text-slate-900 font-extrabold">{paymentMethod}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Paid Amount</span>
+                  <span className="font-mono text-emerald-700 font-black">
+                    Rs. {paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Balance</span>
+                  <span className={`font-mono font-black ${dueRemaining > 0 ? 'text-amber-700' : 'text-slate-900'}`}>
+                    Rs. {dueRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
+
+              {/* Status Badge */}
+              <div className="bg-[#f0fdf4] border border-emerald-200 text-emerald-800 rounded-md py-1.5 px-3 flex items-center justify-center gap-1 text-center font-black text-[11px] tracking-wide mt-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{dueRemaining === 0 ? 'FULLY PAID' : `BALANCE DUE: Rs. ${dueRemaining.toLocaleString()}`}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-dashed border-slate-300 my-1" />
+
+            {/* Elegant Footer */}
+            <div className="text-center pt-0.5">
+              <div className="font-serif italic font-bold text-emerald-900 text-sm tracking-wide">
+                — Thank You —
+              </div>
+              <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5">
+                We appreciate your business
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Modal Actions Footer - Always Pinned */}
-        <div className={`p-3 sm:p-4 border-t flex items-center justify-between gap-2 sm:gap-3 print:hidden shrink-0 ${
+        {/* Modal Bottom Actions Bar */}
+        <div className={`p-2.5 sm:p-3 border-t flex items-center justify-between gap-2 shrink-0 ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'
         }`}>
           <button
             type="button"
             onClick={onClose}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1 ${
               theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
             }`}
           >
-            <X className="w-4 h-4" />
-            <span>{t('close')}</span>
+            <X className="w-3.5 h-3.5" />
+            <span>Close</span>
           </button>
 
           <div className="flex flex-1 items-center gap-2">
-            {/* Download PDF Button */}
             <button
               type="button"
               onClick={handleDownloadPDF}
               disabled={isDownloading}
-              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer"
-              title="Download official receipt as standard A4 PDF file"
+              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
             >
               {isDownloading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Generating PDF...</span>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Downloading...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
                   <span>Download PDF</span>
                 </>
               )}
             </button>
 
-            {/* Print A4 Invoice Button */}
             <button
               type="button"
               onClick={handlePrint}
-              className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-black transition shadow-md shadow-brand-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
-              title="Print standard A4 receipt"
+              className="flex-1 py-2 bg-[#064e3b] hover:bg-emerald-950 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Printer className="w-4 h-4" />
-              <span>Print (A4)</span>
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Receipt</span>
             </button>
           </div>
         </div>
@@ -545,4 +565,3 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
 };
 
 export default ReceiptModal;
-

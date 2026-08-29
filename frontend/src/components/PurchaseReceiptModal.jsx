@@ -1,13 +1,24 @@
 import React, { useState, useRef } from 'react';
-import { Printer, Download, Truck, X, CheckCircle2, Loader2, Wheat } from 'lucide-react';
+import { 
+  Printer, 
+  Download, 
+  Wheat, 
+  X, 
+  CheckCircle2, 
+  Loader2, 
+  Calendar, 
+  FileText, 
+  User, 
+  Phone, 
+  ShoppingCart, 
+  CreditCard 
+} from 'lucide-react';
 import { exportSinglePageReceiptPDF } from '../utils/pdfExport';
 import { useTheme } from '../context/ThemeContext';
-import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 
 export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
   const { theme } = useTheme();
-  const { t } = useLocale();
   const { shop } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
   const receiptRef = useRef(null);
@@ -15,12 +26,12 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
   if (!isOpen || !purchaseData) return null;
 
   const {
-    purchaseNo = `PUR-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+    purchaseNo = `PUR-${Math.floor(100000 + Math.random() * 900000)}`,
     date = new Date().toLocaleString('en-PK', {
-      dateStyle: 'short',
+      dateStyle: 'medium',
       timeStyle: 'short'
     }),
-    supplierName = 'Supplier / Party',
+    supplierName = 'Supplier',
     supplierPhone = '',
     supplierCity = '',
     truckNo = '',
@@ -28,35 +39,36 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
     items = [],
     totalAmount = 0,
     paidAmount = 0,
+    adjustment = 0,
     discount = 0,
     note = ''
   } = purchaseData;
 
-  const displaySupplier = supplierName || 'Walk-in Supplier';
-  const cleanPurchaseNo = `#${String(purchaseNo).replace(/[^0-9A-Za-z-]/g, '')}`;
-  const totalNum = Number(totalAmount || 0);
-  const paidNum = Number(paidAmount || 0);
-  const dueRemaining = Math.max(0, totalNum - paidNum);
-  const shopTitle = shop?.name || 'GHALLA MANDI ERP';
-  const mandiTitle = shop?.mandiName || 'Grain Wholesale Market';
-  const shopPhone = shop?.businessPhone || shop?.phone || '';
+  const cleanReceiptNo = String(purchaseNo).startsWith('PUR-') || String(purchaseNo).startsWith('GM-') || String(purchaseNo).startsWith('INV-')
+    ? String(purchaseNo)
+    : `PUR-${String(purchaseNo).replace(/[^0-9A-Za-z]/g, '') || '000123'}`;
 
-  // Generate clean, isolated single-page print HTML
+  const grandTotalNum = Number(totalAmount || 0);
+  const paidNum = Number(paidAmount !== undefined ? paidAmount : grandTotalNum);
+  const adjustmentNum = Number(adjustment || discount || 0);
+  const calculatedSubtotal = grandTotalNum + adjustmentNum;
+  const dueRemaining = Math.max(0, grandTotalNum - paidNum);
+  const displaySupplier = supplierName || 'Walk-in Supplier';
+  const shopTitle = (shop?.name || 'GHALLA MANDI').toUpperCase();
+
+  // Generate clean, isolated single-page print HTML matching reference design
   const generateSinglePagePrintHtml = () => {
     const rowsHtml = items.map((item, idx) => {
       const itemPrice = Number(item.price || item.rate || item.purchasePrice || item.purchaseprice || 0);
       const itemQty = Number(item.qty || item.quantity || 1);
-      const itemUnit = item.unit || item.unitName || item.baseUnit || 'kg';
       const lineTotal = Number(item.total) || (itemPrice * itemQty);
-      const bg = idx % 2 === 1 ? '#f8fafc' : '#ffffff';
 
       return `
-        <tr style="background: ${bg}; border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 6px 8px; font-weight: 700; color: #64748b; text-align: center; font-size: 11px;">${idx + 1}</td>
-          <td style="padding: 6px 8px; font-weight: 800; color: #064e3b; font-size: 11px;">${item.name || item.productName || 'Produce Commodity'}</td>
-          <td style="padding: 6px 8px; text-align: right; font-weight: 700; color: #334155; font-size: 11px; font-family: monospace;">Rs. ${itemPrice.toLocaleString()}</td>
-          <td style="padding: 6px 8px; text-align: center; font-weight: 800; color: #0f172a; font-size: 11px;">${itemQty} <span style="font-size: 10px; color: #64748b;">${itemUnit}</span></td>
-          <td style="padding: 6px 8px; text-align: right; font-weight: 900; color: #064e3b; font-size: 11px; font-family: monospace;">Rs. ${lineTotal.toLocaleString()}</td>
+        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 11px;">
+          <td style="padding: 5px 6px; font-weight: 700; color: #0f172a; text-align: left;">${item.name || item.productName || 'Produce Item'}</td>
+          <td style="padding: 5px 6px; text-align: center; font-weight: 800; color: #334155;">${itemQty}</td>
+          <td style="padding: 5px 6px; text-align: right; font-family: monospace; color: #475569;">${itemPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="padding: 5px 6px; text-align: right; font-weight: 800; font-family: monospace; color: #0f172a;">${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>
       `;
     }).join('');
@@ -66,11 +78,11 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>Purchase Receipt - ${cleanPurchaseNo}</title>
+          <title>Purchase Receipt - ${cleanReceiptNo}</title>
           <style>
             @page {
               size: auto;
-              margin: 6mm;
+              margin: 5mm;
             }
             * {
               box-sizing: border-box;
@@ -85,92 +97,141 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
               width: 100%;
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             }
-            .receipt-box {
+            .receipt-card {
               width: 100%;
-              max-width: 440px;
+              max-width: 420px;
               margin: 0 auto;
-              padding: 12px;
+              padding: 16px 18px;
               border: 1px solid #cbd5e1;
               border-radius: 8px;
+              background: #ffffff;
+            }
+            .dashed-sep {
+              border-top: 1px dashed #cbd5e1;
+              margin: 10px 0;
             }
           </style>
         </head>
         <body>
-          <div class="receipt-box">
-            <!-- Header -->
-            <div style="text-align: center; border-bottom: 2px solid #064e3b; padding-bottom: 8px; margin-bottom: 10px;">
-              <div style="font-size: 17px; font-weight: 900; color: #064e3b; letter-spacing: -0.3px;">${shopTitle}</div>
-              <div style="font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase;">${mandiTitle}</div>
-              ${shopPhone ? `<div style="font-size: 10px; color: #64748b; margin-top: 1px;">Phone: ${shopPhone}</div>` : ''}
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding: 4px 6px; background: #f0fdf4; border-radius: 6px;">
-                <span style="background: #064e3b; color: #ffffff; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">PURCHASE RECEIPT</span>
-                <span style="font-family: monospace; font-size: 12px; font-weight: 900; color: #064e3b;">${cleanPurchaseNo}</span>
-                <span style="font-size: 10px; font-weight: 600; color: #64748b;">${date}</span>
+          <div class="receipt-card">
+            <!-- Logo & Brand Header -->
+            <div style="text-align: center;">
+              <div style="width: 44px; height: 44px; margin: 0 auto; border-radius: 50%; border: 2px solid #059669; background: #ecfdf5; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                🌾
+              </div>
+              <div style="font-size: 18px; font-weight: 900; color: #0f172a; letter-spacing: 0.5px; margin-top: 6px; text-transform: uppercase;">
+                ${shopTitle}
+              </div>
+              <div style="display: inline-block; background: #064e3b; color: #ffffff; font-size: 10.5px; font-weight: 900; padding: 3px 20px; border-radius: 3px; letter-spacing: 1px; margin-top: 5px; text-transform: uppercase;">
+                PURCHASE RECEIPT
               </div>
             </div>
 
-            <!-- Supplier & Settlement Meta -->
-            <table style="width: 100%; border-collapse: collapse; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 10px; font-size: 11px;">
-              <tr>
-                <td style="width: 50%; padding: 6px 8px; vertical-align: top; border-right: 1px solid #e2e8f0;">
-                  <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">SUPPLIER:</div>
-                  <div style="font-size: 12px; font-weight: 900; color: #0f172a;">${displaySupplier}</div>
-                  ${supplierCity ? `<div style="font-size: 10px; color: #64748b;">City: ${supplierCity}</div>` : ''}
-                  ${supplierPhone ? `<div style="font-size: 10px; color: #64748b;">Phone: ${supplierPhone}</div>` : ''}
-                </td>
-                <td style="width: 50%; padding: 6px 8px; vertical-align: top; text-align: right;">
-                  <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">PAYMENT METHOD:</div>
-                  <div style="font-size: 12px; font-weight: 900; color: #047857;">${paymentMode}</div>
-                  ${truckNo ? `<div style="font-size: 10px; color: #64748b;">Truck: ${truckNo}</div>` : ''}
-                </td>
-              </tr>
-            </table>
-
-            <!-- Items Table -->
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden;">
-              <thead>
-                <tr style="background: #064e3b; color: #ffffff;">
-                  <th style="padding: 5px 6px; font-size: 9px; font-weight: 900; text-transform: uppercase; width: 25px; text-align: center;">#</th>
-                  <th style="padding: 5px 6px; font-size: 9px; font-weight: 900; text-transform: uppercase; text-align: left;">ITEM</th>
-                  <th style="padding: 5px 6px; font-size: 9px; font-weight: 900; text-transform: uppercase; text-align: right;">RATE</th>
-                  <th style="padding: 5px 6px; font-size: 9px; font-weight: 900; text-transform: uppercase; text-align: center;">QTY</th>
-                  <th style="padding: 5px 6px; font-size: 9px; font-weight: 900; text-transform: uppercase; text-align: right;">AMOUNT</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rowsHtml}
-              </tbody>
-            </table>
-
-            <!-- Totals & Payment Summary -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 8px; margin-bottom: 8px;">
-              <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                <tr style="background: #064e3b; color: #ffffff; font-weight: 900;">
-                  <td style="padding: 6px 8px; border-radius: 4px 0 0 4px; font-size: 11px;">GRAND TOTAL:</td>
-                  <td style="padding: 6px 8px; text-align: right; border-radius: 0 4px 4px 0; font-family: monospace; font-size: 13px;">Rs. ${totalNum.toLocaleString()}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 4px 6px 2px; color: #047857; font-weight: 800;">Paid Amount:</td>
-                  <td style="padding: 4px 6px 2px; text-align: right; font-weight: 800; color: #047857; font-family: monospace;">Rs. ${paidNum.toLocaleString()}</td>
-                </tr>
-                ${dueRemaining > 0 ? `
-                  <tr>
-                    <td style="padding: 3px 6px; color: #b45309; font-weight: 800;">Balance Due (Khata):</td>
-                    <td style="padding: 3px 6px; text-align: right; font-weight: 900; color: #b45309; font-family: monospace;">Rs. ${dueRemaining.toLocaleString()}</td>
-                  </tr>
-                ` : `
-                  <tr>
-                    <td style="padding: 3px 6px; color: #047857; font-weight: 700;">Status:</td>
-                    <td style="padding: 3px 6px; text-align: right; font-weight: 800; color: #047857;">✓ FULLY SETTLED</td>
-                  </tr>
-                `}
-              </table>
+            <!-- Receipt Meta Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 11px;">
+              <div>
+                <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">Receipt No.</div>
+                <div style="font-weight: 900; color: #0f172a; font-family: monospace;">${cleanReceiptNo}</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">Date & Time</div>
+                <div style="font-weight: 700; color: #334155;">${date}</div>
+              </div>
             </div>
 
-            <!-- Clean Single-Line Footer -->
-            <div style="text-align: center; font-size: 9px; color: #94a3b8; padding-top: 4px;">
-              Thank you for your business • Computer Generated Purchase Receipt
+            <div class="dashed-sep"></div>
+
+            <!-- Supplier Details -->
+            <div>
+              <div style="font-size: 10px; font-weight: 900; color: #047857; text-transform: uppercase; letter-spacing: 0.5px;">
+                👤 SUPPLIER
+              </div>
+              <div style="font-size: 13px; font-weight: 900; color: #0f172a; margin-top: 2px;">
+                ${displaySupplier}
+              </div>
+              ${supplierPhone ? `<div style="font-size: 11px; color: #475569; margin-top: 1px;">📞 ${supplierPhone}</div>` : ''}
+              ${supplierCity ? `<div style="font-size: 10px; color: #64748b; margin-top: 1px;">📍 ${supplierCity}</div>` : ''}
+              ${truckNo ? `<div style="font-size: 10px; color: #64748b; margin-top: 1px;">🚛 Truck: ${truckNo}</div>` : ''}
+            </div>
+
+            <div class="dashed-sep"></div>
+
+            <!-- Items Table -->
+            <div>
+              <div style="font-size: 10px; font-weight: 900; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">
+                🛒 ITEMS
+              </div>
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px;">
+                <thead>
+                  <tr style="background: #ecfdf5; border-top: 1px solid #a7f3d0; border-bottom: 1px solid #a7f3d0; color: #064e3b; font-size: 9.5px; font-weight: 900; text-transform: uppercase;">
+                    <th style="padding: 4px 6px; text-align: left;">Item</th>
+                    <th style="padding: 4px 6px; text-align: center;">Qty</th>
+                    <th style="padding: 4px 6px; text-align: right;">Rate (Rs.)</th>
+                    <th style="padding: 4px 6px; text-align: right;">Amount (Rs.)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+
+              <!-- Totals -->
+              <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px;">
+                <tr>
+                  <td style="padding: 3px 6px; color: #475569; font-weight: 700;">Subtotal</td>
+                  <td style="padding: 3px 6px; text-align: right; font-weight: 700; font-family: monospace; color: #334155;">Rs. ${calculatedSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 3px 6px; color: #475569; font-weight: 700;">Adjustment</td>
+                  <td style="padding: 3px 6px; text-align: right; font-weight: 700; font-family: monospace; color: #475569;">Rs. ${adjustmentNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+              </table>
+
+              <!-- Grand Total Banner -->
+              <div style="background: #064e3b; color: #ffffff; padding: 7px 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                <span style="font-size: 11px; font-weight: 900; letter-spacing: 0.5px;">GRAND TOTAL</span>
+                <span style="font-size: 14px; font-weight: 900; font-family: monospace;">Rs. ${grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+
+            <div class="dashed-sep"></div>
+
+            <!-- Payment Section -->
+            <div>
+              <div style="font-size: 10px; font-weight: 900; color: #047857; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                💳 PAYMENT
+              </div>
+              <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                <tr>
+                  <td style="padding: 2px 6px; color: #475569; font-weight: 700;">Payment Method</td>
+                  <td style="padding: 2px 6px; text-align: right; font-weight: 800; color: #0f172a;">${paymentMode}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 2px 6px; color: #475569; font-weight: 700;">Paid Amount</td>
+                  <td style="padding: 2px 6px; text-align: right; font-weight: 900; font-family: monospace; color: #047857;">Rs. ${paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 2px 6px; color: #475569; font-weight: 700;">Balance</td>
+                  <td style="padding: 2px 6px; text-align: right; font-weight: 900; font-family: monospace; color: ${dueRemaining > 0 ? '#b45309' : '#0f172a'};">Rs. ${dueRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+              </table>
+
+              <!-- Status Badge -->
+              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #047857; text-align: center; padding: 6px; border-radius: 6px; font-size: 11.5px; font-weight: 900; margin-top: 7px; letter-spacing: 0.5px;">
+                ${dueRemaining === 0 ? '✓ FULLY SETTLED' : `BALANCE DUE: Rs. ${dueRemaining.toLocaleString()}`}
+              </div>
+            </div>
+
+            <div class="dashed-sep"></div>
+
+            <!-- Footer -->
+            <div style="text-align: center; padding-top: 2px;">
+              <div style="font-family: Georgia, serif; font-style: italic; font-size: 15px; font-weight: bold; color: #064e3b;">
+                — Thank You —
+              </div>
+              <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">
+                We appreciate your business
+              </div>
             </div>
           </div>
         </body>
@@ -208,7 +269,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
         }, 3000);
       }, 200);
     } catch (err) {
-      console.error('Printing error:', err);
+      console.error('Print error:', err);
       window.print();
     }
   };
@@ -216,15 +277,15 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
   const handleDownloadPDF = async () => {
     try {
       setIsDownloading(true);
-      const targetElement = receiptRef.current || document.getElementById('purchase-receipt-compact-card');
+      const targetElement = receiptRef.current || document.getElementById('purchase-receipt-card');
       if (!targetElement) {
         throw new Error('Purchase receipt printable element not found in DOM.');
       }
 
-      const filename = `Purchase_Receipt_${cleanPurchaseNo.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`;
-      await exportSinglePageReceiptPDF(targetElement, filename, { width: 115, margin: 5 });
+      const filename = `Purchase_Receipt_${cleanReceiptNo.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`;
+      await exportSinglePageReceiptPDF(targetElement, filename, { width: 110, margin: 4 });
     } catch (err) {
-      console.error('PDF generation error:', err);
+      console.error('PDF error:', err);
       alert('Could not generate PDF download. Please try Print Receipt.');
     } finally {
       setIsDownloading(false);
@@ -234,31 +295,31 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto no-scrollbar print:p-0 print:bg-white print:static"
+      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-3 overflow-y-auto no-scrollbar print:p-0 print:bg-white print:static"
     >
-      {/* Modal Card */}
+      {/* Modal Card Container (Compact Height, No Scrollbar) */}
       <div 
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-md rounded-3xl shadow-2xl border overflow-hidden flex flex-col my-auto transition-all ${
+        className={`w-full max-w-sm sm:max-w-md rounded-2xl sm:rounded-3xl shadow-2xl border overflow-hidden flex flex-col my-auto transition-all ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}
       >
-        {/* Modal Header */}
-        <div className={`px-4 sm:px-5 py-3 border-b flex items-center justify-between gap-2 shrink-0 ${
+        {/* Modal Top Nav Bar */}
+        <div className={`px-4 py-2 sm:py-2.5 border-b flex items-center justify-between gap-2 shrink-0 ${
           theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-100'
         }`}>
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-xl bg-emerald-600/10 text-emerald-600 flex items-center justify-center font-bold shrink-0">
-              <Truck className="w-4 h-4" />
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="w-6 h-6 rounded-lg bg-emerald-600/10 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+              <FileText className="w-3.5 h-3.5" />
             </div>
-            <span className="font-black text-xs sm:text-sm uppercase tracking-wider text-slate-800 dark:text-white truncate">
+            <span className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-white truncate">
               Purchase Receipt
             </span>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-black text-[10px]">
-              Single Page POS
+              Single Page
             </span>
             <button
               type="button"
@@ -270,186 +331,208 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
           </div>
         </div>
 
-        {/* Modal Body: Compact, Single-Page Viewable Receipt Slip */}
-        <div className="p-3 sm:p-4 bg-slate-100 dark:bg-slate-900/70 flex justify-center">
+        {/* Modal Body: Centered Reference-Styled Receipt */}
+        <div className="p-2 sm:p-3 bg-slate-100 dark:bg-slate-900/70 flex justify-center">
           <div 
             ref={receiptRef}
-            id="purchase-receipt-compact-card"
+            id="purchase-receipt-card"
             data-receipt-printable="true"
-            className="w-full max-w-[420px] bg-white text-slate-900 shadow-md rounded-2xl border border-slate-200 p-3.5 sm:p-4 space-y-3"
+            className="w-full max-w-[375px] sm:max-w-[390px] bg-white text-slate-900 shadow-md rounded-xl border border-slate-200/90 p-3.5 sm:p-4 space-y-2.5"
           >
-            {/* Header: Business & Mandi Identity */}
-            <div className="text-center pb-2.5 border-b-2 border-emerald-800">
-              <div className="flex items-center justify-center gap-1.5">
-                <Wheat className="w-4 h-4 text-emerald-700" />
-                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-tight">
-                  {shopTitle}
-                </h2>
+            {/* Header: Logo, Shop Name, Ribbon */}
+            <div className="text-center">
+              <div className="w-10 h-10 mx-auto rounded-full border-2 border-emerald-600/30 bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-xs">
+                <Wheat className="w-5 h-5 stroke-[2.2]" />
               </div>
-              <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider mt-0.5">
-                {mandiTitle}
-              </p>
-              {shopPhone && (
-                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
-                  Phone: {shopPhone}
-                </p>
+              <h1 className="text-base sm:text-lg font-black uppercase text-slate-900 tracking-wider text-center mt-1 leading-tight">
+                {shopTitle}
+              </h1>
+              <div className="inline-block bg-[#064e3b] text-white font-black text-[10px] sm:text-[11px] uppercase tracking-widest px-6 py-0.5 rounded-xs mt-1.5 shadow-xs">
+                PURCHASE RECEIPT
+              </div>
+            </div>
+
+            {/* Receipt No & Date 2-Column Info Bar */}
+            <div className="flex items-center justify-between text-xs pt-1">
+              <div className="flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <div>
+                  <div className="text-[9px] font-extrabold uppercase text-slate-400">Receipt No.</div>
+                  <div className="font-mono font-black text-slate-900 text-xs">{cleanReceiptNo}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-right">
+                <div>
+                  <div className="text-[9px] font-extrabold uppercase text-slate-400">Date & Time</div>
+                  <div className="font-bold text-slate-800 text-[11px]">{date}</div>
+                </div>
+                <Calendar className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+              </div>
+            </div>
+
+            <div className="border-t border-dashed border-slate-300 my-1" />
+
+            {/* Supplier Information */}
+            <div className="space-y-0.5 text-xs">
+              <div className="flex items-center gap-1 text-[#047857] font-black text-[11px] uppercase tracking-wider">
+                <User className="w-3.5 h-3.5 text-emerald-700" />
+                <span>SUPPLIER</span>
+              </div>
+              <div className="font-black text-slate-900 text-xs pl-4">
+                {displaySupplier}
+              </div>
+              {supplierPhone && (
+                <div className="flex items-center gap-1 text-[11px] text-slate-600 font-medium pl-4">
+                  <Phone className="w-3 h-3 text-slate-400" />
+                  <span>{supplierPhone}</span>
+                </div>
               )}
-
-              {/* Receipt Title Strip */}
-              <div className="flex items-center justify-between mt-2.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200/80">
-                <span className="bg-emerald-900 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-wider">
-                  Purchase Receipt
-                </span>
-                <span className="font-mono font-black text-xs sm:text-sm text-emerald-950">
-                  {cleanPurchaseNo}
-                </span>
-                <span className="text-[10px] font-semibold text-slate-600">
-                  {date}
-                </span>
-              </div>
+              {supplierCity && (
+                <div className="text-[10.5px] text-slate-500 font-medium pl-4">
+                  📍 City: {supplierCity}
+                </div>
+              )}
+              {truckNo && (
+                <div className="text-[10.5px] text-slate-500 font-medium pl-4">
+                  🚛 Truck: {truckNo}
+                </div>
+              )}
             </div>
 
-            {/* Supplier & Settlement Meta Grid */}
-            <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-              <div className="space-y-0.5 border-r border-slate-200 pr-2">
-                <span className="text-[9px] font-black uppercase text-slate-400 block tracking-wider">
-                  Supplier:
-                </span>
-                <div className="font-black text-xs text-slate-900 truncate">
-                  {displaySupplier}
-                </div>
-                {supplierCity && (
-                  <div className="text-[10px] text-slate-600 font-medium truncate">
-                    City: {supplierCity}
-                  </div>
-                )}
-                {supplierPhone && (
-                  <div className="text-[10px] text-slate-600 font-medium truncate">
-                    Phone: {supplierPhone}
-                  </div>
-                )}
+            <div className="border-t border-dashed border-slate-300 my-1" />
+
+            {/* Items Table */}
+            <div>
+              <div className="flex items-center gap-1 text-[#047857] font-black text-[11px] uppercase tracking-wider mb-1.5">
+                <ShoppingCart className="w-3.5 h-3.5 text-emerald-700" />
+                <span>ITEMS</span>
               </div>
 
-              <div className="space-y-0.5 pl-1 text-right">
-                <span className="text-[9px] font-black uppercase text-slate-400 block tracking-wider">
-                  Payment Method:
-                </span>
-                <div className="font-black text-xs text-emerald-700 truncate">
-                  {paymentMode}
-                </div>
-                {truckNo && (
-                  <div className="text-[10px] text-slate-600 font-medium truncate">
-                    Truck: {truckNo}
-                  </div>
-                )}
-                <div className="text-[9px] text-emerald-600 font-bold flex items-center justify-end gap-0.5 mt-0.5">
-                  <CheckCircle2 className="w-3 h-3" /> Scale Verified
-                </div>
-              </div>
-            </div>
+              <div className="border border-emerald-200/80 rounded-md overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#ecfdf5] border-b border-emerald-200/80 text-[#064e3b] text-[9.5px] font-black uppercase">
+                      <th className="py-1 px-2 text-left">Item</th>
+                      <th className="py-1 px-2 text-center">Qty</th>
+                      <th className="py-1 px-2 text-right">Rate (Rs.)</th>
+                      <th className="py-1 px-2 text-right">Amount (Rs.)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-[11px]">
+                    {items.map((item, idx) => {
+                      const itemPrice = Number(item.price || item.rate || item.purchasePrice || item.purchaseprice || 0);
+                      const itemQty = Number(item.qty || item.quantity || 1);
+                      const lineTotal = Number(item.total) || (itemPrice * itemQty);
 
-            {/* Compact Items Table */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-emerald-900 text-white text-[9px] font-black uppercase tracking-wider">
-                    <th className="py-2 px-2.5 w-7 text-center">#</th>
-                    <th className="py-2 px-2.5">Item</th>
-                    <th className="py-2 px-2.5 text-right">Rate</th>
-                    <th className="py-2 px-2.5 text-center">Qty</th>
-                    <th className="py-2 px-2.5 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {items.map((item, idx) => {
-                    const itemPrice = Number(item.price || item.rate || item.purchasePrice || item.purchaseprice || 0);
-                    const itemQty = Number(item.qty || item.quantity || 1);
-                    const itemUnit = item.unit || item.unitName || item.baseUnit || 'kg';
-                    const lineTotal = Number(item.total) || (itemPrice * itemQty);
-
-                    return (
-                      <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'}>
-                        <td className="py-1.5 px-2.5 font-bold text-slate-400 text-center text-[10px]">
-                          {idx + 1}
-                        </td>
-                        <td className="py-1.5 px-2.5">
-                          <div className="font-black text-slate-900 text-xs leading-tight">
+                      return (
+                        <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}>
+                          <td className="py-1 px-2 font-bold text-slate-900 truncate max-w-[110px]">
                             {item.name || item.productName || 'Produce Commodity'}
-                          </div>
-                        </td>
-                        <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-600 text-xs whitespace-nowrap">
-                          Rs. {itemPrice.toLocaleString()}
-                        </td>
-                        <td className="py-1.5 px-2.5 text-center font-black text-slate-800 text-xs whitespace-nowrap">
-                          {itemQty} <span className="text-[10px] text-slate-500 font-normal">{itemUnit}</span>
-                        </td>
-                        <td className="py-1.5 px-2.5 text-right font-mono font-black text-emerald-800 text-xs whitespace-nowrap">
-                          Rs. {lineTotal.toLocaleString()}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Totals & Payment Summary Card */}
-            <div className="space-y-1.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-              {/* Grand Total Banner */}
-              <div className="flex justify-between items-center px-3 py-2 rounded-lg bg-emerald-900 text-white font-black text-xs sm:text-sm shadow-xs">
-                <span className="uppercase tracking-wider text-[11px]">GRAND TOTAL:</span>
-                <span className="font-mono text-sm sm:text-base font-black">
-                  Rs. {totalNum.toLocaleString()}
-                </span>
+                          </td>
+                          <td className="py-1 px-2 text-center font-black text-slate-700">
+                            {itemQty}
+                          </td>
+                          <td className="py-1 px-2 text-right font-mono font-bold text-slate-600">
+                            {itemPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-1 px-2 text-right font-mono font-black text-slate-900">
+                            {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
 
-              {/* Paid Amount */}
-              <div className="flex justify-between items-center text-emerald-700 font-bold px-1 pt-1">
-                <span>Paid (Cash on Counter):</span>
-                <span className="font-mono font-black">Rs. {paidNum.toLocaleString()}</span>
-              </div>
-
-              {/* Remaining Balance or Settled Status */}
-              {dueRemaining > 0 ? (
-                <div className="flex justify-between items-center text-amber-700 font-extrabold px-1">
-                  <span>Balance Due (Khata):</span>
-                  <span className="font-mono font-black text-amber-700">Rs. {dueRemaining.toLocaleString()}</span>
-                </div>
-              ) : (
-                <div className="flex justify-between items-center text-emerald-700 font-bold px-1 text-[11px]">
-                  <span>Payment Status:</span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 font-black text-[10px]">
-                    ✓ FULLY SETTLED
+              {/* Subtotal & Adjustment Rows */}
+              <div className="space-y-0.5 text-[11px] pt-1.5 px-1 font-bold">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Subtotal</span>
+                  <span className="font-mono text-slate-900">
+                    Rs. {calculatedSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
-              )}
 
-              {note && (
-                <div className="pt-1 text-[10px] text-slate-500 italic px-1 border-t border-slate-200/60 mt-1">
-                  <strong>Note:</strong> {note}
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Adjustment</span>
+                  <span className="font-mono text-slate-900">
+                    Rs. {adjustmentNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
                 </div>
-              )}
+              </div>
+
+              {/* Prominent Dark Green Grand Total Banner */}
+              <div className="bg-[#064e3b] text-white px-3 py-1.5 rounded-sm flex justify-between items-center mt-1.5 shadow-xs">
+                <span className="text-[11px] font-black tracking-wider uppercase">GRAND TOTAL</span>
+                <span className="font-mono text-sm sm:text-base font-black">
+                  Rs. {grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
 
-            {/* Single Line Simple Footer */}
-            <div className="text-center text-[9px] text-slate-400 font-medium pt-1">
-              Thank you for your business • Computer Generated Purchase Receipt
+            <div className="border-t border-dashed border-slate-300 my-1" />
+
+            {/* Payment Section */}
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center gap-1 text-[#047857] font-black text-[11px] uppercase tracking-wider">
+                <CreditCard className="w-3.5 h-3.5 text-emerald-700" />
+                <span>PAYMENT</span>
+              </div>
+
+              <div className="space-y-0.5 text-[11px] px-1 font-bold">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Payment Method</span>
+                  <span className="text-slate-900 font-extrabold">{paymentMode}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Paid Amount</span>
+                  <span className="font-mono text-emerald-700 font-black">
+                    Rs. {paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Balance</span>
+                  <span className={`font-mono font-black ${dueRemaining > 0 ? 'text-amber-700' : 'text-slate-900'}`}>
+                    Rs. {dueRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div className="bg-[#f0fdf4] border border-emerald-200 text-emerald-800 rounded-md py-1.5 px-3 flex items-center justify-center gap-1 text-center font-black text-[11px] tracking-wide mt-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{dueRemaining === 0 ? 'FULLY SETTLED' : `BALANCE DUE: Rs. ${dueRemaining.toLocaleString()}`}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-dashed border-slate-300 my-1" />
+
+            {/* Elegant Footer */}
+            <div className="text-center pt-0.5">
+              <div className="font-serif italic font-bold text-emerald-900 text-sm tracking-wide">
+                — Thank You —
+              </div>
+              <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5">
+                We appreciate your business
+              </p>
             </div>
           </div>
         </div>
 
         {/* Modal Bottom Actions Bar */}
-        <div className={`p-3 sm:p-4 border-t flex items-center justify-between gap-2 sm:gap-3 shrink-0 ${
+        <div className={`p-2.5 sm:p-3 border-t flex items-center justify-between gap-2 shrink-0 ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'
         }`}>
           <button
             type="button"
             onClick={onClose}
-            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1 ${
               theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
             }`}
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
             <span>Close</span>
           </button>
 
@@ -458,17 +541,16 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
               type="button"
               onClick={handleDownloadPDF}
               disabled={isDownloading}
-              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer"
-              title="Download compact single-page purchase receipt"
+              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
             >
               {isDownloading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>Downloading...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
                   <span>Download PDF</span>
                 </>
               )}
@@ -477,10 +559,9 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
             <button
               type="button"
               onClick={handlePrint}
-              className="flex-1 py-2.5 bg-emerald-900 hover:bg-emerald-950 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-900/20 flex items-center justify-center gap-1.5 cursor-pointer"
-              title="Print single-page receipt"
+              className="flex-1 py-2 bg-[#064e3b] hover:bg-emerald-950 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Printer className="w-4 h-4" />
+              <Printer className="w-3.5 h-3.5" />
               <span>Print Receipt</span>
             </button>
           </div>
