@@ -33,7 +33,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
 
-// Contained Multi-Select Commodity Selector Component
+// Standard Multi-Select Commodity Selector Component
 const SuppliedProductsCombobox = ({
   products = [],
   selectedProducts = [],
@@ -42,7 +42,19 @@ const SuppliedProductsCombobox = ({
   theme
 }) => {
   const [query, setQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
   const safeSelected = Array.isArray(selectedProducts) ? selectedProducts : [];
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const filtered = (products || []).filter(p => {
     const pName = p.name || p.productName || p.title || '';
@@ -72,132 +84,147 @@ const SuppliedProductsCombobox = ({
   };
 
   return (
-    <div className="space-y-1.5">
-      {/* Header with Counter and Add Product Button */}
-      <div className="flex items-center justify-between">
-        <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
-          <span>Supplied Products / Commodities</span>
-          {safeSelected.length > 0 ? (
-            <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 text-[10px] font-black border border-brand-500/20">
-              {safeSelected.length} Selected
-            </span>
-          ) : (
-            <span className="text-[10px] text-slate-400 font-normal">(None selected)</span>
-          )}
+    <div className="space-y-1" ref={containerRef}>
+      {/* Standard Form Label */}
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-[11px] font-bold text-slate-400">
+          Supplied Products / Commodities
         </label>
         {onAddNewProduct && (
           <button
             type="button"
             onClick={onAddNewProduct}
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+            className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer flex items-center gap-1"
           >
             <Plus className="w-3 h-3" />
-            <span>+ Add New Product</span>
+            <span>Add New Product</span>
           </button>
         )}
       </div>
 
-      {/* Contained Selector Box (No Overflow / No Floating Dropdown) */}
-      <div className={`border rounded-2xl p-2.5 space-y-2 ${
-        theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-      }`}>
-        {/* Search input + Quick Actions */}
-        <div className="flex items-center gap-2">
-          <div className={`flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <input
-              type="text"
-              placeholder="Search commodities to select..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-transparent text-xs font-bold outline-none placeholder:font-normal placeholder-slate-400"
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
+      {/* Integrated Tag Input matching other form fields */}
+      <div 
+        onClick={() => setIsOpen(true)}
+        className={`w-full border rounded-xl p-2 min-h-[38px] flex flex-wrap items-center gap-1.5 transition cursor-text ${
+          theme === 'dark' 
+            ? 'bg-slate-900 border-slate-700 text-white focus-within:border-brand-500' 
+            : 'bg-slate-50 border-slate-200 text-slate-800 focus-within:border-brand-500'
+        }`}
+      >
+        {/* Selected Product Badges */}
+        {safeSelected.map(name => (
+          <span
+            key={name}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold select-none border ${
+              theme === 'dark'
+                ? 'bg-brand-500/15 border-brand-500/30 text-brand-300'
+                : 'bg-brand-50 border-brand-200 text-brand-700'
+            }`}
+          >
+            <span>{name}</span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleProduct(name);
+              }}
+              className="hover:text-rose-500 rounded p-0.5 transition cursor-pointer"
+              title={`Remove ${name}`}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
 
-          <div className="flex items-center gap-1 shrink-0 text-[10px] font-bold">
-            {filtered.length > 0 && (
-              <button
-                type="button"
-                onClick={selectAll}
-                className="px-2 py-1 rounded-lg text-brand-600 dark:text-brand-400 hover:bg-brand-500/10 transition cursor-pointer"
-              >
-                Select All
-              </button>
-            )}
-            {safeSelected.length > 0 && (
-              <button
-                type="button"
-                onClick={deselectAll}
-                className="px-2 py-1 rounded-lg text-rose-500 hover:bg-rose-500/10 transition cursor-pointer"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Interactive Scrollable Product Chips */}
-        <div className="max-h-32 overflow-y-auto flex flex-wrap gap-1.5 pr-1 custom-scrollbar">
-          {filtered.length === 0 ? (
-            <div className="w-full py-2.5 text-center text-xs text-slate-400 space-y-1">
-              <p className="text-[11px]">No products match "{query}"</p>
-              {onAddNewProduct && (
-                <button
-                  type="button"
-                  onClick={onAddNewProduct}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold hover:bg-brand-500 hover:text-white transition cursor-pointer text-[10px]"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>Create "{query || 'Product'}"</span>
-                </button>
-              )}
-            </div>
-          ) : (
-            filtered.map(p => {
-              const pName = p.name || p.productName || p.title || 'Product';
-              const isSelected = safeSelected.includes(pName);
-
-              return (
-                <button
-                  key={p.id || pName}
-                  type="button"
-                  onClick={() => toggleProduct(pName)}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer select-none border ${
-                    isSelected
-                      ? 'bg-brand-500 text-white border-brand-600 shadow-xs'
-                      : theme === 'dark'
-                      ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:border-slate-600'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
-                  }`}
-                >
-                  <div className={`w-3.5 h-3.5 rounded-md flex items-center justify-center shrink-0 ${
-                    isSelected ? 'bg-white/25 text-white' : 'border border-slate-300 dark:border-slate-600'
-                  }`}>
-                    {isSelected ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <Plus className="w-2.5 h-2.5 text-slate-400" />}
-                  </div>
-                  <span>{pName}</span>
-                  {p.category && (
-                    <span className={`text-[9px] font-normal ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
-                      • {p.category}
-                    </span>
-                  )}
-                </button>
-              );
-            })
+        {/* Search input inside the field */}
+        <div className="flex-1 min-w-[130px] flex items-center gap-1">
+          <input
+            type="text"
+            placeholder={safeSelected.length === 0 ? "Search or select commodities..." : "Add more..."}
+            value={query}
+            onFocus={() => setIsOpen(true)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setIsOpen(true);
+            }}
+            className="w-full bg-transparent text-xs font-medium outline-none placeholder:font-normal placeholder-slate-400 py-0.5"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setQuery('');
+              }}
+              className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+            >
+              <X className="w-3 h-3" />
+            </button>
           )}
         </div>
       </div>
+
+      {/* Clean Dropdown Panel for Options */}
+      {isOpen && (
+        <div className={`p-2.5 rounded-2xl border space-y-1.5 shadow-sm ${
+          theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+        }`}>
+          <div className="flex items-center justify-between px-1 pb-1 border-b border-slate-100 dark:border-slate-700 text-[10px] text-slate-400 font-bold">
+            <span>{filtered.length} products available</span>
+            <div className="flex items-center gap-2">
+              {filtered.length > 0 && (
+                <button
+                  type="button"
+                  onClick={selectAll}
+                  className="text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                >
+                  Select All
+                </button>
+              )}
+              {safeSelected.length > 0 && (
+                <button
+                  type="button"
+                  onClick={deselectAll}
+                  className="text-rose-500 hover:underline cursor-pointer"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="max-h-28 overflow-y-auto flex flex-wrap gap-1.5 pt-1 pr-1 custom-scrollbar">
+            {filtered.length === 0 ? (
+              <div className="w-full py-2 text-center text-xs text-slate-400">
+                <span>No products found matching "{query}"</span>
+              </div>
+            ) : (
+              filtered.map(p => {
+                const pName = p.name || p.productName || p.title || 'Product';
+                const isSelected = safeSelected.includes(pName);
+
+                return (
+                  <button
+                    key={p.id || pName}
+                    type="button"
+                    onClick={() => toggleProduct(pName)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition cursor-pointer select-none border ${
+                      isSelected
+                        ? 'bg-brand-500 text-white border-brand-600 shadow-xs'
+                        : theme === 'dark'
+                        ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    {isSelected ? <Check className="w-3 h-3 stroke-[2.5]" /> : <Plus className="w-3 h-3 text-slate-400" />}
+                    <span>{pName}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
