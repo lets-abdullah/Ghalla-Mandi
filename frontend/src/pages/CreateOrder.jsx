@@ -611,21 +611,6 @@ export const CreateOrder = () => {
                   </button>
                 </div>
 
-                {/* Sidebar Collapse Toggle Button */}
-                <button
-                  onClick={toggleSidebar}
-                  className={`p-2 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition cursor-pointer ${isCollapsed
-                      ? 'bg-brand-500/10 border-brand-500/40 text-brand-600 dark:text-brand-400'
-                      : theme === 'dark'
-                        ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
-                        : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  title={isCollapsed ? "Expand Sidebar" : "Wide Mode (Full Screen)"}
-                >
-                  {isCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
-                  <span className="hidden sm:inline text-[11px] font-bold">{isCollapsed ? "Sidebar" : "Wide Mode"}</span>
-                </button>
-
                 {/* Clear / Reset */}
                 <button
                   onClick={clearCart}
