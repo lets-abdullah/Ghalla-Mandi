@@ -538,9 +538,8 @@ export const CreateOrder = () => {
         {/* ======================================================================= */}
         {/* 1. LEFT PANEL — COMMODITY PRODUCTS SELECTION (7 Cols) */}
         {/* ======================================================================= */}
-        <div className={`lg:col-span-7 xl:col-span-7 border rounded-3xl p-4 sm:p-5 card-shadow flex flex-col space-y-3.5 transition-colors ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
+        <div className={`lg:col-span-7 xl:col-span-7 border rounded-3xl p-4 sm:p-5 card-shadow flex flex-col space-y-3.5 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
           {/* Top Controls Bar: Search + Category Chips + View Toggles */}
           <div className="space-y-3 pb-3 border-b border-slate-100 dark:border-slate-700">
             <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -552,9 +551,8 @@ export const CreateOrder = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder={t('searchCommoditiesPlaceholder')}
-                  className={`w-full border rounded-2xl py-2.5 text-xs font-bold outline-none transition focus:border-brand-500 ${
-                    isRTL ? 'pr-10 pl-8' : 'pl-10 pr-8'
-                  } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                  className={`w-full border rounded-2xl py-2.5 text-xs font-bold outline-none transition focus:border-brand-500 ${isRTL ? 'pr-10 pl-8' : 'pl-10 pr-8'
+                    } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
                 />
                 {searchTerm && (
                   <button
@@ -577,9 +575,8 @@ export const CreateOrder = () => {
                       setCollapsedCategories(prev => ({ ...prev, [e.target.value]: false }));
                     }
                   }}
-                  className={`w-full border rounded-2xl py-2.5 pl-3 pr-8 text-xs font-bold outline-none transition cursor-pointer appearance-none ${
-                    selectedCategory !== 'All' ? 'border-brand-500 text-brand-600 dark:text-brand-400 font-extrabold' : ''
-                  } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                  className={`w-full border rounded-2xl py-2.5 pl-3 pr-8 text-xs font-bold outline-none transition cursor-pointer appearance-none ${selectedCategory !== 'All' ? 'border-brand-500 text-brand-600 dark:text-brand-400 font-extrabold' : ''
+                    } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
                 >
                   <option value="All">All Categories ({products.length})</option>
                   {availableCategories.map(cat => (
@@ -598,11 +595,10 @@ export const CreateOrder = () => {
                   <button
                     type="button"
                     onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-lg transition cursor-pointer ${
-                      viewMode === 'grid'
+                    className={`p-1.5 rounded-lg transition cursor-pointer ${viewMode === 'grid'
                         ? 'bg-white dark:bg-slate-800 text-brand-500 shadow-2xs'
                         : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-                    }`}
+                      }`}
                     title={t('gridView')}
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
@@ -610,11 +606,10 @@ export const CreateOrder = () => {
                   <button
                     type="button"
                     onClick={() => setViewMode('compact')}
-                    className={`p-1.5 rounded-lg transition cursor-pointer ${
-                      viewMode === 'compact'
+                    className={`p-1.5 rounded-lg transition cursor-pointer ${viewMode === 'compact'
                         ? 'bg-white dark:bg-slate-800 text-brand-500 shadow-2xs'
                         : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-                    }`}
+                      }`}
                     title={t('compactView')}
                   >
                     <List className="w-3.5 h-3.5" />
@@ -624,13 +619,12 @@ export const CreateOrder = () => {
                 {/* Sidebar Collapse Toggle Button */}
                 <button
                   onClick={toggleSidebar}
-                  className={`p-2 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition cursor-pointer ${
-                    isCollapsed
+                  className={`p-2 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition cursor-pointer ${isCollapsed
                       ? 'bg-brand-500/10 border-brand-500/40 text-brand-600 dark:text-brand-400'
                       : theme === 'dark'
                         ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
                         : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                  }`}
+                    }`}
                   title={isCollapsed ? "Expand Sidebar" : "Wide Mode (Full Screen)"}
                 >
                   {isCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
@@ -640,11 +634,10 @@ export const CreateOrder = () => {
                 {/* Clear / Reset */}
                 <button
                   onClick={clearCart}
-                  className={`flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
-                    theme === 'dark'
+                  className={`flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${theme === 'dark'
                       ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
                       : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                  }`}
+                    }`}
                   title={t('newSaleBtn')}
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -673,11 +666,10 @@ export const CreateOrder = () => {
                     {/* Collapsible Category Header / Dropdown Banner */}
                     <div
                       onClick={() => toggleCategoryCollapse(categoryName)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl border transition text-left cursor-pointer select-none shadow-2xs ${
-                        theme === 'dark' 
-                          ? 'bg-slate-900/90 border-slate-700 hover:border-slate-500' 
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl border transition text-left cursor-pointer select-none shadow-2xs ${theme === 'dark'
+                          ? 'bg-slate-900/90 border-slate-700 hover:border-slate-500'
                           : 'bg-slate-100/90 border-slate-200 hover:border-slate-300'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center font-black text-xs">
@@ -717,15 +709,14 @@ export const CreateOrder = () => {
                               <div
                                 key={p.id}
                                 onClick={() => !isOutOfStock && addToCart(p)}
-                                className={`p-3.5 rounded-2xl border flex flex-col justify-between transition cursor-pointer relative group ${
-                                  cartItem
+                                className={`p-3.5 rounded-2xl border flex flex-col justify-between transition cursor-pointer relative group ${cartItem
                                     ? 'border-brand-500 bg-brand-500/5 shadow-xs ring-1 ring-brand-500/30'
                                     : isOutOfStock
                                       ? 'opacity-60 border-slate-200 dark:border-slate-800'
                                       : theme === 'dark'
                                         ? 'bg-slate-900/60 border-slate-700 hover:border-slate-500 hover:bg-slate-900'
                                         : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-white'
-                                }`}
+                                  }`}
                               >
                                 <div>
                                   <div className="flex items-start justify-between gap-1">
@@ -735,13 +726,12 @@ export const CreateOrder = () => {
                                   </div>
                                   <div className="mt-1.5 flex items-center justify-between text-[10px]">
                                     <span className="text-slate-400 truncate max-w-[80px]">{p.category}</span>
-                                    <span className={`px-1.5 py-0.5 rounded-md font-extrabold shrink-0 ${
-                                      isOutOfStock
+                                    <span className={`px-1.5 py-0.5 rounded-md font-extrabold shrink-0 ${isOutOfStock
                                         ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
                                         : p.stockQty <= (p.minStock || 10)
                                           ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
                                           : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                                    }`}>
+                                      }`}>
                                       {p.stockQty} {p.unit || t('kg')}
                                     </span>
                                   </div>
@@ -800,15 +790,14 @@ export const CreateOrder = () => {
                               <div
                                 key={p.id}
                                 onClick={() => !isOutOfStock && addToCart(p)}
-                                className={`p-2.5 rounded-2xl border flex items-center justify-between gap-2 transition cursor-pointer ${
-                                  cartItem
+                                className={`p-2.5 rounded-2xl border flex items-center justify-between gap-2 transition cursor-pointer ${cartItem
                                     ? 'border-brand-500 bg-brand-500/5 ring-1 ring-brand-500/30'
                                     : isOutOfStock
                                       ? 'opacity-60 border-slate-200 dark:border-slate-800'
                                       : theme === 'dark'
                                         ? 'bg-slate-900/60 border-slate-700 hover:border-slate-500'
                                         : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-                                }`}
+                                  }`}
                               >
                                 <div className="flex-1 min-w-0">
                                   <div className="font-black text-xs truncate">{p.name}</div>
@@ -876,10 +865,9 @@ export const CreateOrder = () => {
         {/* 2. RIGHT PANEL — UNIFIED PROFESSIONAL POS CHECKOUT FORM (5 Cols) */}
         {/* ======================================================================= */}
         <div className="lg:col-span-5 xl:col-span-5">
-          <div className={`border rounded-3xl p-5 card-shadow flex flex-col space-y-4 transition-colors ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-            
+          <div className={`border rounded-3xl p-5 card-shadow flex flex-col space-y-4 transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+            }`}>
+
             {/* Header: Title + Summary Badge */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
@@ -931,11 +919,10 @@ export const CreateOrder = () => {
                   {cart.map((item, index) => (
                     <div
                       key={item.id}
-                      className={`p-2.5 rounded-2xl border transition-all ${
-                        theme === 'dark'
+                      className={`p-2.5 rounded-2xl border transition-all ${theme === 'dark'
                           ? 'bg-slate-900/60 border-slate-700/80'
                           : 'bg-slate-50/90 border-slate-200'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -985,9 +972,8 @@ export const CreateOrder = () => {
                           <select
                             value={item.unit}
                             onChange={(e) => updateItemUnit(item.productId, e.target.value)}
-                            className={`text-[10px] font-bold py-0.5 px-1 rounded-lg border outline-none cursor-pointer ${
-                              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
-                            }`}
+                            className={`text-[10px] font-bold py-0.5 px-1 rounded-lg border outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
+                              }`}
                           >
                             <option value="KG">KG</option>
                             <option value="Gram">Gram</option>
@@ -1040,11 +1026,10 @@ export const CreateOrder = () => {
                     setCustomerType('Walk-in Customer');
                     setSelectedParty(null);
                   }}
-                  className={`py-1.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                    customerType === 'Walk-in Customer'
+                  className={`py-1.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${customerType === 'Walk-in Customer'
                       ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
                       : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
+                    }`}
                 >
                   <span>{t('walkInCustomer')}</span>
                 </button>
@@ -1054,11 +1039,10 @@ export const CreateOrder = () => {
                     setCustomerType('Regular Party');
                     if (!selectedParty) setShowCustomerModal(true);
                   }}
-                  className={`py-1.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                    customerType === 'Regular Party'
+                  className={`py-1.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${customerType === 'Regular Party'
                       ? 'bg-brand-500 text-white shadow-xs'
                       : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
+                    }`}
                 >
                   <span>{t('regularParty')}</span>
                 </button>
@@ -1084,9 +1068,8 @@ export const CreateOrder = () => {
                     value={walkinName}
                     onChange={(e) => setWalkinName(e.target.value)}
                     placeholder={t('walkInNamePlaceholder') || "Customer / Farmer Name (Optional)"}
-                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               )}
@@ -1108,29 +1091,27 @@ export const CreateOrder = () => {
                   <Percent className="w-3.5 h-3.5 text-amber-500" />
                   <span>{t('discount') || 'Discount'}:</span>
                 </span>
-                
+
                 <div className="flex items-center gap-1.5 justify-end">
                   {/* % / Rs Toggle */}
                   <div className="inline-flex rounded-xl p-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-black shrink-0">
                     <button
                       type="button"
                       onClick={() => setOrderDiscountType('percentage')}
-                      className={`px-2 py-0.5 rounded-lg transition cursor-pointer ${
-                        orderDiscountType === 'percentage'
+                      className={`px-2 py-0.5 rounded-lg transition cursor-pointer ${orderDiscountType === 'percentage'
                           ? 'bg-amber-500 text-white shadow-2xs'
                           : 'text-slate-600 dark:text-slate-300'
-                      }`}
+                        }`}
                     >
                       %
                     </button>
                     <button
                       type="button"
                       onClick={() => setOrderDiscountType('flat')}
-                      className={`px-2 py-0.5 rounded-lg transition cursor-pointer ${
-                        orderDiscountType === 'flat'
+                      className={`px-2 py-0.5 rounded-lg transition cursor-pointer ${orderDiscountType === 'flat'
                           ? 'bg-amber-500 text-white shadow-2xs'
                           : 'text-slate-600 dark:text-slate-300'
-                      }`}
+                        }`}
                     >
                       Rs.
                     </button>
@@ -1143,9 +1124,8 @@ export const CreateOrder = () => {
                     value={orderDiscountValue === 0 ? '' : orderDiscountValue}
                     onChange={(e) => setOrderDiscountValue(Math.max(0, Number(e.target.value) || 0))}
                     placeholder="0"
-                    className={`w-24 border rounded-xl px-2.5 py-1 text-xs font-black outline-none text-right font-mono focus:border-amber-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                    }`}
+                    className={`w-24 border rounded-xl px-2.5 py-1 text-xs font-black outline-none text-right font-mono focus:border-amber-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                      }`}
                   />
                 </div>
               </div>
@@ -1204,13 +1184,12 @@ export const CreateOrder = () => {
                         setAmountReceived(netGrandTotal.toString());
                       }
                     }}
-                    className={`py-2.5 px-3 rounded-2xl border text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer ${
-                      paymentMode === mode.key
+                    className={`py-2.5 px-3 rounded-2xl border text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer ${paymentMode === mode.key
                         ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/20'
                         : theme === 'dark'
                           ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
                           : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     <mode.icon className="w-4 h-4 shrink-0" />
                     <span>{mode.label}</span>
@@ -1230,9 +1209,8 @@ export const CreateOrder = () => {
                     value={amountReceived}
                     onChange={(e) => setAmountReceived(e.target.value)}
                     placeholder={netGrandTotal.toString()}
-                    className={`w-full border-2 rounded-2xl px-4 py-2.5 text-base font-black outline-none focus:border-brand-500 font-mono ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border-2 rounded-2xl px-4 py-2.5 text-base font-black outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">PKR</span>
                 </div>
@@ -1295,9 +1273,8 @@ export const CreateOrder = () => {
                 value={saleNote}
                 onChange={(e) => setSaleNote(e.target.value)}
                 placeholder={t('saleNotesPlaceholder') || "Gate Pass #, Truck #, remarks (optional)..."}
-                className={`w-full border rounded-2xl px-3.5 py-2 text-xs font-medium outline-none focus:border-brand-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-2xl px-3.5 py-2 text-xs font-medium outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
             </div>
 
@@ -1330,9 +1307,8 @@ export const CreateOrder = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setShowCustomerModal(false); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl ${showNewCustomerForm ? 'max-w-2xl' : 'max-w-lg'} w-full p-4 sm:p-6 space-y-3.5 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl ${showNewCustomerForm ? 'max-w-2xl' : 'max-w-lg'} w-full p-4 sm:p-6 space-y-3.5 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-base font-black flex items-center gap-2">
                 <User className="w-5 h-5 text-brand-500" />
@@ -1444,9 +1420,8 @@ export const CreateOrder = () => {
                         placeholder="e.g. Muhammad Aslam"
                         value={newCustomerForm.name}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1459,9 +1434,8 @@ export const CreateOrder = () => {
                         placeholder="e.g. Aslam & Sons Traders"
                         value={newCustomerForm.shopName}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, shopName: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1472,9 +1446,8 @@ export const CreateOrder = () => {
                       <select
                         value={newCustomerForm.customerType}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, customerType: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       >
                         <option value="Regular Party">Regular Party</option>
                         <option value="Wholesale Buyer">Wholesale Buyer</option>
@@ -1504,9 +1477,8 @@ export const CreateOrder = () => {
                         placeholder="03001234567"
                         value={newCustomerForm.phone}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1521,9 +1493,8 @@ export const CreateOrder = () => {
                         placeholder="03001234567"
                         value={newCustomerForm.whatsapp}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1536,9 +1507,8 @@ export const CreateOrder = () => {
                         placeholder="e.g. Sargodha"
                         value={newCustomerForm.city}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, city: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1551,9 +1521,8 @@ export const CreateOrder = () => {
                         placeholder="e.g. Shop # 14, Block B"
                         value={newCustomerForm.address}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, address: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1577,9 +1546,8 @@ export const CreateOrder = () => {
                         placeholder="0"
                         value={newCustomerForm.openingBalance || ''}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, openingBalance: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1593,9 +1561,8 @@ export const CreateOrder = () => {
                         placeholder="e.g. 500000"
                         value={newCustomerForm.creditLimit || ''}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, creditLimit: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1606,9 +1573,8 @@ export const CreateOrder = () => {
                       <select
                         value={newCustomerForm.paymentTerms}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, paymentTerms: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       >
                         <option value="Cash / Credit">Cash / Regular Khata</option>
                         <option value="Cash on Delivery">Cash on Delivery</option>
@@ -1637,9 +1603,8 @@ export const CreateOrder = () => {
                         placeholder="e.g. Meezan, HBL"
                         value={newCustomerForm.bankName}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, bankName: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                     <div>
@@ -1651,23 +1616,21 @@ export const CreateOrder = () => {
                         placeholder="Title of Account"
                         value={newCustomerForm.accountTitle}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, accountTitle: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                     <div>
                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Account
+                        Account #
                       </label>
                       <input
                         type="text"
                         placeholder="PK36..."
                         value={newCustomerForm.accountNumber}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, accountNumber: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
@@ -1685,9 +1648,8 @@ export const CreateOrder = () => {
                         placeholder="e.g. 38403-1234567-1"
                         value={newCustomerForm.cnic}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, cnic: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
 
@@ -1700,9 +1662,8 @@ export const CreateOrder = () => {
                         placeholder="e.g. Reference: Haji Akram Shop # 4"
                         value={newCustomerForm.notes}
                         onChange={(e) => setNewCustomerForm({ ...newCustomerForm, notes: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${
-                          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
                       />
                     </div>
                   </div>
