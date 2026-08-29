@@ -37,6 +37,7 @@ export const Purchases = () => {
     categories = [],
     purchases = [],
     purchaseReturns = [],
+    paymentLogs = [],
     createPurchase,
     updatePurchase,
     recordPayment,
