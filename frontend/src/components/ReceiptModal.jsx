@@ -323,11 +323,174 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
 
   // Download Receipt as High Quality A4 PDF Document
   const handleDownloadPDF = async () => {
-    const receiptElement = document.getElementById('receipt-printable-area');
-    if (!receiptElement) return;
-
     try {
       setIsDownloading(true);
+
+      const a4ItemsHtml = items.map((item, idx) => {
+        const itemPrice = Number(item.price || item.rate || 0);
+        const itemQty = Number(item.qty || 1);
+        const itemUnit = item.unit || item.unitName || t('kg');
+        const lineTotal = itemPrice * itemQty;
+        const bg = idx % 2 === 1 ? '#f8fafc' : '#ffffff';
+
+        return `
+          <tr style="background: ${bg};">
+            <td style="padding: 8px 10px; font-weight: bold; color: #64748b; text-align: center; border-bottom: 1px solid #e2e8f0; font-size: 11px;">${idx + 1}</td>
+            <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0;">
+              <div style="font-weight: bold; color: #0f172a; font-size: 12px; line-height: 1.3;">${item.name}</div>
+              <div style="font-size: 10px; color: #94a3b8; line-height: 1.2;">Ghalla Mandi Produce</div>
+            </td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: bold; color: #334155; border-bottom: 1px solid #e2e8f0; font-size: 12px; white-space: nowrap;">
+              Rs. ${itemPrice.toLocaleString()}
+            </td>
+            <td style="padding: 8px 10px; text-align: center; font-weight: bold; color: #0f172a; border-bottom: 1px solid #e2e8f0; font-size: 12px; white-space: nowrap;">
+              ${itemQty} <span style="font-size: 10px; font-weight: normal; color: #64748b;">${itemUnit}</span>
+            </td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: bold; color: #0f172a; border-bottom: 1px solid #e2e8f0; font-size: 12px; white-space: nowrap;">
+              Rs. ${lineTotal.toLocaleString()}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.top = '0px';
+      container.style.left = '0px';
+      container.style.width = '750px';
+      container.style.zIndex = '999999';
+      container.style.backgroundColor = '#ffffff';
+      container.style.color = '#0f172a';
+      container.style.padding = '24px 28px';
+      container.style.boxSizing = 'border-box';
+      container.style.fontFamily = 'Arial, Helvetica, sans-serif';
+
+      container.innerHTML = `
+        <div style="width: 100%; box-sizing: border-box; background: #ffffff;">
+          <!-- Header -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border-bottom: 2px solid #0f172a; padding-bottom: 10px;">
+            <tr>
+              <td style="vertical-align: middle; width: 60%; padding-bottom: 8px;">
+                <div style="font-size: 22px; font-weight: 900; color: #0f172a; line-height: 1.2;">${shopTitle}</div>
+                <div style="font-size: 12px; font-weight: 700; color: #16a34a; margin-top: 3px;">${mandiTitle}</div>
+                <div style="font-size: 10px; color: #64748b; margin-top: 3px; font-weight: 600;">SALES TAX INVOICE & CASH MEMO • GATE PASS ${shopPhone ? `• 📞 ${shopPhone}` : ''}</div>
+              </td>
+              <td style="vertical-align: middle; text-align: right; width: 40%; padding-bottom: 8px;">
+                <div style="display: inline-block; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px; text-align: right;">
+                  <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">INVOICE NO.</div>
+                  <div style="font-size: 15px; font-weight: 900; color: #0f172a; margin-top: 1px;">${cleanOrderId}</div>
+                  <div style="font-size: 10px; font-weight: 600; color: #475569; margin-top: 2px;">${date}</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Meta Box -->
+          <table style="width: 100%; border-collapse: collapse; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 16px;">
+            <tr>
+              <td style="width: 50%; vertical-align: top; padding: 10px 14px; border-right: 1px solid #e2e8f0;">
+                <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">BILLED TO (خریدار):</div>
+                <div style="font-size: 13px; font-weight: 900; color: #0f172a; margin-top: 3px; line-height: 1.3;">${displayCustomer}</div>
+                ${customerCity ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">📍 City: ${customerCity}</div>` : ''}
+                ${customerPhone ? `<div style="font-size: 11px; color: #475569; margin-top: 1px;">📞 Phone: ${customerPhone}</div>` : ''}
+              </td>
+              <td style="width: 50%; vertical-align: top; padding: 10px 14px; text-align: right;">
+                <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">PAYMENT METHOD:</div>
+                <div style="font-size: 13px; font-weight: 900; color: #16a34a; margin-top: 3px;">${paymentMethod}</div>
+                ${saleNote ? `<div style="font-size: 10px; color: #64748b; font-style: italic; margin-top: 2px;">Note: ${saleNote}</div>` : ''}
+                <div style="font-size: 10px; font-weight: 700; color: #059669; margin-top: 3px;">✓ Counter POS Verified & Dispatched</div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Items Table -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid #cbd5e1;">
+            <thead>
+              <tr style="background: #0f172a; color: #ffffff;">
+                <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 35px; text-align: center;">#</th>
+                <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: left;">COMMODITY / ITEM DESCRIPTION</th>
+                <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 110px; text-align: right;">RATE (PKR)</th>
+                <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 95px; text-align: center;">QTY / WEIGHT</th>
+                <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 115px; text-align: right;">AMOUNT (PKR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${a4ItemsHtml}
+            </tbody>
+          </table>
+
+          <!-- Totals Section -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr>
+              <td style="width: 52%; vertical-align: top; padding-right: 14px;">
+                <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; font-size: 10px; color: #64748b; background: #f8fafc; line-height: 1.5;">
+                  <div style="font-weight: 800; color: #334155; margin-bottom: 2px;">Terms & Conditions:</div>
+                  <div>• Goods once sold are verified per standard Ghalla Mandi trade rules.</div>
+                  <div>• Official sales tax invoice & cash memo gate pass.</div>
+                  <div style="margin-top: 4px; font-weight: 700; color: #16a34a;">Thank you for your valued business!</div>
+                </div>
+              </td>
+              <td style="width: 48%; vertical-align: top;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                  <tr>
+                    <td style="padding: 3px 6px; color: #64748b; font-weight: 600;">Gross Subtotal:</td>
+                    <td style="padding: 3px 6px; text-align: right; font-weight: bold;">Rs. ${Number(subtotal).toLocaleString()}</td>
+                  </tr>
+                  ${discount > 0 ? `
+                    <tr>
+                      <td style="padding: 3px 6px; color: #16a34a; font-weight: bold;">Discount:</td>
+                      <td style="padding: 3px 6px; text-align: right; font-weight: bold; color: #16a34a;">- Rs. ${Number(discount).toLocaleString()}</td>
+                    </tr>
+                  ` : ''}
+                  ${tax > 0 ? `
+                    <tr>
+                      <td style="padding: 3px 6px; color: #d97706; font-weight: bold;">Tax / GST:</td>
+                      <td style="padding: 3px 6px; text-align: right; font-weight: bold; color: #d97706;">+ Rs. ${Number(tax).toLocaleString()}</td>
+                    </tr>
+                  ` : ''}
+                  <tr style="background: #0f172a; color: #ffffff; font-weight: 900; font-size: 12px;">
+                    <td style="padding: 6px 8px;">GRAND TOTAL:</td>
+                    <td style="padding: 6px 8px; text-align: right; font-size: 13px;">Rs. ${Number(grandTotal).toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 4px 6px; color: #16a34a; font-weight: bold;">Amount Paid:</td>
+                    <td style="padding: 4px 6px; text-align: right; font-weight: bold; color: #16a34a;">Rs. ${Number(paidAmount).toLocaleString()}</td>
+                  </tr>
+                  ${dueRemaining > 0 ? `
+                    <tr>
+                      <td style="padding: 4px 6px; color: #dc2626; font-weight: bold;">Balance Due (Khata):</td>
+                      <td style="padding: 4px 6px; text-align: right; font-weight: 900; color: #dc2626;">Rs. ${Number(dueRemaining).toLocaleString()}</td>
+                    </tr>
+                  ` : `
+                    <tr>
+                      <td style="padding: 4px 6px; color: #16a34a; font-weight: 600;">Status:</td>
+                      <td style="padding: 4px 6px; text-align: right; font-weight: bold; color: #16a34a;">✓ FULLY PAID</td>
+                    </tr>
+                  `}
+                </table>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Signatures -->
+          <table style="width: 100%; border-collapse: collapse; margin-top: 24px;">
+            <tr>
+              <td style="width: 50%; vertical-align: bottom;">
+                <div style="text-align: center; width: 170px; border-top: 1px dashed #94a3b8; padding-top: 4px; font-size: 10px; font-weight: bold; color: #475569;">
+                  Customer Signature (دستخط خریدار)
+                </div>
+              </td>
+              <td style="width: 50%; vertical-align: bottom; text-align: right;">
+                <div style="text-align: center; width: 170px; border-top: 1px dashed #94a3b8; padding-top: 4px; font-size: 10px; font-weight: bold; color: #475569; margin-left: auto;">
+                  Authorized Signature & Stamp (مہر منشی)
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
+
+      document.body.appendChild(container);
 
       const opt = {
         margin: [6, 6, 6, 6],
@@ -337,6 +500,8 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
           scale: 2, 
           useCORS: true, 
           logging: false,
+          scrollY: 0,
+          scrollX: 0,
           backgroundColor: '#ffffff'
         },
         jsPDF: { 
@@ -346,7 +511,8 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
         }
       };
 
-      await html2pdf().set(opt).from(receiptElement).save();
+      await html2pdf().set(opt).from(container).save();
+      document.body.removeChild(container);
     } catch (err) {
       console.error('Failed to download receipt PDF:', err);
       alert('Could not generate PDF download. Please try Print (A4).');
