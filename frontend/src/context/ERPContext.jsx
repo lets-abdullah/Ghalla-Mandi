@@ -549,8 +549,8 @@ export const ERPProvider = ({ children }) => {
   const inFlightLocks = useRef(new Map());
 
   // 9. Record Payment with anti-duplicate lock
-  const recordPayment = async ({ partyId, partyType, amount, paymentMode = 'Cash', note = '', saleId = null, purchaseId = null }) => {
-    const lockKey = `pay:${partyId || ''}:${partyType}:${amount}:${saleId || ''}:${purchaseId || ''}`;
+  const recordPayment = async ({ partyId, partyName, partyType, amount, paymentMode = 'Cash', note = '', saleId = null, purchaseId = null }) => {
+    const lockKey = `pay:${partyId || partyName || ''}:${partyType}:${amount}:${saleId || ''}:${purchaseId || ''}`;
     if (inFlightLocks.current.has(lockKey)) {
       return inFlightLocks.current.get(lockKey);
     }
@@ -559,7 +559,7 @@ export const ERPProvider = ({ children }) => {
       try {
         const res = await authFetch('/api/ledger/payment', {
           method: 'POST',
-          body: { partyId, partyType, amount, paymentMode, note, saleId, purchaseId }
+          body: { partyId, partyName, partyType, amount, paymentMode, note, saleId, purchaseId }
         });
 
         if (res.success && res.entry) {

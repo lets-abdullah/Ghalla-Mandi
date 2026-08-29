@@ -25,7 +25,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const Khata = () => {
-  const { customers = [], sales = [], saleReturns = [], recordPayment, updateCustomer } = useERP();
+  const { customers = [], sales = [], saleReturns = [], recordPayment, updateCustomer, addCustomer } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -37,6 +37,7 @@ export const Khata = () => {
   const [viewMode, setViewMode] = useState('table');
 
   // Khata Filters State
+  const [searchTerm, setSearchTerm] = useState('');
   const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Customer' | 'Walk-in Customer'
   const [selectedCustomerId, setSelectedCustomerId] = useState(customerIdParam || 'All');
   const [balanceStatusFilter, setBalanceStatusFilter] = useState('All'); // 'All' | 'Outstanding' | 'Clear'
@@ -83,7 +84,18 @@ export const Khata = () => {
 
     try {
       setIsSavingEdit(true);
-      if (updateCustomer) {
+      if (editingKhataCust.isRegistered === false || String(editingKhataCust.id).startsWith('walkin-')) {
+        if (addCustomer) {
+          await addCustomer({
+            name: editForm.name.trim(),
+            shopName: editForm.businessName.trim(),
+            phone: editForm.phone ? editForm.phone.trim() : 'N/A',
+            city: editForm.city.trim() || 'Local Mandi',
+            balance: Number(editForm.balance) || 0,
+            customerType: editForm.customerType || 'Walk-in Customer'
+          });
+        }
+      } else if (updateCustomer) {
         await updateCustomer(editingKhataCust.id, {
           name: editForm.name,
           businessName: editForm.businessName,
@@ -119,22 +131,33 @@ export const Khata = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [paymentModalCust]);
 
-  // Build Financial Position List for each Customer
+  // Build Financial Position List for each Customer (Regular & Walk-in)
   const customerKhataList = useMemo(() => {
-    return customers.map(cust => {
-      const custSales = (sales || []).filter(s => s.customerId === cust.id || s.partyName === cust.name);
+    const list = [];
+    const processedCustNames = new Set();
+    const processedCustIds = new Set();
+
+    // 1. Process all registered customer accounts
+    customers.forEach(cust => {
+      processedCustIds.add(cust.id);
+      if (cust.name) processedCustNames.add(cust.name.trim().toLowerCase());
+
+      const custSales = (sales || []).filter(s =>
+        s.customerId === cust.id ||
+        (s.partyName && s.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
+      );
       const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
       const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
-      const returnAmt = (saleReturns || []).filter(r => r.customerId === cust.id || r.customerName === cust.name).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+      const returnAmt = (saleReturns || []).filter(r =>
+        r.customerId === cust.id ||
+        (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
       
       const balance = Number(cust.balance !== undefined ? cust.balance : Math.max(0, totalSale - totalPaid - returnAmt));
       const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
       const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
 
-      // Status determination
-      const status = balance > 0 ? 'Due' : 'Clear';
-
-      return {
+      list.push({
         id: cust.id,
         name: cust.name,
         businessName: cust.businessName || cust.shopName || '',
@@ -145,15 +168,73 @@ export const Khata = () => {
         totalPaid,
         returnAmount: returnAmt,
         balance,
-        status,
-        ordersCount: custSales.length
-      };
+        status: balance > 0 ? 'Due' : 'Clear',
+        ordersCount: custSales.length,
+        isRegistered: true
+      });
     });
+
+    // 2. Process Walk-in / Counter Sales not attached to a registered customer ID
+    const walkinSalesMap = new Map();
+    (sales || []).forEach(s => {
+      const isRegisteredCust = (s.customerId && processedCustIds.has(s.customerId)) ||
+        (s.partyName && processedCustNames.has(s.partyName.trim().toLowerCase()));
+
+      if (!isRegisteredCust) {
+        const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
+        const key = rawName.toLowerCase();
+        if (!walkinSalesMap.has(key)) {
+          walkinSalesMap.set(key, {
+            name: rawName,
+            sales: []
+          });
+        }
+        walkinSalesMap.get(key).sales.push(s);
+      }
+    });
+
+    walkinSalesMap.forEach((val, key) => {
+      const custSales = val.sales;
+      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
+      const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
+      const returnAmt = (saleReturns || []).filter(r =>
+        r.customerName && r.customerName.trim().toLowerCase() === key
+      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+      const balance = Math.max(0, totalSale - totalPaid - returnAmt);
+
+      list.push({
+        id: `walkin-${key}`,
+        name: val.name,
+        businessName: 'Walk-in Khata',
+        phone: '',
+        city: 'Counter Sales',
+        customerType: 'Walk-in Customer',
+        totalSale,
+        totalPaid,
+        returnAmount: returnAmt,
+        balance,
+        status: balance > 0 ? 'Due' : 'Clear',
+        ordersCount: custSales.length,
+        isRegistered: false
+      });
+    });
+
+    return list;
   }, [customers, sales, saleReturns]);
 
   // Filtered Khata Accounts
   const filteredKhata = useMemo(() => {
     return customerKhataList.filter(item => {
+      // 0. Search Term Filter
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase().trim();
+        const nameMatch = (item.name || '').toLowerCase().includes(q);
+        const phoneMatch = (item.phone || '').toLowerCase().includes(q);
+        const cityMatch = (item.city || '').toLowerCase().includes(q);
+        const bizMatch = (item.businessName || '').toLowerCase().includes(q);
+        if (!nameMatch && !phoneMatch && !cityMatch && !bizMatch) return false;
+      }
+
       // 1. Customer Type Filter
       const isWalkin = item.customerType.toLowerCase().includes('walk-in');
       if (customerTypeFilter === 'Regular Customer' && isWalkin) return false;
@@ -175,7 +256,7 @@ export const Khata = () => {
       if (b.balance !== a.balance) return b.balance - a.balance;
       return (Number(b.id) || 0) - (Number(a.id) || 0);
     });
-  }, [customerKhataList, customerTypeFilter, selectedCustomerId, balanceStatusFilter]);
+  }, [customerKhataList, searchTerm, customerTypeFilter, selectedCustomerId, balanceStatusFilter]);
 
   // Aggregate Metrics based on Filtered Khata
   const totalVolume = filteredKhata.reduce((acc, k) => acc + k.totalSale, 0);
@@ -183,12 +264,14 @@ export const Khata = () => {
   const totalOutstanding = filteredKhata.reduce((acc, k) => acc + k.balance, 0);
 
   const isAnyFilterActive = (
+    searchTerm.trim() !== '' ||
     customerTypeFilter !== 'All' ||
     selectedCustomerId !== 'All' ||
     balanceStatusFilter !== 'All'
   );
 
   const resetAllFilters = () => {
+    setSearchTerm('');
     setCustomerTypeFilter('All');
     setSelectedCustomerId('All');
     setBalanceStatusFilter('All');
@@ -209,7 +292,8 @@ export const Khata = () => {
     setIsSubmitting(true);
     try {
       await recordPayment({
-        partyId: paymentModalCust.id,
+        partyId: paymentModalCust.isRegistered ? paymentModalCust.id : null,
+        partyName: paymentModalCust.name,
         partyType: 'Customer',
         amount: amt,
         paymentMode: paymentMode,
@@ -342,8 +426,36 @@ export const Khata = () => {
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+          {/* Search Input */}
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Search className="w-3.5 h-3.5 text-brand-500" />
+              <span>Search Customer</span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name, phone, city..."
+                className={`w-full border rounded-xl pl-3 pr-8 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* 1. Customer Type */}
-          <div className="flex-1 min-w-[140px]">
+          <div className="w-full sm:w-[170px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-brand-500" />
               <span>Customer Type</span>
@@ -362,7 +474,7 @@ export const Khata = () => {
           </div>
 
           {/* 2. Balance Status */}
-          <div className="flex-1 min-w-[140px]">
+          <div className="w-full sm:w-[170px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-amber-500" />
               <span>Balance Status</span>
@@ -389,7 +501,7 @@ export const Khata = () => {
               title="Reset all filters"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>Reset Filters</span>
+              <span>Reset</span>
             </button>
           )}
         </div>
@@ -500,7 +612,7 @@ export const Khata = () => {
                       )}
 
                       <button
-                        onClick={() => navigate(`/ledger?customerId=${item.id}`)}
+                        onClick={() => navigate(item.isRegistered ? `/ledger?customerId=${item.id}` : `/ledger?customerId=${encodeURIComponent(item.name)}`)}
                         className={`p-1.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
                           theme === 'dark' 
                             ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 
@@ -635,7 +747,7 @@ export const Khata = () => {
 
                             {/* View Ledger */}
                             <button
-                              onClick={() => navigate(`/ledger?customerId=${item.id}`)}
+                              onClick={() => navigate(item.isRegistered ? `/ledger?customerId=${item.id}` : `/ledger?customerId=${encodeURIComponent(item.name)}`)}
                               className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${
                                 theme === 'dark' 
                                   ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 

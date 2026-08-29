@@ -30,7 +30,7 @@ export const getLedgerEntries = async (req, res) => {
 
 export const recordPayment = async (req, res) => {
   try {
-    const { partyId, partyType, amount, paymentMode = 'Cash', note = '', saleId = null, purchaseId = null } = req.body;
+    const { partyId, partyName, partyType, amount, paymentMode = 'Cash', note = '', saleId = null, purchaseId = null } = req.body;
     const amtNum = Number(amount);
 
     if (!amtNum || amtNum <= 0) {
@@ -38,7 +38,7 @@ export const recordPayment = async (req, res) => {
     }
 
     // Double-click / panic rapid click deduplication protection
-    const dedupKey = `${req.shop_id}:${partyId || ''}:${partyType}:${amtNum}:${saleId || ''}:${purchaseId || ''}`;
+    const dedupKey = `${req.shop_id}:${partyId || partyName || ''}:${partyType}:${amtNum}:${saleId || ''}:${purchaseId || ''}`;
     const existing = recentPayments.get(dedupKey);
     if (existing && Date.now() - existing.timestamp < 3500) {
       return res.status(200).json({ success: true, entry: existing.entry, deduplicated: true });
@@ -46,10 +46,13 @@ export const recordPayment = async (req, res) => {
 
     const dateStr = new Date().toLocaleDateString('en-GB');
     const ref = `PAY-${Math.floor(1000 + Math.random() * 9000)}`;
-    let targetPartyName = 'Party';
+    let targetPartyName = partyName || 'Party';
 
     if (partyType === 'Customer') {
-      let cust = partyId ? await Customer.findById(partyId) : null;
+      let cust = partyId && !String(partyId).startsWith('walkin-') ? await Customer.findById(partyId) : null;
+      if (!cust && partyName) {
+        cust = await Customer.findOne({ name: partyName });
+      }
       if (!cust && saleId) {
         const targetSale = await Sale.findById(saleId);
         if (targetSale?.customerId) {
@@ -61,6 +64,8 @@ export const recordPayment = async (req, res) => {
         targetPartyName = cust.name;
         const newBalance = Number(cust.balance || 0) - amtNum;
         await Customer.findByIdAndUpdate(cust.id, { balance: newBalance });
+      } else {
+        targetPartyName = partyName || 'Walk-in Customer';
       }
 
       // If specific sale is targeted, update paidAmount
@@ -71,11 +76,28 @@ export const recordPayment = async (req, res) => {
           const newStatus = newPaid >= Number(sale.amount || 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
           await Sale.findByIdAndUpdate(saleId, { paidAmount: newPaid, status: newStatus });
         }
+      } else if (!cust && targetPartyName) {
+        // Walk-in customer payment: allocate to open sales
+        const openSales = await Sale.find({
+          shop_id: req.shop_id,
+          partyName: targetPartyName,
+          status: { $in: ['Pending', 'Partial'] }
+        });
+        let remainingAmt = amtNum;
+        for (const s of openSales) {
+          if (remainingAmt <= 0) break;
+          const due = Math.max(0, Number(s.amount || 0) - Number(s.paidAmount || 0));
+          const payTowardsSale = Math.min(due, remainingAmt);
+          const newPaid = Number(s.paidAmount || 0) + payTowardsSale;
+          const newStatus = newPaid >= Number(s.amount || 0) ? 'Paid' : 'Partial';
+          await Sale.findByIdAndUpdate(s.id, { paidAmount: newPaid, status: newStatus });
+          remainingAmt -= payTowardsSale;
+        }
       }
 
       const entry = await Ledger.create({
         shop_id: req.shop_id,
-        partyId: cust?.id || partyId || null,
+        partyId: cust?.id || (partyId && !String(partyId).startsWith('walkin-') ? partyId : null),
         partyType: 'Customer',
         partyName: targetPartyName,
         amount: amtNum,
