@@ -1001,7 +1001,7 @@ export const Reports = () => {
     };
   }, [sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns]);
 
-  const totalAssets = useMemo(() => totalLiquidFunds + totalCustomerReceivables + totalStockValuation, [totalLiquidFunds, totalCustomerReceivables, totalStockValuation]);
+  const totalAssets = useMemo(() => totalCustomerReceivables + totalStockValuation, [totalCustomerReceivables, totalStockValuation]);
   const totalLiabilities = useMemo(() => totalSupplierPayables, [totalSupplierPayables]);
   const totalEquity = useMemo(() => totalAssets - totalLiabilities, [totalAssets, totalLiabilities]);
 
@@ -3737,7 +3737,7 @@ export const Reports = () => {
                     Rs. {totalAssets.toLocaleString()}
                   </div>
                   <div className="text-[10px] text-slate-400 font-medium">
-                    Cash & Bank (Rs. {totalLiquidFunds.toLocaleString()}) + Khata (Rs. {totalCustomerReceivables.toLocaleString()}) + Stock (Rs. {totalStockValuation.toLocaleString()})
+                    Customer Khata (Rs. {totalCustomerReceivables.toLocaleString()}) + Stock (Rs. {totalStockValuation.toLocaleString()})
                   </div>
                 </div>
 
@@ -3871,60 +3871,7 @@ export const Reports = () => {
                   </div>
 
                   <div className="space-y-3 text-xs">
-                    {/* 1. Cash & Bank Equivalents */}
-                    <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                      }`}>
-                      <div
-                        onClick={() => toggleBsSection('cashBank')}
-                        className="flex items-center justify-between cursor-pointer font-bold"
-                      >
-                        <div className="flex items-center gap-2">
-                          {bsExpandedSections.cashBank ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                          )}
-                          <span className="text-slate-900 dark:text-white">Cash & Bank Equivalents</span>
-                        </div>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                          Rs. {bsCashBreakdown.total.toLocaleString()}
-                        </span>
-                      </div>
-
-                      {bsExpandedSections.cashBank && (
-                        <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                          <div className="flex justify-between">
-                            <span>Cash in Hand (Counter Drawer / Safe):</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {cashInHand.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Bank Accounts (Bank / Card / Online):</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {bankBalance.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Mobile Digital Wallets (JazzCash / Easypaisa):</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {walletBalance.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-900 dark:text-white">
-                            <span className="font-bold">Total Liquid Cash & Bank:</span>
-                            <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidFunds.toLocaleString()}</span>
-                          </div>
-                          <div className="pt-1 text-right">
-                            <button
-                              onClick={() => {
-                                setBsDrilldownSearch('');
-                                setBsActiveDrilldownModal('cashBank');
-                              }}
-                              className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                            >
-                              View Liquid Cash & Bank Ledger →
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 2. Customer Receivables */}
+                    {/* 1. Customer Receivables */}
                     <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
                       }`}>
                       <div
