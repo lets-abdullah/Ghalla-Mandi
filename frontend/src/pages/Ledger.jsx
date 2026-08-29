@@ -126,22 +126,75 @@ export const Ledger = () => {
     const regular = [];
     const walkinMap = new Map();
 
-    // 1. Regular customers
+    // 1. Registered Customers
     (customers || []).forEach(c => {
-      regular.push({
-        id: c.id,
-        name: c.name,
-        city: c.city || 'Local Mandi',
-        type: 'Regular'
-      });
+      const isWalkin = (c.customerType || c.customertype || '').toLowerCase().includes('walk-in');
+      if (isWalkin) {
+        const rawName = (c.name || 'Walk-in Customer').trim();
+        const key = rawName.toLowerCase();
+        if (!walkinMap.has(key)) {
+          walkinMap.set(key, {
+            id: c.id || `walkin-${rawName}`,
+            rawName,
+            name: rawName,
+            city: c.city || 'Walk-in Party',
+            type: 'Walk-in'
+          });
+        }
+      } else {
+        regular.push({
+          id: c.id,
+          name: c.name,
+          city: c.city || 'Local Mandi',
+          type: 'Regular'
+        });
+      }
     });
 
-    // 2. Walk-in customers extracted from sales, payments & returns
+    // 2. Walk-in customers extracted from sales
     (sales || []).forEach(s => {
       const custObj = (customers || []).find(c => c.id === s.customerId || c.name === s.partyName);
       const isWalkin = !custObj || (custObj?.customerType || s.customerType || '').toLowerCase().includes('walk-in');
       if (isWalkin) {
         const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
+        const key = rawName.toLowerCase();
+        if (!walkinMap.has(key)) {
+          walkinMap.set(key, {
+            id: `walkin-${rawName}`,
+            rawName,
+            name: rawName,
+            city: 'Walk-in Party',
+            type: 'Walk-in'
+          });
+        }
+      }
+    });
+
+    // 3. Payment logs
+    (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer').forEach(p => {
+      const custObj = (customers || []).find(c => c.id === p.partyId || c.name === p.partyName);
+      const isWalkin = !custObj || (custObj?.customerType || '').toLowerCase().includes('walk-in');
+      if (isWalkin) {
+        const rawName = (p.partyName || custObj?.name || 'Walk-in Customer').trim();
+        const key = rawName.toLowerCase();
+        if (!walkinMap.has(key)) {
+          walkinMap.set(key, {
+            id: `walkin-${rawName}`,
+            rawName,
+            name: rawName,
+            city: 'Walk-in Party',
+            type: 'Walk-in'
+          });
+        }
+      }
+    });
+
+    // 4. Sale returns
+    (saleReturns || []).forEach(r => {
+      const custObj = (customers || []).find(c => c.id === r.customerId || c.name === r.customerName);
+      const isWalkin = !custObj || (custObj?.customerType || '').toLowerCase().includes('walk-in');
+      if (isWalkin) {
+        const rawName = (r.customerName || custObj?.name || 'Walk-in Customer').trim();
         const key = rawName.toLowerCase();
         if (!walkinMap.has(key)) {
           walkinMap.set(key, {
@@ -549,13 +602,16 @@ export const Ledger = () => {
               </label>
               <select
                 value={customerTypeFilter}
-                onChange={(e) => setCustomerTypeFilter(e.target.value)}
+                onChange={(e) => {
+                  setCustomerTypeFilter(e.target.value);
+                  setSelectedPartyId('All');
+                }}
                 className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Customer Types</option>
-                <option value="Regular Customer">Regular Customers</option>
-                <option value="Walk-in Customer">Walk-in Customers</option>
+                <option value="Regular Customer">Regular Customers ({customerDropdownList.regular.length})</option>
+                <option value="Walk-in Customer">Walk-in Customers ({customerDropdownList.walkin.length})</option>
               </select>
             </div>
           )}
@@ -565,7 +621,7 @@ export const Ledger = () => {
             <div className="flex-1 min-w-[140px]">
               <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
                 <User className="w-3.5 h-3.5 text-blue-500" />
-                <span>Customer</span>
+                <span>{customerTypeFilter === 'Walk-in Customer' ? 'Walk-in Customer' : customerTypeFilter === 'Regular Customer' ? 'Regular Customer' : 'Customer'}</span>
               </label>
               <select
                 value={selectedPartyId}
@@ -573,24 +629,46 @@ export const Ledger = () => {
                 className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
-                <option value="All">All Customers (Regular & Walk-in)</option>
-                {customerDropdownList.regular.length > 0 && (
-                  <optgroup label="Regular Parties">
-                    {customerDropdownList.regular.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} {p.city ? `(${p.city})` : ''}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                {customerDropdownList.walkin.length > 0 && (
-                  <optgroup label="Walk-in Parties">
+                {customerTypeFilter === 'Walk-in Customer' ? (
+                  <>
+                    <option value="All">All Walk-in Customers ({customerDropdownList.walkin.length})</option>
                     {customerDropdownList.walkin.map(p => (
                       <option key={p.id} value={p.id}>
                         {p.name} (Walk-in)
                       </option>
                     ))}
-                  </optgroup>
+                  </>
+                ) : customerTypeFilter === 'Regular Customer' ? (
+                  <>
+                    <option value="All">All Regular Customers ({customerDropdownList.regular.length})</option>
+                    {customerDropdownList.regular.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} {p.city ? `(${p.city})` : ''}
+                      </option>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <option value="All">All Customers (Regular & Walk-in)</option>
+                    {customerDropdownList.regular.length > 0 && (
+                      <optgroup label="Regular Parties">
+                        {customerDropdownList.regular.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} {p.city ? `(${p.city})` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {customerDropdownList.walkin.length > 0 && (
+                      <optgroup label="Walk-in Parties">
+                        {customerDropdownList.walkin.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} (Walk-in)
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </>
                 )}
               </select>
             </div>
