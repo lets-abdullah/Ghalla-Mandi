@@ -230,7 +230,7 @@ const SuppliedProductsCombobox = ({
 };
 
 export const Suppliers = () => {
-  const { suppliers = [], products = [], categories = [], purchases = [], addSupplier, updateSupplier, deleteSupplier, addProduct, addCategory } = useERP();
+  const { suppliers = [], products = [], categories = [], purchases = [], paymentLogs = [], addSupplier, updateSupplier, deleteSupplier, addProduct, addCategory } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
