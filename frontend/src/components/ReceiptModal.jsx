@@ -1,11 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { 
   Printer, 
-  Download, 
   Wheat, 
   X, 
   CheckCircle2, 
-  Loader2, 
   Calendar, 
   FileText, 
   User, 
@@ -13,14 +11,12 @@ import {
   ShoppingCart, 
   CreditCard 
 } from 'lucide-react';
-import { exportSinglePageReceiptPDF } from '../utils/pdfExport';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
 export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
   const { theme } = useTheme();
   const { shop } = useAuth();
-  const [isDownloading, setIsDownloading] = useState(false);
   const receiptRef = useRef(null);
 
   if (!isOpen || !orderData) return null;
@@ -275,24 +271,6 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
     }
   };
 
-  const handleDownloadPDF = async () => {
-    try {
-      setIsDownloading(true);
-      const targetElement = receiptRef.current || document.getElementById('sale-receipt-card');
-      if (!targetElement) {
-        throw new Error('Sale receipt printable element not found in DOM.');
-      }
-
-      const filename = `Sale_Receipt_${cleanReceiptNo.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`;
-      await exportSinglePageReceiptPDF(targetElement, filename, { width: 110, margin: 4 });
-    } catch (err) {
-      console.error('PDF error:', err);
-      alert('Could not generate PDF download. Please try Print Receipt.');
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
   return (
     <div 
       onClick={onClose}
@@ -515,13 +493,13 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
         </div>
 
         {/* Modal Bottom Actions Bar */}
-        <div className={`p-2 sm:p-2.5 border-t flex items-center justify-between gap-2 shrink-0 ${
+        <div className={`p-2.5 sm:p-3 border-t flex items-center justify-between gap-2.5 shrink-0 ${
           theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'
         }`}>
           <button
             type="button"
             onClick={onClose}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
               theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
             }`}
           >
@@ -529,35 +507,14 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
             <span>Close</span>
           </button>
 
-          <div className="flex flex-1 items-center gap-2">
-            <button
-              type="button"
-              onClick={handleDownloadPDF}
-              disabled={isDownloading}
-              className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-black transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              {isDownloading ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Downloading...</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download PDF</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="flex-1 py-1.5 bg-[#064e3b] hover:bg-emerald-950 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print Receipt</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="flex-1 py-2 bg-[#064e3b] hover:bg-emerald-950 text-white rounded-xl text-xs font-black transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print or Download Receipt</span>
+          </button>
         </div>
       </div>
     </div>
