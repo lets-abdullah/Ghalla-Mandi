@@ -345,67 +345,67 @@ export const SaleReturns = () => {
             </div>
 
             <form onSubmit={handleSaveEdit} className="space-y-4">
-              {/* 1. Item-level Returned Commodities */}
-              <div>
-                <label className="text-[11px] font-black uppercase text-slate-400 block mb-2 flex items-center justify-between">
-                  <span>Returned Items & Rates</span>
-                  <span className="text-[10px] text-slate-500 font-normal">Auto-calculates total</span>
-                </label>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                  {editForm.items.map((item, idx) => (
-                    <div
-                      key={item.id || idx}
-                      className={`p-2.5 rounded-2xl border space-y-2 ${
-                        theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50/80 border-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
-                          {item.name}
-                        </span>
-                        <span className="font-mono font-black text-xs text-orange-600 dark:text-orange-400">
-                          Rs. {Number(item.total || 0).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Return Qty ({item.unit || 'Kg'})</label>
-                          <input
-                            type="number"
-                            step="any"
-                            min="0"
-                            value={item.qty}
-                            onChange={(e) => handleItemChange(idx, 'qty', e.target.value)}
-                            className={`w-full border rounded-xl px-2.5 py-1 text-xs font-mono font-bold outline-none focus:border-orange-500 ${
-                              theme === 'dark' ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                            }`}
-                          />
+              {/* 1. Item-level Returned Commodities (if any) or Direct Refund Amount */}
+              {editForm.items && editForm.items.length > 0 ? (
+                <div>
+                  <label className="text-[11px] font-black uppercase text-slate-400 block mb-2">
+                    Returned Items & Quantities
+                  </label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {editForm.items.map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        className={`p-2.5 rounded-2xl border space-y-2 ${
+                          theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50/80 border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
+                            {item.name}
+                          </span>
+                          <span className="font-mono font-black text-xs text-orange-600 dark:text-orange-400">
+                            Rs. {Number(item.total || 0).toLocaleString()}
+                          </span>
                         </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Rate / Unit (Rs.)</label>
-                          <input
-                            type="number"
-                            step="any"
-                            min="0"
-                            value={item.rate}
-                            onChange={(e) => handleItemChange(idx, 'rate', e.target.value)}
-                            className={`w-full border rounded-xl px-2.5 py-1 text-xs font-mono font-bold outline-none focus:border-orange-500 ${
-                              theme === 'dark' ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                            }`}
-                          />
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Return Qty ({item.unit || 'Kg'})</label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              value={item.qty}
+                              onChange={(e) => handleItemChange(idx, 'qty', e.target.value)}
+                              className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold outline-none focus:border-orange-500 ${
+                                theme === 'dark' ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                              }`}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Rate (Rs.)</label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              value={item.rate}
+                              onChange={(e) => handleItemChange(idx, 'rate', e.target.value)}
+                              className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold outline-none focus:border-orange-500 ${
+                                theme === 'dark' ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                              }`}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : null}
 
-              {/* 2. Total Refund Amount Override / Verification */}
+              {/* 2. Total Refund Amount */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-[11px] font-bold text-slate-400">Total Refund Amount (Rs.) *</label>
-                  <span className="text-[10px] font-black text-orange-500 uppercase">Grand Total</span>
-                </div>
+                <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                  Total Refund Amount (Rs.) *
+                </label>
                 <input
                   type="number"
                   required
@@ -450,32 +450,18 @@ export const SaleReturns = () => {
                 </div>
               </div>
 
-              {/* 4. Date & Return Reason */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 block mb-1">Return Date</label>
-                  <input
-                    type="date"
-                    value={editForm.date}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value }))}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-orange-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 block mb-1">Reason / Notes</label>
-                  <input
-                    type="text"
-                    value={editForm.reason}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, reason: e.target.value }))}
-                    placeholder="e.g. Quality rejection"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-orange-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
+              {/* 4. Reason / Notes */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 block mb-1">Reason / Notes</label>
+                <input
+                  type="text"
+                  value={editForm.reason}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="e.g. Kharab Maal, Wazan Farq"
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-orange-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
               </div>
 
               {/* 5. Modal Action Buttons */}
