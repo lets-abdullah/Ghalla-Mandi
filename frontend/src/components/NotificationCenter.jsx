@@ -92,7 +92,7 @@ export const NotificationCenter = () => {
       if (stock <= 0) {
         list.push({
           id: `stock-out-${p.id}`,
-          category: 'Stock',
+          category: 'Stock Alert',
           type: 'Out of Stock',
           title: `${p.name} Out of Stock`,
           message: `${p.name} (${p.category || 'General'}) is completely out of stock (0 ${unit}).`,
@@ -105,7 +105,7 @@ export const NotificationCenter = () => {
       } else if (stock <= min) {
         list.push({
           id: `stock-low-${p.id}`,
-          category: 'Stock',
+          category: 'Stock Alert',
           type: 'Low Stock',
           title: `Low Stock: ${p.name}`,
           message: `Only ${stock} ${unit} remaining in mandi storage (min required: ${min} ${unit}).`,
@@ -126,7 +126,7 @@ export const NotificationCenter = () => {
       
       list.push({
         id: `sale-${s.id || s.invoiceNo}`,
-        category: 'Transactions',
+        category: 'Sales POS',
         type: 'Sale',
         title: `Sale Invoice #${s.invoiceNo || 'INV'}`,
         message: `Sale of Rs. ${amt.toLocaleString()} recorded for ${s.partyName || 'Customer'}.`,
@@ -158,7 +158,7 @@ export const NotificationCenter = () => {
       const amt = Number(p.amount || p.grandTotal || 0);
       list.push({
         id: `purchase-${p.id || p.purchaseNo}`,
-        category: 'Transactions',
+        category: 'Purchase',
         type: 'Purchase',
         title: `Purchase #${p.purchaseNo || 'PUR'}`,
         message: `Arrival entry of Rs. ${amt.toLocaleString()} from ${p.supplierName || p.supplier || 'Supplier'}.`,
@@ -175,7 +175,7 @@ export const NotificationCenter = () => {
       const amt = Number(r.refundAmount || 0);
       list.push({
         id: `salereturn-${r.id || r.returnNo}`,
-        category: 'Transactions',
+        category: 'Returns',
         type: 'Sale Return',
         title: `Sale Return #${r.returnNo || 'RET'}`,
         message: `Sale return voucher of Rs. ${amt.toLocaleString()} processed for ${r.customerName || 'Customer'}.`,
@@ -192,7 +192,7 @@ export const NotificationCenter = () => {
       const amt = Number(r.refundAmount || 0);
       list.push({
         id: `purreturn-${r.id || r.returnNo}`,
-        category: 'Transactions',
+        category: 'Returns',
         type: 'Purchase Return',
         title: `Purchase Return #${r.returnNo || 'PR'}`,
         message: `Debit note of Rs. ${amt.toLocaleString()} adjusted with ${r.supplierName || 'Supplier'}.`,
@@ -271,14 +271,20 @@ export const NotificationCenter = () => {
     if (activeTab === 'Unread') {
       return notifications.filter(n => !readIds.includes(n.id));
     }
-    if (activeTab === 'Stock') {
-      return notifications.filter(n => n.category === 'Stock');
+    if (activeTab === 'Sales POS') {
+      return notifications.filter(n => n.category === 'Sales POS');
     }
-    if (activeTab === 'Transactions') {
-      return notifications.filter(n => n.category === 'Transactions');
+    if (activeTab === 'Purchase') {
+      return notifications.filter(n => n.category === 'Purchase');
+    }
+    if (activeTab === 'Returns') {
+      return notifications.filter(n => n.category === 'Returns');
     }
     if (activeTab === 'Khata') {
       return notifications.filter(n => n.category === 'Khata');
+    }
+    if (activeTab === 'Stock Alert') {
+      return notifications.filter(n => n.category === 'Stock Alert');
     }
     return notifications;
   }, [notifications, activeTab, readIds]);
@@ -424,9 +430,11 @@ export const NotificationCenter = () => {
               >
                 <option value="All">All Notifications ({notifications.length})</option>
                 <option value="Unread">Unread ({unreadCount})</option>
-                <option value="Stock">Stock Alerts ({notifications.filter(n => n.category === 'Stock').length})</option>
-                <option value="Transactions">Transactions ({notifications.filter(n => n.category === 'Transactions').length})</option>
-                <option value="Khata">Khata & Dues ({notifications.filter(n => n.category === 'Khata').length})</option>
+                <option value="Sales POS">Sales POS ({notifications.filter(n => n.category === 'Sales POS').length})</option>
+                <option value="Purchase">Purchase ({notifications.filter(n => n.category === 'Purchase').length})</option>
+                <option value="Returns">Returns ({notifications.filter(n => n.category === 'Returns').length})</option>
+                <option value="Khata">Khata ({notifications.filter(n => n.category === 'Khata').length})</option>
+                <option value="Stock Alert">Stock Alert ({notifications.filter(n => n.category === 'Stock Alert').length})</option>
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
