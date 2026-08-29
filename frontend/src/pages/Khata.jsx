@@ -966,33 +966,6 @@ export const Khata = () => {
               </div>
             </div>
 
-            {/* Quick Balance Settlement Shortcuts */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
-              <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 font-bold text-[11px]">
-                <span>Quick Settlement:</span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Click to clear or reset dues</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setEditForm(prev => ({ ...prev, balance: 0 }))}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] transition cursor-pointer shadow-xs flex items-center gap-1"
-                >
-                  <Check className="w-3 h-3" />
-                  <span>Mark Fully Paid (Rs. 0 Due)</span>
-                </button>
-                {editingKhataCust.initialDue !== undefined && editingKhataCust.initialDue !== Number(editForm.balance) && (
-                  <button
-                    type="button"
-                    onClick={() => setEditForm(prev => ({ ...prev, balance: editingKhataCust.initialDue }))}
-                    className="px-2 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-[10px] transition cursor-pointer hover:bg-slate-300"
-                  >
-                    Reset (Rs. {editingKhataCust.initialDue.toLocaleString()})
-                  </button>
-                )}
-              </div>
-            </div>
-
             <form onSubmit={handleSaveKhataEdit} className="space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
