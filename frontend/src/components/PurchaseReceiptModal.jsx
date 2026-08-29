@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Printer, Download, Truck, X, CheckCircle2, Loader2, Scale } from 'lucide-react';
-import html2pdf from 'html2pdf.js';
+import { exportReceiptToPDF } from '../utils/pdfExport';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
   const { t } = useLocale();
   const { shop } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
+  const receiptRef = useRef(null);
 
   if (!isOpen || !purchaseData) return null;
 
@@ -233,31 +234,16 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
   const handleDownloadPDF = async () => {
     try {
       setIsDownloading(true);
-      const container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.top = '0px';
-      container.style.left = '0px';
-      container.style.width = '794px';
-      container.style.zIndex = '999999';
-      container.style.backgroundColor = '#ffffff';
-      container.style.color = '#0f172a';
-      container.style.padding = '24px 28px';
-      container.style.boxSizing = 'border-box';
-      container.innerHTML = generateA4HtmlDocument();
+      const targetElement = receiptRef.current || document.getElementById('purchase-voucher-printable-area');
+      if (!targetElement) {
+        throw new Error('Purchase voucher printable element not found in DOM.');
+      }
 
-      document.body.appendChild(container);
-      const opt = {
-        margin: [6, 6, 6, 6],
-        filename: `Purchase_Voucher_${cleanPurchaseNo.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      await html2pdf().set(opt).from(container).save();
-      document.body.removeChild(container);
+      const filename = `Purchase_Voucher_${cleanPurchaseNo.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`;
+      await exportReceiptToPDF(targetElement, filename);
     } catch (err) {
       console.error('PDF error:', err);
+      alert('Could not generate PDF download. Please try Print (A4).');
     } finally {
       setIsDownloading(false);
     }
@@ -300,7 +286,9 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
 
         <div className="flex-1 overflow-y-auto p-3 sm:p-5 md:p-6 bg-slate-100 dark:bg-slate-900/80 flex justify-center">
           <div 
+            ref={receiptRef}
             id="purchase-voucher-printable-area"
+            data-receipt-printable="true"
             className="w-full max-w-[794px] bg-white text-slate-900 shadow-md rounded-xl border border-slate-200 p-5 sm:p-7 space-y-4"
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b-2 border-emerald-700">
