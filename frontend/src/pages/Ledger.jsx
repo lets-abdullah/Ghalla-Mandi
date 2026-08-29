@@ -121,6 +121,44 @@ export const Ledger = () => {
     return true;
   };
 
+  // Grouped Customers list for Ledger Dropdown (Regular & Walk-in)
+  const customerDropdownList = useMemo(() => {
+    const regular = [];
+    const walkinMap = new Map();
+
+    // 1. Regular customers
+    (customers || []).forEach(c => {
+      regular.push({
+        id: c.id,
+        name: c.name,
+        city: c.city || 'Local Mandi',
+        type: 'Regular'
+      });
+    });
+
+    // 2. Walk-in customers extracted from sales, payments & returns
+    (sales || []).forEach(s => {
+      const custObj = (customers || []).find(c => c.id === s.customerId || c.name === s.partyName);
+      const isWalkin = !custObj || (custObj?.customerType || s.customerType || '').toLowerCase().includes('walk-in');
+      if (isWalkin) {
+        const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
+        const key = rawName.toLowerCase();
+        if (!walkinMap.has(key)) {
+          walkinMap.set(key, {
+            id: `walkin-${rawName}`,
+            rawName,
+            name: rawName,
+            city: 'Walk-in Party',
+            type: 'Walk-in'
+          });
+        }
+      }
+    });
+
+    const walkin = Array.from(walkinMap.values());
+    return { regular, walkin };
+  }, [customers, sales, paymentLogs, saleReturns]);
+
   // Build Chronological Ledger Entries
   const rawLedgerEntries = useMemo(() => {
     const entries = [];
@@ -130,8 +168,12 @@ export const Ledger = () => {
       (sales || []).forEach(s => {
         const custObj = customers.find(c => c.id === s.customerId || c.name === s.partyName);
         const isWalkin = (custObj?.customerType || s.customerType || '').toLowerCase().includes('walk-in') ||
-          (s.partyName || '').toLowerCase().includes('walk-in');
+          (s.partyName || '').toLowerCase().includes('walk-in') || !s.customerId;
         const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
+        const rawParty = (s.partyName || s.customerName || 'Walk-in Customer').trim();
+        const partyId = s.customerId || custObj?.id || `walkin-${rawParty}`;
+        const partyName = custObj?.name || rawParty;
+
         const itemsSummary = Array.isArray(s.cart) && s.cart.length > 0
           ? s.cart.map(i => `${i.name} (${i.qty} ${i.unitName || i.unit || 'KG'})`).join(', ')
           : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
@@ -140,8 +182,8 @@ export const Ledger = () => {
           id: `sale-${s.id}`,
           rawDate: s.date,
           date: s.date || 'N/A',
-          partyId: s.customerId || custObj?.id || null,
-          partyName: s.partyName || s.customerName || 'Customer',
+          partyId,
+          partyName,
           customerType: custType,
           ref: s.invoiceNo || 'SALE',
           txType: 'Sales',
@@ -158,8 +200,8 @@ export const Ledger = () => {
             id: `pay-direct-${s.id}`,
             rawDate: s.date,
             date: s.date || 'N/A',
-            partyId: s.customerId || custObj?.id || null,
-            partyName: s.partyName || s.customerName || 'Customer',
+            partyId,
+            partyName,
             customerType: custType,
             ref: `RCP-${s.invoiceNo}`,
             txType: 'Payments',
@@ -174,21 +216,23 @@ export const Ledger = () => {
       });
 
       // Additional Standalone Payment Logs
-      (paymentLogs || []).filter(p => p.type === 'Customer').forEach(p => {
+      (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer').forEach(p => {
         const custObj = customers.find(c => c.id === p.partyId || c.name === p.partyName);
-        const isWalkin = (custObj?.customerType || '').toLowerCase().includes('walk-in');
+        const isWalkin = (custObj?.customerType || '').toLowerCase().includes('walk-in') || !custObj;
         const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
+        const rawParty = (p.partyName || custObj?.name || 'Customer').trim();
+        const partyId = p.partyId || custObj?.id || `walkin-${rawParty}`;
 
         entries.push({
           id: `pay-${p.id}`,
           rawDate: p.date,
           date: p.date || 'N/A',
-          partyId: p.partyId || custObj?.id || null,
-          partyName: p.partyName || custObj?.name || 'Customer',
+          partyId,
+          partyName: rawParty,
           customerType: custType,
           ref: p.ref || `PAY-${p.id}`,
           txType: 'Payments',
-          desc: `Account Payment (${p.mode || 'Cash'})`,
+          desc: `Account Payment (${p.mode || p.paymentMode || 'Cash'})`,
           debit: 0,
           credit: Number(p.amount || 0),
           items: [],
@@ -200,15 +244,17 @@ export const Ledger = () => {
       // Sale Returns
       (saleReturns || []).forEach(r => {
         const custObj = customers.find(c => c.id === r.customerId || c.name === r.customerName);
-        const isWalkin = (custObj?.customerType || '').toLowerCase().includes('walk-in');
+        const isWalkin = (custObj?.customerType || '').toLowerCase().includes('walk-in') || !custObj;
         const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
+        const rawParty = (r.customerName || custObj?.name || 'Customer').trim();
+        const partyId = r.customerId || custObj?.id || `walkin-${rawParty}`;
 
         entries.push({
           id: `ret-${r.id}`,
           rawDate: r.date,
           date: r.date || 'N/A',
-          partyId: r.customerId || custObj?.id || null,
-          partyName: r.customerName || custObj?.name || 'Customer',
+          partyId,
+          partyName: rawParty,
           customerType: custType,
           ref: r.returnNo || `RET-${r.id}`,
           txType: 'Returns',
@@ -245,7 +291,7 @@ export const Ledger = () => {
         });
       });
 
-      (paymentLogs || []).filter(p => p.type === 'Supplier').forEach(p => {
+      (paymentLogs || []).filter(p => p.type === 'Supplier' || p.partyType === 'Supplier').forEach(p => {
         const supObj = suppliers.find(s => s.id === p.partyId || s.name === p.partyName);
         entries.push({
           id: `pay-sup-${p.id}`,
@@ -256,7 +302,7 @@ export const Ledger = () => {
           customerType: 'Supplier',
           ref: p.ref || `PAY-${p.id}`,
           txType: 'Payments',
-          desc: `Supplier Payment Out (${p.mode || 'Cash'})`,
+          desc: `Supplier Payment Out (${p.mode || p.paymentMode || 'Cash'})`,
           debit: Number(p.amount || 0),
           credit: 0,
           items: [],
@@ -303,9 +349,14 @@ export const Ledger = () => {
     return rawLedgerEntries.filter(entry => {
       // 1. Party Filter (Supplier or Customer)
       if (selectedPartyId !== 'All') {
-        const idMatch = entry.partyId === selectedPartyId;
-        const nameMatch = entry.partyName.toLowerCase() === selectedPartyId.toLowerCase();
-        if (!idMatch && !nameMatch) return false;
+        const selLower = String(selectedPartyId).trim().toLowerCase();
+        const entryIdLower = String(entry.partyId || '').trim().toLowerCase();
+        const entryNameLower = String(entry.partyName || '').trim().toLowerCase();
+
+        const matchId = entryIdLower === selLower;
+        const matchName = entryNameLower === selLower;
+        const matchWalkinId = selLower === `walkin-${entryNameLower}` || entryIdLower === `walkin-${selLower}`;
+        if (!matchId && !matchName && !matchWalkinId) return false;
       }
 
       // 2. Customer Type Filter
@@ -522,12 +573,25 @@ export const Ledger = () => {
                 className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
-                <option value="All">All Customers</option>
-                {customers.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} {p.city ? `(${p.city})` : ''}
-                  </option>
-                ))}
+                <option value="All">All Customers (Regular & Walk-in)</option>
+                {customerDropdownList.regular.length > 0 && (
+                  <optgroup label="Regular Parties">
+                    {customerDropdownList.regular.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} {p.city ? `(${p.city})` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {customerDropdownList.walkin.length > 0 && (
+                  <optgroup label="Walk-in Parties">
+                    {customerDropdownList.walkin.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} (Walk-in)
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
           ) : (
@@ -902,11 +966,37 @@ export const Ledger = () => {
                     }`}
                 >
                   <option value="">Choose Customer</option>
-                  {(isSupplier ? suppliers : customers).map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} (Rs. {(Number(p.balance) || 0).toLocaleString()})
-                    </option>
-                  ))}
+                  {isSupplier ? (
+                    suppliers.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} (Rs. {(Number(p.balance) || 0).toLocaleString()})
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      {customerDropdownList.regular.length > 0 && (
+                        <optgroup label="Regular Parties">
+                          {customerDropdownList.regular.map(p => {
+                            const custObj = (customers || []).find(c => c.id === p.id);
+                            return (
+                              <option key={p.id} value={p.id}>
+                                {p.name} (Rs. {(Number(custObj?.balance) || 0).toLocaleString()})
+                              </option>
+                            );
+                          })}
+                        </optgroup>
+                      )}
+                      {customerDropdownList.walkin.length > 0 && (
+                        <optgroup label="Walk-in Parties">
+                          {customerDropdownList.walkin.map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} (Walk-in)
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </>
+                  )}
                 </select>
               </div>
 
