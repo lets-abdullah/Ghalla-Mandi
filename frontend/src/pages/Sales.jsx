@@ -345,15 +345,6 @@ export const Sales = () => {
             <Printer className="w-4 h-4" />
             <span>Print List</span>
           </button>
-
-          {/* New Sale POS Counter */}
-          <Link
-            to="/create-order"
-            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Sale (POS)</span>
-          </Link>
         </div>
       </div>
 
