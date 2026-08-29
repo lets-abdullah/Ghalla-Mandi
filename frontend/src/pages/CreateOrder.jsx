@@ -447,8 +447,25 @@ export const CreateOrder = () => {
     }
 
     if (customerType === 'Regular Party' && !selectedParty) {
-      alert(t('searchCustomerParty'));
+      alert(t('searchCustomerParty') || 'Please select a customer / regular party.');
       return;
+    }
+
+    if (customerType === 'Walk-in Customer') {
+      const trimmed = walkinName.trim();
+      const isGeneric = (
+        !trimmed ||
+        trimmed.toLowerCase() === 'walk-in customer' ||
+        trimmed.toLowerCase() === 'walk in customer' ||
+        trimmed.toLowerCase() === 'walk-in' ||
+        trimmed.toLowerCase() === 'walkin' ||
+        trimmed.toLowerCase() === 'walk in' ||
+        trimmed.toLowerCase() === 'walk-in-customer'
+      );
+      if (isGeneric) {
+        alert('Customer / Farmer Name is mandatory. Please enter a valid customer name before placing order.');
+        return;
+      }
     }
 
     // Stock validation check
@@ -462,8 +479,8 @@ export const CreateOrder = () => {
     }
 
     const finalCustomerName = customerType === 'Regular Party' && selectedParty
-      ? selectedParty.name
-      : (walkinName.trim() || t('walkInCustomer'));
+      ? selectedParty.name.trim()
+      : walkinName.trim();
 
     const actualPaid = Math.min(netGrandTotal, receivedNum);
 
@@ -1041,16 +1058,28 @@ export const CreateOrder = () => {
                   </div>
                 </div>
               ) : (
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={walkinName}
-                    onChange={(e) => setWalkinName(e.target.value)}
-                    placeholder={t('walkInNamePlaceholder') || "Customer / Farmer Name (Optional)"}
-                    className={`w-full border rounded-2xl pl-10 pr-3.5 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
+                <div className="space-y-1">
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      value={walkinName}
+                      onChange={(e) => setWalkinName(e.target.value)}
+                      placeholder="Customer / Farmer Name * (Required)"
+                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                        !walkinName.trim()
+                          ? 'border-amber-400/80 dark:border-amber-500/50'
+                          : 'focus:border-brand-500'
+                      } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+                  {!walkinName.trim() && (
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold px-1">
+                      * Customer name is mandatory for billing & ledger
+                    </p>
+                  )}
                 </div>
               )}
             </div>
