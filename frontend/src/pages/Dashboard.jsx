@@ -92,8 +92,8 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* 6 Essential High-Impact KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
+      {/* 5 Essential High-Impact KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5">
         {/* 1. Strictly Today's Sales */}
         <KPICard
           title="Today's Sales"
@@ -114,17 +114,7 @@ export const Dashboard = () => {
           onClick={() => navigate('/purchases')}
         />
 
-        {/* 3. Overall / Total All-Time Sales */}
-        <KPICard
-          title="Total Sales (All Time)"
-          amount={`Rs. ${netAllTimeSales.toLocaleString()}`}
-          subtext={`${sales.length} total sales overall`}
-          icon={DollarSign}
-          color="orange"
-          onClick={() => navigate('/sales')}
-        />
-
-        {/* 4. Stock & Inventory Value */}
+        {/* 3. Stock & Inventory Value */}
         <KPICard
           title="Stock & Inventory"
           amount={`Rs. ${totalInventoryValue.toLocaleString()}`}
@@ -134,7 +124,7 @@ export const Dashboard = () => {
           onClick={() => navigate('/reports?type=Stock')}
         />
 
-        {/* 5. Customer Receivables */}
+        {/* 4. Customer Receivables */}
         <KPICard
           title="Customer Dues"
           amount={`Rs. ${totalReceivables.toLocaleString()}`}
@@ -144,7 +134,7 @@ export const Dashboard = () => {
           onClick={() => navigate('/customers')}
         />
 
-        {/* 6. Supplier Payables */}
+        {/* 5. Supplier Payables */}
         <KPICard
           title="Supplier Dues"
           amount={`Rs. ${totalPayables.toLocaleString()}`}
