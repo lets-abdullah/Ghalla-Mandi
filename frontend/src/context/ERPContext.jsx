@@ -7,12 +7,13 @@ const ERPContext = createContext();
 const normalizePurchase = (p) => {
   if (!p) return null;
   const grandTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
-  const paidAmount = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
+  const paidAmount = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : (p.status === 'Paid' ? grandTotal : 0)));
   const supplierName = p.supplier || p.supplierName || p.suppliername || 'Supplier';
   const purchaseNo = p.purchaseNo || p.purchaseno || '';
   const status = p.status || p.paymentStatus || p.paymentstatus || (paidAmount >= grandTotal && grandTotal > 0 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
   const date = p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
   const items = Array.isArray(p.items) ? p.items : (Array.isArray(p.cart) ? p.cart : []);
+  const paymentMode = p.paymentMode || p.paymentmode || p.paymentMethod || p.paymentmethod || (paidAmount > 0 ? 'Cash' : 'Supplier Khata');
 
   return {
     ...p,
@@ -27,6 +28,9 @@ const normalizePurchase = (p) => {
     grandtotal: grandTotal,
     paidAmount,
     paidamount: paidAmount,
+    paymentMode,
+    paymentmode: paymentMode,
+    paymentMethod: paymentMode,
     status,
     paymentStatus: status,
     date,
@@ -38,13 +42,14 @@ const normalizePurchase = (p) => {
 const normalizeSale = (s) => {
   if (!s) return null;
   const amount = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.grandtotal !== undefined ? s.grandtotal : 0)));
-  const paidAmount = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
+  const paidAmount = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : (s.status === 'Paid' || s.paymentStatus === 'Paid' ? amount : 0)));
   const partyName = s.partyName || s.partyname || s.customerName || s.customername || 'Walk-in Customer';
   const invoiceNo = s.invoiceNo || s.invoiceno || '';
   const status = s.status || s.paymentStatus || s.paymentstatus || (paidAmount >= amount && amount > 0 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
   const date = s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
   const profit = Number(s.profit !== undefined ? s.profit : 0);
   const cart = Array.isArray(s.cart) ? s.cart : (Array.isArray(s.items) ? s.items : []);
+  const paymentMode = s.paymentMode || s.paymentmode || s.paymentMethod || s.paymentmethod || (paidAmount > 0 ? 'Cash' : 'Khata (Udhaar)');
 
   return {
     ...s,
@@ -56,6 +61,10 @@ const normalizeSale = (s) => {
     amount,
     grandTotal: amount,
     paidAmount,
+    paidamount: paidAmount,
+    paymentMode,
+    paymentmode: paymentMode,
+    paymentMethod: paymentMode,
     status,
     paymentStatus: status,
     profit,

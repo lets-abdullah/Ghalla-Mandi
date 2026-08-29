@@ -122,6 +122,8 @@ export const createSale = async (req, res) => {
       amount: grandTotal,
       paidAmount: paid,
       profit: Math.round(totalProfit),
+      paymentMode: paymentMethod || 'Cash',
+      paymentMethod: paymentMethod || 'Cash',
       status,
       itemsCount: processedCart.length,
       cart: processedCart
