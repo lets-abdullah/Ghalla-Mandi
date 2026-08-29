@@ -11,10 +11,34 @@
     font-family: var(--font-sans);
   }
 
+  /* 
+    Base scale: 80% (12.8px / 13px) gives the crisp, high-density, 
+    compact enterprise ERP layout at standard 100% browser zoom,
+    matching what formerly required 80% zoom.
+  */
   html {
-    font-size: 100%;
+    font-size: 80%; /* 12.8px base scale (80% of 16px) */
     font-family: var(--font-sans);
     letter-spacing: -0.011em;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (min-width: 1920px) {
+    html {
+      font-size: 85%;
+    }
+  }
+
+  @media (max-width: 768px) {
+    html {
+      font-size: 87.5%; /* 14px on tablets & mobile for comfortable touch targets */
+    }
+  }
+
+  @media (max-width: 480px) {
+    html {
+      font-size: 90%;
+    }
   }
 
   body {
