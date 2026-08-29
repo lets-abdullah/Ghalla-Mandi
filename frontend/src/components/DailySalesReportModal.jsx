@@ -253,7 +253,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
           <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25">
             <div className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Total Sales (کل فروخت)</span>
+              <span>Total Sales</span>
             </div>
             <div className="text-xl font-black font-mono mt-1 text-emerald-700 dark:text-emerald-300">
               Rs. {totalGrossAmount.toLocaleString()}
@@ -266,7 +266,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
           <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/25">
             <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1">
               <DollarSign className="w-3.5 h-3.5" />
-              <span>Cash Received (وصول شدہ)</span>
+              <span>Cash Received</span>
             </div>
             <div className="text-xl font-black font-mono mt-1 text-blue-700 dark:text-blue-300">
               Rs. {totalCashCollected.toLocaleString()}
@@ -279,7 +279,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
           <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25">
             <div className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" />
-              <span>Khata Due (بقایا ادھار)</span>
+              <span>Khata Due</span>
             </div>
             <div className="text-xl font-black font-mono mt-1 text-amber-700 dark:text-amber-300">
               Rs. {totalRemainingDue.toLocaleString()}
@@ -292,7 +292,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
           <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/25">
             <div className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Net Revenue (خالص آمدن)</span>
+              <span>Net Revenue</span>
             </div>
             <div className="text-xl font-black font-mono mt-1 text-purple-700 dark:text-purple-300">
               Rs. {netDailyRevenue.toLocaleString()}
@@ -308,7 +308,7 @@ export const DailySalesReportModal = ({ isOpen, onClose, initialDate = null }) =
           <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
             <div className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
               <ShoppingBag className="w-3.5 h-3.5 text-brand-500" />
-              <span>Commodity & Stock Dispatch Summary (آج کی فروخت شدہ اجناس)</span>
+              <span>Commodity & Stock Dispatch Summary</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {productAggregates.map((p, idx) => (

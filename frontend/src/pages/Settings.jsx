@@ -66,7 +66,7 @@ export const Settings = () => {
   const [shopNo, setShopNo] = useState(shop?.shopNo || '');
   const [mandiName, setMandiName] = useState(shop?.mandiName || 'Ghalla Mandi Multan');
   const [mandiGate, setMandiGate] = useState(shop?.mandiGate || '');
-  const [businessType, setBusinessType] = useState(shop?.businessType || 'Commission Agent (Aarthi / آڑھتی)');
+  const [businessType, setBusinessType] = useState(shop?.businessType || 'Commission Agent (Aarthi)');
   const [licenseNo, setLicenseNo] = useState(shop?.licenseNo || '');
   const [ntnNumber, setNtnNumber] = useState(shop?.ntnNumber || '');
   const [strnNumber, setStrnNumber] = useState(shop?.strnNumber || '');
@@ -842,11 +842,11 @@ export const Settings = () => {
                       className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                         }`}
                     >
-                      <option value="Commission Agent (Aarthi / آڑھتی)">Commission Agent (Aarthi / آڑھتی)</option>
-                      <option value="Grain Wholesaler (تھوک ڈیلر)">Grain Wholesaler (تھوک ڈیلر)</option>
-                      <option value="Grain Broker (دلال / بروکر)">Grain Broker (دلال / بروکر)</option>
-                      <option value="Mandi Input Supplier (کھاد، بیج، ادویات)">Mandi Input Supplier (کھاد، بیج، ادویات)</option>
-                      <option value="Warehouse / Silo Operator (گودام)">Warehouse / Silo Operator (گودام)</option>
+                      <option value="Commission Agent (Aarthi)">Commission Agent (Aarthi)</option>
+                      <option value="Grain Wholesaler">Grain Wholesaler</option>
+                      <option value="Grain Broker">Grain Broker</option>
+                      <option value="Mandi Input Supplier">Mandi Input Supplier</option>
+                      <option value="Warehouse / Silo Operator">Warehouse / Silo Operator</option>
                     </select>
                   </div>
                 </div>

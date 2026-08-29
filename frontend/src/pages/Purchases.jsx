@@ -1478,8 +1478,8 @@ export const Purchases = () => {
                       }`}
                   >
                     <option value="KG">Kilogram (KG)</option>
-                    <option value="Maund">Maund / Mann (من)</option>
-                    <option value="Bag">Bag / Bori (بوری)</option>
+                    <option value="Maund">Maund (Mann - 40 KG)</option>
+                    <option value="Bag">Bag (Bori - 50 KG)</option>
                     <option value="Gram">Gram (g)</option>
                     <option value="Liter">Liter (L)</option>
                     <option value="Quintal">Quintal (100 KG)</option>

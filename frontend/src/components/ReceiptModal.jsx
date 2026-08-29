@@ -93,7 +93,7 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
         <table style="width: 100%; border-collapse: collapse; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 14px;">
           <tr>
             <td style="width: 50%; vertical-align: top; padding: 10px 14px; border-right: 1px solid #e2e8f0;">
-              <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">BILLED TO (خریدار):</div>
+              <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">BILLED TO:</div>
               <div style="font-size: 13.5px; font-weight: 900; color: #0f172a; margin-top: 3px; line-height: 1.3;">${displayCustomer}</div>
               ${customerCity ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">📍 City: ${customerCity}</div>` : ''}
               ${customerPhone ? `<div style="font-size: 11px; color: #475569; margin-top: 1px;">📞 Phone: ${customerPhone}</div>` : ''}
@@ -102,7 +102,6 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
               <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase;">PAYMENT METHOD:</div>
               <div style="font-size: 13.5px; font-weight: 900; color: #16a34a; margin-top: 3px;">${paymentMethod}</div>
               ${saleNote ? `<div style="font-size: 10px; color: #64748b; font-style: italic; margin-top: 2px;">Note: ${saleNote}</div>` : ''}
-              <div style="font-size: 10px; font-weight: 700; color: #059669; margin-top: 3px;">✓ Counter POS Verified & Dispatched</div>
             </td>
           </tr>
         </table>
@@ -112,14 +111,14 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
           <thead>
             <tr style="background: #0f172a; color: #ffffff;">
               <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 35px; text-align: center;">#</th>
-              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: left;">COMMODITY / ITEM DESCRIPTION</th>
-              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 115px; text-align: right;">RATE (PKR)</th>
-              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 100px; text-align: center;">QTY / WEIGHT</th>
-              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 120px; text-align: right;">AMOUNT (PKR)</th>
+              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; text-align: left;">ITEM / COMMODITY DESCRIPTION</th>
+              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 110px; text-align: right;">RATE (PKR)</th>
+              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 90px; text-align: center;">QTY / WEIGHT</th>
+              <th style="padding: 8px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; width: 120px; text-align: right;">TOTAL (PKR)</th>
             </tr>
           </thead>
           <tbody>
-            ${a4ItemsHtml}
+            ${itemsRowsHtml}
           </tbody>
         </table>
 
@@ -127,18 +126,18 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           <tr>
             <td style="width: 52%; vertical-align: top; padding-right: 14px;">
-              <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-size: 10px; color: #64748b; background: #f8fafc; line-height: 1.5;">
-                <div style="font-weight: 800; color: #334155; margin-bottom: 2px;">Terms & Conditions:</div>
+              <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-size: 10px; color: #475569; background: #f8fafc; line-height: 1.5;">
+                <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">Terms & Mandi Conditions:</div>
                 <div>• Goods once sold are verified per standard Ghalla Mandi trade rules.</div>
                 <div>• Official sales tax invoice & cash memo gate pass.</div>
-                <div>• Computer-generated invoice by Ghalla Mandi ERP.</div>
-                <div style="margin-top: 4px; font-weight: 700; color: #16a34a;">Thank you for your valued business!</div>
+                <div>• Computer-generated voucher by Ghalla Mandi ERP.</div>
+                <div style="margin-top: 4px; font-weight: 700; color: #059669;">Thank you for your valued business!</div>
               </div>
             </td>
             <td style="width: 48%; vertical-align: top;">
               <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                 <tr>
-                  <td style="padding: 4px 6px; color: #64748b; font-weight: 600;">Gross Subtotal:</td>
+                  <td style="padding: 4px 6px; color: #64748b;">Gross Subtotal:</td>
                   <td style="padding: 4px 6px; text-align: right; font-weight: 700; font-family: monospace;">Rs. ${Number(subtotal).toLocaleString()}</td>
                 </tr>
                 ${discount > 0 ? `
@@ -149,7 +148,7 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                 ` : ''}
                 ${tax > 0 ? `
                   <tr>
-                    <td style="padding: 4px 6px; color: #d97706; font-weight: 700;">Tax / GST:</td>
+                    <td style="padding: 4px 6px; color: #d97706; font-weight: 700;">Mandi Tax / GST:</td>
                     <td style="padding: 4px 6px; text-align: right; font-weight: 700; color: #d97706; font-family: monospace;">+ Rs. ${Number(tax).toLocaleString()}</td>
                   </tr>
                 ` : ''}
@@ -158,18 +157,18 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                   <td style="padding: 7px 8px; text-align: right; border-radius: 0 4px 4px 0; font-family: monospace; font-size: 13px;">Rs. ${Number(grandTotal).toLocaleString()}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 5px 6px 3px; color: #16a34a; font-weight: 800;">Amount Paid:</td>
+                  <td style="padding: 5px 6px 3px; color: #16a34a; font-weight: 700;">Paid (Counter):</td>
                   <td style="padding: 5px 6px 3px; text-align: right; font-weight: 800; color: #16a34a; font-family: monospace;">Rs. ${Number(paidAmount).toLocaleString()}</td>
                 </tr>
                 ${dueRemaining > 0 ? `
                   <tr>
-                    <td style="padding: 4px 6px; color: #dc2626; font-weight: 800;">Balance Due (Khata):</td>
-                    <td style="padding: 4px 6px; text-align: right; font-weight: 900; color: #dc2626; font-family: monospace;">Rs. ${Number(dueRemaining).toLocaleString()}</td>
+                    <td style="padding: 4px 6px; color: #e11d48; font-weight: 800;">Balance Due (Khata):</td>
+                    <td style="padding: 4px 6px; text-align: right; font-weight: 900; color: #e11d48; font-family: monospace;">Rs. ${Number(dueRemaining).toLocaleString()}</td>
                   </tr>
                 ` : `
                   <tr>
                     <td style="padding: 4px 6px; color: #16a34a; font-weight: 700;">Status:</td>
-                    <td style="padding: 4px 6px; text-align: right; font-weight: 800; color: #16a34a;">✓ FULLY PAID</td>
+                    <td style="padding: 4px 6px; text-align: right; font-weight: 800; color: #16a34a;">✓ FULLY SETTLED</td>
                   </tr>
                 `}
               </table>
@@ -182,12 +181,12 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
           <tr>
             <td style="width: 50%; vertical-align: bottom;">
               <div style="text-align: center; width: 180px; border-top: 1.5px dashed #94a3b8; padding-top: 5px; font-size: 10px; font-weight: 700; color: #475569;">
-                Customer Signature (دستخط خریدار)
+                Customer Signature
               </div>
             </td>
             <td style="width: 50%; vertical-align: bottom; text-align: right;">
               <div style="text-align: center; width: 180px; border-top: 1.5px dashed #94a3b8; padding-top: 5px; font-size: 10px; font-weight: 700; color: #475569; margin-left: auto;">
-                Authorized Signature & Stamp (مہر منشی)
+                Authorized Signature & Stamp
               </div>
             </td>
           </tr>
@@ -363,7 +362,7 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
             {/* Customer & Payment Meta Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
               <div className="space-y-1 sm:border-r sm:border-slate-200/80 sm:pr-3">
-                <span className="text-[10px] font-black uppercase text-slate-400 block">{t('customerLabel') || 'Billed To (خریدار)'}:</span>
+                <span className="text-[10px] font-black uppercase text-slate-400 block">{t('customerLabel') || 'Billed To'}:</span>
                 <div className="font-black text-sm text-slate-900">{displayCustomer}</div>
                 {customerCity && <div className="text-[11px] text-slate-600 font-medium">📍 City: {customerCity}</div>}
                 {customerPhone && <div className="text-[11px] text-slate-600 font-medium">📞 Phone: {customerPhone}</div>}
@@ -473,7 +472,7 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                 ) : (
                   <div className="flex justify-between items-center text-emerald-600 font-bold px-1 text-[11px]">
                     <span>Settlement:</span>
-                    <span>✓ FULLY PAID (صاف)</span>
+                    <span>✓ FULLY PAID</span>
                   </div>
                 )}
               </div>
@@ -482,10 +481,10 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
             {/* Signatures */}
             <div className="pt-5 flex justify-between items-end border-t border-slate-200 text-[10px] text-slate-500 font-bold">
               <div className="text-center w-36 sm:w-44 border-t-2 border-dashed border-slate-300 pt-1.5">
-                Customer Signature (دستخط خریدار)
+                Customer Signature
               </div>
               <div className="text-center w-36 sm:w-44 border-t-2 border-dashed border-slate-300 pt-1.5">
-                Authorized Signature & Stamp (مہر منشی)
+                Authorized Signature & Stamp
               </div>
             </div>
           </div>

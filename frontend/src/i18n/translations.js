@@ -10,7 +10,7 @@ export const translations = {
     // Language
     language: "Language",
     english: "English",
-    urdu: "اردو",
+    urdu: "Urdu",
     selectLanguage: "Select Language",
 
     // Navigation & Sidebar

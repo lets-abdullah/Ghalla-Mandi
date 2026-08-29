@@ -1164,7 +1164,7 @@ export const CreateOrder = () => {
                   <span className="text-[11px] font-black uppercase text-slate-400 block tracking-wide">
                     {t('netPayableTotal')}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-bold">صاف رقم بل</span>
+                  <span className="text-[10px] text-slate-400 font-bold">Net Bill Total</span>
                 </div>
                 <span className="text-2xl font-black text-brand-600 dark:text-brand-400 font-mono tracking-tight">
                   Rs. {netGrandTotal.toLocaleString()}
@@ -1184,8 +1184,8 @@ export const CreateOrder = () => {
               {/* Payment Mode Buttons: Clean 2x2 Grid */}
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { key: 'Cash', label: 'Cash (نقد)', icon: DollarSign },
-                  { key: 'Credit', label: 'Credit (ادھار)', icon: Wallet },
+                  { key: 'Cash', label: 'Cash', icon: DollarSign },
+                  { key: 'Credit', label: 'Credit', icon: Wallet },
                   { key: 'Bank', label: 'Bank Transfer', icon: Building2 },
                   { key: 'Card', label: 'Card Payment', icon: CreditCard }
                 ].map(mode => (
@@ -1221,7 +1221,7 @@ export const CreateOrder = () => {
               {/* Amount Received Input */}
               <div>
                 <label className="text-[10px] font-black text-slate-400 block mb-1 uppercase tracking-wider">
-                  {t('amountReceivedInput')} (وصول شدہ رقم)
+                  {t('amountReceivedInput')}
                 </label>
                 <div className="relative">
                   <input
@@ -1281,7 +1281,7 @@ export const CreateOrder = () => {
                   ) : (
                     <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
                       <span>{t('status')}:</span>
-                      <span>✓ Fully Paid (صاف حساب)</span>
+                      <span>✓ Fully Paid (Settled)</span>
                     </div>
                   )}
                 </div>
