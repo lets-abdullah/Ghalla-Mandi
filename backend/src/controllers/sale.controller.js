@@ -79,7 +79,7 @@ export const createSale = async (req, res) => {
     }
 
     const grandTotal = Math.max(0, subtotal - Number(discount) + Number(tax));
-    const paid = Number(paidAmount) || 0;
+    const paid = Math.min(grandTotal, Math.max(0, Number(paidAmount) || 0));
     const status = paid >= grandTotal ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
 
     const count = await Sale.countDocuments({ shop_id: req.shop_id });

@@ -62,7 +62,9 @@ export const recordPayment = async (req, res) => {
 
       if (cust) {
         targetPartyName = cust.name;
-        const newBalance = Number(cust.balance || 0) - amtNum;
+        const currentBal = Math.max(0, Number(cust.balance || 0));
+        const finalAmt = currentBal > 0 ? Math.min(currentBal, amtNum) : amtNum;
+        const newBalance = Math.max(0, currentBal - finalAmt);
         await Customer.findByIdAndUpdate(cust.id, { balance: newBalance });
       } else {
         targetPartyName = partyName || 'Walk-in Customer';
@@ -72,7 +74,9 @@ export const recordPayment = async (req, res) => {
       if (saleId) {
         const sale = await Sale.findById(saleId);
         if (sale) {
-          const newPaid = Number(sale.paidAmount || 0) + amtNum;
+          const maxSaleDue = Math.max(0, Number(sale.amount || 0) - Number(sale.paidAmount || 0));
+          const effectivePay = Math.min(maxSaleDue, amtNum);
+          const newPaid = Number(sale.paidAmount || 0) + effectivePay;
           const newStatus = newPaid >= Number(sale.amount || 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
           await Sale.findByIdAndUpdate(saleId, { paidAmount: newPaid, status: newStatus });
         }
@@ -115,14 +119,18 @@ export const recordPayment = async (req, res) => {
       const sup = partyId ? await Supplier.findById(partyId) : null;
       if (sup) {
         targetPartyName = sup.name;
-        const newBalance = Number(sup.balance || 0) - amtNum;
+        const currentBal = Math.max(0, Number(sup.balance || 0));
+        const finalAmt = currentBal > 0 ? Math.min(currentBal, amtNum) : amtNum;
+        const newBalance = Math.max(0, currentBal - finalAmt);
         await Supplier.findByIdAndUpdate(sup.id, { balance: newBalance });
       }
 
       if (purchaseId) {
         const pur = await Purchase.findById(purchaseId);
         if (pur) {
-          const newPaid = Number(pur.paidAmount || 0) + amtNum;
+          const maxPurDue = Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.paidAmount || 0));
+          const effectivePay = Math.min(maxPurDue, amtNum);
+          const newPaid = Number(pur.paidAmount || 0) + effectivePay;
           const newStatus = newPaid >= Number(pur.grandTotal || 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
           await Purchase.findByIdAndUpdate(purchaseId, { paidAmount: newPaid, paymentStatus: newStatus });
         }

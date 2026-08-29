@@ -274,69 +274,13 @@ export const Expenses = () => {
         )}
       </div>
 
-      {/* Operational Cashier KPI Cards Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className={`p-4 rounded-2xl border card-shadow space-y-1.5 ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-        }`}>
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
-            <span>Today's Outflow</span>
-            <Clock className="w-3.5 h-3.5 text-amber-500" />
-          </div>
-          <div className="text-xl font-black font-mono text-amber-600 dark:text-amber-400">
-            Rs. {stats.todayTotal.toLocaleString()}
-          </div>
-          <div className="text-[10px] text-slate-400 font-medium">Counter spend today</div>
-        </div>
-
-        <div className={`p-4 rounded-2xl border card-shadow space-y-1.5 ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-        }`}>
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
-            <span>This Month</span>
-            <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-          </div>
-          <div className="text-xl font-black font-mono text-indigo-600 dark:text-indigo-400">
-            Rs. {stats.monthTotal.toLocaleString()}
-          </div>
-          <div className="text-[10px] text-slate-400 font-medium">Current month total</div>
-        </div>
-
-        <div className={`p-4 rounded-2xl border card-shadow space-y-1.5 ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-        }`}>
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
-            <span>Cash Outflows</span>
-            <Wallet className="w-3.5 h-3.5 text-emerald-500" />
-          </div>
-          <div className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-            Rs. {stats.cashTotal.toLocaleString()}
-          </div>
-          <div className="text-[10px] text-slate-400 font-medium">Drawer cash paid</div>
-        </div>
-
-        <div className={`p-4 rounded-2xl border card-shadow space-y-1.5 ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-        }`}>
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
-            <span>Bank & Online</span>
-            <CreditCard className="w-3.5 h-3.5 text-purple-500" />
-          </div>
-          <div className="text-xl font-black font-mono text-purple-600 dark:text-purple-400">
-            Rs. {stats.bankTotal.toLocaleString()}
-          </div>
-          <div className="text-[10px] text-slate-400 font-medium">{stats.count} total vouchers recorded</div>
-        </div>
-      </div>
-
       {/* Main Grid: Left Quick Record Form, Right Vouchers Ledger */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* ========================================================================= */}
         {/* 1. RECORD EXPENSE FORM (DEDICATED PANEL) */}
         {/* ========================================================================= */}
-        <div className={`lg:col-span-4 border rounded-3xl p-5 card-shadow h-fit space-y-4 ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-        }`}>
+        <div className={`lg:col-span-4 border rounded-3xl p-5 card-shadow h-fit space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-700">
             <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
               <PlusCircle className="w-4 h-4" />
@@ -357,9 +301,8 @@ export const Expenses = () => {
                 required
                 value={form.category}
                 onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
-                className={`w-full border rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:border-rose-500 cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:border-rose-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 {EXPENSE_CATEGORIES.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -380,9 +323,8 @@ export const Expenses = () => {
                 placeholder="Enter expense amount"
                 value={form.amount}
                 onChange={(e) => setForm(prev => ({ ...prev, amount: e.target.value }))}
-                className={`w-full border rounded-xl px-3 py-2.5 text-sm font-black font-mono outline-none focus:border-rose-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2.5 text-sm font-black font-mono outline-none focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
             </div>
 
@@ -395,9 +337,8 @@ export const Expenses = () => {
                 <select
                   value={form.mode}
                   onChange={(e) => setForm(prev => ({ ...prev, mode: e.target.value }))}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none focus:border-rose-500 cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none focus:border-rose-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   <option value="Cash">Cash on Counter</option>
                   <option value="Bank Transfer">Bank Transfer</option>
@@ -415,9 +356,8 @@ export const Expenses = () => {
                   required
                   value={form.date}
                   onChange={(e) => setForm(prev => ({ ...prev, date: e.target.value }))}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none focus:border-rose-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
             </div>
@@ -432,9 +372,8 @@ export const Expenses = () => {
                 placeholder="e.g. Staff salary, Electricity meter bill..."
                 value={form.desc}
                 onChange={(e) => setForm(prev => ({ ...prev, desc: e.target.value }))}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-rose-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
             </div>
 
@@ -453,9 +392,8 @@ export const Expenses = () => {
         {/* ========================================================================= */}
         {/* 2. EXPENSE REGISTER / VOUCHERS LEDGER */}
         {/* ========================================================================= */}
-        <div className={`lg:col-span-8 border rounded-3xl p-5 card-shadow space-y-4 ${
-          theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-        }`}>
+        <div className={`lg:col-span-8 border rounded-3xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
           {/* Header & Filter Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
             <div>
@@ -469,9 +407,8 @@ export const Expenses = () => {
               <select
                 value={dateFilter}
                 onChange={(e) => { setDateFilter(e.target.value); setPage(1); }}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Dates</option>
                 <option value="Today">Today</option>
@@ -483,9 +420,8 @@ export const Expenses = () => {
               <select
                 value={categoryFilter}
                 onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 max-w-[150px] truncate ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer focus:border-rose-500 max-w-[150px] truncate ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Categories</option>
                 {EXPENSE_CATEGORIES.map(cat => (
@@ -503,9 +439,8 @@ export const Expenses = () => {
               placeholder="Search voucher #, category, description, payment mode..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-              className={`w-full pl-8 pr-3 py-2 text-xs font-bold rounded-xl border outline-none focus:border-rose-500 ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
-              }`}
+              className={`w-full pl-8 pr-3 py-2 text-xs font-bold rounded-xl border outline-none focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                }`}
             />
           </div>
 
@@ -513,9 +448,8 @@ export const Expenses = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
               <thead>
-                <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
-                  theme === 'dark' ? 'text-slate-400 bg-slate-900/60 border-slate-700' : 'text-slate-500 bg-slate-50 border-slate-200'
-                }`}>
+                <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 bg-slate-900/60 border-slate-700' : 'text-slate-500 bg-slate-50 border-slate-200'
+                  }`}>
                   <th className="py-3 px-3">Date</th>
                   <th className="py-3 px-3">Voucher #</th>
                   <th className="py-3 px-3">Category</th>
@@ -525,9 +459,8 @@ export const Expenses = () => {
                   <th className="py-3 px-3 text-center">Action</th>
                 </tr>
               </thead>
-              <tbody className={`divide-y font-medium ${
-                theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
-              }`}>
+              <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+                }`}>
                 {paginatedExpenses.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-slate-400">
@@ -537,9 +470,8 @@ export const Expenses = () => {
                   </tr>
                 ) : (
                   paginatedExpenses.map((exp) => (
-                    <tr key={exp.id} className={`transition ${
-                      theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'
-                    }`}>
+                    <tr key={exp.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'
+                      }`}>
                       <td className="py-3 px-3 text-slate-500 font-medium">{exp.date}</td>
                       <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">{exp.ref}</td>
                       <td className="py-3 px-3">

@@ -172,14 +172,14 @@ export const Khata = () => {
         )
       ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-      const totalPaid = upfrontPaid + directPaid;
-
       const returnAmt = (saleReturns || []).filter(r =>
         r.customerId === cust.id ||
         (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
       ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
       
-      const balance = Math.max(0, totalSale - totalPaid - returnAmt);
+      const netSaleTarget = Math.max(0, totalSale - returnAmt);
+      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
+      const balance = Math.max(0, netSaleTarget - totalPaid);
       const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
       const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
 
@@ -232,20 +232,20 @@ export const Khata = () => {
         )
       ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-      const totalPaid = upfrontPaid + directPaid;
-
       const returnAmt = (saleReturns || []).filter(r =>
         r.customerName && r.customerName.trim().toLowerCase() === key
       ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
 
-      const balance = Math.max(0, totalSale - totalPaid - returnAmt);
+      const netSaleTarget = Math.max(0, totalSale - returnAmt);
+      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
+      const balance = Math.max(0, netSaleTarget - totalPaid);
 
       list.push({
-        id: `walkin-${key}`,
+        id: `walkin-${val.name}`,
         name: val.name,
-        businessName: 'Walk-in Khata',
-        phone: '',
-        city: 'Counter Sales',
+        businessName: 'Walk-in Party',
+        phone: 'Counter Sale',
+        city: 'Local Mandi',
         customerType: 'Walk-in Customer',
         totalSale,
         totalPaid,
@@ -326,7 +326,23 @@ export const Khata = () => {
     e.preventDefault();
     if (!paymentModalCust || isSubmitting) return;
 
-    const amt = Math.max(1, Number(paymentAmount) || 0);
+    const maxDue = Math.max(0, Number(paymentModalCust.balance || 0));
+    if (maxDue <= 0) {
+      alert('This customer account is already fully settled (Rs. 0 balance). No payment is required.');
+      return;
+    }
+
+    const amt = Number(paymentAmount) || 0;
+    if (amt <= 0) {
+      alert('Please enter a valid payment amount.');
+      return;
+    }
+
+    if (amt > maxDue) {
+      alert(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed the customer's outstanding balance of Rs. ${maxDue.toLocaleString()}.`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await recordPayment({

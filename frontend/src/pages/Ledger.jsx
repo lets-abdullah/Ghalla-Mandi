@@ -422,15 +422,27 @@ export const Ledger = () => {
       }
     });
 
-    // 3. Compute final balance & status for each customer entity
+    // 3. Compute final balance & status for each party entity
     const list = Array.from(map.values()).map(entity => {
-      const balance = entity.totalDebit - entity.totalCredit;
+      let balance = 0;
       let status = 'Settled';
-      if (balance > 0) status = 'Receivable';
-      else if (balance < 0) status = 'Payable';
+      let displayCredit = entity.totalCredit;
+
+      if (!isSupplier) {
+        // Customers: Mandi sells to customers. Customers can only be Receivable (Due) or Settled (Clear). Customers can NEVER be Payable.
+        balance = Math.max(0, entity.totalDebit - entity.totalCredit);
+        displayCredit = Math.min(entity.totalDebit, entity.totalCredit);
+        status = balance > 0 ? 'Receivable' : 'Settled';
+      } else {
+        // Suppliers: Mandi buys from suppliers. Balance = Purchases - Payments
+        balance = Math.max(0, entity.totalDebit - entity.totalCredit);
+        displayCredit = Math.min(entity.totalDebit, entity.totalCredit);
+        status = balance > 0 ? 'Payable' : 'Settled';
+      }
 
       return {
         ...entity,
+        totalCredit: displayCredit,
         balance,
         status
       };
@@ -472,7 +484,15 @@ export const Ledger = () => {
   }, [customerEntities]);
 
   const totalPayable = useMemo(() => {
-    return customerEntities.reduce((sum, c) => sum + (c.balance < 0 ? Math.abs(c.balance) : 0), 0);
+    return customerEntities.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0);
+  }, [customerEntities]);
+
+  const totalDebitSum = useMemo(() => {
+    return customerEntities.reduce((sum, c) => sum + (c.totalDebit || 0), 0);
+  }, [customerEntities]);
+
+  const totalCreditSum = useMemo(() => {
+    return customerEntities.reduce((sum, c) => sum + (c.totalCredit || 0), 0);
   }, [customerEntities]);
 
   const settledCount = useMemo(() => {
@@ -521,7 +541,11 @@ export const Ledger = () => {
     // 2. Compute Running Balance chronologically
     let runningBalance = 0;
     const computed = partyEntries.map(entry => {
-      runningBalance += (entry.debit - entry.credit);
+      if (!isSupplier) {
+        runningBalance = Math.max(0, runningBalance + (entry.debit - entry.credit));
+      } else {
+        runningBalance = Math.max(0, runningBalance + (entry.debit - entry.credit));
+      }
       return {
         ...entry,
         runningBalance
@@ -589,6 +613,17 @@ export const Ledger = () => {
     const partyList = isSupplier ? (suppliers || []) : customerEntities;
     const selectedEntity = partyList.find(p => String(p.id) === String(paymentForm.partyId));
     const finalPartyName = selectedEntity?.name || paymentForm.partyName || (isSupplier ? 'Supplier' : 'Customer');
+
+    const maxDue = Math.max(0, Number(selectedEntity?.balance || 0));
+    if (maxDue <= 0) {
+      alert(`This ${isSupplier ? 'supplier' : 'customer'} account is already fully settled (Rs. 0 balance). No payment is required.`);
+      return;
+    }
+
+    if (amt > maxDue) {
+      alert(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed the outstanding balance of Rs. ${maxDue.toLocaleString()}.`);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -733,49 +768,64 @@ export const Ledger = () => {
         <div className="space-y-4">
           {/* 4 Financial Condition KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {/* 1. Total Receivable */}
+            {/* 1. Total Receivable / Payable */}
             <div
-              onClick={() => setStatusFilter(statusFilter === 'Receivable' ? 'All' : 'Receivable')}
+              onClick={() => setStatusFilter(statusFilter === (isSupplier ? 'Payable' : 'Receivable') ? 'All' : (isSupplier ? 'Payable' : 'Receivable'))}
               className={`p-4 rounded-2xl border transition cursor-pointer card-hover card-shadow ${
-                statusFilter === 'Receivable'
-                  ? 'ring-2 ring-emerald-500'
+                statusFilter === (isSupplier ? 'Payable' : 'Receivable')
+                  ? (isSupplier ? 'ring-2 ring-rose-500' : 'ring-2 ring-emerald-500')
                   : ''
-              } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-emerald-50/60 to-white border-emerald-200/80'}`}
+              } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : (isSupplier ? 'bg-gradient-to-b from-rose-50/60 to-white border-rose-200/80' : 'bg-gradient-to-b from-emerald-50/60 to-white border-emerald-200/80')}`}
             >
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>Total Receivable</span>
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50"></span>
+                <span>{isSupplier ? 'Total Payable' : 'Total Receivable'}</span>
+                <span className={`w-2.5 h-2.5 rounded-full ${isSupplier ? 'bg-rose-500 shadow-xs shadow-rose-500/50' : 'bg-emerald-500 shadow-xs shadow-emerald-500/50'}`}></span>
               </div>
-              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-emerald-600 dark:text-emerald-400">
-                Rs. {totalReceivable.toLocaleString()}
+              <div className={`text-xl sm:text-2xl font-mono font-black mt-1.5 ${isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                Rs. {(isSupplier ? totalPayable : totalReceivable).toLocaleString()}
               </div>
               <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                🟢 Positive Balance (Owed to Mandi)
+                {isSupplier ? '🔴 Due to Suppliers' : '🟢 Due from Customers'}
               </div>
             </div>
 
-            {/* 2. Total Payable */}
+            {/* 2. Total Sales / Purchases (Debit) */}
             <div
-              onClick={() => setStatusFilter(statusFilter === 'Payable' ? 'All' : 'Payable')}
-              className={`p-4 rounded-2xl border transition cursor-pointer card-hover card-shadow ${
-                statusFilter === 'Payable'
-                  ? 'ring-2 ring-rose-500'
-                  : ''
-              } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-rose-50/60 to-white border-rose-200/80'}`}
+              className={`p-4 rounded-2xl border card-shadow ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
+              }`}
             >
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>Total Payable</span>
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs shadow-rose-500/50"></span>
+                <span>{isSupplier ? 'Total Procured' : 'Total Sales'}</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
               </div>
-              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-rose-600 dark:text-rose-400">
-                Rs. -{totalPayable.toLocaleString()}
+              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-blue-600 dark:text-blue-400">
+                Rs. {totalDebitSum.toLocaleString()}
               </div>
               <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                🔴 Negative Balance (Mandi Owes)
+                {isSupplier ? 'Total Commodity Purchases' : 'Total Billed Sales'}
               </div>
             </div>
 
-            {/* 3. Settled Accounts */}
+            {/* 3. Total Received / Paid (Credit) */}
+            <div
+              className={`p-4 rounded-2xl border card-shadow ${
+                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
+              }`}
+            >
+              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>{isSupplier ? 'Total Paid' : 'Total Received'}</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+              </div>
+              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-indigo-600 dark:text-indigo-400">
+                Rs. {totalCreditSum.toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                {isSupplier ? 'Disbursed to Suppliers' : 'Collected from Customers'}
+              </div>
+            </div>
+
+            {/* 4. Settled Accounts */}
             <div
               onClick={() => setStatusFilter(statusFilter === 'Settled' ? 'All' : 'Settled')}
               className={`p-4 rounded-2xl border transition cursor-pointer card-hover card-shadow ${
@@ -793,25 +843,6 @@ export const Ledger = () => {
               </div>
               <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
                 ⚪ Zero Balance (Fully Cleared)
-              </div>
-            </div>
-
-            {/* 4. Total Active Customers */}
-            <div
-              onClick={() => { setStatusFilter('All'); setCustomerTypeFilter('All'); }}
-              className={`p-4 rounded-2xl border transition cursor-pointer card-hover card-shadow ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
-              }`}
-            >
-              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>Total Entities</span>
-                <Users className="w-3.5 h-3.5 text-blue-500" />
-              </div>
-              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-blue-600 dark:text-blue-400">
-                {customerEntities.length} Parties
-              </div>
-              <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                Regular & Walk-in Accounts
               </div>
             </div>
           </div>
@@ -865,9 +896,8 @@ export const Ledger = () => {
                   }`}
                 >
                   <option value="All">All Conditions</option>
-                  <option value="Receivable">🟢 Receivable (Positive)</option>
-                  <option value="Payable">🔴 Payable (Negative)</option>
-                  <option value="Settled">⚪ Settled (Zero)</option>
+                  <option value={isSupplier ? 'Payable' : 'Receivable'}>{isSupplier ? '🔴 Payable (Due)' : '🟢 Receivable (Due)'}</option>
+                  <option value="Settled">⚪ Settled (Zero Due)</option>
                 </select>
               </div>
 

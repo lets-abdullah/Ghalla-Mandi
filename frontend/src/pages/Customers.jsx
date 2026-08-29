@@ -105,14 +105,14 @@ export const Customers = () => {
         )
       ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-      const totalPaid = upfrontPaid + directPaid;
-
       const returnAmt = (saleReturns || []).filter(r =>
         r.customerId === cust.id ||
         (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
       ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
 
-      const balance = Math.max(0, totalSale - totalPaid - returnAmt);
+      const netSaleTarget = Math.max(0, totalSale - returnAmt);
+      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
+      const balance = Math.max(0, netSaleTarget - totalPaid);
       const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
       const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
 
@@ -168,13 +168,13 @@ export const Customers = () => {
         )
       ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-      const totalPaid = upfrontPaid + directPaid;
-
       const returnAmt = (saleReturns || []).filter(r =>
         r.customerName && r.customerName.trim().toLowerCase() === key
       ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
 
-      const balance = Math.max(0, totalSale - totalPaid - returnAmt);
+      const netSaleTarget = Math.max(0, totalSale - returnAmt);
+      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
+      const balance = Math.max(0, netSaleTarget - totalPaid);
 
       list.push({
         id: `walkin-${val.name}`,
