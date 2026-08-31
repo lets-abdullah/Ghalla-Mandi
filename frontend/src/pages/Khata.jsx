@@ -97,12 +97,52 @@ export const Khata = () => {
       setIsSavingEdit(true);
       const fullCust = customers.find(c => String(c.id) === String(editingKhataCust.id)) || editingKhataCust;
       const fin = computeCustomerKhataBalance(fullCust, sales, paymentLogs, saleReturns);
-      const targetBal = Number(editForm.balance) || 0;
-      const balDiff = targetBal - fin.balance;
-      const updatedOpBal = Math.max(0, Number(fullCust.openingBalance || 0) + balDiff);
+      const targetBal = Math.max(0, Number(editForm.balance) || 0);
+      const initialDue = fin.balance;
 
-      if (editingKhataCust.isRegistered === false || String(editingKhataCust.id).startsWith('walkin-')) {
-        if (addCustomer) {
+      // If user reduced remaining due (e.g. was 5,000, now 0 or 2,000), record a payment settlement for the difference
+      if (targetBal < initialDue) {
+        const receivedDiff = initialDue - targetBal;
+        if (recordPayment && receivedDiff > 0) {
+          await recordPayment({
+            partyId: fullCust.id && !String(fullCust.id).startsWith('walkin-') ? fullCust.id : null,
+            partyName: editForm.name.trim() || fullCust.name,
+            partyType: 'Customer',
+            amount: receivedDiff,
+            paymentMode: 'Cash',
+            note: targetBal === 0 ? 'Full Khata Clearance' : 'Partial Khata Settlement'
+          });
+        }
+      } else if (targetBal > initialDue) {
+        // If due was increased, adjust opening balance
+        const balDiff = targetBal - initialDue;
+        const updatedOpBal = Math.max(0, Number(fullCust.openingBalance || 0) + balDiff);
+        if (updateCustomer && fullCust.id && !String(fullCust.id).startsWith('walkin-')) {
+          await updateCustomer(fullCust.id, {
+            ...fullCust,
+            name: editForm.name.trim(),
+            businessName: editForm.businessName.trim(),
+            phone: editForm.phone ? editForm.phone.trim() : 'N/A',
+            city: editForm.city.trim(),
+            openingBalance: updatedOpBal,
+            balance: targetBal,
+            customerType: editForm.customerType
+          });
+        }
+      }
+
+      // Also update customer profile details
+      if (updateCustomer && fullCust.id && !String(fullCust.id).startsWith('walkin-')) {
+        await updateCustomer(fullCust.id, {
+          ...fullCust,
+          name: editForm.name.trim(),
+          businessName: editForm.businessName.trim(),
+          phone: editForm.phone ? editForm.phone.trim() : 'N/A',
+          city: editForm.city.trim(),
+          customerType: editForm.customerType
+        });
+      } else if (editingKhataCust.isRegistered === false || String(editingKhataCust.id).startsWith('walkin-')) {
+        if (addCustomer && targetBal > 0) {
           await addCustomer({
             name: editForm.name.trim(),
             shopName: editForm.businessName.trim(),
@@ -113,17 +153,8 @@ export const Khata = () => {
             customerType: editForm.customerType || 'Walk-in Customer'
           });
         }
-      } else if (updateCustomer) {
-        await updateCustomer(editingKhataCust.id, {
-          name: editForm.name,
-          businessName: editForm.businessName,
-          phone: editForm.phone ? editForm.phone.trim() : 'N/A',
-          city: editForm.city,
-          openingBalance: updatedOpBal,
-          balance: targetBal,
-          customerType: editForm.customerType
-        });
       }
+
       setEditingKhataCust(null);
     } catch (err) {
       alert(err.message || 'Failed to update Khata account');
@@ -581,33 +612,17 @@ export const Khata = () => {
                           {/* Edit Khata Account */}
                           <button
                             onClick={() => handleOpenEditModal(item)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                            title="Edit Khata / Customer Details"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold shadow-2xs"
+                            title="Edit Khata & Manage Balance"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                             <span>Edit</span>
                           </button>
 
-                          {/* Receive Payment */}
-                          {item.balance > 0 ? (
-                            <button
-                              onClick={() => openReceiveModal(item)}
-                              className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
-                              title="Receive Payment for this Khata"
-                            >
-                              <CreditCard className="w-3.5 h-3.5" />
-                              <span>Receive</span>
-                            </button>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                              <Check className="w-3 h-3" /> Clear
-                            </span>
-                          )}
-
                           {/* View Ledger */}
                           <button
                             onClick={() => navigate(item.isRegistered ? `/ledger?customerId=${item.id}` : `/ledger?customerId=${encodeURIComponent(item.name)}`)}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${theme === 'dark'
+                            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${theme === 'dark'
                                 ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400'
                                 : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
                               }`}
@@ -884,25 +899,18 @@ export const Khata = () => {
                   <div className="relative">
                     <input
                       type="number"
+                      min="0"
                       value={editForm.balance}
                       onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })}
                       placeholder="0"
-                      className={`w-full border rounded-xl px-3 py-2 pr-14 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(editForm.balance) === 0
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(editForm.balance) === 0
                           ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
                           : 'text-amber-500 dark:text-amber-400 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
                         }`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setEditForm(prev => ({ ...prev, balance: 0 }))}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white text-[10px] font-bold transition cursor-pointer"
-                      title="Set to Rs. 0 (Fully Paid)"
-                    >
-                      Set 0
-                    </button>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1 font-medium">
-                    Input 0 to mark fully cleared, or adjust to custom remaining amount.
+                    Type 0 to mark fully paid, or enter new remaining due amount to record partial recovery.
                   </p>
                 </div>
               </div>
