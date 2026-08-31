@@ -476,24 +476,11 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
             <button
               type="button"
               onClick={handlePrint}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition shadow-sm flex items-center gap-2 cursor-pointer active:scale-98"
               title="Print (Ctrl + P)"
             >
               <Printer className="w-4 h-4" />
-              <span className="hidden sm:inline">Print</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={isDownloading}
-              className={`px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
-              }`}
-              title="Download PDF Document"
-            >
-              {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              <span className="hidden sm:inline">Download PDF</span>
-              <span className="sm:hidden">PDF</span>
+              <span>Print {paperSize === 'thermal-80' ? 'Receipt' : paperSize === 'thermal-58' ? 'Mini' : paperSize === 'a5' ? 'A5' : 'A4'}</span>
             </button>
             <button
               type="button"
