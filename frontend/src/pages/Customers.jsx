@@ -24,7 +24,7 @@ import {
   Landmark,
   Hash
 } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeCustomerKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
@@ -87,32 +87,10 @@ export const Customers = () => {
 
     // 1. Process all registered customer accounts
     (customers || []).forEach(cust => {
-      processedCustIds.add(cust.id);
+      processedCustIds.add(String(cust.id));
       if (cust.name) processedCustNames.add(cust.name.trim().toLowerCase());
 
-      const custSales = (sales || []).filter(s =>
-        s.customerId === cust.id ||
-        (s.partyName && s.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
-      );
-      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? (s.amount || s.grandTotal) : 0)), 0);
-      
-      const directPaid = (paymentLogs || []).filter(p =>
-        (p.type === 'Customer' || p.partyType === 'Customer') &&
-        (
-          (p.partyId && String(p.partyId) === String(cust.id)) ||
-          (p.partyName && p.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
-      const returnAmt = (saleReturns || []).filter(r =>
-        r.customerId === cust.id ||
-        (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
-      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-      const netSaleTarget = Math.max(0, totalSale - returnAmt);
-      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
-      const balance = Math.max(0, netSaleTarget - totalPaid);
+      const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
       const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
       const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
 
@@ -127,11 +105,11 @@ export const Customers = () => {
         city: cust.city || 'Local Mandi',
         address: cust.address || '',
         customerType: custType,
-        balance,
+        balance: fin.balance,
         status: cust.status || 'Active',
-        ordersCount: custSales.length,
-        totalSales: totalSale,
-        totalPaid,
+        ordersCount: fin.ordersCount,
+        totalSales: fin.totalSale,
+        totalPaid: fin.totalPaid,
         isRegistered: true
       });
     });
@@ -139,8 +117,10 @@ export const Customers = () => {
     // 2. Process Walk-in / Counter Sales not attached to a registered customer ID
     const walkinSalesMap = new Map();
     (sales || []).forEach(s => {
-      const isRegisteredCust = (s.customerId && processedCustIds.has(s.customerId)) ||
-        (s.partyName && processedCustNames.has(s.partyName.trim().toLowerCase()));
+      const sCustId = s.customerId ? String(s.customerId) : null;
+      const sName = (s.partyName || s.customerName || '').trim().toLowerCase();
+      const isRegisteredCust = (sCustId && processedCustIds.has(sCustId)) ||
+        (sName && processedCustNames.has(sName));
 
       if (!isRegisteredCust) {
         const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
@@ -156,25 +136,7 @@ export const Customers = () => {
     });
 
     walkinSalesMap.forEach((val, key) => {
-      const custSales = val.sales;
-      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? (s.amount || s.grandTotal) : 0)), 0);
-      
-      const directPaid = (paymentLogs || []).filter(p =>
-        (p.type === 'Customer' || p.partyType === 'Customer') &&
-        (
-          (p.partyName && p.partyName.trim().toLowerCase() === key) ||
-          (p.partyId && String(p.partyId).toLowerCase() === `walkin-${key}`)
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
-      const returnAmt = (saleReturns || []).filter(r =>
-        r.customerName && r.customerName.trim().toLowerCase() === key
-      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-      const netSaleTarget = Math.max(0, totalSale - returnAmt);
-      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
-      const balance = Math.max(0, netSaleTarget - totalPaid);
+      const fin = computeCustomerKhataBalance({ id: `walkin-${key}`, name: val.name }, val.sales, paymentLogs, saleReturns);
 
       list.push({
         id: `walkin-${val.name}`,
@@ -186,11 +148,11 @@ export const Customers = () => {
         city: 'Local Mandi',
         address: 'Walk-in Counter',
         customerType: 'Walk-in Customer',
-        balance,
+        balance: fin.balance,
         status: 'Active',
-        ordersCount: custSales.length,
-        totalSales: totalSale,
-        totalPaid,
+        ordersCount: fin.ordersCount,
+        totalSales: fin.totalSale,
+        totalPaid: fin.totalPaid,
         isRegistered: false
       });
     });

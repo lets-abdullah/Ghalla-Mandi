@@ -21,7 +21,7 @@ import {
   Eye,
   Plus
 } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeSaleFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { ReceiptModal } from '../components/ReceiptModal';
@@ -175,18 +175,12 @@ export const Sales = () => {
       }
 
       // 5. Payment Status Filter
-      const paid = Number(s.paidAmount ?? s.paidamount ?? 0);
-      const total = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? 0);
-      const retAmt = Number(s.returnAmount ?? 0);
-      const isReturned = (s.status === 'Returned') || s.isReturned || (retAmt > 0) || (s.returnStatus && s.returnStatus !== 'None') || (saleReturns || []).some(r => r.saleId === s.id || r.invoiceNo === s.invoiceNo);
-      const status = paid >= total && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+      const { status, isReturned } = computeSaleFinancials(s, saleReturns);
 
       if (statusFilter === 'Returned') {
         if (!isReturned) return false;
-      } else {
-        if (statusFilter === 'Paid' && status !== 'Paid') return false;
-        if (statusFilter === 'Partial' && status !== 'Partial') return false;
-        if (statusFilter === 'Pending' && status !== 'Pending') return false;
+      } else if (statusFilter !== 'All') {
+        if (statusFilter !== status) return false;
       }
 
       return true;
@@ -195,7 +189,7 @@ export const Sales = () => {
       const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
       return timeB - timeA;
     });
-  }, [sales, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter]);
+  }, [sales, saleReturns, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter]);
 
   // Filtered Sale Returns (for when Processed Returns Only is selected)
   const filteredSaleReturns = useMemo(() => {
@@ -209,64 +203,27 @@ export const Sales = () => {
     }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
   }, [saleReturns, selectedCustomerId]);
 
-  // Aggregate Metrics based on Filtered Sales (Synchronized with Khata & PaymentLogs)
+  // Aggregate Metrics based on Filtered Sales (Synchronized with Khata & Invoices)
   const totalFilteredSalesVolume = filteredSales.reduce(
     (acc, s) => acc + (Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0),
     0
   );
 
   const { totalFilteredCashReceived, totalFilteredOutstandingDue } = useMemo(() => {
-    // Group filtered sales by customer/party to attribute upfront + direct payments accurately
-    const partyMap = new Map();
-    filteredSales.forEach(s => {
-      const key = (s.customerId ? String(s.customerId) : (s.partyName || s.customerName || 'walk-in')).trim().toLowerCase();
-      if (!partyMap.has(key)) {
-        partyMap.set(key, {
-          customerId: s.customerId,
-          partyName: s.partyName || s.customerName || '',
-          sales: []
-        });
-      }
-      partyMap.get(key).sales.push(s);
-    });
-
     let totalCollected = 0;
     let totalOutstanding = 0;
 
-    partyMap.forEach(group => {
-      const groupSalesTotal = group.sales.reduce((acc, s) => acc + Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? 0), 0);
-      const groupUpfrontPaid = group.sales.reduce((acc, s) => acc + Number(s.paidAmount ?? s.paidamount ?? (s.paymentStatus === 'Paid' ? (s.amount ?? s.grandTotal ?? s.grandtotal ?? 0) : 0)), 0);
-
-      const groupDirectPaid = (paymentLogs || []).filter(p =>
-        (p.type === 'Customer' || p.partyType === 'Customer') &&
-        (
-          (group.customerId && p.partyId && String(p.partyId) === String(group.customerId)) ||
-          (group.partyName && p.partyName && p.partyName.trim().toLowerCase() === group.partyName.trim().toLowerCase()) ||
-          group.sales.some(s => s.id && p.saleId && String(p.saleId) === String(s.id)) ||
-          group.sales.some(s => s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
-      const groupReturnAmt = (saleReturns || []).filter(r =>
-        (group.customerId && r.customerId && String(r.customerId) === String(group.customerId)) ||
-        (group.partyName && r.customerName && r.customerName.trim().toLowerCase() === group.partyName.trim().toLowerCase()) ||
-        group.sales.some(s => s.id && r.saleId && String(r.saleId) === String(s.id)) ||
-        group.sales.some(s => s.invoiceNo && r.saleInvoiceNo && r.saleInvoiceNo.includes(s.invoiceNo))
-      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-      const groupNetTarget = Math.max(0, groupSalesTotal - groupReturnAmt);
-      const groupPaid = Math.min(groupNetTarget, groupUpfrontPaid + groupDirectPaid);
-      const groupDue = Math.max(0, groupNetTarget - groupPaid);
-
-      totalCollected += groupPaid;
-      totalOutstanding += groupDue;
+    filteredSales.forEach(s => {
+      const fin = computeSaleFinancials(s, saleReturns);
+      totalCollected += fin.paid;
+      totalOutstanding += fin.due;
     });
 
     return {
       totalFilteredCashReceived: totalCollected,
       totalFilteredOutstandingDue: totalOutstanding
     };
-  }, [filteredSales, paymentLogs, saleReturns]);
+  }, [filteredSales, saleReturns]);
 
   // Check if any filter is active
   const isAnyFilterActive = (
@@ -603,23 +560,7 @@ export const Sales = () => {
                 </tr>
               ) : (
                 filteredSales.map(s => {
-                  const upfrontPaid = Number(s.paidAmount || 0);
-                  // Add direct payments made via Ledger/Khata payment modal for this sale's customer
-                  const directPaid = (paymentLogs || []).filter(p =>
-                    (p.type === 'Customer' || p.partyType === 'Customer') &&
-                    (
-                      (p.partyId && s.customerId && String(p.partyId) === String(s.customerId)) ||
-                      (p.partyId && s.customerId && String(p.partyId) === String(s.id)) ||
-                      (p.saleId && String(p.saleId) === String(s.id)) ||
-                      (p.partyName && (s.partyName || s.customerName) &&
-                        p.partyName.trim().toLowerCase() === (s.partyName || s.customerName || '').trim().toLowerCase())
-                    )
-                  ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-                  const paid = upfrontPaid + directPaid;
-                  const total = Number(s.amount || s.grandTotal || 0);
-                  const retAmt = Number(s.returnAmount || 0);
-                  const due = Math.max(0, total - paid - retAmt);
-                  const status = paid >= (total - retAmt) && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+                  const { total, paid, returnAmount: retAmt, due, status, isReturned } = computeSaleFinancials(s, saleReturns);
                   const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') ||
                     (s.partyName || '').toLowerCase().includes('walk-in');
 

@@ -158,9 +158,38 @@ export const Ledger = () => {
     const entries = [];
 
     if (!isSupplier) {
-      // Customer Ledger Transactions (Both Regular & Walk-in)
+      // 0. Customer Opening Balances (Debit)
+      (customers || []).forEach(cust => {
+        const opBal = Number(cust.openingBalance !== undefined ? cust.openingBalance : (cust.openingbalance !== undefined ? cust.openingbalance : 0));
+        if (opBal > 0) {
+          entries.push({
+            id: `open-bal-cust-${cust.id}`,
+            rawDate: cust.created_at || '2026-01-01',
+            date: cust.created_at ? new Date(cust.created_at).toLocaleDateString('en-GB') : 'Opening',
+            partyId: String(cust.id),
+            partyName: cust.name,
+            customerType: cust.customerType || 'Regular Customer',
+            ref: 'OPENING',
+            txType: 'Opening Balance',
+            desc: 'Opening Receivable Balance',
+            debit: opBal,
+            credit: 0,
+            items: [],
+            productNames: '',
+            notes: 'Opening balance registered for customer'
+          });
+        }
+      });
+
+      // Track payment logs that are already accounted for
+      const accountedPosSaleIds = new Set();
+      (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer').forEach(p => {
+        if (p.saleId) accountedPosSaleIds.add(String(p.saleId));
+      });
+
+      // 1. Customer Sales Invoices (Debit) & POS Upfront Payments (Credit)
       (sales || []).forEach(s => {
-        const custObj = customers.find(c => c.id === s.customerId || c.name === s.partyName);
+        const custObj = customers.find(c => (s.customerId && String(c.id) === String(s.customerId)) || (c.name && s.partyName && c.name.trim().toLowerCase() === s.partyName.trim().toLowerCase()));
         const isWalkin = (custObj?.customerType || s.customerType || '').toLowerCase().includes('walk-in') ||
           (s.partyName || '').toLowerCase().includes('walk-in') || !s.customerId;
         const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
@@ -172,7 +201,7 @@ export const Ledger = () => {
           ? s.cart.map(i => `${i.name} (${i.qty} ${i.unitName || i.unit || 'KG'})`).join(', ')
           : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
 
-        // 1. Sale Invoice Entry (Debit)
+        // Sale Invoice Entry (Debit)
         entries.push({
           id: `sale-${s.id}`,
           rawDate: s.date,
@@ -183,14 +212,14 @@ export const Ledger = () => {
           ref: s.invoiceNo || 'SALE',
           txType: 'Sales',
           desc: `Invoice: ${itemsSummary}`,
-          debit: Number(s.amount || s.grandTotal || 0),
+          debit: Number(s.amount ?? s.grandTotal ?? 0),
           credit: 0,
           notes: s.note || ''
         });
 
-        // 2. Direct payment received on counter (Credit)
-        const paidAmt = Number(s.paidAmount || (s.status === 'Paid' ? (s.amount || s.grandTotal) : 0));
-        if (paidAmt > 0) {
+        // Direct payment received on counter (Credit) - only if not already present in paymentLogs
+        const paidAmt = Number(s.paidAmount || 0);
+        if (paidAmt > 0 && !accountedPosSaleIds.has(String(s.id))) {
           entries.push({
             id: `pay-direct-${s.id}`,
             rawDate: s.date,
@@ -200,7 +229,7 @@ export const Ledger = () => {
             customerType: custType,
             ref: `RCP-${s.invoiceNo || s.id}`,
             txType: 'Payments',
-            desc: `Payment Received against ${s.invoiceNo || 'Sale'}`,
+            desc: `POS Counter Payment against ${s.invoiceNo || 'Sale'}`,
             debit: 0,
             credit: paidAmt,
             items: s.cart || s.items || [],
@@ -210,9 +239,9 @@ export const Ledger = () => {
         }
       });
 
-      // Additional Standalone Payment Logs (Credit)
+      // 2. Standalone Customer Payment Logs (Credit)
       (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer').forEach(p => {
-        const custObj = customers.find(c => String(c.id) === String(p.partyId) || c.name === p.partyName);
+        const custObj = customers.find(c => (p.partyId && String(c.id) === String(p.partyId)) || (c.name && p.partyName && c.name.trim().toLowerCase() === p.partyName.trim().toLowerCase()));
         const isWalkin = (custObj?.customerType || '').toLowerCase().includes('walk-in') || !custObj;
         const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
         const rawParty = (p.partyName || custObj?.name || 'Customer').trim();
@@ -227,7 +256,7 @@ export const Ledger = () => {
           customerType: custType,
           ref: p.ref || `PAY-${p.id}`,
           txType: 'Payments',
-          desc: `Payment: ${p.mode || p.paymentMode || 'Cash'}`,
+          desc: p.saleId ? `POS Payment for Invoice` : `Payment: ${p.mode || p.paymentMode || 'Cash'}`,
           debit: 0,
           credit: Number(p.amount || 0),
           items: [],
@@ -236,9 +265,9 @@ export const Ledger = () => {
         });
       });
 
-      // Sale Returns (Credit)
+      // 3. Sale Returns (Credit)
       (saleReturns || []).forEach(r => {
-        const custObj = customers.find(c => String(c.id) === String(r.customerId) || c.name === r.customerName);
+        const custObj = customers.find(c => (r.customerId && String(c.id) === String(r.customerId)) || (c.name && r.customerName && c.name.trim().toLowerCase() === r.customerName.trim().toLowerCase()));
         const isWalkin = (custObj?.customerType || '').toLowerCase().includes('walk-in') || !custObj;
         const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
         const rawParty = (r.customerName || custObj?.name || 'Customer').trim();
@@ -262,6 +291,29 @@ export const Ledger = () => {
         });
       });
     } else {
+      // 0. Supplier Opening Balances (Debit)
+      (suppliers || []).forEach(sup => {
+        const opBal = Number(sup.openingBalance !== undefined ? sup.openingBalance : (sup.openingbalance !== undefined ? sup.openingbalance : 0));
+        if (opBal > 0) {
+          entries.push({
+            id: `open-bal-sup-${sup.id}`,
+            rawDate: sup.created_at || '2026-01-01',
+            date: sup.created_at ? new Date(sup.created_at).toLocaleDateString('en-GB') : 'Opening',
+            partyId: String(sup.id),
+            partyName: sup.name,
+            customerType: 'Supplier',
+            ref: 'OPENING',
+            txType: 'Opening Balance',
+            desc: 'Opening Payable Balance',
+            debit: opBal,
+            credit: 0,
+            items: [],
+            productNames: '',
+            notes: 'Opening balance registered for supplier'
+          });
+        }
+      });
+
       // Supplier Ledger Transactions
       (purchases || []).forEach(p => {
         const supObj = suppliers.find(s => String(s.id) === String(p.supplierId) || s.name === (p.supplier || p.supplierName));

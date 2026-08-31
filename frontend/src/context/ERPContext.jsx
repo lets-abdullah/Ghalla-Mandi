@@ -4,13 +4,140 @@ import { authFetch } from '../services/api';
 
 const ERPContext = createContext();
 
+export const computeSaleFinancials = (sale, saleReturns = []) => {
+  if (!sale) return { total: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
+  const total = Number(sale.amount !== undefined ? sale.amount : (sale.grandTotal !== undefined ? sale.grandTotal : (sale.grandtotal !== undefined ? sale.grandtotal : 0)));
+  const paid = Number(sale.paidAmount !== undefined ? sale.paidAmount : (sale.paidamount !== undefined ? sale.paidamount : 0));
+  const returns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(sale.id)) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
+  const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(sale.returnAmount || 0);
+  const isReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus && sale.returnStatus !== 'None') || (returnAmount >= total && total > 0);
+  const due = Math.max(0, total - paid - returnAmount);
+  const status = isReturned ? 'Returned' : ((due === 0 && total > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
+
+  return { total, paid, returnAmount, due, status, isReturned };
+};
+
+export const computePurchaseFinancials = (purchase, purchaseReturns = []) => {
+  if (!purchase) return { total: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
+  const total = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : (purchase.grandtotal !== undefined ? purchase.grandtotal : 0)));
+  const paid = Number(purchase.paidAmount !== undefined ? purchase.paidAmount : (purchase.paidamount !== undefined ? purchase.paidamount : 0));
+  const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
+  const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(purchase.returnAmount || 0);
+  const isReturned = (purchase.status === 'Returned') || (purchase.paymentStatus === 'Returned') || purchase.isReturned || (purchase.returnStatus && purchase.returnStatus !== 'None') || (returnAmount >= total && total > 0);
+  const due = Math.max(0, total - paid - returnAmount);
+  const status = isReturned ? 'Returned' : ((due === 0 && total > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
+
+  return { total, paid, returnAmount, due, status, isReturned };
+};
+
+export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = [], saleReturns = []) => {
+  if (!customer) return { openingBalance: 0, totalSale: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, returnAmount: 0, balance: 0, status: 'Clear', ordersCount: 0 };
+  const custId = customer.id ? String(customer.id) : null;
+  const custName = (customer.name || '').trim().toLowerCase();
+
+  const custSales = (sales || []).filter(s => {
+    const sCustId = s.customerId ? String(s.customerId) : null;
+    const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
+    return (custId && sCustId && sCustId === custId) || (custName && sPartyName === custName);
+  });
+
+  const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0)), 0);
+  const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount !== undefined ? s.paidAmount : 0), 0);
+
+  // Standalone direct customer payments (exclude POS payments to prevent double-counting)
+  const directPaid = (paymentLogs || []).filter(p => {
+    const isCustomer = p.type === 'Customer' || p.partyType === 'Customer';
+    if (!isCustomer) return false;
+    const pPartyId = p.partyId ? String(p.partyId) : null;
+    const pPartyName = (p.partyName || '').trim().toLowerCase();
+    const matchesParty = (custId && pPartyId && pPartyId === custId) || (custName && pPartyName === custName);
+    const isPosLog = (p.saleId && custSales.some(s => String(s.id) === String(p.saleId))) ||
+      (p.ref && p.ref.startsWith('POS-')) ||
+      (p.note && p.note.includes('POS Payment Received'));
+    return matchesParty && !isPosLog;
+  }).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+  const returnAmount = (saleReturns || []).filter(r => {
+    const rCustId = r.customerId ? String(r.customerId) : null;
+    const rCustName = (r.customerName || '').trim().toLowerCase();
+    return (custId && rCustId && rCustId === custId) || (custName && rCustName === custName);
+  }).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+  const openingBalance = Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0));
+  const totalPaid = upfrontPaid + directPaid;
+  const netPurchases = Math.max(0, totalSale - returnAmount);
+  const balance = Math.max(0, openingBalance + netPurchases - totalPaid);
+  const status = balance > 0 ? 'Due' : 'Clear';
+
+  return {
+    openingBalance,
+    totalSale,
+    upfrontPaid,
+    directPaid,
+    totalPaid,
+    returnAmount,
+    balance,
+    status,
+    ordersCount: custSales.length
+  };
+};
+
+export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLogs = [], purchaseReturns = []) => {
+  if (!supplier) return { openingBalance: 0, totalPurchase: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, returnAmount: 0, balance: 0, status: 'Clear', ordersCount: 0 };
+  const supId = supplier.id ? String(supplier.id) : null;
+  const supName = (supplier.name || '').trim().toLowerCase();
+
+  const supPurchases = (purchases || []).filter(p => {
+    const pSupId = p.supplierId ? String(p.supplierId) : null;
+    const pSupName = (p.supplier || p.supplierName || '').trim().toLowerCase();
+    return (supId && pSupId && pSupId === supId) || (supName && pSupName === supName);
+  });
+
+  const totalPurchase = supPurchases.reduce((acc, p) => acc + Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0)), 0);
+  const upfrontPaid = supPurchases.reduce((acc, p) => acc + Number(p.paidAmount !== undefined ? p.paidAmount : 0), 0);
+
+  const directPaid = (paymentLogs || []).filter(p => {
+    const isSupplier = p.type === 'Supplier' || p.partyType === 'Supplier';
+    if (!isSupplier) return false;
+    const pPartyId = p.partyId ? String(p.partyId) : null;
+    const pPartyName = (p.partyName || '').trim().toLowerCase();
+    const matchesParty = (supId && pPartyId && pPartyId === supId) || (supName && pPartyName === supName);
+    const isPosLog = p.purchaseId || (p.ref && p.ref.startsWith('POS-')) || (p.note && p.note.includes('Purchase Payment'));
+    return matchesParty && !isPosLog;
+  }).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+  const returnAmount = (purchaseReturns || []).filter(r => {
+    const rSupId = r.supplierId ? String(r.supplierId) : null;
+    const rSupName = (r.supplierName || '').trim().toLowerCase();
+    return (supId && rSupId && rSupId === supId) || (supName && rSupName === supName);
+  }).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+  const openingBalance = Number(supplier.openingBalance !== undefined ? supplier.openingBalance : (supplier.openingbalance !== undefined ? supplier.openingbalance : 0));
+  const totalPaid = upfrontPaid + directPaid;
+  const netPurchases = Math.max(0, totalPurchase - returnAmount);
+  const balance = Math.max(0, openingBalance + netPurchases - totalPaid);
+  const status = balance > 0 ? 'Payable' : 'Clear';
+
+  return {
+    openingBalance,
+    totalPurchase,
+    upfrontPaid,
+    directPaid,
+    totalPaid,
+    returnAmount,
+    balance,
+    status,
+    ordersCount: supPurchases.length
+  };
+};
+
 const normalizePurchase = (p) => {
   if (!p) return null;
   const grandTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
-  const paidAmount = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : (p.status === 'Paid' ? grandTotal : 0)));
+  const paidAmount = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
   const supplierName = p.supplier || p.supplierName || p.suppliername || 'Supplier';
   const purchaseNo = p.purchaseNo || p.purchaseno || '';
-  const status = p.status || p.paymentStatus || p.paymentstatus || (paidAmount >= grandTotal && grandTotal > 0 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+  const status = (p.status === 'Returned' || p.paymentStatus === 'Returned') ? 'Returned' : ((paidAmount >= grandTotal && grandTotal > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
   const date = p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
   const items = Array.isArray(p.items) ? p.items : (Array.isArray(p.cart) ? p.cart : []);
   const paymentMode = p.paymentMode || p.paymentmode || p.paymentMethod || p.paymentmethod || (paidAmount > 0 ? 'Cash' : 'Supplier Khata');
@@ -42,10 +169,11 @@ const normalizePurchase = (p) => {
 const normalizeSale = (s) => {
   if (!s) return null;
   const amount = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.grandtotal !== undefined ? s.grandtotal : 0)));
-  const paidAmount = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : (s.status === 'Paid' || s.paymentStatus === 'Paid' ? amount : 0)));
+  const paidAmount = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
   const partyName = s.partyName || s.partyname || s.customerName || s.customername || 'Walk-in Customer';
   const invoiceNo = s.invoiceNo || s.invoiceno || '';
-  const status = s.status || s.paymentStatus || s.paymentstatus || (paidAmount >= amount && amount > 0 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+  const isReturned = (s.status === 'Returned') || (s.returnStatus && s.returnStatus !== 'None');
+  const status = isReturned ? 'Returned' : ((paidAmount >= amount && amount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
   const date = s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
   const profit = Number(s.profit !== undefined ? s.profit : 0);
   const cart = Array.isArray(s.cart) ? s.cart : (Array.isArray(s.items) ? s.items : []);
@@ -1108,7 +1236,11 @@ export const ERPProvider = ({ children }) => {
       recordSaleReturn,
       updateSaleReturn,
       recordPurchaseReturn,
-      updatePurchaseReturn
+      updatePurchaseReturn,
+      computeSaleFinancials,
+      computePurchaseFinancials,
+      computeCustomerKhataBalance,
+      computeSupplierKhataBalance
     }}>
       {children}
     </ERPContext.Provider>

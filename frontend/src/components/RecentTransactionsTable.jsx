@@ -1,35 +1,20 @@
 import React from 'react';
 import { FileText, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeSaleFinancials, computePurchaseFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const RecentTransactionsTable = ({ onViewInvoice }) => {
-  const { sales = [], purchases = [], paymentLogs = [] } = useERP();
+  const { sales = [], purchases = [], saleReturns = [], purchaseReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
   const combined = [
     ...(sales || []).map(s => {
-      const upfrontPaid = Number(s.paidAmount ?? s.paidamount ?? (s.status === 'Paid' ? (s.amount ?? s.grandTotal ?? s.grandtotal ?? 0) : 0));
-      const directPaid = (paymentLogs || []).filter(p =>
-        (p.type === 'Customer' || p.partyType === 'Customer') &&
-        (
-          (s.customerId && p.partyId && String(p.partyId) === String(s.customerId)) ||
-          (s.partyName && p.partyName && p.partyName.trim().toLowerCase() === (s.partyName || '').trim().toLowerCase()) ||
-          (s.id && p.saleId && String(p.saleId) === String(s.id)) ||
-          (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
-      const total = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? 0);
-      const retAmt = Number(s.returnAmount || 0);
-      const netTotal = Math.max(0, total - retAmt);
-      const paid = Math.min(netTotal, upfrontPaid + directPaid);
-      const due = Math.max(0, netTotal - paid);
-      const isPaid = (due === 0 && total > 0) || s.status === 'Paid';
-      const isPartial = !isPaid && paid > 0;
+      const { total, paid, due, status } = computeSaleFinancials(s, saleReturns);
+      const isPaid = status === 'Paid';
+      const isPartial = status === 'Partial';
 
       return {
         id: s.id,
@@ -41,28 +26,13 @@ export const RecentTransactionsTable = ({ onViewInvoice }) => {
         rawDate: s.created_at || s.createdAt || s.date,
         amount: total.toLocaleString(),
         status: isPaid ? t('paid') : isPartial ? t('partial') : t('pending'),
-        rawStatus: isPaid ? 'Paid' : isPartial ? 'Partial' : 'Pending'
+        rawStatus: status
       };
     }),
     ...(purchases || []).map(p => {
-      const upfrontPaid = Number(p.paidAmount ?? p.paidamount ?? (p.paymentStatus === 'Paid' ? (p.amount ?? p.grandTotal ?? p.grandtotal ?? 0) : 0));
-      const directPaid = (paymentLogs || []).filter(pl =>
-        (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
-        (
-          (p.supplierId && pl.partyId && String(pl.partyId) === String(p.supplierId)) ||
-          (p.supplier && pl.partyName && pl.partyName.trim().toLowerCase() === (p.supplier || '').trim().toLowerCase()) ||
-          (p.id && pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
-          (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
-        )
-      ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-
-      const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
-      const retAmt = Number(p.returnAmount || 0);
-      const netTotal = Math.max(0, total - retAmt);
-      const paid = Math.min(netTotal, upfrontPaid + directPaid);
-      const due = Math.max(0, netTotal - paid);
-      const isPaid = (due === 0 && total > 0) || p.paymentStatus === 'Paid';
-      const isPartial = !isPaid && paid > 0;
+      const { total, paid, due, status } = computePurchaseFinancials(p, purchaseReturns);
+      const isPaid = status === 'Paid';
+      const isPartial = status === 'Partial';
 
       return {
         id: p.id,
@@ -74,7 +44,7 @@ export const RecentTransactionsTable = ({ onViewInvoice }) => {
         rawDate: p.created_at || p.createdAt || p.date,
         amount: total.toLocaleString(),
         status: isPaid ? t('paid') : isPartial ? t('partial') : t('pending'),
-        rawStatus: isPaid ? 'Paid' : isPartial ? 'Partial' : 'Pending'
+        rawStatus: status
       };
     })
   ].sort((a, b) => {

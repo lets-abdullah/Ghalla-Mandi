@@ -88,27 +88,14 @@ export const createSale = async (req, res) => {
 
     let activePartyName = customerName || 'Walk-in Customer';
     let targetCustId = customerId || null;
+    let cust = null;
 
     if (targetCustId) {
-      const cust = await Customer.findById(targetCustId);
+      cust = await Customer.findById(targetCustId);
       if (cust) {
         activePartyName = cust.name;
         const unpaid = Math.max(0, grandTotal - paid);
         await Customer.findByIdAndUpdate(cust.id, { balance: Number(cust.balance) + unpaid });
-
-        if (paid > 0) {
-          await Ledger.create({
-            shop_id: req.shop_id,
-            partyId: cust.id,
-            partyType: 'Customer',
-            partyName: cust.name,
-            amount: paid,
-            mode: `${paymentMethod || 'Cash'} (POS)`,
-            date: dateStr,
-            ref: `PAY-${invoiceNo.split('-').pop()}`,
-            note: `POS Payment Received via ${paymentMethod || 'Cash'} on Invoice (${invoiceNo})`
-          });
-        }
       }
     }
 
@@ -128,6 +115,21 @@ export const createSale = async (req, res) => {
       itemsCount: processedCart.length,
       cart: processedCart
     });
+
+    if (targetCustId && cust && paid > 0) {
+      await Ledger.create({
+        shop_id: req.shop_id,
+        partyId: cust.id,
+        partyType: 'Customer',
+        partyName: cust.name,
+        amount: paid,
+        mode: `${paymentMethod || 'Cash'} (POS)`,
+        date: dateStr,
+        ref: `POS-PAY-${invoiceNo.split('-').pop()}`,
+        note: `POS Payment Received via ${paymentMethod || 'Cash'} on Invoice (${invoiceNo})`,
+        saleId: sale.id
+      });
+    }
 
     recentSales.set(dedupKey, { timestamp: Date.now(), sale });
     return res.status(201).json({ success: true, sale });

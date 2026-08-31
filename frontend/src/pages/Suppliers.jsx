@@ -30,7 +30,7 @@ import {
   BookOpen,
   CreditCard
 } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeSupplierKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
@@ -526,39 +526,16 @@ export const Suppliers = () => {
   // Processed Suppliers with Live Financial Balances (Synchronized with Purchases, Returns & PaymentLogs)
   const processedSuppliers = useMemo(() => {
     return suppliers.map(sup => {
-      const supPurchases = (purchases || []).filter(p =>
-        p.supplierId === sup.id ||
-        (p.supplierName && p.supplierName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase()) ||
-        (p.supplier && p.supplier.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
-      );
-      const totalPurchase = supPurchases.reduce((acc, p) => acc + Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0), 0);
-      const upfrontPaid = supPurchases.reduce((acc, p) => acc + Number(p.paidAmount ?? p.paidamount ?? (p.paymentStatus === 'Paid' ? (p.amount ?? p.grandTotal ?? p.grandtotal ?? 0) : 0)), 0);
-
-      const directPaid = (paymentLogs || []).filter(p =>
-        (p.type === 'Supplier' || p.partyType === 'Supplier') &&
-        (
-          (p.partyId && String(p.partyId) === String(sup.id)) ||
-          (p.partyName && p.partyName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
-      const returnAmt = (purchaseReturns || []).filter(r =>
-        r.supplierId === sup.id ||
-        (r.supplierName && r.supplierName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
-      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-      const netPurchaseTarget = Math.max(0, totalPurchase - returnAmt);
-      const totalPaid = Math.min(netPurchaseTarget, upfrontPaid + directPaid);
-      const balance = Math.max(0, netPurchaseTarget - totalPaid);
+      const fin = computeSupplierKhataBalance(sup, purchases, paymentLogs, purchaseReturns);
 
       return {
         ...sup,
-        totalPurchases: totalPurchase,
-        totalPaid,
-        returnAmount: returnAmt,
-        balance,
-        status: balance > 0 ? 'Payable' : 'Settled',
-        purchasesCount: supPurchases.length
+        totalPurchases: fin.totalPurchase,
+        totalPaid: fin.totalPaid,
+        returnAmount: fin.returnAmount,
+        balance: fin.balance,
+        status: fin.balance > 0 ? 'Payable' : 'Settled',
+        purchasesCount: fin.ordersCount
       };
     });
   }, [suppliers, purchases, purchaseReturns, paymentLogs]);

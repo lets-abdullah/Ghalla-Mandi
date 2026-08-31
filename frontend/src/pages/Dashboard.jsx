@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeCustomerKhataBalance, computeSupplierKhataBalance } from '../context/ERPContext';
 import { KPICard } from '../components/KPICard';
 import { SalesChart } from '../components/SalesChart';
 import { LowStockWidget } from '../components/LowStockWidget';
@@ -86,54 +86,32 @@ export const Dashboard = () => {
   const allTimePurchaseReturnsVal = purchaseReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
   const netAllTimePurchases = Math.max(0, allTimeGrossPurchases - allTimePurchaseReturnsVal);
 
-  // Combined Live Customer Receivables (Synchronized with Khata & PaymentLogs)
+  // Combined Live Customer Receivables (Synchronized with Khata, Ledger & Invoices)
   const { totalCustomerDues, regularDues, walkinDues, totalDueAccountsCount } = useMemo(() => {
     const processedCustNames = new Set();
     const processedCustIds = new Set();
 
-    // 1. Regular / Saved Customers
     let regDues = 0;
     let regDueCount = 0;
 
     (customers || []).forEach(cust => {
-      processedCustIds.add(cust.id);
+      processedCustIds.add(String(cust.id));
       if (cust.name) processedCustNames.add(cust.name.trim().toLowerCase());
 
-      const custSales = (sales || []).filter(s =>
-        s.customerId === cust.id ||
-        (s.partyName && s.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
-      );
-      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
-
-      const directPaid = (paymentLogs || []).filter(p =>
-        (p.type === 'Customer' || p.partyType === 'Customer') &&
-        (
-          (p.partyId && String(p.partyId) === String(cust.id)) ||
-          (p.partyName && p.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
-      const returnAmt = (saleReturns || []).filter(r =>
-        r.customerId === cust.id ||
-        (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
-      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-      const netSaleTarget = Math.max(0, totalSale - returnAmt);
-      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
-      const bal = Math.max(0, netSaleTarget - totalPaid);
-
-      if (bal > 0) {
-        regDues += bal;
+      const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
+      if (fin.balance > 0) {
+        regDues += fin.balance;
         regDueCount += 1;
       }
     });
 
-    // 2. Walk-in / Counter Sales
+    // Walk-in / Counter Sales
     const walkinSalesMap = new Map();
     (sales || []).forEach(s => {
-      const isRegisteredCust = (s.customerId && processedCustIds.has(s.customerId)) ||
-        (s.partyName && processedCustNames.has(s.partyName.trim().toLowerCase()));
+      const sCustId = s.customerId ? String(s.customerId) : null;
+      const sName = (s.partyName || s.customerName || '').trim().toLowerCase();
+      const isRegisteredCust = (sCustId && processedCustIds.has(sCustId)) ||
+        (sName && processedCustNames.has(sName));
 
       if (!isRegisteredCust) {
         const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
@@ -149,28 +127,9 @@ export const Dashboard = () => {
     let wDueCount = 0;
 
     walkinSalesMap.forEach((val, key) => {
-      const custSales = val.sales;
-      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
-
-      const directPaid = (paymentLogs || []).filter(p =>
-        (p.type === 'Customer' || p.partyType === 'Customer') &&
-        (
-          (p.partyName && p.partyName.trim().toLowerCase() === key) ||
-          (p.partyId && String(p.partyId).toLowerCase() === `walkin-${key}`)
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
-      const returnAmt = (saleReturns || []).filter(r =>
-        r.customerName && r.customerName.trim().toLowerCase() === key
-      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-      const netSaleTarget = Math.max(0, totalSale - returnAmt);
-      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
-      const bal = Math.max(0, netSaleTarget - totalPaid);
-
-      if (bal > 0) {
-        wDues += bal;
+      const fin = computeCustomerKhataBalance({ id: `walkin-${key}`, name: val.name }, val.sales, paymentLogs, saleReturns);
+      if (fin.balance > 0) {
+        wDues += fin.balance;
         wDueCount += 1;
       }
     });
@@ -189,33 +148,9 @@ export const Dashboard = () => {
     let dueCount = 0;
 
     (suppliers || []).forEach(sup => {
-      const supPurchases = (purchases || []).filter(p =>
-        p.supplierId === sup.id ||
-        (p.supplierName && p.supplierName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase()) ||
-        (p.supplier && p.supplier.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
-      );
-      const totalPurchase = supPurchases.reduce((acc, p) => acc + Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0), 0);
-      const upfrontPaid = supPurchases.reduce((acc, p) => acc + Number(p.paidAmount ?? p.paidamount ?? (p.paymentStatus === 'Paid' ? (p.amount ?? p.grandTotal ?? p.grandtotal ?? 0) : 0)), 0);
-
-      const directPaid = (paymentLogs || []).filter(p =>
-        (p.type === 'Supplier' || p.partyType === 'Supplier') &&
-        (
-          (p.partyId && String(p.partyId) === String(sup.id)) ||
-          (p.partyName && p.partyName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
-      const returnAmt = (purchaseReturns || []).filter(r =>
-        r.supplierId === sup.id ||
-        (r.supplierName && r.supplierName.trim().toLowerCase() === (sup.name || '').trim().toLowerCase())
-      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-      const netPurchaseTarget = Math.max(0, totalPurchase - returnAmt);
-      const totalPaid = Math.min(netPurchaseTarget, upfrontPaid + directPaid);
-      const bal = Math.max(0, netPurchaseTarget - totalPaid);
-
-      if (bal > 0) {
-        payables += bal;
+      const fin = computeSupplierKhataBalance(sup, purchases, paymentLogs, purchaseReturns);
+      if (fin.balance > 0) {
+        payables += fin.balance;
         dueCount += 1;
       }
     });

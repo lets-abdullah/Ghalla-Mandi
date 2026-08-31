@@ -120,12 +120,12 @@ export const InvoiceDrawer = ({ invoice, onClose }) => {
               </div>
               <div className="flex justify-between text-xs font-bold text-emerald-600">
                 <span>{t('paid')}:</span>
-                <span>Rs. {formatAmount(invoice.paidAmount !== undefined ? invoice.paidAmount : invoice.amount)}</span>
+                <span>Rs. {formatAmount(Number(invoice.paidAmount || 0))}</span>
               </div>
-              {Number(invoice.amount || 0) > Number(invoice.paidAmount || 0) && (
+              {Math.max(0, Number(invoice.amount || 0) - Number(invoice.paidAmount || 0)) > 0 && (
                 <div className="flex justify-between text-xs font-extrabold text-rose-500 pt-1 border-t border-slate-200 dark:border-slate-700">
                   <span>{t('remainingDueKhata')}:</span>
-                  <span>Rs. {formatAmount(Number(invoice.amount || 0) - Number(invoice.paidAmount || 0))}</span>
+                  <span>Rs. {formatAmount(Math.max(0, Number(invoice.amount || 0) - Number(invoice.paidAmount || 0)))}</span>
                 </div>
               )}
             </div>

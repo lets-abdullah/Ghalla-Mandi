@@ -70,30 +70,33 @@ export const recordPayment = async (req, res) => {
         targetPartyName = partyName || 'Walk-in Customer';
       }
 
-      // If specific sale is targeted, update paidAmount
+      // If specific sale is targeted, update its paidAmount
       if (saleId) {
         const sale = await Sale.findById(saleId);
         if (sale) {
           const maxSaleDue = Math.max(0, Number(sale.amount || 0) - Number(sale.paidAmount || 0));
           const effectivePay = Math.min(maxSaleDue, amtNum);
           const newPaid = Number(sale.paidAmount || 0) + effectivePay;
-          const newStatus = newPaid >= Number(sale.amount || 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
+          const newStatus = (newPaid >= Number(sale.amount || 0) && Number(sale.amount || 0) > 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
           await Sale.findByIdAndUpdate(saleId, { paidAmount: newPaid, status: newStatus });
         }
-      } else if (!cust && targetPartyName) {
-        // Walk-in customer payment: allocate to open sales
-        const openSales = await Sale.find({
-          shop_id: req.shop_id,
-          partyName: targetPartyName,
-          status: { $in: ['Pending', 'Partial'] }
-        });
+      } else {
+        // General Khata payment: allocate FIFO to open unpaid/partial sales
+        const allShopSales = await Sale.find({ shop_id: req.shop_id });
+        const openSales = allShopSales.filter(s => {
+          const matchesCust = (cust && s.customerId === cust.id) ||
+            (targetPartyName && s.partyName && s.partyName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
+          const isUnpaid = s.status === 'Pending' || s.status === 'Partial' || (Number(s.paidAmount || 0) < Number(s.amount || 0));
+          return matchesCust && isUnpaid && s.status !== 'Returned';
+        }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
+
         let remainingAmt = amtNum;
         for (const s of openSales) {
           if (remainingAmt <= 0) break;
           const due = Math.max(0, Number(s.amount || 0) - Number(s.paidAmount || 0));
           const payTowardsSale = Math.min(due, remainingAmt);
           const newPaid = Number(s.paidAmount || 0) + payTowardsSale;
-          const newStatus = newPaid >= Number(s.amount || 0) ? 'Paid' : 'Partial';
+          const newStatus = (newPaid >= Number(s.amount || 0) && Number(s.amount || 0) > 0) ? 'Paid' : 'Partial';
           await Sale.findByIdAndUpdate(s.id, { paidAmount: newPaid, status: newStatus });
           remainingAmt -= payTowardsSale;
         }

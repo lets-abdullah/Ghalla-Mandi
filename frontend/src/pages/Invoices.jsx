@@ -22,7 +22,7 @@ import {
   TrendingUp,
   Receipt
 } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeSaleFinancials, computePurchaseFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { ReceiptModal } from '../components/ReceiptModal';
@@ -152,12 +152,7 @@ export const Invoices = () => {
   const rawList = useMemo(() => {
     if (isPurchases) {
       return purchases.map(p => {
-        const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
-        const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
-        const due = Math.max(0, total - paid);
-        let status = 'Pending';
-        if (paid >= total && total > 0) status = 'Paid';
-        else if (paid > 0 && paid < total) status = 'Partial';
+        const { total, paid, due, status } = computePurchaseFinancials(p, purchaseReturns);
 
         return {
           id: p.id,
@@ -180,12 +175,7 @@ export const Invoices = () => {
       });
     } else {
       return sales.map(s => {
-        const total = Number(s.amount || s.grandTotal || 0);
-        const paid = Number(s.paidAmount || 0);
-        const due = Math.max(0, total - paid);
-        let status = 'Pending';
-        if (paid >= total && total > 0) status = 'Paid';
-        else if (paid > 0 && paid < total) status = 'Partial';
+        const { total, paid, due, status } = computeSaleFinancials(s, saleReturns);
 
         return {
           id: s.id,
@@ -208,7 +198,7 @@ export const Invoices = () => {
         };
       });
     }
-  }, [isPurchases, sales, purchases]);
+  }, [isPurchases, sales, purchases, saleReturns, purchaseReturns]);
 
   // Filtered List
   const filteredInvoices = useMemo(() => {

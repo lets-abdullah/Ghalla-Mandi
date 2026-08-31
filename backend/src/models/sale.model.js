@@ -10,7 +10,8 @@ const mapSaleRow = (r) => {
   const amount = Number(r.amount !== undefined ? r.amount : (r.grandtotal !== undefined ? r.grandtotal : (r.grandTotal !== undefined ? r.grandTotal : 0)));
   const paidAmount = Number(r.paidamount !== undefined ? r.paidamount : (r.paidAmount !== undefined ? r.paidAmount : 0));
   const profit = Number(r.profit !== undefined ? r.profit : (r.profitmargin !== undefined ? r.profitmargin : (r.profitMargin !== undefined ? r.profitMargin : 0)));
-  const status = r.status || r.paymentstatus || r.paymentStatus || (paidAmount >= amount ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+  const isReturned = (r.status === 'Returned') || (r.returnStatus && r.returnStatus !== 'None');
+  const status = isReturned ? 'Returned' : ((paidAmount >= amount && amount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : 'Pending'));
   const itemsCount = Number(r.itemscount !== undefined ? r.itemscount : (r.itemsCount !== undefined ? r.itemsCount : cart.length));
   const date = r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
 

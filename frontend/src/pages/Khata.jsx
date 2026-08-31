@@ -22,7 +22,7 @@ import {
   ShoppingBag,
   AlertCircle
 } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeCustomerKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
@@ -64,27 +64,21 @@ export const Khata = () => {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const handleOpenEditModal = (item) => {
-    const fullCust = customers.find(c => c.id === item.id) || item;
-    const custSales = (sales || []).filter(s =>
-      s.customerId === item.id ||
-      (s.partyName && s.partyName.trim().toLowerCase() === (item.name || '').trim().toLowerCase())
-    );
-    const totalSale = item.totalSale !== undefined ? item.totalSale : custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-    const totalPaid = item.totalPaid !== undefined ? item.totalPaid : custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
-    const initialDue = Number(fullCust.balance !== undefined ? fullCust.balance : item.balance) || 0;
+    const fullCust = customers.find(c => String(c.id) === String(item.id)) || item;
+    const fin = computeCustomerKhataBalance(fullCust, sales, paymentLogs, saleReturns);
 
     setEditingKhataCust({
       ...item,
-      totalSale,
-      totalPaid,
-      initialDue
+      totalSale: fin.totalSale,
+      totalPaid: fin.totalPaid,
+      initialDue: fin.balance
     });
     setEditForm({
       name: fullCust.name || item.name || '',
       businessName: fullCust.businessName || fullCust.shopName || item.businessName || '',
       phone: fullCust.phone || item.phone || '',
       city: fullCust.city || item.city || '',
-      balance: initialDue,
+      balance: fin.balance,
       customerType: fullCust.customerType || item.customerType || 'Regular Customer'
     });
   };
@@ -99,6 +93,12 @@ export const Khata = () => {
 
     try {
       setIsSavingEdit(true);
+      const fullCust = customers.find(c => String(c.id) === String(editingKhataCust.id)) || editingKhataCust;
+      const fin = computeCustomerKhataBalance(fullCust, sales, paymentLogs, saleReturns);
+      const targetBal = Number(editForm.balance) || 0;
+      const balDiff = targetBal - fin.balance;
+      const updatedOpBal = Math.max(0, Number(fullCust.openingBalance || 0) + balDiff);
+
       if (editingKhataCust.isRegistered === false || String(editingKhataCust.id).startsWith('walkin-')) {
         if (addCustomer) {
           await addCustomer({
@@ -106,7 +106,8 @@ export const Khata = () => {
             shopName: editForm.businessName.trim(),
             phone: editForm.phone ? editForm.phone.trim() : 'N/A',
             city: editForm.city.trim() || 'Local Mandi',
-            balance: Number(editForm.balance) || 0,
+            openingBalance: targetBal,
+            balance: targetBal,
             customerType: editForm.customerType || 'Walk-in Customer'
           });
         }
@@ -116,7 +117,8 @@ export const Khata = () => {
           businessName: editForm.businessName,
           phone: editForm.phone ? editForm.phone.trim() : 'N/A',
           city: editForm.city,
-          balance: Number(editForm.balance) || 0,
+          openingBalance: updatedOpBal,
+          balance: targetBal,
           customerType: editForm.customerType
         });
       }
@@ -154,32 +156,10 @@ export const Khata = () => {
 
     // 1. Process all registered customer accounts
     customers.forEach(cust => {
-      processedCustIds.add(cust.id);
+      processedCustIds.add(String(cust.id));
       if (cust.name) processedCustNames.add(cust.name.trim().toLowerCase());
 
-      const custSales = (sales || []).filter(s =>
-        s.customerId === cust.id ||
-        (s.partyName && s.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
-      );
-      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
-      
-      const directPaid = (paymentLogs || []).filter(p =>
-        (p.type === 'Customer' || p.partyType === 'Customer') &&
-        (
-          (p.partyId && String(p.partyId) === String(cust.id)) ||
-          (p.partyName && p.partyName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
-      const returnAmt = (saleReturns || []).filter(r =>
-        r.customerId === cust.id ||
-        (r.customerName && r.customerName.trim().toLowerCase() === (cust.name || '').trim().toLowerCase())
-      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-      
-      const netSaleTarget = Math.max(0, totalSale - returnAmt);
-      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
-      const balance = Math.max(0, netSaleTarget - totalPaid);
+      const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
       const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
       const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
 
@@ -190,12 +170,12 @@ export const Khata = () => {
         phone: cust.phone || '',
         city: cust.city || 'Local Mandi',
         customerType: custType,
-        totalSale,
-        totalPaid,
-        returnAmount: returnAmt,
-        balance,
-        status: balance > 0 ? 'Due' : 'Clear',
-        ordersCount: custSales.length,
+        totalSale: fin.totalSale,
+        totalPaid: fin.totalPaid,
+        returnAmount: fin.returnAmount,
+        balance: fin.balance,
+        status: fin.status,
+        ordersCount: fin.ordersCount,
         isRegistered: true
       });
     });
@@ -203,8 +183,10 @@ export const Khata = () => {
     // 2. Process Walk-in / Counter Sales not attached to a registered customer ID
     const walkinSalesMap = new Map();
     (sales || []).forEach(s => {
-      const isRegisteredCust = (s.customerId && processedCustIds.has(s.customerId)) ||
-        (s.partyName && processedCustNames.has(s.partyName.trim().toLowerCase()));
+      const sCustId = s.customerId ? String(s.customerId) : null;
+      const sName = (s.partyName || s.customerName || '').trim().toLowerCase();
+      const isRegisteredCust = (sCustId && processedCustIds.has(sCustId)) ||
+        (sName && processedCustNames.has(sName));
 
       if (!isRegisteredCust) {
         const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
@@ -220,25 +202,7 @@ export const Khata = () => {
     });
 
     walkinSalesMap.forEach((val, key) => {
-      const custSales = val.sales;
-      const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-      const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
-      
-      const directPaid = (paymentLogs || []).filter(p =>
-        (p.type === 'Customer' || p.partyType === 'Customer') &&
-        (
-          (p.partyName && p.partyName.trim().toLowerCase() === key) ||
-          (p.partyId && String(p.partyId).toLowerCase() === `walkin-${key}`)
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
-      const returnAmt = (saleReturns || []).filter(r =>
-        r.customerName && r.customerName.trim().toLowerCase() === key
-      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-      const netSaleTarget = Math.max(0, totalSale - returnAmt);
-      const totalPaid = Math.min(netSaleTarget, upfrontPaid + directPaid);
-      const balance = Math.max(0, netSaleTarget - totalPaid);
+      const fin = computeCustomerKhataBalance({ id: `walkin-${key}`, name: val.name }, val.sales, paymentLogs, saleReturns);
 
       list.push({
         id: `walkin-${val.name}`,
@@ -247,12 +211,12 @@ export const Khata = () => {
         phone: 'Counter Sale',
         city: 'Local Mandi',
         customerType: 'Walk-in Customer',
-        totalSale,
-        totalPaid,
-        returnAmount: returnAmt,
-        balance,
-        status: balance > 0 ? 'Due' : 'Clear',
-        ordersCount: custSales.length,
+        totalSale: fin.totalSale,
+        totalPaid: fin.totalPaid,
+        returnAmount: fin.returnAmount,
+        balance: fin.balance,
+        status: fin.status,
+        ordersCount: fin.ordersCount,
         isRegistered: false
       });
     });
