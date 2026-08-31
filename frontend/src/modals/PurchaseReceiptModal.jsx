@@ -369,17 +369,17 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
     }
   };
 
-  const handleDownloadImage = async () => {
+  const handleDownloadPdf = async () => {
     try {
       setIsDownloading(true);
       const targetElement = receiptRef.current || document.getElementById('purchase-receipt-card');
       if (!targetElement) throw new Error('Printable element not found in DOM.');
 
-      const filename = `Purchase_Bill_${cleanReceiptNo.replace(/[^a-zA-Z0-9_-]/g, '')}_${paperSize}.png`;
-      await exportReceiptToImage(targetElement, filename, 'png');
+      const filename = `Purchase_Bill_${cleanReceiptNo.replace(/[^a-zA-Z0-9_-]/g, '')}_${paperSize}.pdf`;
+      await exportReceiptToPDF(targetElement, filename, paperSize);
     } catch (err) {
-      console.error('Download image error:', err);
-      alert('Could not download bill image. Please try again.');
+      console.error('Download PDF error:', err);
+      alert('Could not download bill PDF. Please try again.');
     } finally {
       setIsDownloading(false);
     }
@@ -484,15 +484,16 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
             </button>
             <button
               type="button"
-              onClick={handleDownloadImage}
+              onClick={handleDownloadPdf}
               disabled={isDownloading}
               className={`px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                 theme === 'dark' ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
               }`}
-              title="Download PNG Image"
+              title="Download PDF Document"
             >
               {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              <span className="hidden md:inline">PNG</span>
+              <span className="hidden sm:inline">Download PDF</span>
+              <span className="sm:hidden">PDF</span>
             </button>
             <button
               type="button"

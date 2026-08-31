@@ -12,7 +12,7 @@ import html2canvas from 'html2canvas';
  * @param {string} filename - The output PDF file name (e.g., 'Invoice_INV-2026-0005.pdf').
  * @returns {Promise<void>}
  */
-export const exportReceiptToPDF = async (element, filename = 'receipt.pdf') => {
+export const exportReceiptToPDF = async (element, filename = 'receipt.pdf', paperSize = 'a4') => {
   if (!element) {
     throw new Error('Receipt element reference not found in DOM.');
   }
@@ -29,18 +29,19 @@ export const exportReceiptToPDF = async (element, filename = 'receipt.pdf') => {
   // 2. Wait a tick for any pending React re-renders or DOM repaints
   await new Promise(resolve => setTimeout(resolve, 80));
 
+  const naturalWidth = element.offsetWidth || 420;
+
   // 3. Capture high-resolution canvas snapshot of the visible receipt element
   const canvas = await html2canvas(element, {
-    scale: 2, // 2x scale for crystal-clear 300+ DPI print quality
+    scale: 2.5, // 2.5x scale for crystal-clear 300+ DPI print quality
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
     logging: false,
     scrollX: 0,
     scrollY: 0,
-    windowWidth: element.scrollWidth || 794,
+    windowWidth: naturalWidth + 40,
     onclone: (clonedDoc) => {
-      // Ensure the cloned node is fully visible and unconstrained in cloned DOM
       const targetId = element.id;
       const clonedElement = targetId ? clonedDoc.getElementById(targetId) : null;
       if (clonedElement) {
@@ -51,13 +52,14 @@ export const exportReceiptToPDF = async (element, filename = 'receipt.pdf') => {
         clonedElement.style.overflow = 'visible';
         clonedElement.style.height = 'auto';
         clonedElement.style.maxHeight = 'none';
-        clonedElement.style.width = '794px';
-        clonedElement.style.maxWidth = '794px';
+        clonedElement.style.width = `${naturalWidth}px`;
+        clonedElement.style.maxWidth = `${naturalWidth}px`;
         clonedElement.style.boxShadow = 'none';
         clonedElement.style.borderRadius = '0px';
         clonedElement.style.border = 'none';
         clonedElement.style.backgroundColor = '#ffffff';
         clonedElement.style.color = '#0f172a';
+        clonedElement.style.margin = '0 auto';
       }
     }
   });
@@ -70,7 +72,85 @@ export const exportReceiptToPDF = async (element, filename = 'receipt.pdf') => {
   // 4. Convert canvas to high-quality JPEG data URL
   const imgData = canvas.toDataURL('image/jpeg', 0.98);
 
-  // 5. Initialize standard A4 Portrait jsPDF document
+  // 5. Handle Thermal 80mm
+  if (paperSize === 'thermal-80') {
+    const receiptWidthMm = 80;
+    const marginMm = 3;
+    const printableWidth = receiptWidthMm - (marginMm * 2);
+    const printableHeight = (canvas.height * printableWidth) / canvas.width;
+    const receiptHeightMm = printableHeight + (marginMm * 2);
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [receiptWidthMm, receiptHeightMm],
+      compress: true
+    });
+    pdf.addImage(imgData, 'JPEG', marginMm, marginMm, printableWidth, printableHeight, undefined, 'FAST');
+    pdf.save(filename);
+    return;
+  }
+
+  // 6. Handle Thermal 58mm
+  if (paperSize === 'thermal-58') {
+    const receiptWidthMm = 58;
+    const marginMm = 2;
+    const printableWidth = receiptWidthMm - (marginMm * 2);
+    const printableHeight = (canvas.height * printableWidth) / canvas.width;
+    const receiptHeightMm = printableHeight + (marginMm * 2);
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [receiptWidthMm, receiptHeightMm],
+      compress: true
+    });
+    pdf.addImage(imgData, 'JPEG', marginMm, marginMm, printableWidth, printableHeight, undefined, 'FAST');
+    pdf.save(filename);
+    return;
+  }
+
+  // 7. Handle A5
+  if (paperSize === 'a5') {
+    const a5Width = 148;
+    const a5Height = 210;
+    const margin = 8;
+    const printableWidth = a5Width - (margin * 2);
+    const printableHeight = a5Height - (margin * 2);
+    const imgHeight = (canvas.height * printableWidth) / canvas.width;
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a5',
+      compress: true
+    });
+
+    if (imgHeight <= printableHeight) {
+      pdf.addImage(imgData, 'JPEG', margin, margin, printableWidth, imgHeight, undefined, 'FAST');
+    } else {
+      let heightLeft = imgHeight;
+      let page = 0;
+      while (heightLeft > 0) {
+        if (page > 0) pdf.addPage('a5', 'portrait');
+        const verticalOffset = margin - (page * printableHeight);
+        pdf.addImage(imgData, 'JPEG', margin, verticalOffset, printableWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= printableHeight;
+        page++;
+      }
+    }
+    pdf.save(filename);
+    return;
+  }
+
+  // 8. Default: Standard A4
+  const a4Width = 210;
+  const a4Height = 297;
+  const margin = 10;
+  const printableWidth = a4Width - (margin * 2);
+  const printableHeight = a4Height - (margin * 2);
+  const imgHeight = (canvas.height * printableWidth) / canvas.width;
+
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -78,40 +158,20 @@ export const exportReceiptToPDF = async (element, filename = 'receipt.pdf') => {
     compress: true
   });
 
-  // Standard A4 dimensions in mm
-  const a4Width = 210;
-  const a4Height = 297;
-  const margin = 10; // 10mm margins on all sides
-  const printableWidth = a4Width - (margin * 2); // 190mm
-  const printableHeight = a4Height - (margin * 2); // 277mm
-
-  // Compute total rendered height of the receipt in mm
-  const imgHeight = (canvas.height * printableWidth) / canvas.width;
-
-  // 6. Handle Single Page vs Multi-page pagination
   if (imgHeight <= printableHeight) {
-    // Single page receipt - fits naturally
     pdf.addImage(imgData, 'JPEG', margin, margin, printableWidth, imgHeight, undefined, 'FAST');
   } else {
-    // Multi-page receipt (long orders/procurement with 15+ items)
     let heightLeft = imgHeight;
     let page = 0;
-
     while (heightLeft > 0) {
-      if (page > 0) {
-        pdf.addPage('a4', 'portrait');
-      }
-
-      // Calculate vertical offset for current slice
+      if (page > 0) pdf.addPage('a4', 'portrait');
       const verticalOffset = margin - (page * printableHeight);
       pdf.addImage(imgData, 'JPEG', margin, verticalOffset, printableWidth, imgHeight, undefined, 'FAST');
-
       heightLeft -= printableHeight;
       page++;
     }
   }
 
-  // 7. Save file to disk
   pdf.save(filename);
 };
 
