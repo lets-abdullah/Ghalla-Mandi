@@ -26,6 +26,7 @@ import { Reports } from './pages/Reports';
 import { SaleReturns } from './pages/SaleReturns';
 import { PurchaseReturns } from './pages/PurchaseReturns';
 import { Settings } from './pages/Settings';
+import { Employees } from './pages/Employees';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 
@@ -96,6 +97,7 @@ export const App = () => {
                   <Route path="/khata" element={<MainLayout><Khata /></MainLayout>} />
                   <Route path="/expenses" element={<MainLayout><Expenses /></MainLayout>} />
                   <Route path="/reports" element={<MainLayout><Reports /></MainLayout>} />
+                  <Route path="/employees" element={<MainLayout><Employees /></MainLayout>} />
                   <Route path="/settings" element={<MainLayout><Settings /></MainLayout>} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
