@@ -242,79 +242,18 @@ export const Invoices = () => {
     });
   }, [rawList, selectedPartyId, selectedProductFilter, dateFilterType, customStartDate, customEndDate, statusFilter]);
 
-  // Summary Metrics (Synchronized with Khata, Ledger & PaymentLogs)
+  // Summary Metrics (Synchronized directly with displayed Invoices)
   const totalBilledVolume = useMemo(() => {
     return filteredInvoices.reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
   }, [filteredInvoices]);
 
-  const { totalSettledAmount, totalOutstandingDue } = useMemo(() => {
-    let totalCollected = 0;
-    let totalDue = 0;
+  const totalSettledAmount = useMemo(() => {
+    return filteredInvoices.reduce((sum, inv) => sum + Number(inv.paidAmount || 0), 0);
+  }, [filteredInvoices]);
 
-    if (isPurchases) {
-      const supMap = new Map();
-      filteredInvoices.forEach(inv => {
-        const key = (inv.partyId ? String(inv.partyId) : (inv.partyName || 'supplier')).trim().toLowerCase();
-        if (!supMap.has(key)) {
-          supMap.set(key, { id: inv.partyId, name: inv.partyName || '', purchases: [] });
-        }
-        const origPur = purchases.find(p => String(p.id) === String(inv.id)) || {
-          id: inv.id,
-          amount: inv.amount,
-          grandTotal: inv.amount,
-          paidAmount: inv.paidAmount,
-          supplierId: inv.partyId,
-          supplier: inv.partyName
-        };
-        supMap.get(key).purchases.push(origPur);
-      });
-
-      supMap.forEach(supGroup => {
-        const fin = computeSupplierKhataBalance(
-          { id: supGroup.id, name: supGroup.name },
-          supGroup.purchases,
-          paymentLogs,
-          purchaseReturns
-        );
-        totalCollected += fin.totalPaid;
-        totalDue += fin.balance;
-      });
-    } else {
-      const custMap = new Map();
-      filteredInvoices.forEach(inv => {
-        const key = (inv.partyId ? String(inv.partyId) : (inv.partyName || 'customer')).trim().toLowerCase();
-        if (!custMap.has(key)) {
-          custMap.set(key, { id: inv.partyId, name: inv.partyName || '', sales: [] });
-        }
-        const origSale = sales.find(s => String(s.id) === String(inv.id)) || {
-          id: inv.id,
-          amount: inv.amount,
-          grandTotal: inv.amount,
-          paidAmount: inv.paidAmount,
-          customerId: inv.partyId,
-          partyName: inv.partyName,
-          customerName: inv.partyName
-        };
-        custMap.get(key).sales.push(origSale);
-      });
-
-      custMap.forEach(custGroup => {
-        const fin = computeCustomerKhataBalance(
-          { id: custGroup.id, name: custGroup.name },
-          custGroup.sales,
-          paymentLogs,
-          saleReturns
-        );
-        totalCollected += fin.totalPaid;
-        totalDue += fin.balance;
-      });
-    }
-
-    return {
-      totalSettledAmount: totalCollected,
-      totalOutstandingDue: totalDue
-    };
-  }, [isPurchases, filteredInvoices, purchases, sales, paymentLogs, purchaseReturns, saleReturns]);
+  const totalOutstandingDue = useMemo(() => {
+    return filteredInvoices.reduce((sum, inv) => sum + Number(inv.dueAmount || 0), 0);
+  }, [filteredInvoices]);
 
   const isAnyFilterActive =
     dateFilterType !== 'All' ||

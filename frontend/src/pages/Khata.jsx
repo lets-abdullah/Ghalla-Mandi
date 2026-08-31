@@ -22,7 +22,7 @@ import {
   ShoppingBag,
   AlertCircle
 } from 'lucide-react';
-import { useERP, computeCustomerKhataBalance } from '../context/ERPContext';
+import { useERP, computeCustomerKhataBalance, computeAllCustomersFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
@@ -177,90 +177,16 @@ export const Khata = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [paymentModalCust]);
 
-  // 1. Build Financial Position List for Registered Customers (Primary Party Credit Ledger)
-  const registeredKhataList = useMemo(() => {
-    return (customers || []).map(cust => {
-      const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
-      const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
-      const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
-
-      return {
-        id: cust.id,
-        name: cust.name,
-        businessName: cust.businessName || cust.shopName || '',
-        phone: cust.phone || '',
-        city: cust.city || 'Local Mandi',
-        customerType: custType,
-        totalSale: fin.totalSale,
-        grossSale: fin.totalSale,
-        returnAmount: fin.returnAmount,
-        netSale: fin.netSale,
-        totalPaid: fin.totalPaid,
-        netBalance: fin.netBalance,
-        balance: fin.receivableDue,
-        receivableDue: fin.receivableDue,
-        advanceCredit: fin.advanceCredit,
-        status: fin.status,
-        ordersCount: fin.ordersCount,
-        isRegistered: true
-      };
-    });
-  }, [customers, sales, saleReturns, paymentLogs]);
-
-  // 2. Process Walk-in / Counter Sales separately (Not mixed into permanent party khata)
-  const walkinKhataList = useMemo(() => {
-    const walkinSalesMap = new Map();
-    const registeredCustIds = new Set((customers || []).map(c => String(c.id)));
-    const registeredCustNames = new Set((customers || []).map(c => (c.name || '').trim().toLowerCase()));
-
-    (sales || []).forEach(s => {
-      const sCustId = s.customerId ? String(s.customerId) : null;
-      const sName = (s.partyName || s.customerName || '').trim().toLowerCase();
-      const isRegisteredCust = (sCustId && registeredCustIds.has(sCustId)) ||
-        (sName && registeredCustNames.has(sName) && sName !== 'walk-in customer');
-
-      if (!isRegisteredCust) {
-        const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
-        const key = rawName.toLowerCase();
-        if (!walkinSalesMap.has(key)) {
-          walkinSalesMap.set(key, { name: rawName, sales: [] });
-        }
-        walkinSalesMap.get(key).sales.push(s);
-      }
-    });
-
-    const list = [];
-    walkinSalesMap.forEach((val, key) => {
-      const fin = computeCustomerKhataBalance({ id: `walkin-${key}`, name: val.name }, val.sales, paymentLogs, saleReturns);
-      list.push({
-        id: `walkin-${val.name}`,
-        name: val.name,
-        businessName: 'Walk-in Party',
-        phone: 'Counter Sale',
-        city: 'Local Mandi',
-        customerType: 'Walk-in Customer',
-        totalSale: fin.totalSale,
-        grossSale: fin.totalSale,
-        returnAmount: fin.returnAmount,
-        netSale: fin.netSale,
-        totalPaid: fin.totalPaid,
-        netBalance: fin.netBalance,
-        balance: fin.receivableDue,
-        receivableDue: fin.receivableDue,
-        advanceCredit: fin.advanceCredit,
-        status: fin.status,
-        ordersCount: fin.ordersCount,
-        isRegistered: false
-      });
-    });
-    return list;
-  }, [customers, sales, saleReturns, paymentLogs]);
+  // 1. Unified Financial Position List using Centralized Accounting Engine
+  const { allCustomers, registeredList, walkinList } = useMemo(() => {
+    return computeAllCustomersFinancials(customers, sales, paymentLogs, saleReturns);
+  }, [customers, sales, paymentLogs, saleReturns]);
 
   // Filtered Khata Accounts
   const filteredKhata = useMemo(() => {
     const baseList = customerTypeFilter === 'Walk-in Customer'
-      ? walkinKhataList
-      : registeredKhataList;
+      ? walkinList
+      : (customerTypeFilter === 'Regular Customer' ? registeredList : allCustomers);
 
     return baseList.filter(item => {
       // 0. Search Term Filter
@@ -275,26 +201,28 @@ export const Khata = () => {
 
       // 1. Selected Customer Filter
       if (selectedCustomerId !== 'All') {
-        const idMatch = item.id === selectedCustomerId;
-        const nameMatch = item.name.toLowerCase() === selectedCustomerId.toLowerCase();
+        const idMatch = String(item.id) === String(selectedCustomerId);
+        const nameMatch = (item.name || '').toLowerCase() === selectedCustomerId.toLowerCase();
         if (!idMatch && !nameMatch) return false;
       }
 
       // 2. Balance Status Filter
-      if (balanceStatusFilter === 'Outstanding' && item.balance <= 0) return false;
-      if (balanceStatusFilter === 'Clear' && item.balance !== 0) return false;
+      if (balanceStatusFilter === 'Outstanding' && (item.receivableDue || item.balance) <= 0) return false;
+      if (balanceStatusFilter === 'Clear' && (item.receivableDue || item.balance) !== 0) return false;
 
       return true;
     }).sort((a, b) => {
-      if (b.balance !== a.balance) return b.balance - a.balance;
+      const balA = Number(a.receivableDue !== undefined ? a.receivableDue : (a.balance || 0));
+      const balB = Number(b.receivableDue !== undefined ? b.receivableDue : (b.balance || 0));
+      if (balB !== balA) return balB - balA;
       return (Number(b.id) || 0) - (Number(a.id) || 0);
     });
-  }, [registeredKhataList, walkinKhataList, searchTerm, customerTypeFilter, selectedCustomerId, balanceStatusFilter]);
+  }, [allCustomers, registeredList, walkinList, searchTerm, customerTypeFilter, selectedCustomerId, balanceStatusFilter]);
 
   // Aggregate Metrics based on Filtered Khata
-  const totalVolume = filteredKhata.reduce((acc, k) => acc + k.totalSale, 0);
-  const totalCollected = filteredKhata.reduce((acc, k) => acc + k.totalPaid, 0);
-  const totalOutstanding = filteredKhata.reduce((acc, k) => acc + k.balance, 0);
+  const totalVolume = filteredKhata.reduce((acc, k) => acc + (Number(k.totalSale) || 0), 0);
+  const totalCollected = filteredKhata.reduce((acc, k) => acc + (Number(k.totalPaid) || 0), 0);
+  const totalOutstanding = filteredKhata.reduce((acc, k) => acc + (Number(k.receivableDue) || 0), 0);
 
   const isAnyFilterActive = (
     searchTerm.trim() !== '' ||

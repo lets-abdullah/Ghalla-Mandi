@@ -108,14 +108,8 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     salesPaidSum += Math.max(sUpfront, sDirectLogs);
   });
 
-  // 2. Standalone Khata payment logs (not tied to specific sales)
-  const standalonePayments = custPayments.filter(p =>
-    !p.saleId &&
-    !(p.ref && custSales.some(s => s.invoiceNo && p.ref.includes(s.invoiceNo)))
-  ).reduce((sum, p) => sum + Number(p.amount || 0), 0);
-
   const totalPaidLogs = custPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-  const totalPaid = Math.max(totalPaidLogs, salesPaidSum + standalonePayments);
+  const totalPaid = Math.max(totalPaidLogs, salesPaidSum);
 
   const returnAmount = (saleReturns || []).filter(r => {
     const rCustId = r.customerId ? String(r.customerId) : null;
@@ -153,6 +147,79 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     advanceCredit,
     status,
     ordersCount: custSales.length
+  };
+};
+
+export const computeAllCustomersFinancials = (customers = [], sales = [], paymentLogs = [], saleReturns = []) => {
+  const registeredCustIds = new Set((customers || []).map(c => String(c.id)));
+  const registeredCustNames = new Set((customers || []).map(c => (c.name || '').trim().toLowerCase()));
+
+  // 1. Registered Customers
+  const registeredList = (customers || []).map(cust => {
+    const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
+    const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
+    return {
+      ...cust,
+      customerType: isWalkin ? 'Walk-in Customer' : 'Regular Customer',
+      isRegistered: true,
+      ...fin
+    };
+  });
+
+  // 2. Walk-in Customer Parties
+  const walkinSalesMap = new Map();
+  (sales || []).forEach(s => {
+    const sCustId = s.customerId ? String(s.customerId) : null;
+    const sName = (s.partyName || s.customerName || '').trim().toLowerCase();
+    const isRegistered = (sCustId && registeredCustIds.has(sCustId)) ||
+      (sName && registeredCustNames.has(sName) && sName !== 'walk-in customer');
+
+    if (!isRegistered) {
+      const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
+      const key = rawName.toLowerCase();
+      if (!walkinSalesMap.has(key)) {
+        walkinSalesMap.set(key, { name: rawName, sales: [] });
+      }
+      walkinSalesMap.get(key).sales.push(s);
+    }
+  });
+
+  const walkinList = [];
+  walkinSalesMap.forEach((val, key) => {
+    const fin = computeCustomerKhataBalance({ id: `walkin-${key}`, name: val.name, customerType: 'Walk-in Customer' }, val.sales, paymentLogs, saleReturns);
+    walkinList.push({
+      id: `walkin-${key}`,
+      name: val.name,
+      businessName: 'Walk-in Party',
+      phone: 'Counter Sale',
+      city: 'Local Mandi',
+      customerType: 'Walk-in Customer',
+      isRegistered: false,
+      ...fin
+    });
+  });
+
+  const allCustomers = [...registeredList, ...walkinList];
+
+  const totalGrossSales = allCustomers.reduce((sum, c) => sum + Number(c.totalSale || 0), 0);
+  const totalReturns = allCustomers.reduce((sum, c) => sum + Number(c.returnAmount || 0), 0);
+  const totalNetSales = allCustomers.reduce((sum, c) => sum + Number(c.netSale || 0), 0);
+  const totalPaymentsReceived = allCustomers.reduce((sum, c) => sum + Number(c.totalPaid || 0), 0);
+  const totalReceivables = allCustomers.reduce((sum, c) => sum + Number(c.receivableDue || 0), 0);
+  const totalCustomerCredits = allCustomers.reduce((sum, c) => sum + Number(c.advanceCredit || 0), 0);
+  const settledCount = allCustomers.filter(c => c.status === 'Settled' || c.netBalance === 0).length;
+
+  return {
+    allCustomers,
+    registeredList,
+    walkinList,
+    totalGrossSales,
+    totalReturns,
+    totalNetSales,
+    totalPaymentsReceived,
+    totalReceivables,
+    totalCustomerCredits,
+    settledCount
   };
 };
 

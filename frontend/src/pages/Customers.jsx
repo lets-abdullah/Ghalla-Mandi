@@ -26,7 +26,7 @@ import {
   Printer,
   ShoppingBag
 } from 'lucide-react';
-import { useERP, computeCustomerKhataBalance } from '../context/ERPContext';
+import { useERP, computeCustomerKhataBalance, computeAllCustomersFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
@@ -85,108 +85,26 @@ export const Customers = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showAddModal, editingCustomer, viewingCustomer]);
 
-  // 1. Process all registered customer accounts (Primary Party Ledger)
-  const registeredCustomersList = useMemo(() => {
-    return (customers || []).map(cust => {
-      const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
-      const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
-      const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
-
-      return {
-        ...cust,
-        id: cust.id,
-        name: cust.name,
-        businessName: cust.businessName || cust.shopName || '',
-        phone: cust.phone || '',
-        whatsapp: cust.whatsapp || '',
-        email: cust.email || '',
-        city: cust.city || 'Local Mandi',
-        address: cust.address || '',
-        customerType: custType,
-        balance: fin.receivableDue,
-        receivableDue: fin.receivableDue,
-        advanceCredit: fin.advanceCredit,
-        netBalance: fin.netBalance,
-        ordersCount: fin.ordersCount,
-        totalSales: fin.totalSale,
-        totalPaid: fin.totalPaid,
-        returnAmount: fin.returnAmount,
-        netSale: fin.netSale,
-        isRegistered: true
-      };
-    });
-  }, [customers, sales, saleReturns, paymentLogs]);
-
-  // 2. Process Walk-in / Counter Spot Sales separately (Not mixed into permanent party accounts)
-  const walkinCustomersList = useMemo(() => {
-    const walkinSalesMap = new Map();
-    const registeredCustIds = new Set((customers || []).map(c => String(c.id)));
-    const registeredCustNames = new Set((customers || []).map(c => (c.name || '').trim().toLowerCase()));
-
-    (sales || []).forEach(s => {
-      const sCustId = s.customerId ? String(s.customerId) : null;
-      const sName = (s.partyName || s.customerName || '').trim().toLowerCase();
-      const isRegisteredCust = (sCustId && registeredCustIds.has(sCustId)) ||
-        (sName && registeredCustNames.has(sName) && sName !== 'walk-in customer');
-
-      if (!isRegisteredCust) {
-        const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
-        const key = rawName.toLowerCase();
-        if (!walkinSalesMap.has(key)) {
-          walkinSalesMap.set(key, { name: rawName, sales: [] });
-        }
-        walkinSalesMap.get(key).sales.push(s);
-      }
-    });
-
-    const list = [];
-    walkinSalesMap.forEach((val, key) => {
-      const fin = computeCustomerKhataBalance({ id: `walkin-${key}`, name: val.name }, val.sales, paymentLogs, saleReturns);
-      list.push({
-        id: `walkin-${val.name}`,
-        name: val.name,
-        businessName: 'Walk-in Party',
-        phone: 'Counter Sale',
-        whatsapp: '',
-        email: '',
-        city: 'Local Mandi',
-        address: 'Walk-in Counter',
-        customerType: 'Walk-in Customer',
-        balance: fin.receivableDue,
-        receivableDue: fin.receivableDue,
-        advanceCredit: fin.advanceCredit,
-        netBalance: fin.netBalance,
-        status: 'Active',
-        ordersCount: fin.ordersCount,
-        totalSales: fin.totalSale,
-        totalPaid: fin.totalPaid,
-        returnAmount: fin.returnAmount,
-        netSale: fin.netSale,
-        isRegistered: false
-      });
-    });
-    return list;
-  }, [customers, sales, saleReturns, paymentLogs]);
+  // 1. Unified Financial Position using Centralized Accounting Engine
+  const {
+    allCustomers,
+    registeredList: registeredCustomersList,
+    walkinList: walkinCustomersList,
+    totalGrossSales,
+    totalPaymentsReceived,
+    totalReceivables
+  } = useMemo(() => {
+    return computeAllCustomersFinancials(customers, sales, paymentLogs, saleReturns);
+  }, [customers, sales, paymentLogs, saleReturns]);
 
   // Aggregate stats (Party Khata Receivables vs Walk-in Counter Dues)
   const totalCustomers = registeredCustomersList.length;
   const regularCount = registeredCustomersList.filter(c => (c.customerType || '').toLowerCase().includes('regular')).length;
   const walkinCount = walkinCustomersList.length;
 
-  const totalOverallSales = useMemo(() => {
-    return registeredCustomersList.reduce((acc, c) => acc + (Number(c.totalSales) || 0), 0);
-  }, [registeredCustomersList]);
-
-  const totalOverallReceived = useMemo(() => {
-    return registeredCustomersList.reduce((acc, c) => acc + (Number(c.totalPaid) || 0) + (Number(c.returnAmount) || 0), 0);
-  }, [registeredCustomersList]);
-
-  // Total Receivable is net of all customer balances (e.g. Test 1 = Rs.6,000 receivable and Haji Tariq = Rs.1,500 customer credit => Rs.4,500 net receivable)
-  const totalReceivables = useMemo(() => {
-    return Math.max(0, registeredCustomersList.reduce((acc, c) => acc + (Number(c.netBalance !== undefined ? c.netBalance : (c.balance || 0))), 0));
-  }, [registeredCustomersList]);
-
-  const totalWalkinDues = walkinCustomersList.reduce((acc, c) => acc + Math.max(0, Number(c.balance || 0)), 0);
+  const totalOverallSales = totalGrossSales;
+  const totalOverallReceived = totalPaymentsReceived;
+  const totalWalkinDues = walkinCustomersList.reduce((acc, c) => acc + (c.receivableDue || 0), 0);
 
   // Filtered Customers Array
   const filteredCustomers = useMemo(() => {
