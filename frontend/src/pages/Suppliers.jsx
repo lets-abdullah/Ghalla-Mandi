@@ -885,6 +885,7 @@ export const Suppliers = () => {
                   <th className="py-3 px-4">Contact</th>
                   <th className="py-3 px-4">Supplied Products</th>
                   <th className="py-3 px-4 text-right">Balance Due</th>
+                  <th className="py-3 px-4 text-center">Status</th>
                   <th className="py-3 px-4 text-center no-print">Actions</th>
                 </tr>
               </thead>
@@ -899,6 +900,7 @@ export const Suppliers = () => {
                   filteredSuppliers.map(s => {
                     const bal = Number(s.balance) || 0;
                     const suppliedProds = s.suppliedProducts || [];
+                    const isAct = (s.status || 'Active') === 'Active';
 
                     return (
                       <tr key={s.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}>

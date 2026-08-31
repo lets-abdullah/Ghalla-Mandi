@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Warehouse, 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  RefreshCw, 
-  X, 
-  Package, 
-  AlertTriangle, 
-  DollarSign, 
-  Search, 
-  Calendar, 
-  Filter, 
+import {
+  Warehouse,
+  ArrowUpRight,
+  ArrowDownLeft,
+  RefreshCw,
+  X,
+  Package,
+  AlertTriangle,
+  DollarSign,
+  Search,
+  Calendar,
+  Filter,
   SlidersHorizontal,
   FileText,
   Printer,
@@ -29,16 +29,16 @@ import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 
 export const Inventory = () => {
-  const { 
-    products = [], 
-    stockMovements = [], 
-    sales = [], 
-    purchases = [], 
-    saleReturns = [], 
-    purchaseReturns = [], 
-    adjustStock 
+  const {
+    products = [],
+    stockMovements = [],
+    sales = [],
+    purchases = [],
+    saleReturns = [],
+    purchaseReturns = [],
+    adjustStock
   } = useERP();
-  
+
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -87,7 +87,7 @@ export const Inventory = () => {
     // 1. Process explicit stockMovements if available
     const parsedMovements = (stockMovements || []).map((m, idx) => {
       const rawDateStr = m.date || (m.created_at ? new Date(m.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
-      
+
       // Parse ISO or DD/MM/YYYY date
       let parsedDate = new Date();
       if (m.created_at) {
@@ -448,9 +448,8 @@ export const Inventory = () => {
 
       {/* KPI Summary Bar (Screen Only) */}
       <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
-          theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-        }`}>
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+          }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Warehouse className="w-4 h-4 text-brand-500" />
             <span>On-Hand Stock</span>
@@ -460,9 +459,8 @@ export const Inventory = () => {
           </div>
         </div>
 
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
-          theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-        }`}>
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+          }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-600" />
             <span>Total Stock In</span>
@@ -472,9 +470,8 @@ export const Inventory = () => {
           </div>
         </div>
 
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
-          theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
-        }`}>
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+          }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <TrendingDown className="w-4 h-4 text-rose-600" />
             <span>Total Stock Out</span>
@@ -484,11 +481,10 @@ export const Inventory = () => {
           </div>
         </div>
 
-        <div 
+        <div
           onClick={() => navigate('/products')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${
-            theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
-          }`}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+            }`}
           title="View products catalog"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
@@ -502,9 +498,8 @@ export const Inventory = () => {
       </div>
 
       {/* Single Clean Filter Bar (Screen Only) */}
-      <div className={`no-print p-3.5 rounded-2xl border card-shadow space-y-3 ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-      }`}>
+      <div className={`no-print p-3.5 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-2.5">
           {/* 1. Date Filter */}
           <div className="flex-1 min-w-[120px]">
@@ -514,9 +509,8 @@ export const Inventory = () => {
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Dates</option>
               <option value="Today">Today</option>
@@ -535,9 +529,8 @@ export const Inventory = () => {
             <select
               value={selectedProduct}
               onChange={(e) => setSelectedProduct(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Products</option>
               {products.map(p => (
@@ -554,37 +547,14 @@ export const Inventory = () => {
             <select
               value={movementTypeFilter}
               onChange={(e) => setMovementTypeFilter(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Movements</option>
-              <option value="IN">Stock In (+)</option>
-              <option value="OUT">Stock Out (-)</option>
+              <option value="IN">Stock In</option>
+              <option value="OUT">Stock Out</option>
               <option value="ADJUST">Adjustments</option>
               <option value="RETURN">Returns</option>
-            </select>
-          </div>
-
-          {/* 4. Reference / Source */}
-          <div className="flex-1 min-w-[130px]">
-            <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
-              Reference / Source
-            </label>
-            <select
-              value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="All">All Sources</option>
-              <option value="Sales">Sales</option>
-              <option value="Purchases">Purchases</option>
-              <option value="Sale Returns">Sale Returns</option>
-              <option value="Purchase Returns">Purchase Returns</option>
-              <option value="Stock Adjustments">Stock Adjustments</option>
-              <option value="Manual Adjustments">Manual Adjustments</option>
             </select>
           </div>
 
@@ -599,9 +569,8 @@ export const Inventory = () => {
                 placeholder="Product, reference, note..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full border rounded-xl pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             </div>
@@ -630,9 +599,8 @@ export const Inventory = () => {
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -641,9 +609,8 @@ export const Inventory = () => {
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
             </div>
           </div>
@@ -665,15 +632,13 @@ export const Inventory = () => {
       />
 
       {/* Compact Bank-Statement Inventory Table */}
-      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-      }`}>
+      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        }`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-full">
             <thead>
-              <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
-                theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50/80 border-slate-200 text-slate-500'
-              }`}>
+              <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50/80 border-slate-200 text-slate-500'
+                }`}>
                 <th className="py-2.5 px-4 w-32">Date</th>
                 <th className="py-2.5 px-4">Product</th>
                 <th className="py-2.5 px-4 w-36">Movement</th>
@@ -681,9 +646,8 @@ export const Inventory = () => {
                 <th className="py-2.5 px-4 text-right w-36">Quantity</th>
               </tr>
             </thead>
-            <tbody className={`divide-y text-xs font-semibold ${
-              theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
-            }`}>
+            <tbody className={`divide-y text-xs font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+              }`}>
               {filteredTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-12 text-center text-slate-400 space-y-2">
@@ -697,8 +661,8 @@ export const Inventory = () => {
                   const isAdjustment = tx.direction === 'ADJUST';
 
                   return (
-                    <tr 
-                      key={tx.id} 
+                    <tr
+                      key={tx.id}
                       className={theme === 'dark' ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50/70'}
                     >
                       {/* Date */}
@@ -715,13 +679,12 @@ export const Inventory = () => {
 
                       {/* Movement Type Badge */}
                       <td className="py-2.5 px-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide border ${
-                          isAdjustment
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide border ${isAdjustment
                             ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
                             : isStockIn
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                               : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-                        }`}>
+                          }`}>
                           {isAdjustment ? (
                             <RefreshCw className="w-3 h-3" />
                           ) : isStockIn ? (
@@ -739,13 +702,12 @@ export const Inventory = () => {
                       </td>
 
                       {/* Signed Quantity */}
-                      <td className={`py-2.5 px-4 text-right font-black font-mono text-sm whitespace-nowrap ${
-                        isAdjustment
+                      <td className={`py-2.5 px-4 text-right font-black font-mono text-sm whitespace-nowrap ${isAdjustment
                           ? 'text-amber-600 dark:text-amber-400'
                           : isStockIn
                             ? 'text-emerald-600 dark:text-emerald-400'
                             : 'text-rose-600 dark:text-rose-400'
-                      }`}>
+                        }`}>
                         {tx.signedQty}
                       </td>
                     </tr>
@@ -766,9 +728,8 @@ export const Inventory = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setShowAdjModal(false); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
               <div>
                 <h3 className="text-base font-black">Manual Stock Adjustment</h3>
@@ -790,9 +751,8 @@ export const Inventory = () => {
                 <select
                   value={adjForm.productId || products[0]?.id}
                   onChange={(e) => setAdjForm({ ...adjForm, productId: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 >
                   {products.map(p => (
                     <option key={p.id} value={p.id}>
@@ -808,9 +768,8 @@ export const Inventory = () => {
                   <select
                     value={adjForm.type}
                     onChange={(e) => setAdjForm({ ...adjForm, type: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   >
                     <option value="IN">Stock Addition (+)</option>
                     <option value="OUT">Stock Deduction (-)</option>
@@ -827,9 +786,8 @@ export const Inventory = () => {
                     onFocus={(e) => e.target.select()}
                     value={adjForm.qtyKg}
                     onChange={(e) => setAdjForm({ ...adjForm, qtyKg: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold font-mono outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold font-mono outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -841,9 +799,8 @@ export const Inventory = () => {
                   placeholder="e.g. Manual Warehouse Count Audit, Spoilage, etc."
                   value={adjForm.reason}
                   onChange={(e) => setAdjForm({ ...adjForm, reason: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -851,9 +808,8 @@ export const Inventory = () => {
                 <button
                   type="button"
                   onClick={() => setShowAdjModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>
