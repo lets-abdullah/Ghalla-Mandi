@@ -23,7 +23,7 @@ import {
   Edit3,
   CreditCard
 } from 'lucide-react';
-import { useERP, computePurchaseFinancials, computeSupplierKhataBalance } from '../context/ERPContext';
+import { useERP, computePurchaseFinancials, computeSupplierKhataBalance, computeAllSuppliersFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PurchaseReceiptModal } from '../modals/PurchaseReceiptModal';
@@ -455,25 +455,15 @@ export const Purchases = () => {
     }
   };
 
-  // Calculations for KPI Header Cards (Synchronized with Suppliers, Ledger & PaymentLogs)
-  const totalGrossPurchases = purchases.reduce((acc, p) => acc + (Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0), 0);
-  const totalPurchaseReturnsVal = (purchaseReturns || []).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
-  const totalNetPurchases = Math.max(0, totalGrossPurchases - totalPurchaseReturnsVal);
-
-  const { totalPaidOut, totalOutstandingPayable } = useMemo(() => {
-    let totalPaid = 0;
-    let totalDue = 0;
-
-    (suppliers || []).forEach(sup => {
-      const fin = computeSupplierKhataBalance(sup, purchases, paymentLogs, purchaseReturns);
-      totalPaid += fin.totalPaid;
-      totalDue += fin.balance;
-    });
-
-    return {
-      totalPaidOut: totalPaid,
-      totalOutstandingPayable: totalDue
-    };
+  // Calculations for KPI Header Cards using Centralized Engine
+  const {
+    totalGrossPurchases,
+    totalReturns: totalPurchaseReturnsVal,
+    totalNetPurchases,
+    totalPaymentsPaid: totalPaidOut,
+    totalPayables: totalOutstandingPayable
+  } = useMemo(() => {
+    return computeAllSuppliersFinancials(suppliers, purchases, paymentLogs, purchaseReturns);
   }, [suppliers, purchases, paymentLogs, purchaseReturns]);
 
   // Robust Date Parser helper

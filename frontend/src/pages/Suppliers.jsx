@@ -31,7 +31,7 @@ import {
   CreditCard,
   Printer
 } from 'lucide-react';
-import { useERP, computeSupplierKhataBalance } from '../context/ERPContext';
+import { useERP, computeSupplierKhataBalance, computeAllSuppliersFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
@@ -575,27 +575,13 @@ export const Suppliers = () => {
     }
   };
 
-  // Processed Suppliers with Live Financial Balances (Synchronized with Purchases, Returns & PaymentLogs)
-  const processedSuppliers = useMemo(() => {
-    return suppliers.map(sup => {
-      const fin = computeSupplierKhataBalance(sup, purchases, paymentLogs, purchaseReturns);
-
-      return {
-        ...sup,
-        totalPurchases: fin.totalPurchase,
-        totalPaid: fin.totalPaid,
-        returnAmount: fin.returnAmount,
-        balance: fin.balance,
-        status: fin.balance > 0 ? 'Payable' : 'Settled',
-        purchasesCount: fin.ordersCount
-      };
-    });
-  }, [suppliers, purchases, purchaseReturns, paymentLogs]);
+  // Processed Suppliers with Live Financial Balances using Centralized Engine
+  const { allSuppliers: processedSuppliers, totalPayables: totalPayablesAmount, settledCount: settledSuppliersCount } = useMemo(() => {
+    return computeAllSuppliersFinancials(suppliers, purchases, paymentLogs, purchaseReturns);
+  }, [suppliers, purchases, paymentLogs, purchaseReturns]);
 
   // Metrics
   const totalSuppliersCount = processedSuppliers.length;
-  const totalPayablesAmount = processedSuppliers.reduce((acc, s) => acc + s.balance, 0);
-  const settledSuppliersCount = processedSuppliers.filter(s => s.balance === 0).length;
   const activeSuppliersCount = processedSuppliers.filter(s => (s.status || 'Active') === 'Active').length;
 
   // Filtered Suppliers List

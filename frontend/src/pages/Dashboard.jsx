@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
-import { useERP, computeCustomerKhataBalance, computeSupplierKhataBalance } from '../context/ERPContext';
+import { useERP, computeCustomerKhataBalance, computeSupplierKhataBalance, computeAllCustomersFinancials, computeAllSuppliersFinancials, computeProductValuation } from '../context/ERPContext';
 import { KPICard } from '../components/KPICard';
 import { SalesChart } from '../components/SalesChart';
 import { LowStockWidget } from '../components/LowStockWidget';
@@ -86,85 +86,31 @@ export const Dashboard = () => {
   const allTimePurchaseReturnsVal = purchaseReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
   const netAllTimePurchases = Math.max(0, allTimeGrossPurchases - allTimePurchaseReturnsVal);
 
-  // Combined Live Customer Receivables (Synchronized with Khata, Ledger & Invoices)
-  const { totalCustomerDues, regularDues, walkinDues, totalDueAccountsCount, regDueCount, wDueCount } = useMemo(() => {
-    const processedCustNames = new Set();
-    const processedCustIds = new Set();
+  // Combined Live Customer Receivables using Centralized Engine
+  const { totalReceivables: totalCustomerDues, allCustomers } = useMemo(() => {
+    return computeAllCustomersFinancials(customers, sales, paymentLogs, saleReturns);
+  }, [customers, sales, paymentLogs, saleReturns]);
 
-    let regDues = 0;
-    let regDueCount = 0;
+  const totalDueAccountsCount = allCustomers.filter(c => c.receivableDue > 0).length;
 
-    (customers || []).forEach(cust => {
-      processedCustIds.add(String(cust.id));
-      if (cust.name) processedCustNames.add(cust.name.trim().toLowerCase());
+  // Combined Live Supplier Payables using Centralized Engine
+  const { totalPayables, allSuppliers } = useMemo(() => {
+    return computeAllSuppliersFinancials(suppliers, purchases, paymentLogs, purchaseReturns);
+  }, [suppliers, purchases, paymentLogs, purchaseReturns]);
 
-      const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
-      if (fin.balance > 0) {
-        regDues += fin.balance;
-        regDueCount += 1;
-      }
+  const dueSuppliersCount = allSuppliers.filter(s => s.payableDue > 0).length;
+
+  // Total Inventory on hand and FIFO Valuation
+  const { totalStockQty, totalInventoryValue } = useMemo(() => {
+    let qtySum = 0;
+    let valSum = 0;
+    products.forEach(p => {
+      const val = computeProductValuation(p, purchases, sales, saleReturns, purchaseReturns);
+      qtySum += val.qty;
+      valSum += val.stockValue;
     });
-
-    // Walk-in / Counter Sales
-    const walkinSalesMap = new Map();
-    (sales || []).forEach(s => {
-      const sCustId = s.customerId ? String(s.customerId) : null;
-      const sName = (s.partyName || s.customerName || '').trim().toLowerCase();
-      const isRegisteredCust = (sCustId && processedCustIds.has(sCustId)) ||
-        (sName && processedCustNames.has(sName));
-
-      if (!isRegisteredCust) {
-        const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
-        const key = rawName.toLowerCase();
-        if (!walkinSalesMap.has(key)) {
-          walkinSalesMap.set(key, { name: rawName, sales: [] });
-        }
-        walkinSalesMap.get(key).sales.push(s);
-      }
-    });
-
-    let wDues = 0;
-    let wDueCount = 0;
-
-    walkinSalesMap.forEach((val, key) => {
-      const fin = computeCustomerKhataBalance({ id: `walkin-${key}`, name: val.name }, val.sales, paymentLogs, saleReturns);
-      if (fin.balance > 0) {
-        wDues += fin.balance;
-        wDueCount += 1;
-      }
-    });
-
-    return {
-      totalCustomerDues: regDues + wDues,
-      regularDues: regDues,
-      walkinDues: wDues,
-      totalDueAccountsCount: regDueCount + wDueCount,
-      regDueCount,
-      wDueCount
-    };
-  }, [customers, sales, saleReturns, paymentLogs]);
-
-  // Combined Live Supplier Payables (Synchronized with Suppliers Directory & PaymentLogs)
-  const { totalPayables, dueSuppliersCount } = useMemo(() => {
-    let payables = 0;
-    let dueCount = 0;
-
-    (suppliers || []).forEach(sup => {
-      const fin = computeSupplierKhataBalance(sup, purchases, paymentLogs, purchaseReturns);
-      if (fin.balance > 0) {
-        payables += fin.balance;
-        dueCount += 1;
-      }
-    });
-
-    return {
-      totalPayables: payables,
-      dueSuppliersCount: dueCount
-    };
-  }, [suppliers, purchases, purchaseReturns, paymentLogs]);
-
-  const totalStockQty = products.reduce((acc, p) => acc + (Number(p.stockQty ?? p.stockqty) || 0), 0);
-  const totalInventoryValue = products.reduce((acc, p) => acc + ((Number(p.stockQty ?? p.stockqty) || 0) * (Number(p.purchasePrice ?? p.purchaseprice) || 0)), 0);
+    return { totalStockQty: qtySum, totalInventoryValue: valSum };
+  }, [products, purchases, sales, saleReturns, purchaseReturns]);
 
   return (
     <div className="space-y-6">
