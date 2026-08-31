@@ -6,7 +6,7 @@ import {
   CreditCard, Smartphone, Wallet, Edit3, Phone, MapPin,
   RefreshCw, Wheat, Check, PanelLeftClose, PanelLeftOpen, Maximize2,
   Receipt, AlertCircle, FileText, ChevronDown, ChevronUp, Filter, Building2,
-  Landmark, Layers, FolderOpen
+  Landmark, Layers, FolderOpen, Sparkles
 } from 'lucide-react';
 import { useERP, computeCustomerKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
