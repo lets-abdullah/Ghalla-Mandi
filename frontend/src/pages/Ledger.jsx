@@ -189,7 +189,7 @@ export const Ledger = () => {
         if (p.saleId) accountedPosSaleIds.add(String(p.saleId));
       });
 
-      // 1. Customer Sales Invoices (Debit) & POS Upfront Payments (Credit)
+      // 1. Customer Sales Invoices (Debit)
       (sales || []).forEach(s => {
         const custObj = customers.find(c => (s.customerId && String(c.id) === String(s.customerId)) || (c.name && s.partyName && c.name.trim().toLowerCase() === s.partyName.trim().toLowerCase() && c.name.trim().toLowerCase() !== 'walk-in customer'));
         const isWalkin = (!custObj && !s.customerId) || (s.partyName || '').toLowerCase().includes('walk-in') || (s.customerType || '').toLowerCase().includes('walk-in');
@@ -218,9 +218,10 @@ export const Ledger = () => {
           notes: s.note || ''
         });
 
-        // Direct payment received on counter (Credit) - only if not already present in paymentLogs
+        // Upfront cash paid on POS counter only if no paymentLogs exist at all in database
         const paidAmt = Number(s.paidAmount || 0);
-        if (paidAmt > 0 && !accountedPosSaleIds.has(String(s.id))) {
+        const hasAnyCustPaymentLogs = (paymentLogs || []).some(p => p.type === 'Customer' || p.partyType === 'Customer');
+        if (paidAmt > 0 && !hasAnyCustPaymentLogs) {
           entries.push({
             id: `pay-direct-${s.id}`,
             rawDate: s.date,
@@ -476,20 +477,16 @@ export const Ledger = () => {
 
     // 3. Compute final balance & status for each party entity
     const list = Array.from(map.values()).map(entity => {
-      let balance = 0;
+      let balance = entity.totalDebit - entity.totalCredit;
       let status = 'Settled';
       let displayCredit = entity.totalCredit;
 
       if (!isSupplier) {
-        // Customers: Mandi sells to customers. Customers can only be Receivable (Due) or Settled (Clear). Customers can NEVER be Payable.
-        balance = Math.max(0, entity.totalDebit - entity.totalCredit);
-        displayCredit = Math.min(entity.totalDebit, entity.totalCredit);
-        status = balance > 0 ? 'Receivable' : 'Settled';
+        // Customers: Debit (Invoices) - Credit (Payments + Returns). Negative means Customer Credit/Advance
+        status = balance > 0 ? 'Receivable' : (balance < 0 ? 'Advance' : 'Settled');
       } else {
-        // Suppliers: Mandi buys from suppliers. Balance = Purchases - Payments
-        balance = Math.max(0, entity.totalDebit - entity.totalCredit);
-        displayCredit = Math.min(entity.totalDebit, entity.totalCredit);
-        status = balance > 0 ? 'Payable' : 'Settled';
+        // Suppliers: Debit (Purchases) - Credit (Payments + Returns). Negative means Mandi Advance/Overpayment
+        status = balance > 0 ? 'Payable' : (balance < 0 ? 'Advance' : 'Settled');
       }
 
       return {
@@ -593,11 +590,8 @@ export const Ledger = () => {
     // 2. Compute Running Balance chronologically
     let runningBalance = 0;
     const computed = partyEntries.map(entry => {
-      if (!isSupplier) {
-        runningBalance = Math.max(0, runningBalance + (entry.debit - entry.credit));
-      } else {
-        runningBalance = Math.max(0, runningBalance + (entry.debit - entry.credit));
-      }
+      // Invoice/Debit increases balance (+Receivable), Returns/Payments decrease balance (-Receivable)
+      runningBalance = runningBalance + (Number(entry.debit || 0) - Number(entry.credit || 0));
       return {
         ...entry,
         runningBalance

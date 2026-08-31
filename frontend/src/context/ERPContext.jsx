@@ -56,35 +56,32 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
 
     if (isRegularCust) {
       if (isWalkinSale && !sCustId) return false;
-      return (sCustId && sCustId === custId) || (custName && sPartyName === custName && sPartyName !== 'walk-in customer');
+      return (sCustId && sCustId === custId) || (custName && sPartyName === custName && !sPartyName.includes('walk-in'));
     } else {
       return (custId && sCustId && sCustId === custId) || (custName && sPartyName === custName);
     }
   });
 
   const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0)), 0);
-  const upfrontPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount !== undefined ? s.paidAmount : 0), 0);
 
-  // Standalone direct customer payments (exclude POS payments to prevent double-counting)
-  const directPaid = (paymentLogs || []).filter(p => {
+  // Single Source of Truth: Customer Payment Transactions in paymentLogs
+  const custPayments = (paymentLogs || []).filter(p => {
     const isCustomer = p.type === 'Customer' || p.partyType === 'Customer';
     if (!isCustomer) return false;
     const pPartyId = p.partyId ? String(p.partyId) : null;
     const pPartyName = (p.partyName || '').trim().toLowerCase();
 
-    let matchesParty = false;
     if (isRegularCust) {
-      matchesParty = (custId && pPartyId && pPartyId === custId) ||
+      return (custId && pPartyId && pPartyId === custId) ||
         (custName && pPartyName === custName && !pPartyName.includes('walk-in'));
     } else {
-      matchesParty = (custId && pPartyId && pPartyId === custId) || (custName && pPartyName === custName);
+      return (custId && pPartyId && pPartyId === custId) || (custName && pPartyName === custName);
     }
+  });
 
-    const isPosLog = (p.saleId && custSales.some(s => String(s.id) === String(p.saleId))) ||
-      (p.ref && p.ref.startsWith('POS-')) ||
-      (p.note && p.note.includes('POS Payment Received'));
-    return matchesParty && !isPosLog;
-  }).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  const totalPaidLogs = custPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  const upfrontOnly = custSales.reduce((acc, s) => acc + Number(s.paidAmount !== undefined ? s.paidAmount : 0), 0);
+  const totalPaid = totalPaidLogs > 0 ? totalPaidLogs : upfrontOnly;
 
   const returnAmount = (saleReturns || []).filter(r => {
     const rCustId = r.customerId ? String(r.customerId) : null;
@@ -97,16 +94,16 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   }).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
 
   const openingBalance = Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0));
-  const totalPaid = upfrontPaid + directPaid;
   const netPurchases = Math.max(0, totalSale - returnAmount);
-  const balance = Math.max(0, openingBalance + netPurchases - totalPaid);
-  const status = balance > 0 ? 'Due' : 'Clear';
+  // Receivable = Opening + (Sales - Returns) - Payments (Negative means Credit/Overpayment)
+  const balance = openingBalance + netPurchases - totalPaid;
+  const status = balance > 0 ? 'Due' : (balance < 0 ? 'Advance' : 'Clear');
 
   return {
     openingBalance,
     totalSale,
-    upfrontPaid,
-    directPaid,
+    upfrontPaid: totalPaid,
+    directPaid: totalPaidLogs,
     totalPaid,
     returnAmount,
     balance,
