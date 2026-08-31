@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Package, Search, Plus, Filter, Barcode, Edit3, Trash2, AlertTriangle, FolderPlus, X, Image as ImageIcon, Upload, RefreshCw, Printer } from 'lucide-react';
+import { Package, Search, Plus, Filter, Barcode, Edit3, Trash2, AlertTriangle, FolderPlus, X, Image as ImageIcon, Upload, RefreshCw, Printer, Layers, FileSpreadsheet, Coins, TrendingUp } from 'lucide-react';
 import { useERP, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
@@ -7,7 +6,7 @@ import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 
 export const Products = () => {
-  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, adjustStock, purchases = [], sales = [], saleReturns = [], purchaseReturns = [] } = useERP();
+  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, adjustStock, purchases = [], sales = [], saleReturns = [], purchaseReturns = [], stockMovements = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
@@ -17,6 +16,7 @@ export const Products = () => {
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [adjustingProduct, setAdjustingProduct] = useState(null);
+  const [viewingBatchesProduct, setViewingBatchesProduct] = useState(null);
   const [adjForm, setAdjForm] = useState({ qty: 1, type: 'IN', reason: 'Stock Audit' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,11 +28,12 @@ export const Products = () => {
         else if (showAddModal) setShowAddModal(false);
         else if (editingProduct) setEditingProduct(null);
         else if (adjustingProduct) setAdjustingProduct(null);
+        else if (viewingBatchesProduct) setViewingBatchesProduct(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAddCategoryModal, showAddModal, editingProduct, adjustingProduct]);
+  }, [showAddCategoryModal, showAddModal, editingProduct, adjustingProduct, viewingBatchesProduct]);
 
   // New Category Form State
   const [newCatData, setNewCatData] = useState({
@@ -302,8 +303,8 @@ export const Products = () => {
                 <th className="py-3 px-4">Product</th>
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4">Code</th>
-                <th className="py-3 px-4 text-center">Stock</th>
-                <th className="py-3 px-4 text-right">Purchase Rate</th>
+                <th className="py-3 px-4 text-center">Available Stock</th>
+                <th className="py-3 px-4 text-right">Cost & Valuation</th>
                 <th className="py-3 px-4 text-right">Selling Rate</th>
                 <th className="py-3 px-4 text-center no-print">Action</th>
               </tr>
@@ -318,9 +319,10 @@ export const Products = () => {
                 </tr>
               ) : (
                 filtered.map(product => {
-                  const val = computeProductValuation(product, purchases, sales, saleReturns, purchaseReturns);
+                  const val = computeProductValuation(product, purchases, sales, saleReturns, purchaseReturns, stockMovements);
                   const isLowStock = val.qty <= (product.minStock || 1000);
                   const sellingRate = Number(product.sellingPrice ?? product.sellingprice ?? val.sellingRate ?? 0);
+                  const unit = product.unit || product.baseUnit || t('kg');
 
                   return (
                     <tr key={product.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
@@ -338,7 +340,12 @@ export const Products = () => {
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 font-bold">{product.name}</td>
+                      <td className="py-3 px-4 font-bold">
+                        <div>{product.name}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">
+                          {val.activeBatches?.length || 0} active purchase {val.activeBatches?.length === 1 ? 'batch' : 'batches'}
+                        </div>
+                      </td>
                       <td className="py-3 px-4">
                         <span className="font-semibold text-xs text-slate-600 dark:text-slate-300">
                           {product.category}
@@ -351,19 +358,37 @@ export const Products = () => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className={`font-extrabold text-xs ${isLowStock ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                          {isLowStock && <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />}
-                          {val.qty.toLocaleString()} {product.unit || product.baseUnit || t('kg')}
-                        </span>
+                        <div>
+                          <span className={`font-extrabold text-xs ${isLowStock ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                            {isLowStock && <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />}
+                            {val.qty.toLocaleString()} {unit}
+                          </span>
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-400 font-mono">
+                          Value: Rs. {val.stockValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </div>
                       </td>
-                      <td className="py-3 px-4 text-right text-slate-400 font-semibold">
-                        Rs. {val.purchaseRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} / {product.unit || product.baseUnit || t('kg')}
+                      <td className="py-3 px-4 text-right font-mono">
+                        <div className="font-black text-slate-700 dark:text-slate-200">
+                          Avg: Rs. {val.avgCost.toLocaleString(undefined, { maximumFractionDigits: 2 })} / {unit}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-bold">
+                          Latest: Rs. {(val.latestPurchaseRate || val.avgCost).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </div>
                       </td>
-                      <td className="py-3 px-4 text-right text-brand-500 font-extrabold">
-                        Rs. {sellingRate.toLocaleString()} / {product.unit || product.baseUnit || t('kg')}
+                      <td className="py-3 px-4 text-right text-brand-500 font-extrabold font-mono">
+                        Rs. {sellingRate.toLocaleString()} / {unit}
                       </td>
                       <td className="py-3 px-4 text-center no-print">
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* View Batches / Purchase Cost Breakdown */}
+                          <button
+                            onClick={() => setViewingBatchesProduct(product)}
+                            className={`p-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white transition cursor-pointer`}
+                            title="View Purchase Cost Batches & FIFO Breakdown"
+                          >
+                            <Layers className="w-3.5 h-3.5" />
+                          </button>
                           <button
                             onClick={() => {
                               setAdjustingProduct(product);
@@ -373,7 +398,7 @@ export const Products = () => {
                               }`}
                             title={t('adjustStock')}
                           >
-                            <RefreshCw className="w-4 h-4" />
+                            <RefreshCw className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setEditingProduct(product)}
@@ -381,7 +406,7 @@ export const Products = () => {
                               }`}
                             title={t('editProduct')}
                           >
-                            <Edit3 className="w-4 h-4" />
+                            <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={async () => {
@@ -396,7 +421,7 @@ export const Products = () => {
                             className="p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition cursor-pointer"
                             title={t('delete')}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -1021,6 +1046,197 @@ export const Products = () => {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* PURCHASE BATCH & COST BREAKDOWN MODAL */}
+      {/* ========================================================================= */}
+      {viewingBatchesProduct && (() => {
+        const val = computeProductValuation(viewingBatchesProduct, purchases, sales, saleReturns, purchaseReturns, stockMovements);
+        const unit = viewingBatchesProduct.unit || viewingBatchesProduct.baseUnit || t('kg');
+        const allBatches = val.batches || [];
+
+        return (
+          <div
+            onClick={(e) => { if (e.target === e.currentTarget) setViewingBatchesProduct(null); }}
+            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          >
+            <div className={`w-full max-w-3xl rounded-3xl p-6 shadow-2xl border transition-all animate-scaleIn my-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b pb-4 mb-5 border-slate-100 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold flex items-center gap-2">
+                      <span>{viewingBatchesProduct.name}</span>
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">
+                        {viewingBatchesProduct.category}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                      FIFO Purchase Batch Cost Allocation & Real-time Valuation
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setViewingBatchesProduct(null)}
+                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* 4 KPI Summary Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700/60' : 'bg-blue-50/50 border-blue-100'}`}>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Current Stock</div>
+                  <div className="text-lg font-black text-blue-600 dark:text-blue-400 mt-1">
+                    {val.qty.toLocaleString()} {unit}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Available on hand</div>
+                </div>
+
+                <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700/60' : 'bg-emerald-50/50 border-emerald-100'}`}>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Stock Value</div>
+                  <div className="text-lg font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                    Rs. {val.stockValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">FIFO Inventory Cost</div>
+                </div>
+
+                <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700/60' : 'bg-indigo-50/50 border-indigo-100'}`}>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Average Cost</div>
+                  <div className="text-lg font-black text-indigo-600 dark:text-indigo-400 mt-1">
+                    Rs. {val.avgCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Per {unit}</div>
+                </div>
+
+                <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700/60' : 'bg-amber-50/50 border-amber-100'}`}>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Latest Purchase Rate</div>
+                  <div className="text-lg font-black text-amber-600 dark:text-amber-400 mt-1">
+                    Rs. {(val.latestPurchaseRate || val.avgCost).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Most recent procurement</div>
+                </div>
+              </div>
+
+              {/* Purchase Cost Breakdown Equation Box */}
+              <div className={`p-4 rounded-2xl border mb-5 ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                  <Coins className="w-3.5 h-3.5 text-brand-500" />
+                  <span>Cost Equation & Inventory Lot Breakdown</span>
+                </div>
+                <div className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 flex flex-wrap items-center gap-2">
+                  {allBatches.length === 0 ? (
+                    <span className="text-slate-400">No purchase batches recorded yet. Direct initial stock rate applies.</span>
+                  ) : (
+                    <>
+                      {allBatches.map((b, i) => (
+                        <React.Fragment key={b.id || i}>
+                          {i > 0 && <span className="text-slate-400 font-normal">+</span>}
+                          <span className={`px-2.5 py-1 rounded-xl border ${b.remainingQty > 0 ? 'bg-white dark:bg-slate-800 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'}`}>
+                            {b.initialQty} {unit} @ Rs. {b.rate.toLocaleString()} → Rs. {b.initialTotalCost.toLocaleString()}
+                            {b.remainingQty < b.initialQty && (
+                              <span className="ml-1 text-[10px] font-semibold text-slate-400">
+                                ({b.remainingQty} rem.)
+                              </span>
+                            )}
+                          </span>
+                        </React.Fragment>
+                      ))}
+                      <span className="text-slate-400 font-normal">=</span>
+                      <span className="px-2.5 py-1 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-400 font-black">
+                        Total: {val.qty.toLocaleString()} {unit} → Rs. {val.stockValue.toLocaleString()} (Avg: Rs. {val.avgCost.toLocaleString(undefined, { maximumFractionDigits: 2 })})
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Batches Table */}
+              <div className="border rounded-2xl overflow-hidden border-slate-200 dark:border-slate-700 max-h-64 overflow-y-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                      <th className="py-2.5 px-3">Batch Ref / Date</th>
+                      <th className="py-2.5 px-3">Lot Type</th>
+                      <th className="py-2.5 px-3 text-right">Procured Qty</th>
+                      <th className="py-2.5 px-3 text-right">Unit Rate</th>
+                      <th className="py-2.5 px-3 text-right">Remaining Qty</th>
+                      <th className="py-2.5 px-3 text-right">Remaining Value</th>
+                      <th className="py-2.5 px-3 text-center">Lot Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                    {allBatches.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-slate-400 text-xs font-bold">
+                          No distinct purchase lots recorded.
+                        </td>
+                      </tr>
+                    ) : (
+                      allBatches.map((batch, idx) => {
+                        const isFullyConsumed = batch.remainingQty === 0;
+                        const isPartial = batch.remainingQty > 0 && batch.remainingQty < batch.initialQty;
+
+                        return (
+                          <tr key={batch.id || idx} className={theme === 'dark' ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50/70'}>
+                            <td className="py-2.5 px-3 font-mono">
+                              <div className="font-bold text-slate-800 dark:text-slate-200">{batch.batchId}</div>
+                              <div className="text-[10px] text-slate-400">{batch.dateStr}</div>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                                {batch.type}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-300">
+                              {batch.initialQty.toLocaleString()} {unit}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono font-extrabold text-slate-900 dark:text-white">
+                              Rs. {batch.rate.toLocaleString()}
+                            </td>
+                            <td className={`py-2.5 px-3 text-right font-mono font-black ${isFullyConsumed ? 'text-slate-400 line-through' : 'text-blue-600 dark:text-blue-400'}`}>
+                              {batch.remainingQty.toLocaleString()} {unit}
+                            </td>
+                            <td className={`py-2.5 px-3 text-right font-mono font-black ${isFullyConsumed ? 'text-slate-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                              Rs. {batch.remainingValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isFullyConsumed
+                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
+                                : isPartial
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                }`}>
+                                {isFullyConsumed ? 'Consumed' : isPartial ? 'Partially Sold' : 'Active Lot'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Close Button */}
+              <div className="mt-5 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setViewingBatchesProduct(null)}
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Close Breakdown
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
