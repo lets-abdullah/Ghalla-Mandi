@@ -78,174 +78,171 @@ export const Inventory = () => {
     }
   }, [products]);
 
-  // Unified Chronological Bank-Statement Transactions
+  // Unified Chronological Inventory Movement Ledger
   const allTransactions = useMemo(() => {
-    // 1. Process explicit stockMovements if available
-    const parsedMovements = (stockMovements || []).map((m, idx) => {
-      const rawDateStr = m.date || (m.created_at ? new Date(m.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
+    const list = [];
 
-      // Parse ISO or DD/MM/YYYY date
-      let parsedDate = new Date();
-      if (m.created_at) {
-        parsedDate = new Date(m.created_at);
-      } else if (m.date && m.date.includes('/')) {
-        const parts = m.date.split('/');
-        if (parts.length === 3) {
-          parsedDate = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-        }
+    // 1. Opening Stock from registered products
+    (products || []).forEach(p => {
+      const initialQty = Number(p.openingStock ?? p.initialStock ?? p.opening_stock ?? p.initial_stock ?? p.stockQty ?? p.stock_qty ?? 0);
+      if (initialQty > 0) {
+        list.push({
+          id: `open-${p.id}`,
+          dateStr: p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Opening',
+          dateObj: p.created_at ? new Date(p.created_at) : new Date(0),
+          productId: p.id,
+          productName: p.name,
+          direction: 'IN',
+          movementLabel: 'Opening Stock',
+          sourceCategory: 'Opening Stock',
+          referenceNo: 'OPENING-STOCK',
+          qtyNum: initialQty,
+          unit: p.unit || p.baseUnit || 'KG',
+          signedQty: `+${initialQty} ${p.unit || p.baseUnit || 'KG'}`,
+          raw: p
+        });
       }
-
-      // Parse quantity number & unit
-      let numQty = 0;
-      let unit = 'KG';
-      if (typeof m.qty === 'number') {
-        numQty = Math.abs(m.qty);
-      } else if (typeof m.qty === 'string') {
-        const match = m.qty.match(/([0-9.]+)\s*([A-Za-z]+)?/);
-        if (match) {
-          numQty = parseFloat(match[1]) || 0;
-          unit = match[2] || 'KG';
-        }
-      }
-
-      // Determine movement type and category
-      const typeUpper = (m.type || '').toUpperCase();
-      const refUpper = (m.ref || '').toUpperCase();
-
-      let isStockIn = false;
-      let isAdjustment = false;
-      let isReturn = false;
-      let sourceCategory = 'Manual Adjustments';
-
-      if (typeUpper.includes('IN') || typeUpper === 'STOCK IN') {
-        isStockIn = true;
-      } else if (typeUpper.includes('OUT') || typeUpper === 'STOCK OUT') {
-        isStockIn = false;
-      }
-
-      if (refUpper.includes('SALE RETURN') || refUpper.includes('SR-') || refUpper.includes('CUSTOMER RETURN')) {
-        sourceCategory = 'Sale Returns';
-        isStockIn = true;
-        isReturn = true;
-      } else if (refUpper.includes('PURCHASE RETURN') || refUpper.includes('PR-') || refUpper.includes('DEBIT NOTE') || refUpper.includes('SUPPLIER RETURN')) {
-        sourceCategory = 'Purchase Returns';
-        isStockIn = false;
-        isReturn = true;
-      } else if (refUpper.includes('PURCHASE') || refUpper.includes('PUR-') || refUpper.includes('BILL')) {
-        sourceCategory = 'Purchases';
-        isStockIn = true;
-      } else if (refUpper.includes('POS') || refUpper.includes('SALE') || refUpper.includes('INV-')) {
-        sourceCategory = 'Sales';
-        isStockIn = false;
-      } else if (refUpper.includes('AUDIT') || refUpper.includes('ADJUST') || typeUpper === 'ADJUSTMENT') {
-        sourceCategory = 'Stock Adjustments';
-        isAdjustment = true;
-      }
-
-      return {
-        id: m.id || `mov-${idx}`,
-        dateStr: rawDateStr,
-        dateObj: parsedDate,
-        productName: m.product || 'General Commodity',
-        direction: isAdjustment ? 'ADJUST' : isStockIn ? 'IN' : 'OUT',
-        movementLabel: isAdjustment ? 'Adjustment' : isStockIn ? 'Stock In' : 'Stock Out',
-        sourceCategory,
-        referenceNo: m.ref || 'Manual Adjustment',
-        qtyNum: numQty,
-        unit: unit,
-        signedQty: `${isStockIn ? '+' : '-'}${numQty} ${unit}`,
-        raw: m
-      };
     });
 
-    // If movements exist, sort descending by date
-    if (parsedMovements.length > 0) {
-      return parsedMovements.sort((a, b) => b.dateObj - a.dateObj);
-    }
-
-    // Fallback: If stock_movements table is completely empty, construct dynamically from sales, purchases, and returns
-    const dynamicList = [];
-
+    // 2. Purchases (Stock In)
     (purchases || []).forEach(p => {
       const items = Array.isArray(p.items) && p.items.length > 0 ? p.items : (Array.isArray(p.cart) ? p.cart : [{ name: p.productName || 'Procured Commodity', qty: p.qty || 1, unit: p.unit || 'KG' }]);
       items.forEach((it, i) => {
-        dynamicList.push({
+        const itQty = Number(it.qty || it.enteredQty || 1);
+        list.push({
           id: `pur-${p.id || p.purchaseNo}-${i}`,
           dateStr: p.date || new Date().toLocaleDateString('en-GB'),
-          dateObj: p.created_at ? new Date(p.created_at) : new Date(),
+          dateObj: p.created_at ? new Date(p.created_at) : new Date(p.date || 0),
+          productId: it.productId || it.id,
           productName: it.name || p.productName || 'Commodity',
           direction: 'IN',
-          movementLabel: 'Stock In',
+          movementLabel: 'Purchase In',
           sourceCategory: 'Purchases',
           referenceNo: p.purchaseNo ? `Purchase #${p.purchaseNo}` : 'Purchase Bill',
-          qtyNum: Number(it.qty || it.enteredQty || 1),
+          qtyNum: itQty,
           unit: it.unit || it.unitName || p.unit || 'KG',
-          signedQty: `+${Number(it.qty || it.enteredQty || 1)} ${it.unit || p.unit || 'KG'}`,
+          signedQty: `+${itQty} ${it.unit || p.unit || 'KG'}`,
           raw: p
         });
       });
     });
 
+    // 3. Sales (Stock Out)
     (sales || []).forEach(s => {
       const items = Array.isArray(s.items) && s.items.length > 0 ? s.items : (Array.isArray(s.cart) ? s.cart : [{ name: typeof s.items === 'string' ? s.items : (s.productName || 'Commodity'), qty: s.qty || 1, unit: s.unit || 'KG' }]);
       items.forEach((it, i) => {
-        dynamicList.push({
+        const itQty = Number(it.qty || it.enteredQty || 1);
+        list.push({
           id: `sale-${s.id || s.invoiceNo}-${i}`,
           dateStr: s.date || new Date().toLocaleDateString('en-GB'),
-          dateObj: s.created_at ? new Date(s.created_at) : new Date(),
+          dateObj: s.created_at ? new Date(s.created_at) : new Date(s.date || 0),
+          productId: it.productId || it.id,
           productName: it.name || 'Commodity Product',
           direction: 'OUT',
-          movementLabel: 'Stock Out',
+          movementLabel: 'POS Sale Out',
           sourceCategory: 'Sales',
           referenceNo: s.invoiceNo ? `Sale #${s.invoiceNo}` : 'POS Checkout',
-          qtyNum: Number(it.qty || it.enteredQty || 1),
+          qtyNum: itQty,
           unit: it.unit || it.unitName || s.unit || 'KG',
-          signedQty: `-${Number(it.qty || it.enteredQty || 1)} ${it.unit || s.unit || 'KG'}`,
+          signedQty: `-${itQty} ${it.unit || s.unit || 'KG'}`,
           raw: s
         });
       });
     });
 
+    // 4. Sale Returns (Stock In)
     (saleReturns || []).forEach(r => {
       (r.items || [{ name: 'Returned Commodity', qty: r.qty || 1, unit: 'KG' }]).forEach((it, i) => {
-        dynamicList.push({
+        const itQty = Number(it.qty || 1);
+        list.push({
           id: `sr-${r.id || r.returnNo}-${i}`,
           dateStr: r.date || new Date().toLocaleDateString('en-GB'),
-          dateObj: r.created_at ? new Date(r.created_at) : new Date(),
+          dateObj: r.created_at ? new Date(r.created_at) : new Date(r.date || 0),
+          productId: it.productId || it.id,
           productName: it.name || 'Returned Commodity',
           direction: 'IN',
-          movementLabel: 'Stock In',
+          movementLabel: 'Customer Return In',
           sourceCategory: 'Sale Returns',
-          referenceNo: r.returnNo ? `Sale Return #${r.returnNo}` : 'Sale Return',
-          qtyNum: Number(it.qty || 1),
+          referenceNo: r.returnNo ? `Sale Return #${r.returnNo}` : 'Credit Note',
+          qtyNum: itQty,
           unit: it.unit || 'KG',
-          signedQty: `+${Number(it.qty || 1)} ${it.unit || 'KG'}`,
+          signedQty: `+${itQty} ${it.unit || 'KG'}`,
           raw: r
         });
       });
     });
 
+    // 5. Purchase Returns (Stock Out)
     (purchaseReturns || []).forEach(r => {
       (r.items || [{ name: 'Returned Commodity', qty: r.qty || 1, unit: 'KG' }]).forEach((it, i) => {
-        dynamicList.push({
+        const itQty = Number(it.qty || 1);
+        list.push({
           id: `pr-${r.id || r.returnNo}-${i}`,
           dateStr: r.date || new Date().toLocaleDateString('en-GB'),
-          dateObj: r.created_at ? new Date(r.created_at) : new Date(),
+          dateObj: r.created_at ? new Date(r.created_at) : new Date(r.date || 0),
+          productId: it.productId || it.id,
           productName: it.name || 'Returned Commodity',
           direction: 'OUT',
-          movementLabel: 'Stock Out',
+          movementLabel: 'Supplier Return Out',
           sourceCategory: 'Purchase Returns',
           referenceNo: r.returnNo ? `Purchase Return #${r.returnNo}` : 'Debit Note',
-          qtyNum: Number(it.qty || 1),
+          qtyNum: itQty,
           unit: it.unit || 'KG',
-          signedQty: `-${Number(it.qty || 1)} ${it.unit || 'KG'}`,
+          signedQty: `-${itQty} ${it.unit || 'KG'}`,
           raw: r
         });
       });
     });
 
-    return dynamicList.sort((a, b) => b.dateObj - a.dateObj);
-  }, [stockMovements, purchases, sales, saleReturns, purchaseReturns]);
+    // 6. Manual Adjustments from stockMovements
+    (stockMovements || []).forEach((m, idx) => {
+      const typeUpper = (m.type || '').toUpperCase();
+      const refUpper = (m.ref || '').toUpperCase();
+      const isAlreadyTracked = refUpper.includes('PURCHASE') || refUpper.includes('SALE') || refUpper.includes('RETURN') || refUpper.includes('INV-') || refUpper.includes('PUR-');
+      if (!isAlreadyTracked) {
+        const isStockIn = typeUpper.includes('IN') || Number(m.qty || 0) > 0;
+        const itQty = Math.abs(Number(m.qty || 0));
+        if (itQty > 0) {
+          list.push({
+            id: `adj-${m.id || idx}`,
+            dateStr: m.date || (m.created_at ? new Date(m.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
+            dateObj: m.created_at ? new Date(m.created_at) : new Date(),
+            productId: m.productId || m.product_id,
+            productName: m.product || m.productName || 'Adjusted Stock',
+            direction: isStockIn ? 'IN' : 'OUT',
+            movementLabel: isStockIn ? 'Stock Adjustment In' : 'Stock Adjustment Out',
+            sourceCategory: 'Stock Adjustments',
+            referenceNo: m.ref || 'Manual Adjustment',
+            qtyNum: itQty,
+            unit: m.unit || 'KG',
+            signedQty: `${isStockIn ? '+' : '-'}${itQty} ${m.unit || 'KG'}`,
+            raw: m
+          });
+        }
+      }
+    });
+
+    // Sort chronologically (oldest to newest) to compute running on-hand stock
+    list.sort((a, b) => a.dateObj - b.dateObj);
+
+    // Compute running on-hand balance per product
+    const prodBalanceMap = new Map();
+    const withRunningStock = list.map(item => {
+      const key = (item.productName || 'General').trim().toLowerCase();
+      const prevBal = prodBalanceMap.get(key) || 0;
+      const change = item.direction === 'IN' ? item.qtyNum : -item.qtyNum;
+      const newBal = prevBal + change;
+      prodBalanceMap.set(key, newBal);
+
+      return {
+        ...item,
+        runningStock: newBal
+      };
+    });
+
+    // Return descending for display (latest on top)
+    return withRunningStock.sort((a, b) => b.dateObj - a.dateObj);
+  }, [products, purchases, sales, saleReturns, purchaseReturns, stockMovements]);
 
   // Date Filtering Helper
   const matchesDate = (itemDate) => {
@@ -637,14 +634,15 @@ export const Inventory = () => {
                 <th className="py-2.5 px-4">Product</th>
                 <th className="py-2.5 px-4 w-36">Movement</th>
                 <th className="py-2.5 px-4">Reference</th>
-                <th className="py-2.5 px-4 text-right w-36">Quantity</th>
+                <th className="py-2.5 px-4 text-right w-32">Quantity</th>
+                <th className="py-2.5 px-4 text-right w-32">On-Hand Stock</th>
               </tr>
             </thead>
             <tbody className={`divide-y text-xs font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
               }`}>
               {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400 space-y-2">
+                  <td colSpan={6} className="py-12 text-center text-slate-400 space-y-2">
                     <FileText className="w-8 h-8 mx-auto stroke-[1.5] text-slate-300 dark:text-slate-600" />
                     <p className="text-xs font-bold">No inventory movements match your filter criteria.</p>
                   </td>
@@ -703,6 +701,11 @@ export const Inventory = () => {
                           : 'text-rose-600 dark:text-rose-400'
                         }`}>
                         {tx.signedQty}
+                      </td>
+
+                      {/* On-Hand Stock Balance */}
+                      <td className="py-2.5 px-4 text-right font-black font-mono text-sm whitespace-nowrap text-brand-600 dark:text-brand-400">
+                        {tx.runningStock !== undefined ? `${tx.runningStock.toLocaleString()} ${tx.unit}` : '—'}
                       </td>
                     </tr>
                   );

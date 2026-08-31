@@ -150,7 +150,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
   // Collect all transactions in chronological order
   const events = [];
 
-  const initialQty = Number(product.openingStock ?? product.initialStock ?? 0);
+  const initialQty = Number(product.openingStock ?? product.initialStock ?? product.opening_stock ?? product.initial_stock ?? product.stockQty ?? product.stock_qty ?? 0);
   const initialRate = Number(product.purchasePrice ?? product.purchase_price ?? product.rate ?? 0);
   const sellingRate = Number(product.sellingPrice ?? product.selling_price ?? 0);
 
@@ -227,6 +227,26 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     });
   });
 
+  // Manual Adjustments from stockMovements
+  (stockMovements || []).forEach(m => {
+    const mDate = new Date(m.created_at || m.createdAt || m.date || 0).getTime() || 0;
+    if (isMatch(m) || isMatch({ name: m.product || m.productName })) {
+      const typeUpper = (m.type || '').toUpperCase();
+      const refUpper = (m.ref || '').toUpperCase();
+      // Skip if this movement is already an automated purchase/sale log
+      const isAlreadyTracked = refUpper.includes('PURCHASE') || refUpper.includes('SALE') || refUpper.includes('RETURN') || refUpper.includes('INV-') || refUpper.includes('PUR-');
+      if (!isAlreadyTracked) {
+        const isStockIn = typeUpper.includes('IN') || Number(m.qty || 0) > 0;
+        events.push({
+          date: mDate,
+          type: isStockIn ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT',
+          qty: Math.abs(Number(m.qty || 0)),
+          rate: Number(m.rate ?? initialRate)
+        });
+      }
+    }
+  });
+
   // Sort chronologically
   events.sort((a, b) => a.date - b.date);
 
@@ -244,7 +264,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     };
   }
 
-  // Perpetual Weighted Average Cost computation
+  // Perpetual Weighted Average Cost & On-Hand Stock calculation
   let currentQty = 0;
   let totalCost = 0;
   let currentAvgCost = initialRate;
@@ -252,12 +272,12 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
   let totalOutflowQty = 0;
 
   events.forEach(ev => {
-    if (ev.type === 'OPENING' || ev.type === 'PURCHASE') {
+    if (ev.type === 'OPENING' || ev.type === 'PURCHASE' || ev.type === 'ADJUSTMENT_IN') {
       currentQty += ev.qty;
       totalCost += (ev.qty * ev.rate);
       currentAvgCost = currentQty > 0 ? (totalCost / currentQty) : ev.rate;
       totalInflowQty += ev.qty;
-    } else if (ev.type === 'PURCHASE_RETURN') {
+    } else if (ev.type === 'PURCHASE_RETURN' || ev.type === 'ADJUSTMENT_OUT') {
       const returnCost = ev.rate > 0 ? (ev.qty * ev.rate) : (ev.qty * currentAvgCost);
       currentQty = Math.max(0, currentQty - ev.qty);
       totalCost = Math.max(0, totalCost - returnCost);
@@ -277,12 +297,10 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     }
   });
 
-  const registeredStock = Number(product.stockQty !== undefined ? product.stockQty : (product.stockqty !== undefined ? product.stockqty : currentQty));
-  const finalQty = (registeredStock > 0 && currentQty === 0 && events.length === 0) ? registeredStock : currentQty;
-  const stockValue = finalQty * currentAvgCost;
+  const stockValue = currentQty * currentAvgCost;
 
   return {
-    qty: finalQty,
+    qty: currentQty,
     avgCost: currentAvgCost,
     stockValue,
     sellingRate,
