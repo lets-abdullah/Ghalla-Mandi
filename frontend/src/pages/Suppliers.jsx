@@ -231,7 +231,7 @@ const SuppliedProductsCombobox = ({
 };
 
 export const Suppliers = () => {
-  const { suppliers = [], products = [], categories = [], purchases = [], purchaseReturns = [], paymentLogs = [], addSupplier, updateSupplier, deleteSupplier, addProduct, addCategory } = useERP();
+  const { suppliers = [], products = [], categories = [], purchases = [], purchaseReturns = [], paymentLogs = [], addSupplier, updateSupplier, deleteSupplier, recordPayment, addProduct, addCategory } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -246,7 +246,16 @@ export const Suppliers = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [viewingSupplier, setViewingSupplier] = useState(null);
+  const [viewingTab, setViewingTab] = useState('all'); // 'all' | 'purchases' | 'payments' | 'info'
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pay Supplier Modal State
+  const [payingSupplier, setPayingSupplier] = useState(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [payMode, setPayMode] = useState('Cash');
+  const [payNote, setPayNote] = useState('');
+  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isProcessingPay, setIsProcessingPay] = useState(false);
 
   // Quick Add Product & Category State
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -293,14 +302,62 @@ export const Suppliers = () => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (showAddModal) setShowAddModal(false);
+        if (payingSupplier) setPayingSupplier(null);
+        else if (showAddModal) setShowAddModal(false);
         else if (editingSupplier) setEditingSupplier(null);
         else if (viewingSupplier) setViewingSupplier(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAddModal, editingSupplier, viewingSupplier]);
+  }, [showAddModal, editingSupplier, viewingSupplier, payingSupplier]);
+
+  const handleOpenPayModal = (supplier) => {
+    const fullSup = processedSuppliers.find(s => s.id === supplier.id) || supplier;
+    setPayingSupplier(fullSup);
+    setPayAmount(fullSup.balance > 0 ? fullSup.balance.toString() : '');
+    setPayMode('Cash');
+    setPayDate(new Date().toISOString().split('T')[0]);
+    setPayNote(`Settlement payment to ${fullSup.name}`);
+  };
+
+  const handleExecuteSupplierPayment = async (e) => {
+    e.preventDefault();
+    if (!payingSupplier || isProcessingPay) return;
+
+    const amt = Number(payAmount) || 0;
+    const maxDue = Math.max(0, Number(payingSupplier.balance || 0));
+
+    if (amt <= 0) {
+      alert('Please enter a valid payment amount.');
+      return;
+    }
+
+    if (maxDue > 0 && amt > maxDue) {
+      alert(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed the supplier's outstanding payable balance of Rs. ${maxDue.toLocaleString()}.`);
+      return;
+    }
+
+    setIsProcessingPay(true);
+    try {
+      await recordPayment({
+        partyId: payingSupplier.id,
+        partyName: payingSupplier.name,
+        partyType: 'Supplier',
+        amount: amt,
+        paymentMode: payMode,
+        note: payNote
+      });
+
+      setPayingSupplier(null);
+      setPayAmount('');
+      setPayNote('');
+    } catch (err) {
+      alert(err.message || 'Failed to record payment to supplier');
+    } finally {
+      setIsProcessingPay(false);
+    }
+  };
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
@@ -810,10 +867,36 @@ export const Suppliers = () => {
                         </td>
                         <td className="py-3 px-4 text-center no-print">
                           <div className="flex items-center justify-center gap-1.5">
+                            {/* Pay Supplier Action */}
+                            {bal > 0 ? (
+                              <button
+                                onClick={() => handleOpenPayModal(s)}
+                                className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
+                                title="Pay Supplier / Settle Liability"
+                              >
+                                <CreditCard className="w-3.5 h-3.5" />
+                                <span>Pay Supplier</span>
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                <Check className="w-3 h-3" /> Settled
+                              </span>
+                            )}
+
+                            {/* View Detail & Ledger */}
+                            <button
+                              onClick={() => { setViewingSupplier(s); setViewingTab('all'); }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold shadow-2xs"
+                              title="View Purchases & Payment Ledger History"
+                            >
+                              <BookOpen className="w-3.5 h-3.5" />
+                              <span>History</span>
+                            </button>
+
                             <button
                               onClick={() => setEditingSupplier({ ...s })}
                               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition cursor-pointer"
-                              title="Edit"
+                              title="Edit Supplier"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
@@ -1391,140 +1474,482 @@ export const Suppliers = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 3. VIEW COMPLETE SUPPLIER PROFILE MODAL */}
+      {/* 3. VIEW COMPLETE SUPPLIER PROFILE & TRANSACTION LEDGER MODAL */}
       {/* ========================================================================= */}
       {viewingSupplier && (() => {
-        const supplierPurchases = (purchases || []).filter(p => p.supplier === viewingSupplier.name || p.supplierId === viewingSupplier.id);
-        const totalPurchases = supplierPurchases.reduce((acc, p) => acc + Number(p.amount || p.grandTotal || 0), 0);
+        const fullSup = processedSuppliers.find(s => s.id === viewingSupplier.id) || viewingSupplier;
+        const supPurchases = (purchases || []).filter(p => p.supplierId === fullSup.id || (p.supplier && p.supplier.trim().toLowerCase() === fullSup.name.trim().toLowerCase()) || (p.supplierName && p.supplierName.trim().toLowerCase() === fullSup.name.trim().toLowerCase()));
+        const supPayments = (paymentLogs || []).filter(p => (p.type === 'Supplier' || p.partyType === 'Supplier') && (p.partyId === fullSup.id || (p.partyName && p.partyName.trim().toLowerCase() === fullSup.name.trim().toLowerCase())));
+        const supReturns = (purchaseReturns || []).filter(r => r.supplierId === fullSup.id || (r.supplierName && r.supplierName.trim().toLowerCase() === fullSup.name.trim().toLowerCase()));
 
-        const supplierPayments = (paymentLogs || []).filter(p => (p.type === 'Supplier' || p.partyType === 'Supplier') && (p.partyId === viewingSupplier.id || p.partyName === viewingSupplier.name));
-        const totalPaidLogs = supplierPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-        const directPaidPurchases = supplierPurchases.reduce((acc, p) => acc + Number(p.paidAmount || (p.status === 'Paid' ? (p.amount || p.grandTotal) : 0)), 0);
-        const totalPaid = totalPaidLogs + directPaidPurchases;
-        const balance = Number(viewingSupplier.balance !== undefined ? viewingSupplier.balance : Math.max(0, totalPurchases - totalPaid));
+        // Chronological combined transactions
+        const allTransactions = [
+          ...supPurchases.map(p => ({
+            id: `pur-${p.id}`,
+            date: p.date || p.created_at || p.createdAt || '',
+            type: 'Purchase',
+            billNo: p.billNumber || p.invoiceNo || `PUR-${p.id}`,
+            amount: Number(p.grandTotal || p.amount || 0),
+            paid: Number(p.paidAmount || (p.paymentStatus === 'Paid' || p.status === 'Paid' ? (p.grandTotal || p.amount) : 0)),
+            status: p.paymentStatus || p.status || 'Pending',
+            note: p.notes || p.note || 'Procurement Bill',
+            items: p.items || []
+          })),
+          ...supPayments.map(p => ({
+            id: `pay-${p.id}`,
+            date: p.date || p.created_at || p.createdAt || '',
+            type: 'Payment',
+            billNo: p.ref || `PAY-${p.id}`,
+            amount: Number(p.amount || 0),
+            paid: Number(p.amount || 0),
+            status: 'Settled',
+            mode: p.mode || p.paymentMode || 'Cash',
+            note: p.note || 'Supplier Payment'
+          })),
+          ...supReturns.map(r => ({
+            id: `ret-${r.id}`,
+            date: r.date || r.created_at || r.createdAt || '',
+            type: 'Return',
+            billNo: `RET-${r.id}`,
+            amount: Number(r.refundAmount || r.totalRefund || 0),
+            paid: Number(r.refundAmount || r.totalRefund || 0),
+            status: 'Returned',
+            note: r.reason || 'Purchase Return Credit'
+          }))
+        ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 
         return (
           <div
             onClick={(e) => { if (e.target === e.currentTarget) setViewingSupplier(null); }}
             className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
           >
-            <div className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               {/* Profile Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center font-black">
-                    <UserCheck className="w-5 h-5" />
+                  <div className="w-11 h-11 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center font-black">
+                    <UserCheck className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-base font-extrabold">{viewingSupplier.name}</h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
-                        Supplier
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-bold">
-                        Status: {viewingSupplier.status || 'Active'}
-                      </span>
+                    <h3 className="text-base font-extrabold flex items-center gap-2">
+                      <span>{fullSup.name}</span>
+                      {fullSup.businessName && (
+                        <span className="text-xs text-slate-400 font-semibold">• {fullSup.businessName}</span>
+                      )}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 font-bold">
+                      <span className="flex items-center gap-1 font-mono"><Phone className="w-3 h-3 text-slate-400" /> {fullSup.phone || 'N/A'}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> {fullSup.city || 'Local Mandi'}</span>
                     </div>
                   </div>
                 </div>
 
+                <div className="flex items-center gap-2">
+                  {fullSup.balance > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const supToPay = fullSup;
+                        setViewingSupplier(null);
+                        handleOpenPayModal(supToPay);
+                      }}
+                      className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl transition shadow-md shadow-emerald-500/20 cursor-pointer active:scale-98"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>Pay Supplier</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setViewingSupplier(null)}
+                    className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Financial Metrics Summary Banner */}
+              <div className="grid grid-cols-3 gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
+                {/* 1. Total Purchases */}
+                <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-400">Total Purchases</span>
+                    <ShoppingCart className="w-3 h-3 text-blue-500" />
+                  </div>
+                  <div className="text-xs sm:text-sm font-black font-mono text-slate-800 dark:text-slate-200">
+                    Rs. {Number(fullSup.totalPurchases || 0).toLocaleString()}
+                  </div>
+                  <div className="text-[9px] text-slate-400 font-semibold">{supPurchases.length} Inward Bills</div>
+                </div>
+
+                {/* 2. Total Paid */}
+                <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-400">Total Paid Out</span>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                  </div>
+                  <div className="text-xs sm:text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                    Rs. {Number(fullSup.totalPaid || 0).toLocaleString()}
+                  </div>
+                  <div className="text-[9px] text-slate-400 font-semibold">{supPayments.length} Payment Logs</div>
+                </div>
+
+                {/* 3. Outstanding Balance Due */}
+                <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-400">Balance Due</span>
+                    <AlertCircle className={`w-3 h-3 ${fullSup.balance > 0 ? 'text-rose-500' : 'text-emerald-500'}`} />
+                  </div>
+                  <div className={`text-xs sm:text-sm font-black font-mono ${fullSup.balance > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    Rs. {Number(fullSup.balance || 0).toLocaleString()}
+                  </div>
+                  <div className="text-[9px] text-slate-400 font-semibold">
+                    {fullSup.balance > 0 ? 'Payable Liability' : '✓ Fully Settled'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabs Navigation */}
+              <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
                 <button
                   type="button"
-                  onClick={() => setViewingSupplier(null)}
-                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                  onClick={() => setViewingTab('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${viewingTab === 'all'
+                    ? 'bg-brand-500 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
                 >
-                  <X className="w-5 h-5" />
+                  All History ({allTransactions.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingTab('purchases')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${viewingTab === 'purchases'
+                    ? 'bg-brand-500 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
+                >
+                  Purchases ({supPurchases.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingTab('payments')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${viewingTab === 'payments'
+                    ? 'bg-brand-500 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
+                >
+                  Payments ({supPayments.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingTab('info')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${viewingTab === 'info'
+                    ? 'bg-brand-500 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
+                >
+                  Profile & Bank
                 </button>
               </div>
 
-              {/* Contact & Business Info Details */}
-              <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                }`}>
-                {viewingSupplier.businessName && (
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span>Business / Shop:</span>
-                    <span className="font-bold text-slate-900 dark:text-white">{viewingSupplier.businessName}</span>
+              {/* Tab 1, 2, 3: Transactions / History Table */}
+              {viewingTab !== 'info' && (
+                <div className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
+                  <div className="max-h-64 overflow-y-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead className={`sticky top-0 ${theme === 'dark' ? 'bg-slate-900 border-b border-slate-700' : 'bg-slate-50 border-b border-slate-200'}`}>
+                        <tr className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                          <th className="py-2.5 px-3">Date</th>
+                          <th className="py-2.5 px-3">Type / Ref</th>
+                          <th className="py-2.5 px-3">Description / Note</th>
+                          <th className="py-2.5 px-3 text-right">Bill (PKR)</th>
+                          <th className="py-2.5 px-3 text-right">Paid Out (PKR)</th>
+                          <th className="py-2.5 px-3 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 font-medium">
+                        {(viewingTab === 'all' ? allTransactions : viewingTab === 'purchases' ? allTransactions.filter(t => t.type === 'Purchase') : allTransactions.filter(t => t.type === 'Payment')).length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-6 text-center text-slate-400 text-xs">
+                              No transaction records found for this supplier.
+                            </td>
+                          </tr>
+                        ) : (
+                          (viewingTab === 'all' ? allTransactions : viewingTab === 'purchases' ? allTransactions.filter(t => t.type === 'Purchase') : allTransactions.filter(t => t.type === 'Payment')).map((tx, idx) => (
+                            <tr key={tx.id || idx} className={theme === 'dark' ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50/80'}>
+                              <td className="py-2 px-3 text-slate-500 font-mono text-[11px]">{tx.date || '—'}</td>
+                              <td className="py-2 px-3">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'Purchase'
+                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                  : tx.type === 'Payment'
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                  }`}>
+                                  {tx.type} {tx.billNo}
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-slate-700 dark:text-slate-300 text-xs max-w-xs truncate">{tx.note}</td>
+                              <td className="py-2 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
+                                {tx.type === 'Purchase' ? `Rs. ${tx.amount.toLocaleString()}` : '—'}
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
+                                {tx.type === 'Payment' ? `Rs. ${tx.amount.toLocaleString()}` : (tx.paid > 0 ? `Rs. ${tx.paid.toLocaleString()}` : '—')}
+                              </td>
+                              <td className="py-2 px-3 text-center">
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${tx.status === 'Paid' || tx.status === 'Settled'
+                                  ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40'
+                                  : tx.status === 'Partial'
+                                    ? 'text-blue-600 bg-blue-50 dark:bg-blue-950/40'
+                                    : 'text-amber-600 bg-amber-50 dark:bg-amber-950/40'
+                                  }`}>
+                                  {tx.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-
-                <div className="flex justify-between items-center text-slate-500">
-                  <span>Phone Number:</span>
-                  <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingSupplier.phone || '-'}</span>
                 </div>
+              )}
 
-                {viewingSupplier.whatsapp && (
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span>WhatsApp:</span>
-                    <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingSupplier.whatsapp}</span>
-                  </div>
-                )}
-
-                {viewingSupplier.email && (
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span>Email:</span>
-                    <span className="font-bold text-slate-900 dark:text-white">{viewingSupplier.email}</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center text-slate-500">
-                  <span>City / Mandi:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{viewingSupplier.city || 'Local Mandi'}</span>
-                </div>
-
-                {viewingSupplier.address && (
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span>Address:</span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200">{viewingSupplier.address}</span>
-                  </div>
-                )}
-
-                {(viewingSupplier.suppliedProducts || []).length > 0 && (
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span>Supplied Products:</span>
-                    <span className="font-bold text-brand-600 dark:text-brand-400">
-                      {viewingSupplier.suppliedProducts.join(', ')}
-                    </span>
-                  </div>
-                )}
-
-                {(viewingSupplier.bankName || viewingSupplier.accountNumber || viewingSupplier.accountTitle) && (
-                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-1.5">
-                    <div className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                      <Landmark className="w-3 h-3" />
-                      <span>Bank Account Details</span>
+              {/* Tab 4: Profile & Bank Info */}
+              {viewingTab === 'info' && (
+                <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                  {fullSup.businessName && (
+                    <div className="flex justify-between items-center text-slate-500">
+                      <span>Business / Shop:</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{fullSup.businessName}</span>
                     </div>
-                    {viewingSupplier.bankName && (
-                      <div className="flex justify-between items-center text-slate-500">
-                        <span>Bank Name:</span>
-                        <span className="font-bold text-slate-900 dark:text-white">{viewingSupplier.bankName}</span>
-                      </div>
-                    )}
-                    {viewingSupplier.accountTitle && (
-                      <div className="flex justify-between items-center text-slate-500">
-                        <span>Account Title:</span>
-                        <span className="font-bold text-slate-900 dark:text-white">{viewingSupplier.accountTitle}</span>
-                      </div>
-                    )}
-                    {(viewingSupplier.accountNumber || viewingSupplier.iban) && (
-                      <div className="flex justify-between items-center text-slate-500">
-                        <span>Account # / IBAN:</span>
-                        <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingSupplier.accountNumber || viewingSupplier.iban}</span>
-                      </div>
-                    )}
+                  )}
+                  <div className="flex justify-between items-center text-slate-500">
+                    <span>Phone Number:</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">{fullSup.phone || '-'}</span>
                   </div>
-                )}
-
-                {viewingSupplier.notes && (
-                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-slate-400 italic">
-                    Note: {viewingSupplier.notes}
+                  {fullSup.whatsapp && (
+                    <div className="flex justify-between items-center text-slate-500">
+                      <span>WhatsApp:</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">{fullSup.whatsapp}</span>
+                    </div>
+                  )}
+                  {fullSup.email && (
+                    <div className="flex justify-between items-center text-slate-500">
+                      <span>Email:</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{fullSup.email}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center text-slate-500">
+                    <span>City / Mandi:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{fullSup.city || 'Local Mandi'}</span>
                   </div>
-                )}
-              </div>
+                  {fullSup.address && (
+                    <div className="flex justify-between items-center text-slate-500">
+                      <span>Address:</span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">{fullSup.address}</span>
+                    </div>
+                  )}
+                  {(fullSup.suppliedProducts || []).length > 0 && (
+                    <div className="flex justify-between items-center text-slate-500">
+                      <span>Supplied Products:</span>
+                      <span className="font-bold text-brand-600 dark:text-brand-400">
+                        {fullSup.suppliedProducts.join(', ')}
+                      </span>
+                    </div>
+                  )}
+                  {(fullSup.bankName || fullSup.accountNumber || fullSup.accountTitle) && (
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-1.5">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <Landmark className="w-3 h-3" />
+                        <span>Bank Account Details</span>
+                      </div>
+                      {fullSup.bankName && (
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span>Bank Name:</span>
+                          <span className="font-bold text-slate-900 dark:text-white">{fullSup.bankName}</span>
+                        </div>
+                      )}
+                      {fullSup.accountTitle && (
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span>Account Title:</span>
+                          <span className="font-bold text-slate-900 dark:text-white">{fullSup.accountTitle}</span>
+                        </div>
+                      )}
+                      {(fullSup.accountNumber || fullSup.iban) && (
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span>Account # / IBAN:</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">{fullSup.accountNumber || fullSup.iban}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );
       })()}
+
+      {/* ========================================================================= */}
+      {/* 4. PAY SUPPLIER MODAL (Cash / Bank Settlement Drawer) */}
+      {/* ========================================================================= */}
+      {payingSupplier && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setPayingSupplier(null); }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
+          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold">Pay Supplier</h3>
+                  <p className="text-[11px] text-slate-400 font-bold">Settle supplier payable liability</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPayingSupplier(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Supplier Info Badge */}
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 space-y-1">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-extrabold text-slate-900 dark:text-white">{payingSupplier.name}</span>
+                <span className="text-[10px] font-bold text-slate-400">{payingSupplier.city || 'Local Mandi'}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-slate-500 font-semibold">Outstanding Payable:</span>
+                <span className="font-mono font-black text-rose-600 dark:text-rose-400">
+                  Rs. {Number(payingSupplier.balance || 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleExecuteSupplierPayment} className="space-y-3.5">
+              {/* Payment Amount */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-400">Payment Amount (PKR) *</label>
+                  {Number(payAmount || 0) >= Number(payingSupplier.balance || 0) && Number(payingSupplier.balance || 0) > 0 ? (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Settling</span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-amber-500">Partial Settlement</span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    max={Number(payingSupplier.balance || 0) > 0 ? Number(payingSupplier.balance) : undefined}
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(e.target.value)}
+                    placeholder={`e.g. ${Number(payingSupplier.balance || 0)}`}
+                    autoFocus
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(payAmount || 0) >= Number(payingSupplier.balance || 0) && Number(payingSupplier.balance || 0) > 0
+                      ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
+                      : 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                      }`}
+                  />
+                </div>
+                <div className="mt-1 flex items-center justify-between text-[10px] font-semibold">
+                  <span className="text-slate-400">
+                    {Number(payAmount || 0) > 0
+                      ? `Remaining Payable after payment: Rs. ${Math.max(0, Number(payingSupplier.balance || 0) - Number(payAmount || 0)).toLocaleString()}`
+                      : 'Enter amount to reduce supplier liability.'}
+                  </span>
+                  {Number(payingSupplier.balance || 0) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPayAmount(payingSupplier.balance.toString())}
+                      className="text-brand-500 hover:underline font-bold cursor-pointer"
+                    >
+                      Pay Full (Rs. {Number(payingSupplier.balance).toLocaleString()})
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Payment Mode Selector (Cash vs Bank vs Card) */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Payment Account / Mode *</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Cash', 'Bank', 'Card'].map(mode => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setPayMode(mode)}
+                      className={`py-2 px-3 rounded-xl text-xs font-black transition border cursor-pointer ${payMode === mode
+                        ? 'bg-brand-500 text-white border-brand-600 shadow-xs'
+                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+                        }`}
+                    >
+                      {mode === 'Bank' ? 'Bank Transfer' : mode === 'Cash' ? 'Cash in Hand' : 'Card'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Payment Date */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Payment Date</label>
+                <input
+                  type="date"
+                  value={payDate}
+                  onChange={(e) => setPayDate(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+
+              {/* Note / Remarks */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 block mb-1">Note / Reference (Optional)</label>
+                <input
+                  type="text"
+                  value={payNote}
+                  onChange={(e) => setPayNote(e.target.value)}
+                  placeholder="e.g. Paid via cheque #, cash voucher..."
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/80">
+                <button
+                  type="button"
+                  onClick={() => setPayingSupplier(null)}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessingPay}
+                  className="w-1/2 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-1.5 active:scale-98"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isProcessingPay ? 'Recording...' : 'Confirm Payment'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 4. QUICK ADD NEW PRODUCT MODAL (Layered on top of Supplier dialog at z-[100]) */}
