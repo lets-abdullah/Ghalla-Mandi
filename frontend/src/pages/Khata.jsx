@@ -80,7 +80,8 @@ export const Khata = () => {
       businessName: fullCust.businessName || fullCust.shopName || item.businessName || '',
       phone: fullCust.phone || item.phone || '',
       city: fullCust.city || item.city || '',
-      balance: fin.balance,
+      receiveAmount: '',
+      paymentMode: 'Cash',
       customerType: fullCust.customerType || item.customerType || 'Regular Customer'
     });
   };
@@ -93,45 +94,37 @@ export const Khata = () => {
       return;
     }
 
+    const payAmt = Number(editForm.receiveAmount) || 0;
+    const fullCust = customers.find(c => String(c.id) === String(editingKhataCust.id)) || editingKhataCust;
+    const fin = computeCustomerKhataBalance(fullCust, sales, paymentLogs, saleReturns);
+    const initialDue = fin.balance;
+
+    if (payAmt < 0) {
+      alert('Payment amount cannot be negative.');
+      return;
+    }
+
+    if (payAmt > initialDue && initialDue > 0) {
+      alert(`Payment amount (Rs. ${payAmt.toLocaleString()}) cannot exceed the outstanding balance of Rs. ${initialDue.toLocaleString()}.`);
+      return;
+    }
+
     try {
       setIsSavingEdit(true);
-      const fullCust = customers.find(c => String(c.id) === String(editingKhataCust.id)) || editingKhataCust;
-      const fin = computeCustomerKhataBalance(fullCust, sales, paymentLogs, saleReturns);
-      const targetBal = Math.max(0, Number(editForm.balance) || 0);
-      const initialDue = fin.balance;
 
-      // If user reduced remaining due (e.g. was 5,000, now 0 or 2,000), record a payment settlement for the difference
-      if (targetBal < initialDue) {
-        const receivedDiff = initialDue - targetBal;
-        if (recordPayment && receivedDiff > 0) {
-          await recordPayment({
-            partyId: fullCust.id && !String(fullCust.id).startsWith('walkin-') ? fullCust.id : null,
-            partyName: editForm.name.trim() || fullCust.name,
-            partyType: 'Customer',
-            amount: receivedDiff,
-            paymentMode: 'Cash',
-            note: targetBal === 0 ? 'Full Khata Clearance' : 'Partial Khata Settlement'
-          });
-        }
-      } else if (targetBal > initialDue) {
-        // If due was increased, adjust opening balance
-        const balDiff = targetBal - initialDue;
-        const updatedOpBal = Math.max(0, Number(fullCust.openingBalance || 0) + balDiff);
-        if (updateCustomer && fullCust.id && !String(fullCust.id).startsWith('walkin-')) {
-          await updateCustomer(fullCust.id, {
-            ...fullCust,
-            name: editForm.name.trim(),
-            businessName: editForm.businessName.trim(),
-            phone: editForm.phone ? editForm.phone.trim() : 'N/A',
-            city: editForm.city.trim(),
-            openingBalance: updatedOpBal,
-            balance: targetBal,
-            customerType: editForm.customerType
-          });
-        }
+      // Record the payment received
+      if (recordPayment && payAmt > 0) {
+        await recordPayment({
+          partyId: fullCust.id && !String(fullCust.id).startsWith('walkin-') ? fullCust.id : null,
+          partyName: editForm.name.trim() || fullCust.name,
+          partyType: 'Customer',
+          amount: payAmt,
+          paymentMode: editForm.paymentMode || 'Cash',
+          note: payAmt >= initialDue ? 'Full Khata Clearance' : 'Khata Payment Settlement'
+        });
       }
 
-      // Also update customer profile details
+      // Update customer profile details
       if (updateCustomer && fullCust.id && !String(fullCust.id).startsWith('walkin-')) {
         await updateCustomer(fullCust.id, {
           ...fullCust,
@@ -142,16 +135,19 @@ export const Khata = () => {
           customerType: editForm.customerType
         });
       } else if (editingKhataCust.isRegistered === false || String(editingKhataCust.id).startsWith('walkin-')) {
-        if (addCustomer && targetBal > 0) {
-          await addCustomer({
-            name: editForm.name.trim(),
-            shopName: editForm.businessName.trim(),
-            phone: editForm.phone ? editForm.phone.trim() : 'N/A',
-            city: editForm.city.trim() || 'Local Mandi',
-            openingBalance: targetBal,
-            balance: targetBal,
-            customerType: editForm.customerType || 'Walk-in Customer'
-          });
+        if (addCustomer) {
+          const newBal = Math.max(0, initialDue - payAmt);
+          if (newBal > 0) {
+            await addCustomer({
+              name: editForm.name.trim(),
+              shopName: editForm.businessName.trim(),
+              phone: editForm.phone ? editForm.phone.trim() : 'N/A',
+              city: editForm.city.trim() || 'Local Mandi',
+              openingBalance: newBal,
+              balance: newBal,
+              customerType: editForm.customerType || 'Walk-in Customer'
+            });
+          }
         }
       }
 
@@ -889,29 +885,43 @@ export const Khata = () => {
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-slate-400">Remaining Due Balance (Rs.)</label>
-                    {Number(editForm.balance) === 0 ? (
+                    <label className="text-xs font-bold text-slate-400">Receive Payment / Amount to Pay (Rs.)</label>
+                    {Number(editForm.receiveAmount || 0) >= Number(editingKhataCust.initialDue || 0) && Number(editingKhataCust.initialDue || 0) > 0 ? (
                       <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Cleared</span>
                     ) : (
-                      <span className="text-[10px] font-bold text-amber-500">Pending Due</span>
+                      <span className="text-[10px] font-bold text-amber-500">Pending Due: Rs. {Number(editingKhataCust.initialDue || 0).toLocaleString()}</span>
                     )}
                   </div>
                   <div className="relative">
                     <input
                       type="number"
                       min="0"
-                      value={editForm.balance}
-                      onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })}
-                      placeholder="0"
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(editForm.balance) === 0
+                      max={Number(editingKhataCust.initialDue || 0)}
+                      value={editForm.receiveAmount}
+                      onChange={(e) => setEditForm({ ...editForm, receiveAmount: e.target.value })}
+                      placeholder={`e.g. ${Number(editingKhataCust.initialDue || 0)}`}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(editForm.receiveAmount || 0) >= Number(editingKhataCust.initialDue || 0) && Number(editingKhataCust.initialDue || 0) > 0
                           ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
-                          : 'text-amber-500 dark:text-amber-400 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                          : 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
                         }`}
                     />
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-1 font-medium">
-                    Type 0 to mark fully paid, or enter new remaining due amount to record partial recovery.
-                  </p>
+                  <div className="mt-1 flex items-center justify-between text-[10px] font-semibold">
+                    <span className="text-slate-400">
+                      {Number(editForm.receiveAmount || 0) > 0
+                        ? `New Due after payment: Rs. ${Math.max(0, Number(editingKhataCust.initialDue || 0) - Number(editForm.receiveAmount || 0)).toLocaleString()}`
+                        : 'Enter payment amount to reduce customer due.'}
+                    </span>
+                    {Number(editingKhataCust.initialDue || 0) > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setEditForm(prev => ({ ...prev, receiveAmount: editingKhataCust.initialDue }))}
+                        className="text-brand-500 hover:underline font-bold cursor-pointer"
+                      >
+                        Pay Full (Rs. {Number(editingKhataCust.initialDue || 0).toLocaleString()})
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -930,7 +940,7 @@ export const Khata = () => {
                   className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{isSavingEdit ? 'Saving...' : 'Save Changes'}</span>
+                  <span>{isSavingEdit ? 'Saving...' : 'Save & Settle Payment'}</span>
                 </button>
               </div>
             </form>
