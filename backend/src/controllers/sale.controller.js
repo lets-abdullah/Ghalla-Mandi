@@ -36,7 +36,7 @@ export const createSale = async (req, res) => {
     const processedCart = [];
 
     for (const item of items) {
-      const product = await Product.findById(item.productId);
+      const product = await Product.findById(item.productId, req.shop_id);
       if (!product) {
         return res.status(404).json({ success: false, message: `Product not found: ${item.name || item.productName}` });
       }
@@ -56,7 +56,7 @@ export const createSale = async (req, res) => {
 
       // Update product stock in base unit
       const newStock = Math.max(0, Number(product.stockQty) - baseQtyDeducted);
-      await Product.findByIdAndUpdate(product.id, { stockQty: newStock });
+      await Product.findByIdAndUpdate(product.id, { stockQty: newStock }, { shop_id: req.shop_id });
 
       // Audit Log
       await AuditLog.create({
@@ -91,11 +91,11 @@ export const createSale = async (req, res) => {
     let cust = null;
 
     if (targetCustId) {
-      cust = await Customer.findById(targetCustId);
+      cust = await Customer.findById(targetCustId, req.shop_id);
       if (cust) {
         activePartyName = cust.name;
         const unpaid = Math.max(0, grandTotal - paid);
-        await Customer.findByIdAndUpdate(cust.id, { balance: Number(cust.balance) + unpaid });
+        await Customer.findByIdAndUpdate(cust.id, { balance: Number(cust.balance) + unpaid }, { shop_id: req.shop_id });
       }
     }
 
@@ -161,7 +161,7 @@ export const getSales = async (req, res) => {
 
 export const getSaleById = async (req, res) => {
   try {
-    const sale = await Sale.findById(req.params.id);
+    const sale = await Sale.findById(req.params.id, req.shop_id);
     if (!sale) {
       return res.status(404).json({ success: false, message: 'Sale invoice not found' });
     }
@@ -176,7 +176,7 @@ export const updateSale = async (req, res) => {
     const { id } = req.params;
     const { customerName, customerId, items, paidAmount = 0, discount = 0, tax = 0, paymentMethod = 'Cash' } = req.body;
 
-    const existingSale = await Sale.findById(id);
+    const existingSale = await Sale.findById(id, req.shop_id);
     if (!existingSale) {
       return res.status(404).json({ success: false, message: 'Sale invoice not found' });
     }
@@ -184,7 +184,7 @@ export const updateSale = async (req, res) => {
     // 1. Restore previous stock from existing sale cart
     const oldCart = Array.isArray(existingSale.cart) ? existingSale.cart : [];
     for (const oldItem of oldCart) {
-      const prod = await Product.findById(oldItem.productId);
+      const prod = await Product.findById(oldItem.productId, req.shop_id);
       if (prod) {
         const itemUnit = oldItem.unitName || oldItem.unit || prod.unit || 'KG';
         const qtyInKg = convertToKg(Number(oldItem.qty || 1), itemUnit);
@@ -193,7 +193,7 @@ export const updateSale = async (req, res) => {
 
         await Product.findByIdAndUpdate(prod.id, {
           stockQty: Number(prod.stockQty) + restoredBaseQty
-        });
+        }, { shop_id: req.shop_id });
       }
     }
 
@@ -203,7 +203,7 @@ export const updateSale = async (req, res) => {
     const processedCart = [];
 
     for (const item of items) {
-      const product = await Product.findById(item.productId);
+      const product = await Product.findById(item.productId, req.shop_id);
       if (!product) {
         return res.status(404).json({ success: false, message: `Product not found: ${item.name || item.productName}` });
       }
@@ -222,7 +222,7 @@ export const updateSale = async (req, res) => {
       const baseQtyDeducted = qtyInKg / baseProductFactor;
 
       const newStock = Math.max(0, Number(product.stockQty) - baseQtyDeducted);
-      await Product.findByIdAndUpdate(product.id, { stockQty: newStock });
+      await Product.findByIdAndUpdate(product.id, { stockQty: newStock }, { shop_id: req.shop_id });
 
       processedCart.push({
         productId: product.id,
@@ -243,7 +243,7 @@ export const updateSale = async (req, res) => {
 
     // 3. Customer balance adjustment
     if (targetCustId) {
-      const cust = await Customer.findById(targetCustId);
+      const cust = await Customer.findById(targetCustId, req.shop_id);
       if (cust) {
         activePartyName = cust.name;
         const oldUnpaid = Math.max(0, Number(existingSale.amount || 0) - Number(existingSale.paidAmount || 0));
@@ -251,7 +251,7 @@ export const updateSale = async (req, res) => {
         const balanceDiff = newUnpaid - oldUnpaid;
 
         if (balanceDiff !== 0) {
-          await Customer.findByIdAndUpdate(cust.id, { balance: Number(cust.balance) + balanceDiff });
+          await Customer.findByIdAndUpdate(cust.id, { balance: Number(cust.balance) + balanceDiff }, { shop_id: req.shop_id });
         }
       }
     }
@@ -266,7 +266,7 @@ export const updateSale = async (req, res) => {
       status,
       itemsCount: processedCart.length,
       cart: processedCart
-    });
+    }, { shop_id: req.shop_id });
 
     return res.json({ success: true, sale: updatedSale });
   } catch (err) {

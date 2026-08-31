@@ -20,11 +20,12 @@ import {
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
+import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-const STORAGE_KEY = 'mandi_erp_read_notifications_v1';
-
 export const NotificationCenter = () => {
+  const { user } = useAuth();
+  const storageKey = `gm_${user?.shop_id || 'default'}_read_notifications_v1`;
   const { 
     products = [], 
     sales = [], 
@@ -44,7 +45,7 @@ export const NotificationCenter = () => {
   const [activeTab, setActiveTab] = useState('All'); // 'All' | 'Unread' | 'Stock' | 'Transactions' | 'Khata'
   const [readIds, setReadIds] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(storageKey);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -53,14 +54,24 @@ export const NotificationCenter = () => {
 
   const panelRef = useRef(null);
 
+  // Sync on shop change
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      setReadIds(saved ? JSON.parse(saved) : []);
+    } catch {
+      setReadIds([]);
+    }
+  }, [storageKey]);
+
   // Persist read IDs to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(readIds));
+      localStorage.setItem(storageKey, JSON.stringify(readIds));
     } catch (e) {
       console.error('Failed to save read notifications', e);
     }
-  }, [readIds]);
+  }, [readIds, storageKey]);
 
   // Click outside to close (desktop)
   useEffect(() => {

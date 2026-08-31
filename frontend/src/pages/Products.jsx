@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Search, Plus, Filter, Barcode, Edit3, Trash2, AlertTriangle, FolderPlus, X, Image as ImageIcon, Upload, RefreshCw } from 'lucide-react';
+import { Package, Search, Plus, Filter, Barcode, Edit3, Trash2, AlertTriangle, FolderPlus, X, Image as ImageIcon, Upload, RefreshCw, Printer } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const Products = () => {
   const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, adjustStock } = useERP();
@@ -200,8 +202,8 @@ export const Products = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header (Screen Only) */}
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <Package className="w-6 h-6 text-brand-500" />
@@ -211,6 +213,15 @@ export const Products = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.print()}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print List</span>
+          </button>
+
           <button
             onClick={() => setShowAddCategoryModal(true)}
             className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -235,8 +246,8 @@ export const Products = () => {
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className={`border rounded-2xl p-4 card-shadow flex flex-col md:flex-row gap-4 justify-between items-center transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+      {/* Filters Bar (Screen Only) */}
+      <div className={`no-print border rounded-2xl p-4 card-shadow flex flex-col md:flex-row gap-4 justify-between items-center transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -267,6 +278,18 @@ export const Products = () => {
         </div>
       </div>
 
+      {/* ========================================================================= */}
+      {/* PRINT-ONLY HEADER */}
+      {/* ========================================================================= */}
+      <PrintHeader
+        title="Commodities & Products Catalog"
+        filterSummary={`Category: ${categoryFilter}`}
+        stats={[
+          { label: 'Total Products', value: (products || []).length },
+          { label: 'Matching Search/Filter', value: filtered.length }
+        ]}
+      />
+
       {/* Product Table */}
       <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
@@ -282,7 +305,7 @@ export const Products = () => {
                 <th className="py-3 px-4 text-center">Stock</th>
                 <th className="py-3 px-4 text-right">Purchase Rate</th>
                 <th className="py-3 px-4 text-right">Selling Rate</th>
-                <th className="py-3 px-4 text-center">Action</th>
+                <th className="py-3 px-4 text-center no-print">Action</th>
               </tr>
             </thead>
             <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
@@ -336,7 +359,7 @@ export const Products = () => {
                       <td className="py-3 px-4 text-right text-brand-500 font-extrabold">
                         Rs. {(Number(product.sellingPrice ?? product.sellingprice) || 0).toLocaleString()} / {product.unit || product.baseUnit || t('kg')}
                       </td>
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-3 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => {
@@ -382,6 +405,9 @@ export const Products = () => {
           </table>
         </div>
       </div>
+
+      {/* Print Footer */}
+      <PrintFooter note="Official Business Record • Ghalla Mandi Product Catalog" />
 
       {/* Add Product Modal */}
       {showAddModal && (

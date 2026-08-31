@@ -49,7 +49,7 @@ export const createSupplier = async (req, res) => {
 export const updateSupplier = async (req, res) => {
   try {
     const { id } = req.params;
-    const supplier = await Supplier.findByIdAndUpdate(id, req.body);
+    const supplier = await Supplier.findByIdAndUpdate(id, req.body, { shop_id: req.shop_id });
     if (!supplier) {
       return res.status(404).json({ success: false, message: 'Supplier not found' });
     }
@@ -62,7 +62,7 @@ export const updateSupplier = async (req, res) => {
 export const deleteSupplier = async (req, res) => {
   try {
     const { id } = req.params;
-    const supplier = await Supplier.findByIdAndDelete(id);
+    const supplier = await Supplier.findByIdAndDelete(id, req.shop_id);
     if (!supplier) {
       return res.status(404).json({ success: false, message: 'Supplier not found' });
     }
@@ -75,7 +75,7 @@ export const deleteSupplier = async (req, res) => {
 export const getSupplierLedger = async (req, res) => {
   try {
     const { id } = req.params;
-    const supplier = await Supplier.findById(id);
+    const supplier = await Supplier.findById(id, req.shop_id);
     if (!supplier) {
       return res.status(404).json({ success: false, message: 'Supplier not found' });
     }

@@ -7,6 +7,9 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
+import { useERP } from '../context/ERPContext';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const EXPENSE_CATEGORIES = [
   'Salary (Staff / Workers)',
@@ -24,40 +27,7 @@ export const EXPENSE_CATEGORIES = [
 export const Expenses = () => {
   const { theme } = useTheme();
   const { t } = useLocale();
-
-  // Load operating expenses from localStorage
-  const [expenses, setExpenses] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ghalla_mandi_operating_expenses');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // Sync to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('ghalla_mandi_operating_expenses', JSON.stringify(expenses));
-      window.dispatchEvent(new Event('storage'));
-    } catch (e) {
-      console.error('Failed to persist expenses:', e);
-    }
-  }, [expenses]);
-
-  // Listen to external updates from other tabs
-  useEffect(() => {
-    const handleStorageChange = () => {
-      try {
-        const saved = localStorage.getItem('ghalla_mandi_operating_expenses');
-        if (saved) setExpenses(JSON.parse(saved));
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  const { expenses = [], addExpense, deleteExpense } = useERP();
 
   // Form State
   const [form, setForm] = useState({
@@ -82,7 +52,7 @@ export const Expenses = () => {
   const pageSize = 15;
 
   // Handle Record Expense
-  const handleRecordExpense = (e) => {
+  const handleRecordExpense = async (e) => {
     e.preventDefault();
     const amt = Number(form.amount);
     if (!amt || amt <= 0) {
@@ -97,37 +67,46 @@ export const Expenses = () => {
       : new Date().toLocaleDateString('en-GB');
 
     const newEntry = {
-      id: Date.now(),
-      ref: `EXP-${Math.floor(100 + Math.random() * 900)}`,
       date: formattedDate,
-      rawDate: form.date || new Date().toISOString().split('T')[0],
       category: form.category,
       amount: amt,
       mode: form.mode,
-      desc: form.desc.trim() || `${form.category} expense`,
-      status: 'Paid / Cleared'
+      desc: form.desc.trim() || `${form.category} expense`
     };
 
-    setExpenses(prev => [newEntry, ...prev]);
+    try {
+      if (addExpense) {
+        await addExpense(newEntry);
+      }
 
-    // Reset Form
-    setForm({
-      category: 'Salary (Staff / Workers)',
-      amount: '',
-      mode: 'Cash',
-      date: new Date().toISOString().split('T')[0],
-      desc: ''
-    });
+      // Reset Form
+      setForm({
+        category: 'Salary (Staff / Workers)',
+        amount: '',
+        mode: 'Cash',
+        date: new Date().toISOString().split('T')[0],
+        desc: ''
+      });
 
-    setSuccessMessage(`Expense voucher ${newEntry.ref} of Rs. ${amt.toLocaleString()} recorded successfully!`);
-    setTimeout(() => setSuccessMessage(null), 4000);
-    setIsSubmitting(false);
+      setSuccessMessage(`Expense of Rs. ${amt.toLocaleString()} recorded successfully!`);
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err) {
+      alert(err.message || 'Failed to record expense');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Handle Delete Expense
-  const handleDeleteExpense = (id) => {
+  const handleDeleteExpense = async (id) => {
     if (window.confirm('Are you sure you want to delete this expense record?')) {
-      setExpenses(prev => prev.filter(e => e.id !== id));
+      try {
+        if (deleteExpense) {
+          await deleteExpense(id);
+        }
+      } catch (err) {
+        alert(err.message || 'Failed to delete expense');
+      }
     }
   };
 
@@ -252,8 +231,8 @@ export const Expenses = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Header Banner (Screen Only) */}
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
@@ -266,20 +245,32 @@ export const Expenses = () => {
           </p>
         </div>
 
-        {successMessage && (
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold shadow-xs animate-in fade-in slide-in-from-top-1">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>{successMessage}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => window.print()}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print Report</span>
+          </button>
+
+          {successMessage && (
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold shadow-xs animate-in fade-in slide-in-from-top-1">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{successMessage}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Grid: Left Quick Record Form, Right Vouchers Ledger */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* ========================================================================= */}
-        {/* 1. RECORD EXPENSE FORM (DEDICATED PANEL) */}
+        {/* 1. RECORD EXPENSE FORM (Screen Only) */}
         {/* ========================================================================= */}
-        <div className={`lg:col-span-4 border rounded-3xl p-5 card-shadow h-fit space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        <div className={`no-print lg:col-span-4 border rounded-3xl p-5 card-shadow h-fit space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-700">
             <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
@@ -394,8 +385,8 @@ export const Expenses = () => {
         {/* ========================================================================= */}
         <div className={`lg:col-span-8 border rounded-3xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-          {/* Header & Filter Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
+          {/* Header & Filter Bar (Screen Only) */}
+          <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
             <div>
               <h2 className="text-sm font-black uppercase tracking-wider">Expense Vouchers History</h2>
               <p className="text-[11px] text-slate-400 font-bold">
@@ -431,8 +422,8 @@ export const Expenses = () => {
             </div>
           </div>
 
-          {/* Search bar */}
-          <div className="relative">
+          {/* Search bar (Screen Only) */}
+          <div className="no-print relative">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -443,6 +434,20 @@ export const Expenses = () => {
                 }`}
             />
           </div>
+
+          {/* ========================================================================= */}
+          {/* PRINT-ONLY HEADER */}
+          {/* ========================================================================= */}
+          <PrintHeader
+            title="Operating Expenses Register / اخراجات"
+            filterSummary={`Category: ${categoryFilter} | Period: ${dateFilter}`}
+            stats={[
+              { label: 'Total Vouchers', value: expenses.length },
+              { label: 'Filtered Expense Total', value: `Rs. ${filteredTotal.toLocaleString()}` },
+              { label: 'This Month Total', value: `Rs. ${stats.monthTotal.toLocaleString()}` },
+              { label: 'Cash / Bank', value: `Rs. ${stats.cashTotal.toLocaleString()} / Rs. ${stats.bankTotal.toLocaleString()}` }
+            ]}
+          />
 
           {/* Table */}
           <div className="overflow-x-auto">
@@ -456,7 +461,7 @@ export const Expenses = () => {
                   <th className="py-3 px-3">Description / Remarks</th>
                   <th className="py-3 px-3">Mode</th>
                   <th className="py-3 px-3 text-right font-black">Amount (Rs.)</th>
-                  <th className="py-3 px-3 text-center">Action</th>
+                  <th className="py-3 px-3 text-center no-print">Action</th>
                 </tr>
               </thead>
               <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
@@ -484,7 +489,7 @@ export const Expenses = () => {
                       <td className="py-3 px-3 text-right font-mono font-black text-rose-600 dark:text-rose-400">
                         Rs. {Number(exp.amount).toLocaleString()}
                       </td>
-                      <td className="py-3 px-3 text-center">
+                      <td className="py-3 px-3 text-center no-print">
                         <button
                           type="button"
                           onClick={() => handleDeleteExpense(exp.id)}
@@ -501,9 +506,12 @@ export const Expenses = () => {
             </table>
           </div>
 
-          {/* Pagination */}
+          {/* Print Footer */}
+          <PrintFooter note="Official Business Record • Ghalla Mandi Operating Expenses" />
+
+          {/* Pagination (Screen Only) */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 text-xs">
+            <div className="no-print flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 text-xs">
               <span className="text-slate-400 font-medium">Page {page} of {totalPages}</span>
               <div className="flex items-center gap-1">
                 <button

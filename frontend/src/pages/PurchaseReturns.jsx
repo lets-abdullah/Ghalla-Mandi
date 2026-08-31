@@ -21,6 +21,8 @@ import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PurchaseReturnModal } from '../components/PurchaseReturnModal';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const PurchaseReturns = () => {
   const { purchaseReturns = [], updatePurchaseReturn } = useERP();
@@ -123,8 +125,8 @@ export const PurchaseReturns = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Page Header (Screen Only) */}
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             <RotateCcw className="w-6 h-6 text-rose-500" />
@@ -157,8 +159,8 @@ export const PurchaseReturns = () => {
         </div>
       </div>
 
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Summary KPI Cards (Screen Only) */}
+      <div className="no-print grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <RotateCcw className="w-4 h-4 text-rose-600" />
@@ -194,8 +196,8 @@ export const PurchaseReturns = () => {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className={`border rounded-2xl p-3.5 sm:p-4 card-shadow ${
+      {/* Filter Toolbar (Screen Only) */}
+      <div className={`no-print border rounded-2xl p-3.5 sm:p-4 card-shadow ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
@@ -231,6 +233,20 @@ export const PurchaseReturns = () => {
         </div>
       </div>
 
+      {/* ========================================================================= */}
+      {/* PRINT-ONLY HEADER */}
+      {/* ========================================================================= */}
+      <PrintHeader
+        title="Purchase Returns Register"
+        filterSummary={`Mode: ${modeFilter}`}
+        stats={[
+          { label: 'Total Returns', value: purchaseReturns.length },
+          { label: 'Total Returned Stock', value: `Rs. ${totalReturnAmount.toLocaleString()}` },
+          { label: 'Cash Received from Suppliers', value: `Rs. ${totalCashRefunds.toLocaleString()}` },
+          { label: 'Supplier Dues Deducted', value: `Rs. ${totalPayablesDeducted.toLocaleString()}` }
+        ]}
+      />
+
       {/* Purchase Returns Table */}
       <div className={`border rounded-2xl card-shadow overflow-hidden ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
@@ -248,7 +264,7 @@ export const PurchaseReturns = () => {
                 <th className="py-3 px-4">Item</th>
                 <th className="py-3 px-4 text-center">Mode</th>
                 <th className="py-3 px-4 text-right">Amount</th>
-                <th className="py-3 px-4 text-center">Actions</th>
+                <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
@@ -275,7 +291,7 @@ export const PurchaseReturns = () => {
                     <td className="py-3 px-4 text-right font-black font-mono text-rose-600 dark:text-rose-400">
                       Rs. {Number(ret.refundAmount || 0).toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-4 text-center no-print">
                       <button
                         onClick={() => handleOpenEdit(ret)}
                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
@@ -292,6 +308,9 @@ export const PurchaseReturns = () => {
           </table>
         </div>
       </div>
+
+      {/* Print Footer */}
+      <PrintFooter note="Official Business Record • Ghalla Mandi Purchase Returns Register" />
 
       {/* Edit Purchase Return Modal */}
       {editingReturn && (

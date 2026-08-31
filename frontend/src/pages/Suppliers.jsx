@@ -28,12 +28,15 @@ import {
   ChevronDown,
   RotateCcw,
   BookOpen,
-  CreditCard
+  CreditCard,
+  Printer
 } from 'lucide-react';
 import { useERP, computeSupplierKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 // Standard Multi-Select Commodity Selector Component
 const SuppliedProductsCombobox = ({
@@ -586,8 +589,8 @@ export const Suppliers = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Page Header (Screen Only) */}
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <UserCheck className="w-6 h-6 text-brand-500" />
@@ -599,6 +602,16 @@ export const Suppliers = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
+          {/* Print List Button */}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print List</span>
+          </button>
+
           {/* View Mode Toggle */}
           <div className={`flex items-center p-1 rounded-xl border ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
             <button
@@ -629,8 +642,8 @@ export const Suppliers = () => {
         </div>
       </div>
 
-      {/* KPI Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* KPI Cards Row (Screen Only) */}
+      <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div
           onClick={() => { setStatusFilter('All'); setSelectedProductFilter('All'); setSelectedSupplierFilter('All'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
@@ -674,8 +687,8 @@ export const Suppliers = () => {
         </div>
       </div>
 
-      {/* Unified Filter Toolbar: [Supplier] [Product] [Status] */}
-      <div className={`p-3.5 sm:p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      {/* Unified Filter Toolbar: [Supplier] [Product] [Status] (Screen Only) */}
+      <div className={`no-print p-3.5 sm:p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-2.5">
           {/* Supplier Selector */}
@@ -750,6 +763,19 @@ export const Suppliers = () => {
           )}
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* PRINT-ONLY HEADER */}
+      {/* ========================================================================= */}
+      <PrintHeader
+        title="Supplier Directory & Payables Summary"
+        filterSummary={`Status: ${statusFilter}`}
+        stats={[
+          { label: 'Total Suppliers', value: totalSuppliersCount },
+          { label: 'Suppliers with Dues', value: (suppliers || []).filter(s => (Number(s.balance) || 0) > 0).length },
+          { label: 'Remaining to Pay', value: `Rs. ${totalPayablesAmount.toLocaleString()}` }
+        ]}
+      />
 
       {/* Main Content: Table View vs Card View */}
       {viewMode === 'card' ? (
@@ -879,7 +905,7 @@ export const Suppliers = () => {
                   <th className="py-3 px-4">Supplied Products</th>
                   <th className="py-3 px-4 text-right">Balance Due</th>
                   <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-center">Actions</th>
+                  <th className="py-3 px-4 text-center no-print">Actions</th>
                 </tr>
               </thead>
               <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
@@ -931,7 +957,7 @@ export const Suppliers = () => {
                             {isAct ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-3 px-4 text-center no-print">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
                               onClick={() => setViewingSupplier(s)}
@@ -965,6 +991,9 @@ export const Suppliers = () => {
           </div>
         </div>
       )}
+
+      {/* Print Footer */}
+      <PrintFooter note="Official Business Record • Ghalla Mandi Supplier Directory" />
       {/* ========================================================================= */}
       {/* 1. DETAILED ADD SUPPLIER MODAL (Compact 2-Column Grid - No Desktop Scroll) */}
       {/* ========================================================================= */}

@@ -22,12 +22,15 @@ import {
   Mail,
   FileText,
   Landmark,
-  Hash
+  Hash,
+  Printer
 } from 'lucide-react';
 import { useERP, computeCustomerKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const Customers = () => {
   const { customers = [], sales = [], saleReturns = [], paymentLogs = [], addCustomer, updateCustomer, deleteCustomer } = useERP();
@@ -339,8 +342,8 @@ export const Customers = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Page Header (Screen Only) */}
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <Users className="w-6 h-6 text-brand-500" />
@@ -352,6 +355,16 @@ export const Customers = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
+          {/* Print List Button */}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print List</span>
+          </button>
+
           {/* Table / Card View Toggle */}
           <div className="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
             <button
@@ -390,8 +403,8 @@ export const Customers = () => {
         </div>
       </div>
 
-      {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* KPI Cards Row (Screen Only) */}
+      <div className="no-print grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Total Customers */}
         <div
           onClick={() => { setCustomerTypeFilter('All'); setBalanceFilter('All'); }}
@@ -457,8 +470,8 @@ export const Customers = () => {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className={`border rounded-3xl p-3.5 sm:p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      {/* Filter Toolbar (Screen Only) */}
+      <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
           {/* 1. Customer Type */}
@@ -529,6 +542,20 @@ export const Customers = () => {
           )}
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* PRINT-ONLY HEADER */}
+      {/* ========================================================================= */}
+      <PrintHeader
+        title="Customer Directory & Khata Balances"
+        filterSummary={`Type: ${customerTypeFilter} | Balance: ${balanceFilter} | Status: ${statusFilter}`}
+        stats={[
+          { label: 'Total Customers', value: totalCustomers },
+          { label: 'Regular Customers', value: regularCount },
+          { label: 'Walk-in Customers', value: walkinCount },
+          { label: 'Total Khata Due', value: `Rs. ${totalReceivables.toLocaleString()}` }
+        ]}
+      />
 
       {/* VIEW MODE: TABLE VIEW OR CARD VIEW */}
       {viewMode === 'card' ? (
@@ -643,7 +670,7 @@ export const Customers = () => {
                   <th className="py-3 px-3">Phone</th>
                   <th className="py-3 px-4 text-right">Balance</th>
                   <th className="py-3 px-3 text-center">Status</th>
-                  <th className="py-3 px-4 text-center">Action</th>
+                  <th className="py-3 px-4 text-center no-print">Action</th>
                 </tr>
               </thead>
               <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
@@ -706,8 +733,8 @@ export const Customers = () => {
                           </span>
                         </td>
 
-                        {/* 6. Actions */}
-                        <td className="py-3 px-4 text-center">
+                        {/* 6. Actions (Screen Only) */}
+                        <td className="py-3 px-4 text-center no-print">
                           <div className="flex items-center justify-center gap-1.5">
                             {/* View Profile */}
                             <button
@@ -750,6 +777,9 @@ export const Customers = () => {
           </div>
         </div>
       )}
+
+      {/* Print Footer */}
+      <PrintFooter note="Official Business Record • Ghalla Mandi Customer Directory & Balances" />
 
       {/* ========================================================================= */}
       {/* 1. VIEW CUSTOMER PROFILE MODAL */}

@@ -31,6 +31,8 @@ import {
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const Ledger = () => {
   const {
@@ -639,9 +641,9 @@ export const Ledger = () => {
   return (
     <div className="space-y-6">
       {/* ========================================================================= */}
-      {/* 1. TOP HEADER & ACTION BAR */}
+      {/* 1. TOP HEADER & ACTION BAR (Screen Only) */}
       {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             {selectedPartyId !== 'All' && (
@@ -715,8 +717,8 @@ export const Ledger = () => {
       {/* ========================================================================= */}
       {selectedPartyId === 'All' ? (
         <div className="space-y-4">
-          {/* 4 Financial Condition KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* 4 Financial Condition KPI Cards (Screen Only) */}
+          <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* 1. Total Receivable / Payable */}
             <div
               onClick={() => setStatusFilter(statusFilter === (isSupplier ? 'Payable' : 'Receivable') ? 'All' : (isSupplier ? 'Payable' : 'Receivable'))}
@@ -727,7 +729,7 @@ export const Ledger = () => {
               } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : (isSupplier ? 'bg-gradient-to-b from-rose-50/60 to-white border-rose-200/80' : 'bg-gradient-to-b from-emerald-50/60 to-white border-emerald-200/80')}`}
             >
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>{isSupplier ? 'Total Payable' : 'Total Receivable'}</span>
+                <span>{isSupplier ? 'Remaining to Pay' : 'Total Receivable'}</span>
                 <span className={`w-2.5 h-2.5 rounded-full ${isSupplier ? 'bg-rose-500 shadow-xs shadow-rose-500/50' : 'bg-emerald-500 shadow-xs shadow-emerald-500/50'}`}></span>
               </div>
               <div className={`text-xl sm:text-2xl font-mono font-black mt-1.5 ${isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
@@ -738,25 +740,25 @@ export const Ledger = () => {
               </div>
             </div>
 
-            {/* 2. Total Sales / Purchases (Debit) */}
+            {/* 2. Total Sales / Purchases */}
             <div
               className={`p-4 rounded-2xl border card-shadow ${
                 theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
               }`}
             >
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>{isSupplier ? 'Total Procured' : 'Total Sales'}</span>
+                <span>{isSupplier ? 'Total Purchases' : 'Total Sales'}</span>
                 <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
               </div>
               <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-blue-600 dark:text-blue-400">
                 Rs. {totalDebitSum.toLocaleString()}
               </div>
               <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                {isSupplier ? 'Total Commodity Purchases' : 'Total Billed Sales'}
+                {isSupplier ? 'Total Inward Purchases' : 'Total Billed Sales'}
               </div>
             </div>
 
-            {/* 3. Total Received / Paid (Credit) */}
+            {/* 3. Total Received / Paid */}
             <div
               className={`p-4 rounded-2xl border card-shadow ${
                 theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
@@ -796,8 +798,8 @@ export const Ledger = () => {
             </div>
           </div>
 
-          {/* Filter & Search Toolbar */}
-          <div className={`border rounded-3xl p-3.5 sm:p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+          {/* Filter & Search Toolbar (Screen Only) */}
+          <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Search input */}
               <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border ${
@@ -899,6 +901,19 @@ export const Ledger = () => {
             </div>
           </div>
 
+          {/* ========================================================================= */}
+          {/* PRINT-ONLY HEADER (Directory Summary) */}
+          {/* ========================================================================= */}
+          <PrintHeader
+            title={isSupplier ? "Supplier Ledger Statement Summary" : "Customer Ledger Statement Summary"}
+            filterSummary={`Condition: ${statusFilter}`}
+            stats={[
+              { label: isSupplier ? 'Remaining to Pay' : 'Total Receivable', value: `Rs. ${(isSupplier ? totalPayable : totalReceivable).toLocaleString()}` },
+              { label: isSupplier ? 'Total Purchases' : 'Total Sales', value: `Rs. ${totalDebitSum.toLocaleString()}` },
+              { label: isSupplier ? 'Total Paid' : 'Total Received', value: `Rs. ${totalCreditSum.toLocaleString()}` }
+            ]}
+          />
+
           {/* Customer Entities View (Table or Cards) */}
           {viewMode === 'table' ? (
             <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
@@ -910,12 +925,12 @@ export const Ledger = () => {
                     <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
                       theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                     }`}>
-                      <th className="py-3.5 px-4">Customer Entity</th>
-                      <th className="py-3.5 px-4 text-right">Debit (Sales)</th>
-                      <th className="py-3.5 px-4 text-right">Credit (Payments)</th>
-                      <th className="py-3.5 px-4 text-right font-black">Current Balance</th>
+                      <th className="py-3.5 px-4">{isSupplier ? 'Supplier Firm' : 'Customer Entity'}</th>
+                      <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Purchases' : 'Total Sales'}</th>
+                      <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Paid' : 'Total Received'}</th>
+                      <th className="py-3.5 px-4 text-right font-black">{isSupplier ? 'Remaining to Pay' : 'Remaining Balance'}</th>
                       <th className="py-3.5 px-4 text-center">Status</th>
-                      <th className="py-3.5 px-4 text-center">Action</th>
+                      <th className="py-3.5 px-4 text-center no-print">Action</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
@@ -1007,7 +1022,7 @@ export const Ledger = () => {
                             </td>
 
                             {/* 6. Action */}
-                            <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                            <td className="py-3.5 px-4 text-center no-print" onClick={(e) => e.stopPropagation()}>
                               <button
                                 type="button"
                                 onClick={() => handleOpenCustomerLedger(cust)}
@@ -1117,6 +1132,9 @@ export const Ledger = () => {
               })}
             </div>
           )}
+
+          {/* Print Footer for Directory View */}
+          <PrintFooter note="Official Business Record • Ghalla Mandi Ledger Summary" />
         </div>
       ) : (
         /* ========================================================================= */
@@ -1178,31 +1196,31 @@ export const Ledger = () => {
 
             {/* 3 Financial Strip Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Total Debit */}
+              {/* Total Purchases / Sales */}
               <div className={`p-3.5 rounded-2xl border ${
                 theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
               }`}>
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  {isSupplier ? 'Total Debit (Purchases)' : 'Total Debit (Sales)'}
+                  {isSupplier ? 'Total Purchases' : 'Total Sales'}
                 </div>
                 <div className="text-lg font-mono font-black text-blue-600 dark:text-blue-400 mt-1">
                   Rs. {(activeCustomer?.totalDebit || 0).toLocaleString()}
                 </div>
               </div>
 
-              {/* Total Credit */}
+              {/* Total Paid / Received */}
               <div className={`p-3.5 rounded-2xl border ${
                 theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
               }`}>
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  {isSupplier ? 'Total Credit (Payments Out)' : 'Total Credit (Payments)'}
+                  {isSupplier ? 'Total Paid' : 'Total Received'}
                 </div>
                 <div className="text-lg font-mono font-black text-emerald-600 dark:text-emerald-400 mt-1">
                   Rs. {(activeCustomer?.totalCredit || 0).toLocaleString()}
                 </div>
               </div>
 
-              {/* Current Net Balance */}
+              {/* Remaining Balance */}
               <div className={`p-3.5 rounded-2xl border ${
                 (activeCustomer?.balance || 0) > 0
                   ? isSupplier
@@ -1210,7 +1228,9 @@ export const Ledger = () => {
                     : theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-emerald-50/70 border-emerald-200'
                   : theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
               }`}>
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Current Balance</div>
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  {isSupplier ? 'Remaining to Pay' : 'Remaining Balance'}
+                </div>
                 <div className={`text-lg font-mono font-black mt-1 ${
                   (activeCustomer?.balance || 0) > 0
                     ? isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
@@ -1222,8 +1242,8 @@ export const Ledger = () => {
             </div>
           </div>
 
-          {/* Statement Transaction Filter Bar */}
-          <div className={`border rounded-3xl p-3.5 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+          {/* Statement Transaction Filter Bar (Screen Only) */}
+          <div className={`no-print border rounded-3xl p-3.5 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Voucher search */}
               <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border ${
@@ -1266,7 +1286,7 @@ export const Ledger = () => {
                   }`}
                 >
                   <option value="All">All Transactions</option>
-                  <option value="Sales">Sales Only</option>
+                  <option value="Sales">{isSupplier ? 'Purchases Only' : 'Sales Only'}</option>
                   <option value="Payments">Payments Only</option>
                   <option value="Returns">Returns Only</option>
                 </select>
@@ -1298,6 +1318,19 @@ export const Ledger = () => {
             )}
           </div>
 
+          {/* ========================================================================= */}
+          {/* PRINT-ONLY HEADER (Single Customer Statement) */}
+          {/* ========================================================================= */}
+          <PrintHeader
+            title={`${activeCustomer?.name || 'Account'} — Statement of Account`}
+            filterSummary={`Period: ${dateFilterType} | Type: ${txTypeFilter}`}
+            stats={[
+              { label: isSupplier ? 'Total Purchases' : 'Total Sales', value: `Rs. ${(activeCustomer?.totalDebit || 0).toLocaleString()}` },
+              { label: isSupplier ? 'Total Paid' : 'Total Received', value: `Rs. ${(activeCustomer?.totalCredit || 0).toLocaleString()}` },
+              { label: isSupplier ? 'Remaining to Pay' : 'Remaining Balance', value: `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}` }
+            ]}
+          />
+
           {/* Complete Chronological Statement Table */}
           <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
             theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
@@ -1309,12 +1342,12 @@ export const Ledger = () => {
                     theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                   }`}>
                     <th className="py-3.5 px-4">Date</th>
-                    <th className="py-3.5 px-4">Voucher #</th>
+                    <th className="py-3.5 px-4">Voucher / Ref #</th>
                     <th className="py-3.5 px-4">Description</th>
-                    <th className="py-3.5 px-4 text-right">Debit</th>
-                    <th className="py-3.5 px-4 text-right">Credit</th>
-                    <th className="py-3.5 px-4 text-right font-black">Running Balance</th>
-                    <th className="py-3.5 px-4 text-center">Action</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Purchases (+)' : 'Sales (+)'}</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Payments / Returns (-)' : 'Payments / Returns (-)'}</th>
+                    <th className="py-3.5 px-4 text-right font-black">{isSupplier ? 'Remaining Balance' : 'Running Balance'}</th>
+                    <th className="py-3.5 px-4 text-center no-print">Action</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
@@ -1371,8 +1404,8 @@ export const Ledger = () => {
                             </span>
                           </td>
 
-                          {/* 7. Action */}
-                          <td className="py-3.5 px-4 text-center">
+                          {/* 7. Action (Screen Only) */}
+                          <td className="py-3.5 px-4 text-center no-print">
                             <button
                               type="button"
                               onClick={() => setViewingEntry(entry)}
@@ -1394,6 +1427,9 @@ export const Ledger = () => {
               </table>
             </div>
           </div>
+
+          {/* Print Footer for Statement View */}
+          <PrintFooter note={`Official Account Statement • ${activeCustomer?.name || 'Party'} • Ghalla Mandi`} />
         </div>
       )}
 

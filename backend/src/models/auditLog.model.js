@@ -2,13 +2,16 @@ import { query, get, run } from '../services/db.service.js';
 
 export const AuditLog = {
   async find(filter = {}) {
-    if (filter.shop_id) {
-      return await query('SELECT * FROM stock_movements WHERE shop_id = $1 ORDER BY created_at DESC', [filter.shop_id]);
+    if (!filter.shop_id) {
+      return [];
     }
-    return await query('SELECT * FROM stock_movements ORDER BY created_at DESC');
+    return await query('SELECT * FROM stock_movements WHERE shop_id = $1 ORDER BY created_at DESC', [filter.shop_id]);
   },
 
   async create(logData) {
+    if (!logData.shop_id) {
+      throw new Error('shop_id is required to create a stock movement');
+    }
     const id = logData.id || `sm-${Date.now()}`;
     const shop_id = logData.shop_id;
     const product = logData.product || logData.entity || 'Item';
@@ -22,6 +25,6 @@ export const AuditLog = {
       [id, shop_id, product, type, qty, ref, date]
     );
 
-    return await get('SELECT * FROM stock_movements WHERE id = $1', [id]);
+    return await get('SELECT * FROM stock_movements WHERE id = $1 AND shop_id = $2', [id, shop_id]);
   }
 };

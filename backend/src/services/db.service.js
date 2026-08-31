@@ -209,6 +209,66 @@ const createTables = async () => {
       date TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    -- Operating Expenses Table
+    CREATE TABLE IF NOT EXISTS expenses (
+      id TEXT PRIMARY KEY,
+      shop_id TEXT NOT NULL,
+      category TEXT NOT NULL,
+      amount NUMERIC NOT NULL,
+      mode TEXT DEFAULT 'Cash',
+      date TEXT NOT NULL,
+      desc_text TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    -- Sale Returns Table
+    CREATE TABLE IF NOT EXISTS sale_returns (
+      id TEXT PRIMARY KEY,
+      shop_id TEXT NOT NULL,
+      returnNo TEXT NOT NULL,
+      saleId TEXT,
+      invoiceNo TEXT,
+      customerId TEXT,
+      customerName TEXT,
+      refundAmount NUMERIC NOT NULL DEFAULT 0,
+      refundMode TEXT DEFAULT 'Cash',
+      reason TEXT,
+      date TEXT NOT NULL,
+      itemsJson TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    -- Purchase Returns Table
+    CREATE TABLE IF NOT EXISTS purchase_returns (
+      id TEXT PRIMARY KEY,
+      shop_id TEXT NOT NULL,
+      returnNo TEXT NOT NULL,
+      purchaseId TEXT,
+      purchaseNo TEXT,
+      supplierId TEXT,
+      supplierName TEXT,
+      refundAmount NUMERIC NOT NULL DEFAULT 0,
+      refundMode TEXT DEFAULT 'Cash',
+      reason TEXT,
+      date TEXT NOT NULL,
+      itemsJson TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    -- Indexes for Tenant Multi-Tenancy Optimization
+    CREATE INDEX IF NOT EXISTS idx_users_shop_id ON users(shop_id);
+    CREATE INDEX IF NOT EXISTS idx_categories_shop_id ON categories(shop_id);
+    CREATE INDEX IF NOT EXISTS idx_products_shop_id ON products(shop_id);
+    CREATE INDEX IF NOT EXISTS idx_customers_shop_id ON customers(shop_id);
+    CREATE INDEX IF NOT EXISTS idx_suppliers_shop_id ON suppliers(shop_id);
+    CREATE INDEX IF NOT EXISTS idx_sales_shop_id ON sales(shop_id);
+    CREATE INDEX IF NOT EXISTS idx_purchases_shop_id ON purchases(shop_id);
+    CREATE INDEX IF NOT EXISTS idx_payment_logs_shop_id ON payment_logs(shop_id);
+    CREATE INDEX IF NOT EXISTS idx_stock_movements_shop_id ON stock_movements(shop_id);
+    CREATE INDEX IF NOT EXISTS idx_expenses_shop_id ON expenses(shop_id);
+    CREATE INDEX IF NOT EXISTS idx_sale_returns_shop_id ON sale_returns(shop_id);
+    CREATE INDEX IF NOT EXISTS idx_purchase_returns_shop_id ON purchase_returns(shop_id);
   `;
 
   const p = getPool();

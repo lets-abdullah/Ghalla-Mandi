@@ -66,7 +66,7 @@ export const updateProduct = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    const product = await Product.findByIdAndUpdate(id, updateData);
+    const product = await Product.findByIdAndUpdate(id, updateData, { shop_id: req.shop_id });
 
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
@@ -81,7 +81,7 @@ export const updateProduct = async (req, res) => {
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await Product.findByIdAndDelete(id);
+    const product = await Product.findByIdAndDelete(id, req.shop_id);
 
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
@@ -102,13 +102,13 @@ export const adjustStock = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Valid adjustment quantity required' });
     }
 
-    const product = await Product.findById(id);
+    const product = await Product.findById(id, req.shop_id);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
     const newStock = Math.max(0, Number(product.stockQty) + Number(adjustmentKg));
-    const updated = await Product.findByIdAndUpdate(id, { stockQty: newStock });
+    const updated = await Product.findByIdAndUpdate(id, { stockQty: newStock }, { shop_id: req.shop_id });
 
     await AuditLog.create({
       shop_id: req.shop_id,

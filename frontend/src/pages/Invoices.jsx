@@ -27,6 +27,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const Invoices = () => {
   const { sales = [], purchases = [], saleReturns = [], purchaseReturns = [], customers = [], suppliers = [], products = [], paymentLogs = [] } = useERP();
@@ -374,8 +376,8 @@ export const Invoices = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Top Banner (Screen Only) */}
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             {isPurchases ? (
@@ -402,8 +404,8 @@ export const Invoices = () => {
         </button>
       </div>
 
-      {/* Financial KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Financial KPI Summary Cards (Screen Only) */}
+      <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* 1. Total Billed Volume */}
         <div
           onClick={() => setStatusFilter('All')}
@@ -455,8 +457,8 @@ export const Invoices = () => {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className={`border rounded-3xl p-3.5 sm:p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      {/* Filter Toolbar (Screen Only) */}
+      <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3">
           {/* 1. Select Party */}
@@ -578,6 +580,19 @@ export const Invoices = () => {
         )}
       </div>
 
+      {/* ========================================================================= */}
+      {/* PRINT-ONLY HEADER */}
+      {/* ========================================================================= */}
+      <PrintHeader
+        title={isPurchases ? "Purchase Invoices Register" : "Sales Invoices Register"}
+        filterSummary={`Party: ${selectedPartyId === 'All' ? 'All Parties' : 'Filtered Party'} | Period: ${dateFilterType} | Status: ${statusFilter}`}
+        stats={[
+          { label: isPurchases ? 'Total Purchase Billing' : 'Total Sales Invoiced', value: `Rs. ${totalBilledVolume.toLocaleString()}` },
+          { label: isPurchases ? 'Total Paid to Vendors' : 'Total Cash Received', value: `Rs. ${totalSettledAmount.toLocaleString()}` },
+          { label: isPurchases ? 'Supplier Payables' : 'Customer Receivables', value: `Rs. ${totalOutstandingDue.toLocaleString()}` }
+        ]}
+      />
+
       {/* Official Invoices Table */}
       <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
@@ -593,7 +608,7 @@ export const Invoices = () => {
                 <th className="py-3.5 px-4 text-right">Amount</th>
                 <th className="py-3.5 px-4 text-right">Paid</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
-                <th className="py-3.5 px-4 text-center">Actions</th>
+                <th className="py-3.5 px-4 text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
@@ -693,8 +708,8 @@ export const Invoices = () => {
                         );
                       })()}
 
-                      {/* 8. Actions: View / Print A4 */}
-                      <td className="py-3.5 px-4 text-center">
+                      {/* 8. Actions: View / Print A4 (Screen Only) */}
+                      <td className="py-3.5 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             type="button"
@@ -715,6 +730,9 @@ export const Invoices = () => {
           </table>
         </div>
       </div>
+
+      {/* Print Footer */}
+      <PrintFooter note={`Official Business Record • Ghalla Mandi ${isPurchases ? 'Purchase' : 'Sales'} Invoices`} />
 
       {/* Sales Receipt Modal */}
       {selectedSaleReceipt && (

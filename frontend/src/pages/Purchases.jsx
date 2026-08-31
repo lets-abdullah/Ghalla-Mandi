@@ -23,12 +23,14 @@ import {
   Edit3,
   CreditCard
 } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computePurchaseFinancials, computeSupplierKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
 import { PurchaseReturnModal } from '../components/PurchaseReturnModal';
 import { EditPurchaseModal } from '../components/EditPurchaseModal';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const Purchases = () => {
   const {
@@ -412,12 +414,10 @@ export const Purchases = () => {
   };
 
   const openPayModal = (purchase) => {
-    const totalAmt = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : 0));
-    const paidAmt = Number(purchase.paidAmount || 0);
-    const remainingDue = Math.max(0, totalAmt - paidAmt);
+    const fin = computePurchaseFinancials(purchase, purchaseReturns);
     setPayModalPurchase(purchase);
     setPayForm({
-      amount: remainingDue,
+      amount: fin.due,
       paymentMode: 'Cash'
     });
   };
@@ -426,13 +426,11 @@ export const Purchases = () => {
     e.preventDefault();
     if (!payModalPurchase || isSubmitting) return;
 
-    const totalAmt = Number(payModalPurchase.amount !== undefined ? payModalPurchase.amount : (payModalPurchase.grandTotal !== undefined ? payModalPurchase.grandTotal : 0));
-    const paidAmt = Number(payModalPurchase.paidAmount || 0);
-    const remainingDue = Math.max(0, totalAmt - paidAmt);
+    const fin = computePurchaseFinancials(payModalPurchase, purchaseReturns);
     const payVal = Math.max(1, Number(payForm.amount) || 0);
 
-    if (payVal > remainingDue) {
-      alert(t('paidAmountExceedsAlert', { total: remainingDue.toLocaleString() }));
+    if (payVal > fin.due) {
+      alert(t('paidAmountExceedsAlert', { total: fin.due.toLocaleString() }));
       return;
     }
 
@@ -463,57 +461,20 @@ export const Purchases = () => {
   const totalNetPurchases = Math.max(0, totalGrossPurchases - totalPurchaseReturnsVal);
 
   const { totalPaidOut, totalOutstandingPayable } = useMemo(() => {
-    const partyMap = new Map();
-    (purchases || []).forEach(p => {
-      const key = (p.supplierId ? String(p.supplierId) : (p.supplier || p.supplierName || 'supplier')).trim().toLowerCase();
-      if (!partyMap.has(key)) {
-        partyMap.set(key, {
-          supplierId: p.supplierId,
-          supplierName: p.supplier || p.supplierName || '',
-          purchases: []
-        });
-      }
-      partyMap.get(key).purchases.push(p);
-    });
-
     let totalPaid = 0;
     let totalDue = 0;
 
-    partyMap.forEach(group => {
-      const groupTotal = group.purchases.reduce((acc, p) => acc + Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0), 0);
-      const groupUpfrontPaid = group.purchases.reduce((acc, p) => acc + Number(p.paidAmount ?? p.paidamount ?? (p.paymentStatus === 'Paid' ? (p.amount ?? p.grandTotal ?? p.grandtotal ?? 0) : 0)), 0);
-
-      const groupDirectPaid = (paymentLogs || []).filter(p =>
-        (p.type === 'Supplier' || p.partyType === 'Supplier') &&
-        (
-          (group.supplierId && p.partyId && String(p.partyId) === String(group.supplierId)) ||
-          (group.supplierName && p.partyName && p.partyName.trim().toLowerCase() === group.supplierName.trim().toLowerCase()) ||
-          group.purchases.some(pur => (
-            (pur.id && p.purchaseId && String(p.purchaseId) === String(pur.id)) ||
-            (pur.purchaseNo && p.ref && p.ref.includes(pur.purchaseNo))
-          ))
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
-      const groupReturnAmt = (purchaseReturns || []).filter(r =>
-        (group.supplierId && r.supplierId === group.supplierId) ||
-        (group.supplierName && r.supplierName?.toLowerCase() === group.supplierName.toLowerCase()) ||
-        group.purchases.some(pur => pur.id && r.purchaseId && String(r.purchaseId) === String(pur.id))
-      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-      const groupNetTarget = Math.max(0, groupTotal - groupReturnAmt);
-      const groupSettled = Math.min(groupNetTarget, groupUpfrontPaid + groupDirectPaid);
-      const groupOutstanding = Math.max(0, groupNetTarget - groupSettled);
-
-      totalPaid += groupSettled;
-      totalDue += groupOutstanding;
+    (suppliers || []).forEach(sup => {
+      const fin = computeSupplierKhataBalance(sup, purchases, paymentLogs, purchaseReturns);
+      totalPaid += fin.totalPaid;
+      totalDue += fin.balance;
     });
 
     return {
       totalPaidOut: totalPaid,
       totalOutstandingPayable: totalDue
     };
-  }, [purchases, paymentLogs, purchaseReturns]);
+  }, [suppliers, purchases, paymentLogs, purchaseReturns]);
 
   // Robust Date Parser helper
   const parsePurchaseDate = (dateStr) => {
@@ -654,8 +615,8 @@ export const Purchases = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Page Header Banner (Screen Only) */}
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <ShoppingCart className="w-6 h-6 text-brand-500" />
@@ -686,8 +647,8 @@ export const Purchases = () => {
         </div>
       </div>
 
-      {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* KPI Cards Row (Screen Only) */}
+      <div className="no-print grid grid-cols-2 md:grid-cols-4 gap-4">
         <div
           onClick={() => setFilterType('All')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
@@ -725,7 +686,7 @@ export const Purchases = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Clock className="w-4 h-4 text-rose-600" />
-            <span>{t('outstandingPayables') || 'Outstanding Payables'}</span>
+            <span>{t('outstandingPayables') || 'Remaining to Pay'}</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
             Rs. {totalOutstandingPayable.toLocaleString()}
@@ -747,8 +708,8 @@ export const Purchases = () => {
         </div>
       </div>
 
-      {/* Unified Filter Toolbar: [Supplier] [Product] [Date] [Status] */}
-      <div className={`p-3.5 sm:p-4 rounded-3xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      {/* Unified Filter Toolbar: [Supplier] [Product] [Date] [Status] (Screen Only) */}
+      <div className={`no-print p-3.5 sm:p-4 rounded-3xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3">
           {/* 1. Supplier */}
@@ -867,6 +828,20 @@ export const Purchases = () => {
         )}
       </div>
 
+      {/* ========================================================================= */}
+      {/* PRINT-ONLY HEADER (Mandi branding, title, stats) */}
+      {/* ========================================================================= */}
+      <PrintHeader
+        title="Purchases & Inward Goods Statement"
+        filterSummary={`Period: ${dateFilterType} | Status: ${filterType}`}
+        stats={[
+          { label: 'Total Purchases', value: filteredPurchases.length },
+          { label: 'Net Purchases Volume', value: `Rs. ${totalNetPurchases.toLocaleString()}` },
+          { label: 'Total Paid Out', value: `Rs. ${totalPaidOut.toLocaleString()}` },
+          { label: 'Remaining to Pay', value: `Rs. ${totalOutstandingPayable.toLocaleString()}` }
+        ]}
+      />
+
       {/* Main Purchase Table */}
       <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
@@ -881,7 +856,7 @@ export const Purchases = () => {
                 <th className="py-3 px-4">Items</th>
                 <th className="py-3 px-4 text-right">Amount</th>
                 <th className="py-3 px-4 text-center">Status</th>
-                <th className="py-3 px-4 text-center">Actions</th>
+                <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
@@ -974,8 +949,8 @@ export const Purchases = () => {
                         </div>
                       </td>
 
-                      {/* 7. Actions: Edit | Return Purchase */}
-                      <td className="py-3.5 px-4 text-center">
+                      {/* 7. Actions: Edit | Return Purchase (Screen Only) */}
+                      <td className="py-3.5 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
                           {/* Edit Action */}
                           <button
@@ -1019,6 +994,9 @@ export const Purchases = () => {
           </table>
         </div>
       </div>
+
+      {/* Print Footer */}
+      <PrintFooter note="Official Business Record • Ghalla Mandi Purchases & Inward Commodities Register" />
 
       {/* ========================================================================= */}
       {/* 1. MAIN NEW PURCHASE MODAL (Base Layer: z-50) */}

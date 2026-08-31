@@ -223,9 +223,12 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setShop(null);
     setToken(null);
-    localStorage.removeItem('gm_user');
-    localStorage.removeItem('gm_shop');
-    localStorage.removeItem('gm_token');
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      console.warn('Storage clear warning on logout:', e);
+    }
   };
 
   return (

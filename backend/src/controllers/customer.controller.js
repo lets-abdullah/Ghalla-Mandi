@@ -70,7 +70,7 @@ export const createCustomer = async (req, res) => {
 export const getCustomerLedger = async (req, res) => {
   try {
     const { id } = req.params;
-    const customer = await Customer.findById(id);
+    const customer = await Customer.findById(id, req.shop_id);
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
@@ -90,7 +90,7 @@ export const getCustomerLedger = async (req, res) => {
 export const updateCustomer = async (req, res) => {
   try {
     const { id } = req.params;
-    const customer = await Customer.findByIdAndUpdate(id, req.body);
+    const customer = await Customer.findByIdAndUpdate(id, req.body, { shop_id: req.shop_id });
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
@@ -103,7 +103,7 @@ export const updateCustomer = async (req, res) => {
 export const deleteCustomer = async (req, res) => {
   try {
     const { id } = req.params;
-    const customer = await Customer.findByIdAndDelete(id);
+    const customer = await Customer.findByIdAndDelete(id, req.shop_id);
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }

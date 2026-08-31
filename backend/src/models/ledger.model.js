@@ -37,20 +37,22 @@ const mapLedgerRow = (r) => {
 
 export const Ledger = {
   async find(filter = {}) {
+    if (!filter.shop_id) {
+      return [];
+    }
     let rows = [];
-    if (filter.shop_id) {
-      if (filter.partyId || filter.partyid) {
-        rows = await query('SELECT * FROM payment_logs WHERE shop_id = $1 AND partyid = $2 ORDER BY created_at DESC', [filter.shop_id, filter.partyId || filter.partyid]);
-      } else {
-        rows = await query('SELECT * FROM payment_logs WHERE shop_id = $1 ORDER BY created_at DESC', [filter.shop_id]);
-      }
+    if (filter.partyId || filter.partyid) {
+      rows = await query('SELECT * FROM payment_logs WHERE shop_id = $1 AND partyid = $2 ORDER BY created_at DESC', [filter.shop_id, filter.partyId || filter.partyid]);
     } else {
-      rows = await query('SELECT * FROM payment_logs ORDER BY created_at DESC');
+      rows = await query('SELECT * FROM payment_logs WHERE shop_id = $1 ORDER BY created_at DESC', [filter.shop_id]);
     }
     return rows.map(mapLedgerRow);
   },
 
   async create(ledgerData) {
+    if (!ledgerData.shop_id) {
+      throw new Error('shop_id is required to create a payment log');
+    }
     const id = ledgerData.id || `pay-${Date.now()}`;
     const shop_id = ledgerData.shop_id;
     const partyId = ledgerData.partyId || ledgerData.partyid || null;
@@ -69,7 +71,7 @@ export const Ledger = {
       [id, shop_id, partyId, partyType, partyName, amount, mode, date, ref, note, saleId, purchaseId]
     );
 
-    const row = await get('SELECT * FROM payment_logs WHERE id = $1', [id]);
+    const row = await get('SELECT * FROM payment_logs WHERE id = $1 AND shop_id = $2', [id, shop_id]);
     return mapLedgerRow(row);
   }
 };

@@ -21,6 +21,8 @@ import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { SaleReturnModal } from '../components/SaleReturnModal';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const SaleReturns = () => {
   const { saleReturns = [], updateSaleReturn } = useERP();
@@ -123,8 +125,8 @@ export const SaleReturns = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Page Header (Screen Only) */}
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             <RotateCcw className="w-6 h-6 text-orange-500" />
@@ -157,8 +159,8 @@ export const SaleReturns = () => {
         </div>
       </div>
 
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Summary KPI Cards (Screen Only) */}
+      <div className="no-print grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-orange-500/30 text-white' : 'bg-gradient-to-b from-orange-50/50 to-white border-orange-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <RotateCcw className="w-4 h-4 text-orange-600" />
@@ -190,8 +192,8 @@ export const SaleReturns = () => {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className={`border rounded-2xl p-3.5 sm:p-4 card-shadow ${
+      {/* Filter Toolbar (Screen Only) */}
+      <div className={`no-print border rounded-2xl p-3.5 sm:p-4 card-shadow ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
@@ -227,6 +229,20 @@ export const SaleReturns = () => {
         </div>
       </div>
 
+      {/* ========================================================================= */}
+      {/* PRINT-ONLY HEADER */}
+      {/* ========================================================================= */}
+      <PrintHeader
+        title="Sale Returns Register"
+        filterSummary={`Mode: ${modeFilter}`}
+        stats={[
+          { label: 'Total Returns', value: saleReturns.length },
+          { label: 'Total Returned Value', value: `Rs. ${totalRefundAmount.toLocaleString()}` },
+          { label: 'Cash Payouts', value: `Rs. ${totalCashRefunds.toLocaleString()}` },
+          { label: 'Khata Dues Deducted', value: `Rs. ${totalKhataAdjustments.toLocaleString()}` }
+        ]}
+      />
+
       {/* Sale Returns Table */}
       <div className={`border rounded-2xl card-shadow overflow-hidden ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
@@ -244,7 +260,7 @@ export const SaleReturns = () => {
                 <th className="py-3 px-4">Item</th>
                 <th className="py-3 px-4 text-center">Mode</th>
                 <th className="py-3 px-4 text-right">Amount</th>
-                <th className="py-3 px-4 text-center">Actions</th>
+                <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
@@ -271,7 +287,7 @@ export const SaleReturns = () => {
                     <td className="py-3 px-4 text-right font-black font-mono text-orange-600 dark:text-orange-400">
                       Rs. {Number(ret.refundAmount || 0).toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-4 text-center no-print">
                       <button
                         onClick={() => handleOpenEdit(ret)}
                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
@@ -288,6 +304,9 @@ export const SaleReturns = () => {
           </table>
         </div>
       </div>
+
+      {/* Print Footer */}
+      <PrintFooter note="Official Business Record • Ghalla Mandi Sale Returns Register" />
 
       {/* Edit Sale Return Modal */}
       {editingReturn && (

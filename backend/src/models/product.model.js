@@ -31,15 +31,19 @@ const mapProductRow = (r) => {
 
 export const Product = {
   async find(filter = {}) {
-    const rows = filter.shop_id
-      ? await query('SELECT * FROM products WHERE shop_id = $1 ORDER BY name ASC', [filter.shop_id])
-      : await query('SELECT * FROM products ORDER BY name ASC');
+    if (!filter.shop_id) {
+      return [];
+    }
+    const rows = await query('SELECT * FROM products WHERE shop_id = $1 ORDER BY name ASC', [filter.shop_id]);
     return rows.map(mapProductRow);
   },
 
   async findOne(filter = {}) {
+    if (!filter.shop_id && !filter.id) return null;
     let row = null;
-    if (filter.id) {
+    if (filter.id && filter.shop_id) {
+      row = await get('SELECT * FROM products WHERE id = $1 AND shop_id = $2', [filter.id, filter.shop_id]);
+    } else if (filter.id) {
       row = await get('SELECT * FROM products WHERE id = $1', [filter.id]);
     } else if (filter.shop_id && filter.code) {
       row = await get('SELECT * FROM products WHERE shop_id = $1 AND code = $2', [filter.shop_id, filter.code]);
@@ -47,12 +51,18 @@ export const Product = {
     return mapProductRow(row);
   },
 
-  async findById(id) {
+  async findById(id, shop_id = null) {
+    if (shop_id) {
+      return await this.findOne({ id, shop_id });
+    }
     const row = await get('SELECT * FROM products WHERE id = $1', [id]);
     return mapProductRow(row);
   },
 
   async create(prodData) {
+    if (!prodData.shop_id) {
+      throw new Error('shop_id is required to create a product');
+    }
     const id = prodData.id || `prd-${Date.now()}`;
     const shop_id = prodData.shop_id;
     const code = prodData.code || `PRD-${Math.floor(100 + Math.random() * 900)}`;
@@ -70,10 +80,14 @@ export const Product = {
       [id, shop_id, code, name, category, purchasePrice, sellingPrice, stockQty, minStock, unit, image]
     );
 
-    return await this.findById(id);
+    return await this.findById(id, shop_id);
   },
 
   async findByIdAndUpdate(id, updateData, options = {}) {
+    const shop_id = options.shop_id || updateData.shop_id;
+    const existing = shop_id ? await this.findOne({ id, shop_id }) : await this.findById(id);
+    if (!existing) return null;
+
     const fields = [];
     const params = [];
     let paramIndex = 1;
@@ -111,17 +125,26 @@ export const Product = {
     });
 
     if (fields.length > 0) {
-      params.push(id);
-      await run(`UPDATE products SET ${fields.join(', ')} WHERE id = $${paramIndex}`, params);
+      if (shop_id) {
+        params.push(id, shop_id);
+        await run(`UPDATE products SET ${fields.join(', ')} WHERE id = $${paramIndex++} AND shop_id = $${paramIndex}`, params);
+      } else {
+        params.push(id);
+        await run(`UPDATE products SET ${fields.join(', ')} WHERE id = $${paramIndex}`, params);
+      }
     }
 
-    return await this.findById(id);
+    return await this.findById(id, shop_id);
   },
 
-  async findByIdAndDelete(id) {
-    const prod = await this.findById(id);
+  async findByIdAndDelete(id, shop_id = null) {
+    const prod = shop_id ? await this.findOne({ id, shop_id }) : await this.findById(id);
     if (prod) {
-      await run('DELETE FROM products WHERE id = $1', [id]);
+      if (shop_id) {
+        await run('DELETE FROM products WHERE id = $1 AND shop_id = $2', [id, shop_id]);
+      } else {
+        await run('DELETE FROM products WHERE id = $1', [id]);
+      }
     }
     return prod;
   }

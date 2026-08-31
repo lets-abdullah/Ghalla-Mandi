@@ -49,14 +49,14 @@ export const recordPayment = async (req, res) => {
     let targetPartyName = partyName || 'Party';
 
     if (partyType === 'Customer') {
-      let cust = partyId && !String(partyId).startsWith('walkin-') ? await Customer.findById(partyId) : null;
+      let cust = partyId && !String(partyId).startsWith('walkin-') ? await Customer.findById(partyId, req.shop_id) : null;
       if (!cust && partyName) {
-        cust = await Customer.findOne({ name: partyName });
+        cust = await Customer.findOne({ name: partyName, shop_id: req.shop_id });
       }
       if (!cust && saleId) {
-        const targetSale = await Sale.findById(saleId);
+        const targetSale = await Sale.findById(saleId, req.shop_id);
         if (targetSale?.customerId) {
-          cust = await Customer.findById(targetSale.customerId);
+          cust = await Customer.findById(targetSale.customerId, req.shop_id);
         }
       }
 
@@ -65,20 +65,20 @@ export const recordPayment = async (req, res) => {
         const currentBal = Math.max(0, Number(cust.balance || 0));
         const finalAmt = currentBal > 0 ? Math.min(currentBal, amtNum) : amtNum;
         const newBalance = Math.max(0, currentBal - finalAmt);
-        await Customer.findByIdAndUpdate(cust.id, { balance: newBalance });
+        await Customer.findByIdAndUpdate(cust.id, { balance: newBalance }, { shop_id: req.shop_id });
       } else {
         targetPartyName = partyName || 'Walk-in Customer';
       }
 
       // If specific sale is targeted, update its paidAmount
       if (saleId) {
-        const sale = await Sale.findById(saleId);
+        const sale = await Sale.findById(saleId, req.shop_id);
         if (sale) {
           const maxSaleDue = Math.max(0, Number(sale.amount || 0) - Number(sale.paidAmount || 0));
           const effectivePay = Math.min(maxSaleDue, amtNum);
           const newPaid = Number(sale.paidAmount || 0) + effectivePay;
           const newStatus = (newPaid >= Number(sale.amount || 0) && Number(sale.amount || 0) > 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
-          await Sale.findByIdAndUpdate(saleId, { paidAmount: newPaid, status: newStatus });
+          await Sale.findByIdAndUpdate(saleId, { paidAmount: newPaid, status: newStatus }, { shop_id: req.shop_id });
         }
       } else {
         // General Khata payment: allocate FIFO to open unpaid/partial sales
@@ -97,7 +97,7 @@ export const recordPayment = async (req, res) => {
           const payTowardsSale = Math.min(due, remainingAmt);
           const newPaid = Number(s.paidAmount || 0) + payTowardsSale;
           const newStatus = (newPaid >= Number(s.amount || 0) && Number(s.amount || 0) > 0) ? 'Paid' : 'Partial';
-          await Sale.findByIdAndUpdate(s.id, { paidAmount: newPaid, status: newStatus });
+          await Sale.findByIdAndUpdate(s.id, { paidAmount: newPaid, status: newStatus }, { shop_id: req.shop_id });
           remainingAmt -= payTowardsSale;
         }
       }
@@ -119,23 +119,44 @@ export const recordPayment = async (req, res) => {
       return res.status(201).json({ success: true, entry });
     } else {
       // Supplier payment
-      const sup = partyId ? await Supplier.findById(partyId) : null;
+      const sup = partyId ? await Supplier.findById(partyId, req.shop_id) : null;
       if (sup) {
         targetPartyName = sup.name;
         const currentBal = Math.max(0, Number(sup.balance || 0));
         const finalAmt = currentBal > 0 ? Math.min(currentBal, amtNum) : amtNum;
         const newBalance = Math.max(0, currentBal - finalAmt);
-        await Supplier.findByIdAndUpdate(sup.id, { balance: newBalance });
+        await Supplier.findByIdAndUpdate(sup.id, { balance: newBalance }, { shop_id: req.shop_id });
       }
 
       if (purchaseId) {
-        const pur = await Purchase.findById(purchaseId);
+        const pur = await Purchase.findById(purchaseId, req.shop_id);
         if (pur) {
           const maxPurDue = Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.paidAmount || 0));
           const effectivePay = Math.min(maxPurDue, amtNum);
           const newPaid = Number(pur.paidAmount || 0) + effectivePay;
-          const newStatus = newPaid >= Number(pur.grandTotal || 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
-          await Purchase.findByIdAndUpdate(purchaseId, { paidAmount: newPaid, paymentStatus: newStatus });
+          const newStatus = newPaid >= Number(pur.grandTotal || pur.amount || 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
+          await Purchase.findByIdAndUpdate(purchaseId, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
+        }
+      } else {
+        // General Supplier payment: allocate FIFO to open unpaid/partial purchases
+        const allShopPurchases = await Purchase.find({ shop_id: req.shop_id });
+        const openPurchases = allShopPurchases.filter(p => {
+          const matchesSup = (sup && p.supplierId === sup.id) ||
+            (targetPartyName && p.supplier && p.supplier.trim().toLowerCase() === targetPartyName.trim().toLowerCase()) ||
+            (targetPartyName && p.supplierName && p.supplierName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
+          const isUnpaid = p.paymentStatus === 'Pending' || p.paymentStatus === 'Partial' || (Number(p.paidAmount || 0) < Number(p.grandTotal || p.amount || 0));
+          return matchesSup && isUnpaid && p.paymentStatus !== 'Returned' && p.status !== 'Returned';
+        }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
+
+        let remainingAmt = amtNum;
+        for (const p of openPurchases) {
+          if (remainingAmt <= 0) break;
+          const due = Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.paidAmount || 0));
+          const payTowardsPur = Math.min(due, remainingAmt);
+          const newPaid = Number(p.paidAmount || 0) + payTowardsPur;
+          const newStatus = newPaid >= Number(p.grandTotal || p.amount || 0) ? 'Paid' : 'Partial';
+          await Purchase.findByIdAndUpdate(p.id, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
+          remainingAmt -= payTowardsPur;
         }
       }
 

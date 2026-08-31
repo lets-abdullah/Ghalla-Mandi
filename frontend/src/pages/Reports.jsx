@@ -11,6 +11,8 @@ import { useERP, computeCustomerKhataBalance, computeSupplierKhataBalance, compu
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const Reports = () => {
   const {
@@ -22,7 +24,8 @@ export const Reports = () => {
     categories = [],
     paymentLogs = [],
     saleReturns = [],
-    purchaseReturns = []
+    purchaseReturns = [],
+    expenses = []
   } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
@@ -136,28 +139,6 @@ export const Reports = () => {
 
   const handleResetBsFilters = () => {
     setBsDateFilter('All Time');
-  };
-
-  // Live expenses persisted in local storage per user/shop session
-  const [expenses, setExpenses] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ghalla_mandi_operating_expenses');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('ghalla_mandi_operating_expenses', JSON.stringify(expenses));
-    } catch (e) {
-      console.error('Failed to persist expenses:', e);
-    }
-  }, [expenses]);
-
-  const handleDeleteExpense = (id) => {
-    setExpenses(prev => prev.filter(e => e.id !== id));
   };
 
   // Returns aggregates
@@ -1753,9 +1734,9 @@ export const Reports = () => {
   return (
     <div className="space-y-6 pb-12">
       {/* ========================================================================= */}
-      {/* 1. HEADER & ACTIONS */}
+      {/* 1. HEADER & ACTIONS (Screen Only) */}
       {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             {reportType === 'Stock' && <Warehouse className="w-6 h-6 text-amber-500" />}
@@ -1788,7 +1769,7 @@ export const Reports = () => {
               }`}
           >
             <Printer className="w-4 h-4" />
-            <span>Print</span>
+            <span>Print Report</span>
           </button>
 
           <button
@@ -1812,8 +1793,8 @@ export const Reports = () => {
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'Stock' && (
         <div className="space-y-5">
-          {/* KPI Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+          {/* KPI Summary Cards (Screen Only) */}
+          <div className="no-print grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
             {/* 1. Total Valuation */}
             <div
               onClick={() => handleResetStockFilters()}
@@ -1874,8 +1855,8 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* Enterprise Inventory Control & Filter Toolbar */}
-          <div className={`p-3.5 rounded-xl border card-shadow space-y-2.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          {/* Enterprise Inventory Control & Filter Toolbar (Screen Only) */}
+          <div className={`no-print p-3.5 rounded-xl border card-shadow space-y-2.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
             <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
               {/* Search */}
@@ -1914,9 +1895,9 @@ export const Reports = () => {
                     }`}
                 >
                   <option value="All">All Stock Levels</option>
-                  <option value="InStock">In Stock ({inStockCount})</option>
-                  <option value="LowStock">Low Stock ({lowStockCount})</option>
-                  <option value="OutOfStock">Out of Stock ({outOfStockCount})</option>
+                  <option value="InStock">In Stock (Normal)</option>
+                  <option value="LowStock">Low Stock Alert (&le; Minimum)</option>
+                  <option value="OutOfStock">Out of Stock (Zero Units)</option>
                 </select>
 
                 {/* Unit */}
@@ -1962,6 +1943,20 @@ export const Reports = () => {
             </div>
           </div>
 
+          {/* ========================================================================= */}
+          {/* PRINT-ONLY HEADER (Stock Valuation) */}
+          {/* ========================================================================= */}
+          <PrintHeader
+            title="Stock Valuation & Inventory Report"
+            filterSummary={`Category: ${categoryFilter} | Status: ${stockStatusFilter}`}
+            stats={[
+              { label: 'Total Stock Value', value: `Rs. ${totalStockValuation.toLocaleString()}` },
+              { label: 'Registered Products', value: processedStock.length },
+              { label: 'Available Units', value: totalStockUnits.toLocaleString() },
+              { label: 'Low Stock Warnings', value: lowStockCount }
+            ]}
+          />
+
           {/* Enterprise Inventory Register Table */}
           <div className={`border rounded-xl card-shadow overflow-hidden ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
             }`}>
@@ -1978,13 +1973,12 @@ export const Reports = () => {
                     <th className="py-3 px-3 text-right">Selling Rate</th>
                     <th className="py-3 px-3.5 text-right font-black">Stock Value</th>
                     <th className="py-3 px-3 text-center">Status</th>
-                    <th className="py-3 px-3 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                   {paginatedStock.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center text-slate-400">
+                      <td colSpan={8} className="py-12 text-center text-slate-400">
                         <Package className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
                         No commodities match your active search or filters.
                       </td>
@@ -2044,16 +2038,6 @@ export const Reports = () => {
                             }`}>
                             {item.status}
                           </span>
-                        </td>
-
-                        {/* 9. Action */}
-                        <td className="py-3 px-3 text-center">
-                          <button
-                            onClick={() => navigate('/inventory')}
-                            className="text-[11px] font-bold text-brand-500 hover:text-brand-600 hover:underline cursor-pointer"
-                          >
-                            Manage →
-                          </button>
                         </td>
                       </tr>
                     ))
@@ -2116,8 +2100,8 @@ export const Reports = () => {
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'Sales' && (
         <div className="space-y-6">
-          {/* Top KPI Cards (4 High-Impact Metrics) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Top KPI Cards (Screen Only) */}
+          <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* 1. Gross Sales */}
             <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
@@ -2187,8 +2171,8 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* Clean Filter Panel */}
-          <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          {/* Clean Filter Panel (Screen Only) */}
+          <div className={`no-print p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
             <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
@@ -2205,16 +2189,17 @@ export const Reports = () => {
                   className="text-[11px] font-bold text-rose-500 hover:text-rose-600 flex items-center gap-1 cursor-pointer transition"
                 >
                   <X className="w-3.5 h-3.5" />
-                  <span>Reset All Filters</span>
+                  <span>Reset Filters</span>
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {/* Filter Controls Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               {/* Date Filter */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Date Range
+                  Time Period
                 </label>
                 <select
                   value={salesDateFilter}
@@ -2227,14 +2212,16 @@ export const Reports = () => {
                   <option value="Yesterday">Yesterday</option>
                   <option value="This Week">This Week (Last 7 Days)</option>
                   <option value="This Month">This Month</option>
-                  <option value="Custom">Custom Range...</option>
+                  <option value="Last Month">Last Month</option>
+                  <option value="This FY">This Financial Year</option>
+                  <option value="Custom">Custom Date Range</option>
                 </select>
               </div>
 
-              {/* Product Filter */}
+              {/* Product */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Commodity / Product
+                  Product / Commodity
                 </label>
                 <select
                   value={salesProductFilter}
@@ -2243,31 +2230,13 @@ export const Reports = () => {
                     }`}
                 >
                   <option value="All">All Commodities</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.name}>{p.name}</option>
+                  {allProductsList.filter(p => p !== 'All').map(p => (
+                    <option key={p} value={p}>{p}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Supplier Filter */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Supplier Firm
-                </label>
-                <select
-                  value={salesSupplierFilter}
-                  onChange={(e) => setSalesSupplierFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Suppliers</option>
-                  {suppliers.map(s => (
-                    <option key={s.id} value={s.name}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Customer Filter */}
+              {/* Customer */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Customer Party
@@ -2279,8 +2248,8 @@ export const Reports = () => {
                     }`}
                 >
                   <option value="All">All Customers</option>
-                  {customers.map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
+                  {allCustomersList.filter(c => c !== 'All').map(c => (
+                    <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
               </div>
@@ -2331,8 +2300,8 @@ export const Reports = () => {
             )}
           </div>
 
-          {/* Interactive Sub-Navigation Tabs */}
-          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-200/70 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-x-auto">
+          {/* Interactive Sub-Navigation Tabs (Screen Only) */}
+          <div className="no-print flex items-center gap-2 p-1.5 rounded-2xl bg-slate-200/70 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-x-auto">
             <button
               type="button"
               onClick={() => setSalesActiveSubTab('dateWise')}
@@ -2407,6 +2376,20 @@ export const Reports = () => {
               <span>5. Top Rankings</span>
             </button>
           </div>
+
+          {/* ========================================================================= */}
+          {/* PRINT-ONLY HEADER (Sales Report) */}
+          {/* ========================================================================= */}
+          <PrintHeader
+            title="Sales & Revenue Report"
+            filterSummary={`Period: ${salesDateFilter} | Mode: ${salesPaymentFilter}`}
+            stats={[
+              { label: 'Gross Sales', value: `Rs. ${filteredGrossSales.toLocaleString()}` },
+              { label: 'Net Revenue', value: `Rs. ${filteredNetSales.toLocaleString()}` },
+              { label: 'Cash Collected', value: `Rs. ${filteredCashSales.toLocaleString()}` },
+              { label: 'Khata Due', value: `Rs. ${filteredCreditSales.toLocaleString()}` }
+            ]}
+          />
 
           {/* ========================================================================= */}
           {/* VIEW 1: DATE-WISE SALES */}
@@ -2874,8 +2857,8 @@ export const Reports = () => {
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'Expenses' && (
         <div className="space-y-5">
-          {/* Simple, Clean, Natural Expense Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Simple, Clean, Natural Expense Summary Cards (Screen Only) */}
+          <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* 1. Total Expenses */}
             <div
               onClick={() => handleResetExpFilters()}
@@ -2943,8 +2926,8 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* Enterprise Expenses Filter Toolbar */}
-          <div className={`p-3.5 rounded-xl border card-shadow space-y-2.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          {/* Enterprise Expenses Filter Toolbar (Screen Only) */}
+          <div className={`no-print p-3.5 rounded-xl border card-shadow space-y-2.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
             <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
               {/* Search */}
@@ -3052,6 +3035,20 @@ export const Reports = () => {
             )}
           </div>
 
+          {/* ========================================================================= */}
+          {/* PRINT-ONLY HEADER (Operating Expenses) */}
+          {/* ========================================================================= */}
+          <PrintHeader
+            title="Operating Expenses Report"
+            filterSummary={`Category: ${expCategoryFilter} | Period: ${expDateFilter}`}
+            stats={[
+              { label: 'Total Expenses', value: `Rs. ${filteredExpensesTotal.toLocaleString()}` },
+              { label: 'Paid in Cash', value: `Rs. ${expenseCashTotal.toLocaleString()}` },
+              { label: 'Paid via Bank', value: `Rs. ${expenseBankTotal.toLocaleString()}` },
+              { label: 'Total Vouchers', value: filteredExpensesList.length }
+            ]}
+          />
+
           {/* Enterprise Expenses Register Table */}
           <div className={`border rounded-xl card-shadow overflow-hidden ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
             }`}>
@@ -3067,13 +3064,12 @@ export const Reports = () => {
                     <th className="py-3 px-3">Payment Mode</th>
                     <th className="py-3 px-3.5 text-right font-black">Amount (Rs.)</th>
                     <th className="py-3 px-3 text-center">Status</th>
-                    <th className="py-3 px-3 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                   {paginatedExpenses.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-12 text-center text-slate-400">
+                      <td colSpan={7} className="py-12 text-center text-slate-400">
                         <DollarSign className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
                         No expenses recorded matching your active filters.
                       </td>
@@ -3118,17 +3114,6 @@ export const Reports = () => {
                           <span className="font-extrabold text-xs text-emerald-600 dark:text-emerald-400">
                             Paid
                           </span>
-                        </td>
-
-                        {/* 8. Action */}
-                        <td className="py-3 px-3 text-center">
-                          <button
-                            onClick={() => handleDeleteExpense(exp.id)}
-                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
-                            title="Delete Entry"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
                         </td>
                       </tr>
                     ))
@@ -3192,9 +3177,8 @@ export const Reports = () => {
       {reportType === 'ProfitLoss' && (
         <div className="space-y-6">
 
-
-          {/* Statement Filter Bar */}
-          <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          {/* Statement Filter Bar (Screen Only) */}
+          <div className={`no-print p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
             <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
@@ -3357,8 +3341,8 @@ export const Reports = () => {
               )}
             </div>
 
-            {/* Compact Financial Statement Summary & Reconciliation Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+            {/* Compact Financial Statement Summary & Reconciliation Grid (Screen Only) */}
+            <div className="no-print grid grid-cols-1 lg:grid-cols-12 gap-3.5">
               {/* 5 Compact KPI Metric Cards (8 cols) */}
               <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {/* 1. Total Sales / Revenue */}
@@ -3459,6 +3443,20 @@ export const Reports = () => {
                 </div>
               </div>
             </div>
+
+            {/* ========================================================================= */}
+            {/* PRINT-ONLY HEADER (Profit & Loss) */}
+            {/* ========================================================================= */}
+            <PrintHeader
+              title="Profit & Loss Statement"
+              filterSummary={`Period: ${plDateFilter} | Type: ${plTypeFilter}`}
+              stats={[
+                { label: 'Total Revenue', value: `Rs. ${plTotalRevenue.toLocaleString()}` },
+                { label: 'Purchases (COGS)', value: `Rs. ${plTotalCOGS.toLocaleString()}` },
+                { label: 'Shop Expenses', value: `Rs. ${plTotalExpenses.toLocaleString()}` },
+                { label: 'Net Profit', value: `Rs. ${plNetProfit.toLocaleString()}` }
+              ]}
+            />
 
             {/* ========================================================================= */}
             {/* MAIN BANK-STATEMENT STYLE TRANSACTION LEDGER */}
@@ -3737,8 +3735,8 @@ export const Reports = () => {
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'BalanceSheet' && (
         <div className="space-y-6">
-          {/* Top Filter Bar - Single Clean Date Filter */}
-          <div className={`p-4 rounded-2xl border card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          {/* Top Filter Bar (Screen Only) */}
+          <div className={`no-print p-4 rounded-2xl border card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -3804,8 +3802,8 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* 4 Distinct Financial Metric Cards with Clear Unique Roles */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* 4 Distinct Financial Metric Cards (Screen Only) */}
+          <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* 1. TOTAL ASSETS */}
             <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200 text-slate-900'
               }`}>
@@ -3871,6 +3869,20 @@ export const Reports = () => {
               </div>
             </div>
           </div>
+
+          {/* ========================================================================= */}
+          {/* PRINT-ONLY HEADER (Balance Sheet) */}
+          {/* ========================================================================= */}
+          <PrintHeader
+            title="Balance Sheet Statement"
+            filterSummary={`As of: ${bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}`}
+            stats={[
+              { label: 'Total Assets', value: `Rs. ${totalAssets.toLocaleString()}` },
+              { label: 'Total Payables', value: `Rs. ${totalLiabilities.toLocaleString()}` },
+              { label: 'Operating Profit', value: `Rs. ${netOperatingProfit.toLocaleString()}` },
+              { label: 'Net Worth', value: `Rs. ${totalEquity.toLocaleString()}` }
+            ]}
+          />
 
           {/* Two Column Banking Balance Sheet Statement */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -4254,13 +4266,13 @@ export const Reports = () => {
                   </thead>
                   <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                     {(suppliers || []).filter(s => (s.name || '').toLowerCase().includes(bsDrilldownSearch.toLowerCase()) || (s.phone || '').includes(bsDrilldownSearch)).map((s, idx) => {
-                      const bal = Math.max(0, Number(s.balance !== undefined ? s.balance : s.openingBalance || 0));
+                      const fin = computeSupplierKhataBalance(s, purchases, paymentLogs, purchaseReturns);
                       return (
                         <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
                           <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{s.name}</td>
                           <td className="py-2.5 px-2 text-slate-500 font-mono">{s.phone || '—'}</td>
                           <td className="py-2.5 px-2 text-slate-500">{(s.suppliedProducts || []).join(', ') || 'General Commodity'}</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {bal.toLocaleString()}</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {fin.balance.toLocaleString()}</td>
                         </tr>
                       );
                     })}
@@ -4404,6 +4416,8 @@ export const Reports = () => {
         </div>
       )}
 
+      {/* Print Footer */}
+      <PrintFooter note="Official Business Report • Ghalla Mandi Management System" />
     </div>
   );
 };

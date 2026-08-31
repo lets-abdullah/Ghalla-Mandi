@@ -4,7 +4,10 @@ import { logAuditEvent } from '../services/audit.service.js';
 
 export const getEmployees = async (req, res) => {
   try {
-    const employees = await User.find({ shop_id: req.shop_id, role: 'Employee' }).select('-password');
+    const allUsers = await User.find({ shop_id: req.shop_id });
+    const employees = allUsers
+      .filter(u => u.role === 'Employee')
+      .map(({ password, ...u }) => u);
     return res.json({ success: true, employees });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -47,7 +50,7 @@ export const createEmployee = async (req, res) => {
     return res.status(201).json({
       success: true,
       employee: {
-        id: employee._id,
+        id: employee.id,
         fullName: employee.fullName,
         email: employee.email,
         phone: employee.phone,
@@ -65,17 +68,15 @@ export const updateEmployeePermissions = async (req, res) => {
     const { id } = req.params;
     const { permissions } = req.body;
 
-    const employee = await User.findOneAndUpdate(
-      { _id: id, shop_id: req.shop_id, role: 'Employee' },
-      { $set: { permissions } },
-      { new: true }
-    ).select('-password');
-
-    if (!employee) {
+    const user = await User.findById(id);
+    if (!user || user.shop_id !== req.shop_id || user.role !== 'Employee') {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    return res.json({ success: true, employee });
+    const updated = await User.updateOne({ id }, { permissions });
+    const { password, ...safeEmployee } = updated;
+
+    return res.json({ success: true, employee: safeEmployee });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

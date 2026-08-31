@@ -33,16 +33,19 @@ const mapPurchaseRow = (r) => {
 
 export const Purchase = {
   async find(filter = {}) {
-    const rows = filter.shop_id
-      ? await query('SELECT * FROM purchases WHERE shop_id = $1 ORDER BY created_at DESC', [filter.shop_id])
-      : await query('SELECT * FROM purchases ORDER BY created_at DESC');
-
+    if (!filter.shop_id) {
+      return [];
+    }
+    const rows = await query('SELECT * FROM purchases WHERE shop_id = $1 ORDER BY created_at DESC', [filter.shop_id]);
     return rows.map(mapPurchaseRow);
   },
 
   async findOne(filter = {}) {
+    if (!filter.shop_id && !filter.id) return null;
     let row = null;
-    if (filter.id) {
+    if (filter.id && filter.shop_id) {
+      row = await get('SELECT * FROM purchases WHERE id = $1 AND shop_id = $2', [filter.id, filter.shop_id]);
+    } else if (filter.id) {
       row = await get('SELECT * FROM purchases WHERE id = $1', [filter.id]);
     } else if (filter.shop_id && filter.purchaseNo) {
       row = await get('SELECT * FROM purchases WHERE shop_id = $1 AND purchaseNo = $2', [filter.shop_id, filter.purchaseNo]);
@@ -51,18 +54,23 @@ export const Purchase = {
     return mapPurchaseRow(row);
   },
 
-  async findById(id) {
+  async findById(id, shop_id = null) {
+    if (shop_id) {
+      return await this.findOne({ id, shop_id });
+    }
     return await this.findOne({ id });
   },
 
   async countDocuments(filter = {}) {
-    const res = filter.shop_id
-      ? await get('SELECT COUNT(*) as count FROM purchases WHERE shop_id = $1', [filter.shop_id])
-      : await get('SELECT COUNT(*) as count FROM purchases');
+    if (!filter.shop_id) return 0;
+    const res = await get('SELECT COUNT(*) as count FROM purchases WHERE shop_id = $1', [filter.shop_id]);
     return res ? parseInt(res.count, 10) : 0;
   },
 
   async create(purData) {
+    if (!purData.shop_id) {
+      throw new Error('shop_id is required to create a purchase');
+    }
     const id = purData.id || `pur-${Date.now()}`;
     const shop_id = purData.shop_id;
     const purchaseNo = purData.purchaseNo;
@@ -80,10 +88,14 @@ export const Purchase = {
       [id, shop_id, purchaseNo, supplierName, supplierId, grandTotal, paidAmount, paymentStatus, notes, itemsJson]
     );
 
-    return await this.findById(id);
+    return await this.findById(id, shop_id);
   },
 
   async findByIdAndUpdate(id, updateData, options = {}) {
+    const shop_id = options.shop_id || updateData.shop_id;
+    const existing = shop_id ? await this.findOne({ id, shop_id }) : await this.findById(id);
+    if (!existing) return null;
+
     const fields = [];
     const params = [];
     let paramIndex = 1;
@@ -97,10 +109,15 @@ export const Purchase = {
     });
 
     if (fields.length > 0) {
-      params.push(id);
-      await run(`UPDATE purchases SET ${fields.join(', ')} WHERE id = $${paramIndex}`, params);
+      if (shop_id) {
+        params.push(id, shop_id);
+        await run(`UPDATE purchases SET ${fields.join(', ')} WHERE id = $${paramIndex++} AND shop_id = $${paramIndex}`, params);
+      } else {
+        params.push(id);
+        await run(`UPDATE purchases SET ${fields.join(', ')} WHERE id = $${paramIndex}`, params);
+      }
     }
 
-    return await this.findById(id);
+    return await this.findById(id, shop_id);
   }
 };

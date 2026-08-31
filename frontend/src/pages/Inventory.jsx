@@ -25,6 +25,8 @@ import {
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const Inventory = () => {
   const { 
@@ -412,8 +414,8 @@ export const Inventory = () => {
 
   return (
     <div className="space-y-4">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Top Header (Screen Only) */}
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
             <Warehouse className="w-6 h-6 text-brand-500" />
@@ -425,6 +427,16 @@ export const Inventory = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Print List Button */}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print List</span>
+          </button>
+
           <button
             onClick={() => setShowAdjModal(true)}
             className="flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
@@ -435,8 +447,8 @@ export const Inventory = () => {
         </div>
       </div>
 
-      {/* KPI Summary Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Summary Bar (Screen Only) */}
+      <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
           theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
         }`}>
@@ -490,8 +502,8 @@ export const Inventory = () => {
         </div>
       </div>
 
-      {/* Single Clean Filter Bar */}
-      <div className={`p-3.5 rounded-2xl border card-shadow space-y-3 ${
+      {/* Single Clean Filter Bar (Screen Only) */}
+      <div className={`no-print p-3.5 rounded-2xl border card-shadow space-y-3 ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
       }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-2.5">
@@ -604,7 +616,7 @@ export const Inventory = () => {
               className="h-[38px] px-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold shrink-0 flex items-center justify-center gap-1.5"
               title="Reset all filters"
             >
-              <X className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset Filters</span>
             </button>
           )}
@@ -638,6 +650,20 @@ export const Inventory = () => {
           </div>
         )}
       </div>
+
+      {/* ========================================================================= */}
+      {/* PRINT-ONLY HEADER */}
+      {/* ========================================================================= */}
+      <PrintHeader
+        title="Stock Valuation & Inventory Statement"
+        filterSummary={`Period: ${dateFilter} | Movement: ${movementTypeFilter} | Source: ${sourceFilter}`}
+        stats={[
+          { label: 'On-Hand Stock', value: `${totalStockQty.toLocaleString()} Units` },
+          { label: 'Low Stock Alerts', value: `${lowStockCount} Items` },
+          { label: 'Total Inflow (+)', value: `+${totalInflow.toLocaleString()}` },
+          { label: 'Total Outflow (-)', value: `-${totalOutflow.toLocaleString()}` }
+        ]}
+      />
 
       {/* Compact Bank-Statement Inventory Table */}
       <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${
@@ -737,6 +763,9 @@ export const Inventory = () => {
           </table>
         </div>
       </div>
+
+      {/* Print Footer */}
+      <PrintFooter note="Official Business Record • Ghalla Mandi Warehouse & Stock Register" />
 
       {/* Transaction Details Modal */}
       {selectedMovementDetail && (

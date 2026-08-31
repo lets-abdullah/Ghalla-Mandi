@@ -27,6 +27,8 @@ import { useLocale } from '../context/LocaleContext';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { SaleReturnModal } from '../components/SaleReturnModal';
 import { EditSaleModal } from '../components/EditSaleModal';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const Sales = () => {
   const { sales = [], saleReturns = [], customers = [], paymentLogs = [], recordPayment } = useERP();
@@ -322,7 +324,7 @@ export const Sales = () => {
   return (
     <div className="space-y-6">
       {/* Page Header with Action Buttons */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <Receipt className="w-6 h-6 text-brand-500" />
@@ -348,8 +350,8 @@ export const Sales = () => {
         </div>
       </div>
 
-      {/* KPI Cards Row (Real-time Filter-Aware) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* KPI Cards Row (Real-time Filter-Aware - Screen Only) */}
+      <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* 1. Total Sales Volume */}
         <div
           onClick={() => setStatusFilter('All')}
@@ -407,9 +409,9 @@ export const Sales = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 4-FILTER TOOLBAR (DATE, CUSTOMER TYPE, PARTY, PAYMENT STATUS) */}
+      {/* 4-FILTER TOOLBAR (DATE, CUSTOMER TYPE, PARTY, PAYMENT STATUS - SCREEN ONLY) */}
       {/* ========================================================================= */}
-      <div className={`border rounded-3xl p-3.5 sm:p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3">
           {/* 1. Date Filter */}
@@ -532,6 +534,20 @@ export const Sales = () => {
       </div>
 
       {/* ========================================================================= */}
+      {/* PRINT-ONLY HEADER (Mandi branding, title, filter stats) */}
+      {/* ========================================================================= */}
+      <PrintHeader
+        title="Sales & Orders Statement"
+        filterSummary={`Period: ${dateFilterType} | Customer: ${customerTypeFilter} | Status: ${statusFilter}`}
+        stats={[
+          { label: 'Total Invoices', value: filteredSales.length },
+          { label: 'Total Sales Volume', value: `Rs. ${totalFilteredSalesVolume.toLocaleString()}` },
+          { label: 'Cash Received', value: `Rs. ${totalFilteredCashReceived.toLocaleString()}` },
+          { label: 'Pending Due (Khata)', value: `Rs. ${totalFilteredOutstandingDue.toLocaleString()}` }
+        ]}
+      />
+
+      {/* ========================================================================= */}
       {/* SALES TABLE VIEW */}
       {/* ========================================================================= */}
       <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
@@ -547,7 +563,7 @@ export const Sales = () => {
                 <th className="py-3.5 px-4">Commodity</th>
                 <th className="py-3.5 px-4 text-right">Amount</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
-                <th className="py-3.5 px-4 text-center">Actions</th>
+                <th className="py-3.5 px-4 text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
@@ -636,8 +652,8 @@ export const Sales = () => {
                         </div>
                       </td>
 
-                      {/* 7. Actions: Edit | Return Sale */}
-                      <td className="py-3.5 px-4 text-center">
+                      {/* 7. Actions: Edit | Return Sale (Screen Only) */}
+                      <td className="py-3.5 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
                           {/* Edit Action */}
                           <button
@@ -681,6 +697,9 @@ export const Sales = () => {
           </table>
         </div>
       </div>
+
+      {/* Print Footer */}
+      <PrintFooter note="Official Business Record • Ghalla Mandi Sales & Orders Register" />
 
       {/* ========================================================================= */}
       {/* MODALS */}

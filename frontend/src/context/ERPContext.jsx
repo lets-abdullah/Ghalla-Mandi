@@ -94,16 +94,26 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   });
 
   const totalPurchase = supPurchases.reduce((acc, p) => acc + Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0)), 0);
-  const upfrontPaid = supPurchases.reduce((acc, p) => acc + Number(p.paidAmount !== undefined ? p.paidAmount : 0), 0);
 
+  // Track purchase IDs that have specific payment logs logged
+  const accountedPurchaseIds = new Set();
+  (paymentLogs || []).filter(p => p.type === 'Supplier' || p.partyType === 'Supplier').forEach(p => {
+    if (p.purchaseId) accountedPurchaseIds.add(String(p.purchaseId));
+  });
+
+  // Upfront cash paid on purchase entry (if not already logged as a separate payment log)
+  const upfrontPaid = supPurchases.reduce((acc, p) => {
+    if (accountedPurchaseIds.has(String(p.id))) return acc;
+    return acc + Number(p.paidAmount !== undefined ? p.paidAmount : 0);
+  }, 0);
+
+  // Standalone and invoice payment logs for this supplier
   const directPaid = (paymentLogs || []).filter(p => {
     const isSupplier = p.type === 'Supplier' || p.partyType === 'Supplier';
     if (!isSupplier) return false;
     const pPartyId = p.partyId ? String(p.partyId) : null;
     const pPartyName = (p.partyName || '').trim().toLowerCase();
-    const matchesParty = (supId && pPartyId && pPartyId === supId) || (supName && pPartyName === supName);
-    const isPosLog = p.purchaseId || (p.ref && p.ref.startsWith('POS-')) || (p.note && p.note.includes('Purchase Payment'));
-    return matchesParty && !isPosLog;
+    return (supId && pPartyId && pPartyId === supId) || (supName && pPartyName === supName);
   }).reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
   const returnAmount = (purchaseReturns || []).filter(r => {
@@ -303,6 +313,68 @@ const normalizePaymentLog = (p) => {
   };
 };
 
+const normalizeSaleReturn = (r) => {
+  if (!r) return null;
+  const refundAmount = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : 0));
+  const items = Array.isArray(r.items) ? r.items : (Array.isArray(r.itemsJson) ? r.itemsJson : []);
+  return {
+    ...r,
+    id: r.id,
+    shop_id: r.shop_id,
+    returnNo: r.returnNo || r.returnno || '',
+    saleId: r.saleId || r.saleid || null,
+    invoiceNo: r.invoiceNo || r.invoiceno || '',
+    customerId: r.customerId || r.customerid || null,
+    customerName: r.customerName || r.customername || 'Customer Party',
+    refundAmount,
+    refundamount: refundAmount,
+    refundMode: r.refundMode || r.refundmode || 'Cash',
+    reason: r.reason || '',
+    date: r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
+    items,
+    itemsJson: items
+  };
+};
+
+const normalizePurchaseReturn = (r) => {
+  if (!r) return null;
+  const refundAmount = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : 0));
+  const items = Array.isArray(r.items) ? r.items : (Array.isArray(r.itemsJson) ? r.itemsJson : []);
+  return {
+    ...r,
+    id: r.id,
+    shop_id: r.shop_id,
+    returnNo: r.returnNo || r.returnno || '',
+    purchaseId: r.purchaseId || r.purchaseid || null,
+    purchaseNo: r.purchaseNo || r.purchaseno || '',
+    supplierId: r.supplierId || r.supplierid || null,
+    supplierName: r.supplierName || r.suppliername || 'Supplier Firm',
+    refundAmount,
+    refundamount: refundAmount,
+    refundMode: r.refundMode || r.refundmode || 'Cash',
+    reason: r.reason || '',
+    date: r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
+    items,
+    itemsJson: items
+  };
+};
+
+const normalizeExpense = (e) => {
+  if (!e) return null;
+  const amount = Number(e.amount !== undefined ? e.amount : 0);
+  return {
+    ...e,
+    id: e.id,
+    shop_id: e.shop_id,
+    category: e.category || 'General Miscellaneous',
+    amount,
+    mode: e.mode || 'Cash',
+    date: e.date || (e.created_at ? new Date(e.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+    desc: e.desc || e.desc_text || '',
+    desc_text: e.desc || e.desc_text || ''
+  };
+};
+
 export const ERPProvider = ({ children }) => {
   const { user, token } = useAuth();
 
@@ -314,36 +386,11 @@ export const ERPProvider = ({ children }) => {
   const [purchases, setPurchases] = useState([]);
   const [paymentLogs, setPaymentLogs] = useState([]);
   const [stockMovements, setStockMovements] = useState([]);
-  const [saleReturns, setSaleReturns] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ghalla_mandi_sale_returns');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [purchaseReturns, setPurchaseReturns] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ghalla_mandi_purchase_returns');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [saleReturns, setSaleReturns] = useState([]);
+  const [purchaseReturns, setPurchaseReturns] = useState([]);
+  const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('ghalla_mandi_sale_returns', JSON.stringify(saleReturns));
-    } catch (e) {}
-  }, [saleReturns]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('ghalla_mandi_purchase_returns', JSON.stringify(purchaseReturns));
-    } catch (e) {}
-  }, [purchaseReturns]);
 
   // Fetch all ERP data from backend API for authenticated shop
   const fetchAllData = useCallback(async () => {
@@ -356,6 +403,9 @@ export const ERPProvider = ({ children }) => {
       setPurchases([]);
       setPaymentLogs([]);
       setStockMovements([]);
+      setSaleReturns([]);
+      setPurchaseReturns([]);
+      setExpenses([]);
       return;
     }
 
@@ -371,7 +421,10 @@ export const ERPProvider = ({ children }) => {
         saleRes,
         purRes,
         ledgerRes,
-        movRes
+        movRes,
+        expRes,
+        sRetRes,
+        pRetRes
       ] = await Promise.all([
         authFetch('/api/products/categories'),
         authFetch('/api/products'),
@@ -380,7 +433,10 @@ export const ERPProvider = ({ children }) => {
         authFetch('/api/sales'),
         authFetch('/api/purchases'),
         authFetch('/api/ledger'),
-        authFetch('/api/inventory/movements')
+        authFetch('/api/inventory/movements'),
+        authFetch('/api/expenses'),
+        authFetch('/api/returns/sales'),
+        authFetch('/api/returns/purchases')
       ]);
 
       const sortDesc = (arr) => [...arr].sort((a, b) => {
@@ -397,6 +453,9 @@ export const ERPProvider = ({ children }) => {
       if (purRes.success) setPurchases(sortDesc((purRes.purchases || []).map(normalizePurchase)));
       if (ledgerRes.success) setPaymentLogs(sortDesc((ledgerRes.entries || []).map(normalizePaymentLog)));
       if (movRes.success) setStockMovements(sortDesc(movRes.movements || []));
+      if (expRes.success) setExpenses(sortDesc((expRes.expenses || []).map(normalizeExpense)));
+      if (sRetRes.success) setSaleReturns(sortDesc((sRetRes.saleReturns || sRetRes.returns || []).map(normalizeSaleReturn)));
+      if (pRetRes.success) setPurchaseReturns(sortDesc((pRetRes.purchaseReturns || pRetRes.returns || []).map(normalizePurchaseReturn)));
     } catch (err) {
       console.error('Failed to load ERP dataset from server:', err);
       setError(err.message || 'Error loading data from server');
@@ -880,211 +939,201 @@ export const ERPProvider = ({ children }) => {
     return promise;
   };
 
-  // 12. Record Sale Return (Restocks inventory, adjusts customer khata, logs return)
+  // 12. Record Sale Return (Restocks inventory, adjusts customer khata, logs return via backend API)
   const recordSaleReturn = async (returnData) => {
-    const returnNo = `SR-2026-${String(saleReturns.length + 1).padStart(4, '0')}`;
-    const dateStr = returnData.date || new Date().toLocaleDateString('en-GB');
+    try {
+      const res = await authFetch('/api/returns/sales', {
+        method: 'POST',
+        body: returnData
+      });
 
-    const newReturn = {
-      id: Date.now(),
-      returnNo,
-      saleId: returnData.saleId || null,
-      invoiceNo: returnData.invoiceNo || 'Direct Sale Return',
-      customerId: returnData.customerId || null,
-      customerName: returnData.customerName || 'Customer Party',
-      items: returnData.items || [],
-      refundAmount: Number(returnData.refundAmount) || 0,
-      refundMode: returnData.refundMode || 'Cash',
-      reason: returnData.reason || 'Customer Return',
-      date: dateStr
-    };
+      if (res.success && (res.saleReturn || res.return)) {
+        const norm = normalizeSaleReturn(res.saleReturn || res.return);
+        setSaleReturns(prev => [norm, ...prev]);
 
-    // Restock products in inventory
-    for (const item of returnData.items || []) {
-      const pId = item.productId || item.id;
-      const rQty = Number(item.qty || item.enteredQty) || 0;
-      if (pId && rQty > 0) {
-        try {
-          await adjustStock(pId, rQty, 'IN (Sale Return)', `Sale Return #${returnNo}`);
-        } catch {
-          setProducts(prev => prev.map(p => p.id === pId ? { ...p, stockQty: Number(p.stockQty || 0) + rQty } : p));
-        }
+        // Refresh products, sales, customers, ledger, and movements to reflect returns accurately
+        const [prodRes, custRes, saleRes, ledgerRes, movRes] = await Promise.all([
+          authFetch('/api/products'),
+          authFetch('/api/customers'),
+          authFetch('/api/sales'),
+          authFetch('/api/ledger'),
+          authFetch('/api/inventory/movements')
+        ]);
+
+        if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
+        if (custRes.success) setCustomers((custRes.customers || []).map(normalizeCustomer));
+        if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
+        if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
+        if (movRes.success) setStockMovements(movRes.movements || []);
+
+        return norm;
       }
+      throw new Error(res.message || 'Failed to record sale return');
+    } catch (err) {
+      console.error('recordSaleReturn error:', err);
+      throw err;
     }
-
-    // Adjust customer ledger if refund mode is Ledger
-    if (returnData.refundMode === 'Ledger' && returnData.customerId) {
-      const cust = customers.find(c => c.id === returnData.customerId || String(c.id) === String(returnData.customerId));
-      if (cust) {
-        const newBal = Math.max(0, Number(cust.balance || 0) - Number(returnData.refundAmount || 0));
-        try {
-          await updateCustomer(cust.id, { balance: newBal });
-        } catch {
-          setCustomers(prev => prev.map(c => c.id === cust.id ? { ...c, balance: newBal } : c));
-        }
-      }
-
-      // Log credit note transaction in paymentLogs for ledger statement
-      const creditLog = {
-        id: Date.now() + 1,
-        partyId: returnData.customerId,
-        partyName: returnData.customerName,
-        amount: Number(returnData.refundAmount) || 0,
-        date: dateStr,
-        mode: 'Credit Note',
-        note: `Sale Return Credit Adjustment #${returnNo}`,
-        ref: returnNo,
-        type: 'Customer'
-      };
-      setPaymentLogs(prev => [creditLog, ...prev]);
-    }
-
-    // Update matching sale invoice in sales state
-    if (returnData.saleId || returnData.invoiceNo) {
-      setSales(prev => prev.map(s => {
-        if (s.id === returnData.saleId || (s.invoiceNo && s.invoiceNo === returnData.invoiceNo)) {
-          const prevReturn = Number(s.returnAmount || 0);
-          const newReturnAmt = prevReturn + (Number(returnData.refundAmount) || 0);
-          const origAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal || 0));
-          const isFull = newReturnAmt >= (origAmt - 1); // tolerance for float rounding
-
-          // Update item-level returned quantities in sale's cart
-          const updatedCart = Array.isArray(s.cart) ? s.cart.map(cartItem => {
-            const returnedItem = (returnData.items || []).find(rItem => 
-              (rItem.productId && rItem.productId === (cartItem.productId || cartItem.id)) ||
-              (rItem.name && rItem.name === cartItem.name)
-            );
-            if (returnedItem) {
-              const currentReturned = Number(cartItem.returnedQty || 0);
-              return {
-                ...cartItem,
-                returnedQty: currentReturned + Number(returnedItem.qty || 0)
-              };
-            }
-            return cartItem;
-          }) : s.cart;
-
-          return {
-            ...s,
-            cart: updatedCart,
-            returnAmount: newReturnAmt,
-            returnStatus: isFull ? 'Fully Returned' : 'Partially Returned'
-          };
-        }
-        return s;
-      }));
-    }
-
-    setSaleReturns(prev => [newReturn, ...prev]);
-    return newReturn;
   };
 
-  // 13. Record Purchase Return (Deducts stock, adjusts supplier khata, logs return)
+  const updateSaleReturn = async (id, updatedData) => {
+    try {
+      const res = await authFetch(`/api/returns/sales/${id}`, {
+        method: 'PUT',
+        body: updatedData
+      });
+      if (res.success && (res.saleReturn || res.return)) {
+        const norm = normalizeSaleReturn(res.saleReturn || res.return);
+        setSaleReturns(prev => prev.map(r => r.id === id ? norm : r));
+        return norm;
+      }
+      throw new Error(res.message || 'Failed to update sale return');
+    } catch (err) {
+      console.error('updateSaleReturn error:', err);
+      throw err;
+    }
+  };
+
+  const deleteSaleReturn = async (id) => {
+    try {
+      const res = await authFetch(`/api/returns/sales/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.success) {
+        setSaleReturns(prev => prev.filter(r => r.id !== id));
+        return true;
+      }
+      throw new Error(res.message || 'Failed to delete sale return');
+    } catch (err) {
+      console.error('deleteSaleReturn error:', err);
+      throw err;
+    }
+  };
+
+  // 13. Record Purchase Return (Deducts stock, adjusts supplier khata, logs return via backend API)
   const recordPurchaseReturn = async (returnData) => {
-    const returnNo = `PR-2026-${String(purchaseReturns.length + 1).padStart(4, '0')}`;
-    const dateStr = returnData.date || new Date().toLocaleDateString('en-GB');
+    try {
+      const res = await authFetch('/api/returns/purchases', {
+        method: 'POST',
+        body: returnData
+      });
 
-    const newReturn = {
-      id: Date.now(),
-      returnNo,
-      purchaseId: returnData.purchaseId || null,
-      purchaseNo: returnData.purchaseNo || 'Direct Purchase Return',
-      supplierId: returnData.supplierId || null,
-      supplierName: returnData.supplierName || 'Supplier Firm',
-      items: returnData.items || [],
-      refundAmount: Number(returnData.refundAmount) || 0,
-      refundMode: returnData.refundMode || 'Cash',
-      reason: returnData.reason || 'Supplier Rejection',
-      date: dateStr
-    };
+      if (res.success && (res.purchaseReturn || res.return)) {
+        const norm = normalizePurchaseReturn(res.purchaseReturn || res.return);
+        setPurchaseReturns(prev => [norm, ...prev]);
 
-    // Deduct products from inventory
-    for (const item of returnData.items || []) {
-      const pId = item.productId || item.id;
-      const rQty = Number(item.qty || item.enteredQty) || 0;
-      if (pId && rQty > 0) {
-        try {
-          await adjustStock(pId, -rQty, 'OUT (Purchase Return)', `Purchase Return #${returnNo}`);
-        } catch {
-          setProducts(prev => prev.map(p => p.id === pId ? { ...p, stockQty: Math.max(0, Number(p.stockQty || 0) - rQty) } : p));
-        }
+        // Refresh products, purchases, suppliers, ledger, and movements
+        const [prodRes, supRes, purRes, ledgerRes, movRes] = await Promise.all([
+          authFetch('/api/products'),
+          authFetch('/api/suppliers'),
+          authFetch('/api/purchases'),
+          authFetch('/api/ledger'),
+          authFetch('/api/inventory/movements')
+        ]);
+
+        if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
+        if (supRes.success) setSuppliers((supRes.suppliers || []).map(normalizeSupplier));
+        if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
+        if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
+        if (movRes.success) setStockMovements(movRes.movements || []);
+
+        return norm;
       }
+      throw new Error(res.message || 'Failed to record purchase return');
+    } catch (err) {
+      console.error('recordPurchaseReturn error:', err);
+      throw err;
     }
-
-    // Adjust supplier ledger if refund mode is Ledger
-    if (returnData.refundMode === 'Ledger' && returnData.supplierId) {
-      const sup = suppliers.find(s => s.id === returnData.supplierId || String(s.id) === String(returnData.supplierId));
-      if (sup) {
-        const newBal = Math.max(0, Number(sup.balance || 0) - Number(returnData.refundAmount || 0));
-        try {
-          await updateSupplier(sup.id, { balance: newBal });
-        } catch {
-          setSuppliers(prev => prev.map(s => s.id === sup.id ? { ...s, balance: newBal } : s));
-        }
-      }
-
-      // Log debit note transaction in paymentLogs for ledger statement
-      const debitLog = {
-        id: Date.now() + 2,
-        partyId: returnData.supplierId,
-        partyName: returnData.supplierName,
-        amount: Number(returnData.refundAmount) || 0,
-        date: dateStr,
-        mode: 'Debit Note',
-        note: `Purchase Return Debit Adjustment #${returnNo}`,
-        ref: returnNo,
-        type: 'Supplier'
-      };
-      setPaymentLogs(prev => [debitLog, ...prev]);
-    }
-
-    // Update matching purchase in purchases state
-    if (returnData.purchaseId || returnData.purchaseNo) {
-      setPurchases(prev => prev.map(p => {
-        if (p.id === returnData.purchaseId || (p.purchaseNo && p.purchaseNo === returnData.purchaseNo)) {
-          const prevReturn = Number(p.returnAmount || 0);
-          const newReturnAmt = prevReturn + (Number(returnData.refundAmount) || 0);
-          const origAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal || 0));
-          const totalReturnedItemsQty = (returnData.items || []).reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
-          const prevReturnedQty = Number(p.returnedQty || 0);
-          const newReturnedQty = prevReturnedQty + totalReturnedItemsQty;
-          const origQty = Number(p.qty || p.weight || p.itemsCount || (Array.isArray(p.cart) ? p.cart.reduce((s, i) => s + Number(i.qty || 1), 0) : 1));
-          const isFull = newReturnAmt >= (origAmt - 1) || (origQty > 0 && newReturnedQty >= origQty);
-
-          // Update item-level returned quantities in purchase's cart
-          const updatedCart = Array.isArray(p.cart) ? p.cart.map(cartItem => {
-            const returnedItem = (returnData.items || []).find(rItem => 
-              (rItem.productId && rItem.productId === (cartItem.productId || cartItem.id)) ||
-              (rItem.name && rItem.name === cartItem.name)
-            );
-            if (returnedItem) {
-              const currentReturned = Number(cartItem.returnedQty || 0);
-              return {
-                ...cartItem,
-                returnedQty: currentReturned + Number(returnedItem.qty || 0)
-              };
-            }
-            return cartItem;
-          }) : p.cart;
-
-          return {
-            ...p,
-            cart: updatedCart,
-            returnedQty: newReturnedQty,
-            returnAmount: newReturnAmt,
-            returnStatus: isFull ? 'Fully Returned' : 'Partially Returned',
-            status: isFull ? 'Returned' : 'Partial Return'
-          };
-        }
-        return p;
-      }));
-    }
-
-    setPurchaseReturns(prev => [newReturn, ...prev]);
-    return newReturn;
   };
 
-  // 12. Update Existing Sale POS Invoice
+  const updatePurchaseReturn = async (id, updatedData) => {
+    try {
+      const res = await authFetch(`/api/returns/purchases/${id}`, {
+        method: 'PUT',
+        body: updatedData
+      });
+      if (res.success && (res.purchaseReturn || res.return)) {
+        const norm = normalizePurchaseReturn(res.purchaseReturn || res.return);
+        setPurchaseReturns(prev => prev.map(r => r.id === id ? norm : r));
+        return norm;
+      }
+      throw new Error(res.message || 'Failed to update purchase return');
+    } catch (err) {
+      console.error('updatePurchaseReturn error:', err);
+      throw err;
+    }
+  };
+
+  const deletePurchaseReturn = async (id) => {
+    try {
+      const res = await authFetch(`/api/returns/purchases/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.success) {
+        setPurchaseReturns(prev => prev.filter(r => r.id !== id));
+        return true;
+      }
+      throw new Error(res.message || 'Failed to delete purchase return');
+    } catch (err) {
+      console.error('deletePurchaseReturn error:', err);
+      throw err;
+    }
+  };
+
+  // 14. Expense CRUD (Strictly scoped to tenant via API)
+  const addExpense = async (expenseData) => {
+    try {
+      const res = await authFetch('/api/expenses', {
+        method: 'POST',
+        body: expenseData
+      });
+
+      if (res.success && res.expense) {
+        const norm = normalizeExpense(res.expense);
+        setExpenses(prev => [norm, ...prev]);
+        return norm;
+      }
+      throw new Error(res.message || 'Failed to record expense');
+    } catch (err) {
+      console.error('addExpense error:', err);
+      throw err;
+    }
+  };
+
+  const updateExpense = async (id, updatedData) => {
+    try {
+      const res = await authFetch(`/api/expenses/${id}`, {
+        method: 'PUT',
+        body: updatedData
+      });
+      if (res.success && res.expense) {
+        const norm = normalizeExpense(res.expense);
+        setExpenses(prev => prev.map(e => e.id === id ? norm : e));
+        return norm;
+      }
+      throw new Error(res.message || 'Failed to update expense');
+    } catch (err) {
+      console.error('updateExpense error:', err);
+      throw err;
+    }
+  };
+
+  const deleteExpense = async (id) => {
+    try {
+      const res = await authFetch(`/api/expenses/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.success) {
+        setExpenses(prev => prev.filter(e => e.id !== id));
+        return true;
+      }
+      throw new Error(res.message || 'Failed to delete expense');
+    } catch (err) {
+      console.error('deleteExpense error:', err);
+      throw err;
+    }
+  };
+
+  // 15. Update Existing Sale POS Invoice
   const updateSale = async (id, saleData) => {
     const items = (saleData.cart || saleData.items || []).map(item => ({
       productId: item.productId || item.id,
@@ -1119,8 +1168,8 @@ export const ERPProvider = ({ children }) => {
           authFetch('/api/customers'),
           authFetch('/api/inventory/movements')
         ]);
-        if (prodRes.success) setProducts(prodRes.products || []);
-        if (custRes.success) setCustomers(custRes.customers || []);
+        if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
+        if (custRes.success) setCustomers((custRes.customers || []).map(normalizeCustomer));
         if (movRes.success) setStockMovements(movRes.movements || []);
 
         return norm;
@@ -1178,8 +1227,8 @@ export const ERPProvider = ({ children }) => {
           authFetch('/api/products'),
           authFetch('/api/suppliers')
         ]);
-        if (prodRes.success) setProducts(prodRes.products || []);
-        if (supRes.success) setSuppliers(supRes.suppliers || []);
+        if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
+        if (supRes.success) setSuppliers((supRes.suppliers || []).map(normalizeSupplier));
 
         return norm;
       }
@@ -1188,16 +1237,6 @@ export const ERPProvider = ({ children }) => {
       console.error('updatePurchase error:', err);
       throw err;
     }
-  };
-
-  const updateSaleReturn = async (id, updatedData) => {
-    setSaleReturns(prev => prev.map(r => r.id === id ? { ...r, ...updatedData } : r));
-    return true;
-  };
-
-  const updatePurchaseReturn = async (id, updatedData) => {
-    setPurchaseReturns(prev => prev.map(r => r.id === id ? { ...r, ...updatedData } : r));
-    return true;
   };
 
   return (
@@ -1212,6 +1251,7 @@ export const ERPProvider = ({ children }) => {
       stockMovements,
       saleReturns,
       purchaseReturns,
+      expenses,
       loading,
       error,
       refreshData: fetchAllData,
@@ -1235,8 +1275,13 @@ export const ERPProvider = ({ children }) => {
       updateSale,
       recordSaleReturn,
       updateSaleReturn,
+      deleteSaleReturn,
       recordPurchaseReturn,
       updatePurchaseReturn,
+      deletePurchaseReturn,
+      addExpense,
+      updateExpense,
+      deleteExpense,
       computeSaleFinancials,
       computePurchaseFinancials,
       computeCustomerKhataBalance,

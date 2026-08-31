@@ -45,16 +45,19 @@ const mapSaleRow = (r) => {
 
 export const Sale = {
   async find(filter = {}) {
-    const rows = filter.shop_id
-      ? await query('SELECT * FROM sales WHERE shop_id = $1 ORDER BY created_at DESC', [filter.shop_id])
-      : await query('SELECT * FROM sales ORDER BY created_at DESC');
-
+    if (!filter.shop_id) {
+      return [];
+    }
+    const rows = await query('SELECT * FROM sales WHERE shop_id = $1 ORDER BY created_at DESC', [filter.shop_id]);
     return rows.map(mapSaleRow);
   },
 
   async findOne(filter = {}) {
+    if (!filter.shop_id && !filter.id) return null;
     let row = null;
-    if (filter.id) {
+    if (filter.id && filter.shop_id) {
+      row = await get('SELECT * FROM sales WHERE id = $1 AND shop_id = $2', [filter.id, filter.shop_id]);
+    } else if (filter.id) {
       row = await get('SELECT * FROM sales WHERE id = $1', [filter.id]);
     } else if (filter.shop_id && (filter.invoiceNo || filter.invoiceno)) {
       row = await get('SELECT * FROM sales WHERE shop_id = $1 AND invoiceno = $2', [filter.shop_id, filter.invoiceNo || filter.invoiceno]);
@@ -63,18 +66,23 @@ export const Sale = {
     return mapSaleRow(row);
   },
 
-  async findById(id) {
+  async findById(id, shop_id = null) {
+    if (shop_id) {
+      return await this.findOne({ id, shop_id });
+    }
     return await this.findOne({ id });
   },
 
   async countDocuments(filter = {}) {
-    const res = filter.shop_id
-      ? await get('SELECT COUNT(*) as count FROM sales WHERE shop_id = $1', [filter.shop_id])
-      : await get('SELECT COUNT(*) as count FROM sales');
+    if (!filter.shop_id) return 0;
+    const res = await get('SELECT COUNT(*) as count FROM sales WHERE shop_id = $1', [filter.shop_id]);
     return res ? parseInt(res.count, 10) : 0;
   },
 
   async create(saleData) {
+    if (!saleData.shop_id) {
+      throw new Error('shop_id is required to create a sale');
+    }
     const id = saleData.id || `sal-${Date.now()}`;
     const shop_id = saleData.shop_id;
     const invoiceNo = saleData.invoiceNo;
@@ -95,17 +103,18 @@ export const Sale = {
       [id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, paidAmount, profit, status, itemsCount, cartJson]
     );
 
-    return await this.findById(id);
+    return await this.findById(id, shop_id);
   },
 
   async findByIdAndUpdate(id, updateData, options = {}) {
+    const shop_id = options.shop_id || updateData.shop_id;
+    const existing = shop_id ? await this.findOne({ id, shop_id }) : await this.findById(id);
+    if (!existing) return null;
+
     const fields = [];
     const params = [];
     let paramIndex = 1;
 
-    const keys = ['partyName', 'partyname', 'customerId', 'customerid', 'customerType', 'customertype', 'paidAmount', 'paidamount', 'amount', 'grandTotal', 'grandtotal', 'status', 'profit', 'itemsCount', 'itemscount', 'cartJson', 'cartjson', 'note', 'saleNote'];
-    const updated = new Set();
-    
     if (updateData.partyName !== undefined) { fields.push(`partyName = $${paramIndex++}`); params.push(updateData.partyName); }
     if (updateData.customerId !== undefined) { fields.push(`customerId = $${paramIndex++}`); params.push(updateData.customerId); }
     if (updateData.customerType !== undefined) { fields.push(`customerType = $${paramIndex++}`); params.push(updateData.customerType); }
@@ -121,10 +130,15 @@ export const Sale = {
     }
 
     if (fields.length > 0) {
-      params.push(id);
-      await run(`UPDATE sales SET ${fields.join(', ')} WHERE id = $${paramIndex}`, params);
+      if (shop_id) {
+        params.push(id, shop_id);
+        await run(`UPDATE sales SET ${fields.join(', ')} WHERE id = $${paramIndex++} AND shop_id = $${paramIndex}`, params);
+      } else {
+        params.push(id);
+        await run(`UPDATE sales SET ${fields.join(', ')} WHERE id = $${paramIndex}`, params);
+      }
     }
 
-    return await this.findById(id);
+    return await this.findById(id, shop_id);
   }
 };

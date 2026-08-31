@@ -25,6 +25,8 @@ import {
 import { useERP, computeCustomerKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
+import { PrintHeader } from '../components/PrintHeader';
+import { PrintFooter } from '../components/PrintFooter';
 
 export const Khata = () => {
   const { customers = [], sales = [], saleReturns = [], paymentLogs = [], recordPayment, updateCustomer, addCustomer } = useERP();
@@ -330,8 +332,8 @@ export const Khata = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Page Header (Screen Only) */}
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <CreditCard className="w-6 h-6 text-brand-500" />
@@ -385,8 +387,8 @@ export const Khata = () => {
         </div>
       </div>
 
-      {/* Summary KPI Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Summary KPI Cards Row (Screen Only) */}
+      <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Sales Volume */}
         <div
           onClick={() => { setBalanceStatusFilter('All'); setCustomerTypeFilter('All'); }}
@@ -439,8 +441,8 @@ export const Khata = () => {
         </div>
       </div>
 
-      {/* Khata Filter Toolbar */}
-      <div className={`border rounded-3xl p-3.5 sm:p-4 card-shadow ${
+      {/* Khata Filter Toolbar (Screen Only) */}
+      <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow ${
         theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       }`}>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
@@ -524,6 +526,20 @@ export const Khata = () => {
           )}
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* PRINT-ONLY HEADER */}
+      {/* ========================================================================= */}
+      <PrintHeader
+        title="Khata Accounts & Credit Register"
+        filterSummary={`Type: ${customerTypeFilter} | Status: ${balanceStatusFilter}`}
+        stats={[
+          { label: 'Total Accounts', value: filteredKhata.length },
+          { label: 'Total Sales Volume', value: `Rs. ${totalVolume.toLocaleString()}` },
+          { label: 'Total Received', value: `Rs. ${totalCollected.toLocaleString()}` },
+          { label: 'Total Outstanding Due', value: `Rs. ${totalOutstanding.toLocaleString()}` }
+        ]}
+      />
 
       {/* VIEW MODE: TABLE VIEW OR CARD VIEW */}
       {viewMode === 'card' ? (
@@ -666,7 +682,7 @@ export const Khata = () => {
                   <th className="py-3 px-4 text-right">Paid</th>
                   <th className="py-3 px-4 text-right font-black">Balance</th>
                   <th className="py-3 px-3 text-center">Status</th>
-                  <th className="py-3 px-4 text-center">Action</th>
+                  <th className="py-3 px-4 text-center no-print">Action</th>
                 </tr>
               </thead>
               <tbody className={`divide-y font-medium ${
@@ -734,8 +750,8 @@ export const Khata = () => {
                           </span>
                         </td>
 
-                        {/* Actions: Edit | Receive Payment | View Ledger */}
-                        <td className="py-3 px-4 text-center">
+                        {/* Actions: Edit | Receive Payment | View Ledger (Screen Only) */}
+                        <td className="py-3 px-4 text-center no-print">
                           <div className="flex items-center justify-center gap-1.5">
                             {/* Edit Khata Account */}
                             <button
@@ -787,6 +803,9 @@ export const Khata = () => {
           </div>
         </div>
       )}
+
+      {/* Print Footer */}
+      <PrintFooter note="Official Business Record • Ghalla Mandi Customer Khata & Balances" />
 
       {/* Receive Khata Payment Modal */}
       {paymentModalCust && (

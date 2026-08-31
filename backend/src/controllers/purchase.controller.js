@@ -35,7 +35,7 @@ export const createPurchase = async (req, res) => {
     const processedItems = [];
 
     for (const item of items) {
-      const product = await Product.findById(item.productId);
+      const product = await Product.findById(item.productId, req.shop_id);
       if (!product) {
         return res.status(404).json({ success: false, message: `Product not found: ${item.productName}` });
       }
@@ -55,7 +55,7 @@ export const createPurchase = async (req, res) => {
       await Product.findByIdAndUpdate(product.id, {
         stockQty: newStock,
         purchasePrice: rate > 0 ? rate : product.purchasePrice
-      });
+      }, { shop_id: req.shop_id });
 
       // Audit Log
       await AuditLog.create({
@@ -95,11 +95,11 @@ export const createPurchase = async (req, res) => {
     let targetSupId = supplierId || null;
 
     if (targetSupId) {
-      const sup = await Supplier.findById(targetSupId);
+      const sup = await Supplier.findById(targetSupId, req.shop_id);
       if (sup) {
         activeSupplierName = sup.name;
         const unpaid = Math.max(0, totalGrand - paid);
-        await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance) + unpaid });
+        await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance) + unpaid }, { shop_id: req.shop_id });
 
         if (paid > 0) {
           await Ledger.create({
@@ -161,7 +161,7 @@ export const updatePurchase = async (req, res) => {
     const { id } = req.params;
     const { supplierName, supplierId, items, paidAmount, notes } = req.body;
 
-    const existingPurchase = await Purchase.findById(id);
+    const existingPurchase = await Purchase.findById(id, req.shop_id);
     if (!existingPurchase) {
       return res.status(404).json({ success: false, message: 'Purchase not found' });
     }
@@ -171,7 +171,7 @@ export const updatePurchase = async (req, res) => {
 
     const rawItems = items || existingPurchase.items || [];
     for (const item of rawItems) {
-      const product = await Product.findById(item.productId);
+      const product = await Product.findById(item.productId, req.shop_id);
       const qty = Number(item.enteredQty || item.qty) || 1;
       const rate = Number(item.ratePerEnteredUnit || item.rate || item.price) || 0;
       const itemTotal = qty * rate;
@@ -203,14 +203,14 @@ export const updatePurchase = async (req, res) => {
     let targetSupId = supplierId !== undefined ? supplierId : existingPurchase.supplierId;
 
     if (targetSupId) {
-      const sup = await Supplier.findById(targetSupId);
+      const sup = await Supplier.findById(targetSupId, req.shop_id);
       if (sup) {
         activeSupplierName = sup.name;
         const oldUnpaid = Math.max(0, Number(existingPurchase.grandTotal || existingPurchase.amount || 0) - Number(existingPurchase.paidAmount || 0));
         const newUnpaid = Math.max(0, totalGrand - paid);
         const balanceDiff = newUnpaid - oldUnpaid;
         if (balanceDiff !== 0) {
-          await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance) + balanceDiff });
+          await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance) + balanceDiff }, { shop_id: req.shop_id });
         }
       }
     }
@@ -224,7 +224,7 @@ export const updatePurchase = async (req, res) => {
       paymentStatus,
       notes: notes !== undefined ? notes : existingPurchase.notes,
       items: processedItems
-    });
+    }, { shop_id: req.shop_id });
 
     return res.json({ success: true, purchase: updatedPurchase });
   } catch (err) {

@@ -13,6 +13,8 @@ import dashboardRoutes from './routes/dashboard.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import ledgerRoutes from './routes/ledger.routes.js';
 import inventoryRoutes from './routes/inventory.routes.js';
+import expenseRoutes from './routes/expense.routes.js';
+import returnRoutes from './routes/return.routes.js';
 
 dotenv.config();
 
@@ -57,6 +59,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/ledger', ledgerRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/returns', returnRoutes);
 
 app.get('/', (req, res) => {
   res.json({
