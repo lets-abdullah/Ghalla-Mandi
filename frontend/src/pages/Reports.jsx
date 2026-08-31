@@ -13,6 +13,7 @@ import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
+import { EXPENSE_CATEGORIES } from './Expenses';
 
 export const Reports = () => {
   const {
@@ -1066,7 +1067,40 @@ export const Reports = () => {
     };
   }, [totalAssets, totalSupplierPayables, netOperatingProfit, totalEquity]);
 
-  // =========================================================================
+  // Helper for universal date parsing in Journal
+  const parseJournalDate = (dateVal, createdVal) => {
+    if (createdVal) {
+      const d = new Date(createdVal);
+      if (!isNaN(d.getTime())) return d;
+    }
+    if (!dateVal) return new Date();
+    if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? new Date() : dateVal;
+    if (typeof dateVal === 'string') {
+      if (dateVal.includes('/')) {
+        const parts = dateVal.split('/');
+        if (parts.length === 3) {
+          const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+          if (!isNaN(d.getTime())) return d;
+        }
+      }
+      if (dateVal.includes('-')) {
+        const parts = dateVal.split('-');
+        if (parts.length === 3) {
+          if (parts[0].length === 4) {
+            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            if (!isNaN(d.getTime())) return d;
+          } else {
+            const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            if (!isNaN(d.getTime())) return d;
+          }
+        }
+      }
+      const parsed = new Date(dateVal);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  };
+
   // 4. PROFIT & LOSS FINANCIAL STATEMENT JOURNAL & ANALYTICS
   // =========================================================================
   const plJournalTransactions = useMemo(() => {
@@ -1074,14 +1108,7 @@ export const Reports = () => {
 
     // 1. Sales (Income)
     (sales || []).forEach(s => {
-      let sDateObj = new Date();
-      if (s.created_at) {
-        sDateObj = new Date(s.created_at);
-      } else if (s.date && s.date.includes('/')) {
-        const parts = s.date.split('/');
-        if (parts.length === 3) sDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-      }
-
+      const sDateObj = parseJournalDate(s.date, s.created_at);
       const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : [{ name: s.productName || 'Commodity Sale', qty: s.qty || 1, unit: s.unit || 'KG' }]);
       const pNames = cart.map(it => it.name).filter(Boolean).join(', ') || s.productName || 'Commodity Sale';
       const pCategories = cart.map(it => {
@@ -1091,13 +1118,13 @@ export const Reports = () => {
       const primaryCat = pCategories[0] || 'General';
       const totalQty = cart.reduce((sum, it) => sum + Number(it.qty || it.enteredQty || 1), 0);
       const unit = cart[0]?.unit || s.unit || 'KG';
-      const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
+      const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.netAmt || 0)));
 
       journal.push({
-        id: `sale-${s.id || s.invoiceNo}`,
+        id: `sale-${s.id || s.invoiceNo || Math.random()}`,
         dateStr: s.date || sDateObj.toLocaleDateString('en-GB'),
         dateObj: sDateObj,
-        ref: s.invoiceNo ? `SALE-${s.invoiceNo}` : 'Sale Invoice',
+        ref: s.invoiceNo ? (String(s.invoiceNo).startsWith('SALE-') ? s.invoiceNo : `SALE-${s.invoiceNo}`) : (s.ref || `SALE-${s.id || 'INV'}`),
         product: pNames,
         category: primaryCat,
         type: 'Sale',
@@ -1106,20 +1133,13 @@ export const Reports = () => {
         rawQty: totalQty,
         amount: grossAmt,
         party: s.partyName || s.customerName || 'Customer Party',
-        mode: s.paymentMode || (s.paidAmount >= grossAmt ? 'Cash' : 'Credit')
+        mode: s.paymentMode || (Number(s.paidAmount || s.paidAmt || 0) >= grossAmt ? 'Cash' : 'Credit')
       });
     });
 
     // 2. Purchases (COGS / Stock Cost)
     (purchases || []).forEach(p => {
-      let pDateObj = new Date();
-      if (p.created_at) {
-        pDateObj = new Date(p.created_at);
-      } else if (p.date && p.date.includes('/')) {
-        const parts = p.date.split('/');
-        if (parts.length === 3) pDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-      }
-
+      const pDateObj = parseJournalDate(p.date, p.created_at);
       const cart = Array.isArray(p.cart) && p.cart.length > 0 ? p.cart : (Array.isArray(p.items) ? p.items : [{ name: p.productName || 'Commodity', qty: p.qty || 1, unit: p.unit || 'KG' }]);
       const pNames = cart.map(it => it.name).filter(Boolean).join(', ') || p.productName || 'Procured Stock';
       const pCategories = cart.map(it => {
@@ -1129,13 +1149,13 @@ export const Reports = () => {
       const primaryCat = pCategories[0] || 'General';
       const totalQty = cart.reduce((sum, it) => sum + Number(it.qty || it.enteredQty || 1), 0);
       const unit = cart[0]?.unit || p.unit || 'KG';
-      const grossAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
+      const grossAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.netAmt || 0)));
 
       journal.push({
-        id: `pur-${p.id || p.purchaseNo}`,
+        id: `pur-${p.id || p.purchaseNo || Math.random()}`,
         dateStr: p.date || pDateObj.toLocaleDateString('en-GB'),
         dateObj: pDateObj,
-        ref: p.purchaseNo ? `PUR-${p.purchaseNo}` : 'Purchase Bill',
+        ref: p.purchaseNo ? (String(p.purchaseNo).startsWith('PUR-') ? p.purchaseNo : `PUR-${p.purchaseNo}`) : (p.ref || `PUR-${p.id || 'BILL'}`),
         product: pNames,
         category: primaryCat,
         type: 'Purchase',
@@ -1144,23 +1164,19 @@ export const Reports = () => {
         rawQty: totalQty,
         amount: -grossAmt,
         party: p.supplierName || p.supplier || 'Supplier Firm',
-        mode: p.paymentMode || (p.paidAmount >= grossAmt ? 'Cash' : 'Credit')
+        mode: p.paymentMode || (Number(p.paidAmount || p.paidAmt || 0) >= grossAmt ? 'Cash' : 'Credit')
       });
     });
 
     // 3. Shop Expenses
     (expenses || []).forEach(e => {
-      let eDateObj = new Date();
-      if (e.date && e.date.includes('/')) {
-        const parts = e.date.split('/');
-        if (parts.length === 3) eDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-      }
+      const eDateObj = parseJournalDate(e.date, e.created_at);
 
       journal.push({
-        id: `exp-${e.id || e.ref}`,
+        id: `exp-${e.id || e.ref || Math.random()}`,
         dateStr: e.date || eDateObj.toLocaleDateString('en-GB'),
         dateObj: eDateObj,
-        ref: e.ref || `EXP-${e.id}`,
+        ref: e.ref || (e.id ? `EXP-${e.id}` : 'Expense Voucher'),
         product: e.desc || e.category || 'Shop Expense',
         category: e.category || 'Shop Expense',
         type: 'Expense',
@@ -1175,22 +1191,15 @@ export const Reports = () => {
 
     // 4. Sale Returns
     (saleReturns || []).forEach(r => {
-      let rDateObj = new Date();
-      if (r.created_at) {
-        rDateObj = new Date(r.created_at);
-      } else if (r.date && r.date.includes('/')) {
-        const parts = r.date.split('/');
-        if (parts.length === 3) rDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-      }
-
+      const rDateObj = parseJournalDate(r.date, r.created_at);
       const it = (r.items || [])[0] || {};
       const refAmt = Number(r.refundAmount || 0);
 
       journal.push({
-        id: `sr-${r.id || r.returnNo}`,
+        id: `sr-${r.id || r.returnNo || Math.random()}`,
         dateStr: r.date || rDateObj.toLocaleDateString('en-GB'),
         dateObj: rDateObj,
-        ref: r.returnNo ? `SR-${r.returnNo}` : 'Sale Return',
+        ref: r.returnNo ? (String(r.returnNo).startsWith('SR-') ? r.returnNo : `SR-${r.returnNo}`) : (r.ref || `SR-${r.id || 'RET'}`),
         product: it.name || 'Returned Commodity',
         category: 'Sale Return',
         type: 'Sale Return',
@@ -1205,22 +1214,15 @@ export const Reports = () => {
 
     // 5. Purchase Returns
     (purchaseReturns || []).forEach(r => {
-      let rDateObj = new Date();
-      if (r.created_at) {
-        rDateObj = new Date(r.created_at);
-      } else if (r.date && r.date.includes('/')) {
-        const parts = r.date.split('/');
-        if (parts.length === 3) rDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-      }
-
+      const rDateObj = parseJournalDate(r.date, r.created_at);
       const it = (r.items || [])[0] || {};
       const refAmt = Number(r.refundAmount || 0);
 
       journal.push({
-        id: `pr-${r.id || r.returnNo}`,
+        id: `pr-${r.id || r.returnNo || Math.random()}`,
         dateStr: r.date || rDateObj.toLocaleDateString('en-GB'),
         dateObj: rDateObj,
-        ref: r.returnNo ? `PR-${r.returnNo}` : 'Debit Note',
+        ref: r.returnNo ? (String(r.returnNo).startsWith('PR-') ? r.returnNo : `PR-${r.returnNo}`) : (r.ref || `PR-${r.id || 'RET'}`),
         product: it.name || 'Returned Commodity',
         category: 'Purchase Return',
         type: 'Purchase Return',
@@ -2867,16 +2869,9 @@ export const Reports = () => {
                     }`}
                 >
                   <option value="All">All Categories</option>
-                  <option value="Salary (Staff / Workers)">Salary (Staff / Workers)</option>
-                  <option value="Bills (Electricity / Gas / Water)">Bills (Electricity / Gas / Water)</option>
-                  <option value="Transport & Freight (Bilty / Gaari)">Transport & Freight (Bilty / Gaari)</option>
-                  <option value="Shop & Godown Rent">Shop & Godown Rent</option>
-                  <option value="Labour & Loading (Mazdoori / Palla)">Labour & Loading (Mazdoori / Palla)</option>
-                  <option value="Bardana & Bags Purchase">Bardana & Bags Purchase</option>
-                  <option value="Fuel & Generator Diesel">Fuel & Generator Diesel</option>
-                  <option value="Tea & Hospitality (Chai Pani)">Tea & Hospitality (Chai Pani)</option>
-                  <option value="Repair & Maintenance">Repair & Maintenance</option>
-                  <option value="General Miscellaneous">General Miscellaneous</option>
+                  {EXPENSE_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
                 </select>
 
                 {/* Payment Mode */}
@@ -3088,9 +3083,6 @@ export const Reports = () => {
               <div className="text-2xl font-black font-mono mt-2 text-emerald-600 dark:text-emerald-400">
                 +Rs. {plTotalRevenue.toLocaleString()}
               </div>
-              <div className="text-[11px] text-slate-400 font-semibold mt-1">
-                Total money earned from sales after returns
-              </div>
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/80 text-[10px] text-slate-500 font-mono">
                 <span>Sales: Rs. {plTotalSalesIncome.toLocaleString()}</span>
                 <span>•</span>
@@ -3109,9 +3101,6 @@ export const Reports = () => {
               </div>
               <div className="text-2xl font-black font-mono mt-2 text-rose-600 dark:text-rose-400">
                 -Rs. {(plTotalCOGS + plTotalExpenses).toLocaleString()}
-              </div>
-              <div className="text-[11px] text-slate-400 font-semibold mt-1">
-                Stock purchases + Shop running expenses
               </div>
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/80 text-[10px] text-slate-500 font-mono">
                 <span>Purchases: Rs. {plTotalCOGS.toLocaleString()}</span>
@@ -3136,9 +3125,6 @@ export const Reports = () => {
               </div>
               <div className={`text-2xl font-black font-mono mt-2 ${plNetProfit >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-400'}`}>
                 {plNetProfit >= 0 ? '+Rs. ' : '-Rs. '}{Math.abs(plNetProfit).toLocaleString()}
-              </div>
-              <div className={`text-[11px] font-semibold mt-1 ${plNetProfit >= 0 ? 'text-emerald-700/80 dark:text-emerald-300/80' : 'text-rose-600/80'}`}>
-                {plNetProfit >= 0 ? 'Real profit earned in pocket after all costs' : 'Total loss: costs and purchases were higher than sales'}
               </div>
               <div className="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-800 text-[10px] font-mono text-slate-500">
                 Gross Profit: Rs. {plGrossProfit.toLocaleString()} ({plGrossMargin}% Gross Margin)
@@ -3352,9 +3338,8 @@ export const Reports = () => {
                               {isPositive ? '+' : ''}Rs. {tx.amount.toLocaleString()}
                             </td>
 
-                            <td className={`py-3 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap ${
-                              isRunningPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                            }`}>
+                            <td className={`py-3 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap ${isRunningPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                              }`}>
                               {isRunningPositive ? '+Rs. ' : '-Rs. '}{Math.abs(tx.runningPnL || 0).toLocaleString()}
                             </td>
                           </tr>

@@ -182,15 +182,42 @@ export const Expenses = () => {
 
     return processedExpenses.filter(e => {
       // 1. Search
-      const search = searchTerm.toLowerCase();
-      const matchesSearch = !searchTerm ||
+      const search = searchTerm.toLowerCase().trim();
+      const matchesSearch = !search ||
         (e.ref || '').toLowerCase().includes(search) ||
         (e.category || '').toLowerCase().includes(search) ||
         (e.desc || '').toLowerCase().includes(search) ||
         (e.mode || '').toLowerCase().includes(search);
 
-      // 2. Category
-      const matchesCategory = categoryFilter === 'All' || e.category === categoryFilter;
+      // 2. Category Match (Exact & Backward-Compatible)
+      let matchesCategory = categoryFilter === 'All';
+      if (!matchesCategory) {
+        const catStr = (e.category || '').toLowerCase();
+        const target = categoryFilter.toLowerCase();
+        if (catStr === target) {
+          matchesCategory = true;
+        } else if (categoryFilter === 'Salary' && catStr.includes('salary')) {
+          matchesCategory = true;
+        } else if (categoryFilter === 'Bills & Utilities' && (catStr.includes('bill') || catStr.includes('utilit') || catStr.includes('electric') || catStr.includes('gas'))) {
+          matchesCategory = true;
+        } else if (categoryFilter === 'Shop Rent' && catStr.includes('rent')) {
+          matchesCategory = true;
+        } else if (categoryFilter === 'Transport' && (catStr.includes('transport') || catStr.includes('freight') || catStr.includes('bilty') || catStr.includes('gaari'))) {
+          matchesCategory = true;
+        } else if (categoryFilter === 'Labour' && (catStr.includes('labour') || catStr.includes('mazdoori') || catStr.includes('loading') || catStr.includes('palla'))) {
+          matchesCategory = true;
+        } else if (categoryFilter === 'Bags & Bardana' && (catStr.includes('bardana') || catStr.includes('bags'))) {
+          matchesCategory = true;
+        } else if (categoryFilter === 'Fuel' && (catStr.includes('fuel') || catStr.includes('diesel') || catStr.includes('petrol'))) {
+          matchesCategory = true;
+        } else if (categoryFilter === 'Tea & Food' && (catStr.includes('tea') || catStr.includes('chai') || catStr.includes('food') || catStr.includes('hospitality'))) {
+          matchesCategory = true;
+        } else if (categoryFilter === 'Maintenance' && (catStr.includes('repair') || catStr.includes('maintenance'))) {
+          matchesCategory = true;
+        } else if (categoryFilter === 'Other' && (catStr.includes('general') || catStr.includes('misc') || catStr.includes('other'))) {
+          matchesCategory = true;
+        }
+      }
 
       // 3. Payment Mode
       const matchesMode = modeFilter === 'All' || e.mode === modeFilter;
@@ -204,14 +231,26 @@ export const Expenses = () => {
         matchesDate = eDate.getTime() === today.getTime();
       } else if (dateFilter === 'This Week') {
         const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        matchesDate = eDate >= startOfWeek;
+        startOfWeek.setDate(today.getDate() - 7);
+        matchesDate = eDate >= startOfWeek && eDate <= new Date(today.getTime() + 86400000);
       } else if (dateFilter === 'This Month') {
         matchesDate = eDate.getMonth() === today.getMonth() && eDate.getFullYear() === today.getFullYear();
-      } else if (dateFilter === 'Custom' && startDate && endDate) {
-        const s = new Date(startDate);
-        const end = new Date(endDate);
-        matchesDate = eDate >= s && eDate <= end;
+      } else if (dateFilter === 'Custom') {
+        if (startDate && endDate) {
+          const s = new Date(startDate);
+          s.setHours(0, 0, 0, 0);
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          matchesDate = eDate >= s && eDate <= end;
+        } else if (startDate) {
+          const s = new Date(startDate);
+          s.setHours(0, 0, 0, 0);
+          matchesDate = eDate >= s;
+        } else if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          matchesDate = eDate <= end;
+        }
       }
 
       return matchesSearch && matchesCategory && matchesMode && matchesDate;
@@ -415,8 +454,51 @@ export const Expenses = () => {
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
+
+              {(dateFilter !== 'All' || categoryFilter !== 'All' || searchTerm || startDate || endDate) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDateFilter('All');
+                    setCategoryFilter('All');
+                    setSearchTerm('');
+                    setStartDate('');
+                    setEndDate('');
+                    setPage(1);
+                  }}
+                  className="px-2.5 py-1.5 rounded-xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs font-bold flex items-center gap-1 cursor-pointer transition"
+                >
+                  <X className="w-3 h-3" />
+                  <span>Reset</span>
+                </button>
+              )}
             </div>
           </div>
+
+          {/* Custom Date Range Pickers */}
+          {dateFilter === 'Custom' && (
+            <div className={`no-print p-2.5 rounded-2xl border flex flex-wrap items-center gap-3 text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}>
+              <span className="font-bold text-slate-400">Range:</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400 font-medium text-[11px]">From:</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+                  className={`border rounded-xl px-2 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400 font-medium text-[11px]">To:</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+                  className={`border rounded-xl px-2 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Search bar (Screen Only) */}
           <div className="no-print relative">

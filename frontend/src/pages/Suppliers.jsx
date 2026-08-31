@@ -286,7 +286,6 @@ export const Suppliers = () => {
     bankName: '',
     accountTitle: '',
     accountNumber: '',
-    status: 'Active',
     notes: ''
   });
 
@@ -351,7 +350,6 @@ export const Suppliers = () => {
         bankName: '',
         accountTitle: '',
         accountNumber: '',
-        status: 'Active',
         notes: ''
       });
     } catch (err) {
