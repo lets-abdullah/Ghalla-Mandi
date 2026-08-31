@@ -28,7 +28,7 @@ import {
   MapPin,
   FileText
 } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeLedgerStatement } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
@@ -605,44 +605,31 @@ export const Ledger = () => {
       businessName: '',
       phone: '',
       city: 'Local Mandi',
-      customerType: 'Party Account',
+      customerType: isSupplier ? 'Supplier' : 'Party Account',
       balance: 0,
       totalDebit: 0,
       totalCredit: 0,
       status: 'Settled'
     };
-  }, [customerEntities, selectedPartyId]);
+  }, [customerEntities, selectedPartyId, isSupplier]);
 
-  // Single Customer Chronological Ledger with Running Balance
+  // Master Ledger Statement with Deterministic Chronological Sequence & Running Balance
+  const statement = useMemo(() => {
+    if (selectedPartyId === 'All' || !activeCustomer) return null;
+    return computeLedgerStatement(activeCustomer, {
+      sales,
+      purchases,
+      paymentLogs,
+      saleReturns,
+      purchaseReturns,
+      isSupplier
+    });
+  }, [activeCustomer, sales, purchases, paymentLogs, saleReturns, purchaseReturns, isSupplier, selectedPartyId]);
+
+  // Single Customer Chronological Ledger with Verified Running Balance
   const singleCustomerLedger = useMemo(() => {
-    if (selectedPartyId === 'All') return [];
-    const selLower = String(selectedPartyId).trim().toLowerCase();
-
-    // 1. Filter transactions belonging to this customer
-    const partyEntries = rawLedgerEntries.filter(entry => {
-      const entryIdLower = String(entry.partyId || '').trim().toLowerCase();
-      const entryNameLower = String(entry.partyName || '').trim().toLowerCase();
-
-      const matchId = entryIdLower === selLower;
-      const matchName = entryNameLower === selLower;
-      const matchWalkinId = selLower === `walkin-${entryNameLower}` || entryIdLower === `walkin-${selLower}`;
-
-      return matchId || matchName || matchWalkinId;
-    });
-
-    // 2. Compute Running Balance chronologically
-    let runningBalance = 0;
-    const computed = partyEntries.map(entry => {
-      // Invoice/Debit increases balance (+Receivable), Returns/Payments decrease balance (-Receivable)
-      runningBalance = runningBalance + (Number(entry.debit || 0) - Number(entry.credit || 0));
-      return {
-        ...entry,
-        runningBalance
-      };
-    });
-
-    // 3. Apply inside-ledger filters (date, txType, search)
-    return computed.filter(entry => {
+    if (!statement) return [];
+    return statement.displayEntries.filter(entry => {
       if (!matchDate(entry.rawDate)) return false;
       if (txTypeFilter === 'Sales' && entry.txType !== 'Sales' && entry.txType !== 'Purchases') return false;
       if (txTypeFilter === 'Payments' && entry.txType !== 'Payments') return false;
@@ -654,8 +641,8 @@ export const Ledger = () => {
         if (!refMatch && !descMatch) return false;
       }
       return true;
-    }).reverse(); // Latest transaction at the top for reading
-  }, [rawLedgerEntries, selectedPartyId, dateFilterType, customStartDate, customEndDate, txTypeFilter, txSearchQuery]);
+    });
+  }, [statement, dateFilterType, customStartDate, customEndDate, txTypeFilter, txSearchQuery]);
 
   // Handle Switching to a Customer's Ledger
   const handleOpenCustomerLedger = (cust) => {
@@ -1251,13 +1238,21 @@ export const Ledger = () => {
 
                           {/* 6. Running Balance */}
                           <td className="py-3.5 px-4 text-right font-mono font-black text-xs">
-                            <span className={
-                              isBalPos ? 'text-emerald-600 dark:text-emerald-400' :
-                                isBalNeg ? 'text-rose-600 dark:text-rose-400' :
-                                  'text-slate-400'
-                            }>
-                              {isBalNeg ? `-Rs. ${Math.abs(entry.runningBalance).toLocaleString()}` : `Rs. ${entry.runningBalance.toLocaleString()}`}
-                            </span>
+                            {isBalNeg ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
+                                <span>Credit:</span>
+                                <span>Rs. {Math.abs(entry.runningBalance).toLocaleString()}</span>
+                              </span>
+                            ) : isBalPos ? (
+                              <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                <span>{isSupplier ? 'Payable:' : 'Due:'}</span>
+                                <span>Rs. {entry.runningBalance.toLocaleString()}</span>
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">
+                                Rs. 0 (Settled)
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );

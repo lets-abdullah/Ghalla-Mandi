@@ -618,6 +618,436 @@ export const computeAllSuppliersFinancials = (suppliers = [], purchases = [], pa
   };
 };
 
+export const parseNormalizedTimestamp = (dateStr, createdAt) => {
+  if (createdAt) {
+    const t = new Date(createdAt).getTime();
+    if (!isNaN(t)) return t;
+  }
+  if (!dateStr) return 0;
+  const raw = String(dateStr).trim();
+  if (raw.toLowerCase() === 'opening') return 0;
+  if (raw.toLowerCase() === 'today') {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0).getTime();
+  }
+  if (raw.toLowerCase() === 'yesterday') {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 12, 0, 0).getTime();
+  }
+
+  // DD/MM/YYYY or DD-MM-YYYY
+  const ddmmyyyy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (ddmmyyyy) {
+    const day = parseInt(ddmmyyyy[1], 10);
+    const month = parseInt(ddmmyyyy[2], 10) - 1;
+    const year = parseInt(ddmmyyyy[3], 10);
+    const hour = ddmmyyyy[4] ? parseInt(ddmmyyyy[4], 10) : 0;
+    const min = ddmmyyyy[5] ? parseInt(ddmmyyyy[5], 10) : 0;
+    const sec = ddmmyyyy[6] ? parseInt(ddmmyyyy[6], 10) : 0;
+    const d = new Date(year, month, day, hour, min, sec);
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+
+  // YYYY-MM-DD
+  const yyyymmdd = raw.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})(?:T|\s+)?(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?/);
+  if (yyyymmdd) {
+    const year = parseInt(yyyymmdd[1], 10);
+    const month = parseInt(yyyymmdd[2], 10) - 1;
+    const day = parseInt(yyyymmdd[3], 10);
+    const hour = yyyymmdd[4] ? parseInt(yyyymmdd[4], 10) : 0;
+    const min = yyyymmdd[5] ? parseInt(yyyymmdd[5], 10) : 0;
+    const sec = yyyymmdd[6] ? parseInt(yyyymmdd[6], 10) : 0;
+    const d = new Date(year, month, day, hour, min, sec);
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? 0 : d.getTime();
+};
+
+export const compareLedgerTransactions = (a, b) => {
+  // 1. Primary: Timestamp
+  const tA = a.timestamp || 0;
+  const tB = b.timestamp || 0;
+  if (tA !== tB) return tA - tB;
+
+  // 2. Secondary: Logical Event Priority (0: Opening, 1: Invoice/Sale/Purchase, 2: Return, 3: Payment)
+  const pA = a.eventPriority !== undefined ? a.eventPriority : 99;
+  const pB = b.eventPriority !== undefined ? b.eventPriority : 99;
+  if (pA !== pB) return pA - pB;
+
+  // 3. Tertiary: Sequence Number / ID
+  const seqA = Number(a.seq || 0);
+  const seqB = Number(b.seq || 0);
+  if (seqA !== seqB) return seqA - seqB;
+
+  return String(a.id || '').localeCompare(String(b.id || ''));
+};
+
+export const computeLedgerStatement = (party, { sales = [], purchases = [], paymentLogs = [], saleReturns = [], purchaseReturns = [], isSupplier = false } = {}) => {
+  if (!party) {
+    return {
+      party: null,
+      openingBalance: 0,
+      totalDebit: 0,
+      totalCredit: 0,
+      netBalance: 0,
+      closingBalance: 0,
+      receivableDue: 0,
+      payableDue: 0,
+      advanceCredit: 0,
+      status: 'Settled',
+      chronologicalEntries: [],
+      displayEntries: []
+    };
+  }
+
+  const partyId = party.id ? String(party.id) : null;
+  const partyName = (party.name || '').trim().toLowerCase();
+  const isRegular = party.customerType ? !party.customerType.toLowerCase().includes('walk-in') : true;
+
+  const entries = [];
+
+  // 0. Opening Balance
+  const opBal = Number(party.openingBalance !== undefined ? party.openingBalance : (party.openingbalance !== undefined ? party.openingbalance : 0));
+  if (opBal > 0) {
+    const opTs = parseNormalizedTimestamp(party.created_at || '2026-01-01');
+    entries.push({
+      id: `open-bal-${partyId || '0'}`,
+      timestamp: opTs,
+      eventPriority: 0,
+      seq: 0,
+      rawDate: party.created_at || '2026-01-01',
+      date: party.created_at ? new Date(party.created_at).toLocaleDateString('en-GB') : 'Opening',
+      partyId,
+      partyName: party.name,
+      ref: 'OPENING',
+      txType: 'Opening Balance',
+      desc: isSupplier ? 'Opening Payable Balance' : 'Opening Receivable Balance',
+      debit: opBal,
+      credit: 0,
+      notes: 'Opening balance registered on account creation'
+    });
+  }
+
+  if (!isSupplier) {
+    // 1. Customer Sales (Debit)
+    const partySales = (sales || []).filter(s => {
+      const sCustId = s.customerId ? String(s.customerId) : null;
+      const sCustName = (s.customerName || s.partyName || '').trim().toLowerCase();
+      if (isRegular) {
+        return (partyId && sCustId && sCustId === partyId) || (partyName && sCustName === partyName && !sCustName.includes('walk-in'));
+      }
+      return (partyId && sCustId && sCustId === partyId) || (partyName && sCustName === partyName);
+    });
+
+    // 2. Customer Payments (Credit)
+    const partyPayments = (paymentLogs || []).filter(p => {
+      const isCust = p.type === 'Customer' || p.partyType === 'Customer';
+      if (!isCust) return false;
+      const pPartyId = p.partyId ? String(p.partyId) : null;
+      const pPartyName = (p.partyName || '').trim().toLowerCase();
+      if (isRegular) {
+        return (partyId && pPartyId && pPartyId === partyId) || (partyName && pPartyName === partyName && !pPartyName.includes('walk-in'));
+      }
+      return (partyId && pPartyId && pPartyId === partyId) || (partyName && pPartyName === partyName);
+    });
+
+    // 3. Customer Returns (Credit)
+    const partyReturns = (saleReturns || []).filter(r => {
+      const rCustId = r.customerId ? String(r.customerId) : null;
+      const rCustName = (r.customerName || '').trim().toLowerCase();
+      if (isRegular) {
+        return (partyId && rCustId && rCustId === partyId) || (partyName && rCustName === partyName && !rCustName.includes('walk-in'));
+      }
+      return (partyId && rCustId && rCustId === partyId) || (partyName && rCustName === partyName);
+    });
+
+    // Add Sales Invoices
+    partySales.forEach((s, idx) => {
+      const ts = parseNormalizedTimestamp(s.date, s.created_at);
+      const sGross = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
+      const sItems = Array.isArray(s.cart) && s.cart.length > 0
+        ? s.cart.map(i => `${i.name || 'Commodity'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
+        : (typeof s.items === 'string' ? s.items : 'Produce Commodity Sale');
+
+      entries.push({
+        id: `sale-${s.id || idx}`,
+        timestamp: ts,
+        eventPriority: 1,
+        seq: Number(s.id) || (idx + 1),
+        rawDate: s.date,
+        date: s.date || 'N/A',
+        partyId,
+        partyName: party.name,
+        ref: s.invoiceNo || `INV-${s.id || idx}`,
+        txType: 'Sales',
+        desc: `Invoice: ${sItems}`,
+        debit: sGross,
+        credit: 0,
+        notes: s.saleNote || s.note || ''
+      });
+
+      // Upfront payment on sale if not recorded in paymentLogs
+      const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
+      const sAppliedCredit = Number(s.appliedCredit || 0);
+      let sUpfrontCash = 0;
+      if (s.cashReceived !== undefined) {
+        sUpfrontCash = Number(s.cashReceived);
+      } else if (sAppliedCredit > 0) {
+        const grossPaid = isMarkedPaid ? sGross : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
+        sUpfrontCash = Math.max(0, grossPaid - sAppliedCredit);
+      } else {
+        sUpfrontCash = isMarkedPaid ? sGross : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
+      }
+
+      const hasSpecificLog = partyPayments.some(pl =>
+        (pl.saleId && String(pl.saleId) === String(s.id)) ||
+        (s.invoiceNo && pl.ref && pl.ref.includes(s.invoiceNo))
+      );
+
+      if (sUpfrontCash > 0 && !hasSpecificLog) {
+        entries.push({
+          id: `pay-direct-${s.id || idx}`,
+          timestamp: ts,
+          eventPriority: 3,
+          seq: Number(s.id) || (idx + 1),
+          rawDate: s.date,
+          date: s.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: `RCP-${s.invoiceNo || s.id || idx}`,
+          txType: 'Payments',
+          desc: `POS Counter Payment against ${s.invoiceNo || 'Sale'}`,
+          debit: 0,
+          credit: sUpfrontCash,
+          notes: s.paymentMethod || s.paymentMode || 'Counter Payment'
+        });
+      }
+    });
+
+    // Add Returns
+    partyReturns.forEach((r, idx) => {
+      const ts = parseNormalizedTimestamp(r.date, r.created_at);
+      entries.push({
+        id: `ret-${r.id || idx}`,
+        timestamp: ts,
+        eventPriority: 2,
+        seq: Number(r.id) || (idx + 1),
+        rawDate: r.date,
+        date: r.date || 'N/A',
+        partyId,
+        partyName: party.name,
+        ref: r.returnNo || `RET-${r.id || idx}`,
+        txType: 'Returns',
+        desc: `Sale Return: ${r.reason || 'Produce return credit'}`,
+        debit: 0,
+        credit: Number(r.refundAmount || 0),
+        notes: r.reason || ''
+      });
+    });
+
+    // Add Payment Logs
+    partyPayments.forEach((p, idx) => {
+      const ts = parseNormalizedTimestamp(p.date, p.created_at);
+      entries.push({
+        id: `pay-${p.id || idx}`,
+        timestamp: ts,
+        eventPriority: 3,
+        seq: Number(p.id) || (idx + 1),
+        rawDate: p.date,
+        date: p.date || 'N/A',
+        partyId,
+        partyName: party.name,
+        ref: p.ref || `PAY-${p.id || idx}`,
+        txType: 'Payments',
+        desc: p.saleId ? `Payment for Invoice #${p.saleId}` : `Payment Received (${p.mode || p.paymentMode || 'Cash'})`,
+        debit: 0,
+        credit: Number(p.amount || 0),
+        notes: p.note || ''
+      });
+    });
+  } else {
+    // Supplier Purchases, Returns, Payments
+    const partyPurchases = (purchases || []).filter(p => {
+      const pSupId = p.supplierId ? String(p.supplierId) : null;
+      const pSupName = (p.supplier || p.supplierName || '').trim().toLowerCase();
+      return (partyId && pSupId && pSupId === partyId) || (partyName && pSupName === partyName);
+    });
+
+    const partyPayments = (paymentLogs || []).filter(p => {
+      const isSup = p.type === 'Supplier' || p.partyType === 'Supplier';
+      if (!isSup) return false;
+      const pPartyId = p.partyId ? String(p.partyId) : null;
+      const pPartyName = (p.partyName || '').trim().toLowerCase();
+      return (partyId && pPartyId && pPartyId === partyId) || (partyName && pPartyName === partyName);
+    });
+
+    const partyReturns = (purchaseReturns || []).filter(r => {
+      const rSupId = r.supplierId ? String(r.supplierId) : null;
+      const rSupName = (r.supplierName || '').trim().toLowerCase();
+      return (partyId && rSupId && rSupId === partyId) || (partyName && rSupName === partyName);
+    });
+
+    // Add Purchases
+    partyPurchases.forEach((p, idx) => {
+      const ts = parseNormalizedTimestamp(p.date, p.created_at);
+      const pGross = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
+      const pItems = Array.isArray(p.cart || p.items)
+        ? (p.cart || p.items).map(i => `${i.name || 'Commodity'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
+        : 'Produce Procurement Bill';
+
+      entries.push({
+        id: `pur-${p.id || idx}`,
+        timestamp: ts,
+        eventPriority: 1,
+        seq: Number(p.id) || (idx + 1),
+        rawDate: p.date,
+        date: p.date || 'N/A',
+        partyId,
+        partyName: party.name,
+        ref: p.purchaseNo || `PUR-${p.id || idx}`,
+        txType: 'Purchases',
+        desc: `Bill: ${pItems}`,
+        debit: pGross,
+        credit: 0,
+        notes: p.note || ''
+      });
+
+      const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
+      const pAppliedAdvance = Number(p.appliedAdvance || p.appliedCredit || 0);
+      let pUpfrontCash = 0;
+      if (p.cashPaid !== undefined) {
+        pUpfrontCash = Number(p.cashPaid);
+      } else if (pAppliedAdvance > 0) {
+        const grossPaid = isMarkedPaid ? pGross : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
+        pUpfrontCash = Math.max(0, grossPaid - pAppliedAdvance);
+      } else {
+        pUpfrontCash = isMarkedPaid ? pGross : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
+      }
+
+      const hasSpecificLog = partyPayments.some(pl =>
+        (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+        (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+      );
+
+      if (pUpfrontCash > 0 && !hasSpecificLog) {
+        entries.push({
+          id: `pay-sup-direct-${p.id || idx}`,
+          timestamp: ts,
+          eventPriority: 3,
+          seq: Number(p.id) || (idx + 1),
+          rawDate: p.date,
+          date: p.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: `PAY-${p.purchaseNo || p.id || idx}`,
+          txType: 'Payments',
+          desc: `Upfront Payment against ${p.purchaseNo || 'Purchase'}`,
+          debit: 0,
+          credit: pUpfrontCash,
+          notes: p.paymentMethod || 'Upfront Payment'
+        });
+      }
+    });
+
+    // Add Purchase Returns
+    partyReturns.forEach((r, idx) => {
+      const ts = parseNormalizedTimestamp(r.date, r.created_at);
+      entries.push({
+        id: `pret-${r.id || idx}`,
+        timestamp: ts,
+        eventPriority: 2,
+        seq: Number(r.id) || (idx + 1),
+        rawDate: r.date,
+        date: r.date || 'N/A',
+        partyId,
+        partyName: party.name,
+        ref: r.returnNo || `PR-${r.id || idx}`,
+        txType: 'Returns',
+        desc: `Purchase Return (${r.refundMode || 'Ledger'})`,
+        debit: 0,
+        credit: Number(r.refundAmount || 0),
+        notes: r.reason || ''
+      });
+    });
+
+    // Add Supplier Payments
+    partyPayments.forEach((p, idx) => {
+      const ts = parseNormalizedTimestamp(p.date, p.created_at);
+      entries.push({
+        id: `pay-sup-${p.id || idx}`,
+        timestamp: ts,
+        eventPriority: 3,
+        seq: Number(p.id) || (idx + 1),
+        rawDate: p.date,
+        date: p.date || 'N/A',
+        partyId,
+        partyName: party.name,
+        ref: p.ref || `PAY-${p.id || idx}`,
+        txType: 'Payments',
+        desc: `Supplier Payment Out (${p.mode || p.paymentMode || 'Cash'})`,
+        debit: 0,
+        credit: Number(p.amount || 0),
+        notes: p.note || ''
+      });
+    });
+  }
+
+  // 1. Sort strictly chronologically
+  entries.sort(compareLedgerTransactions);
+
+  // 2. Compute Running Balances in strict chronological order
+  let runningBalance = 0;
+  let totalDebit = 0;
+  let totalCredit = 0;
+
+  const chronologicalEntries = entries.map((entry, index) => {
+    const d = Number(entry.debit || 0);
+    const c = Number(entry.credit || 0);
+    totalDebit += d;
+    totalCredit += c;
+    runningBalance = runningBalance + d - c;
+
+    const entryStatus = runningBalance > 0
+      ? (isSupplier ? 'Payable' : 'Receivable')
+      : (runningBalance < 0 ? 'Advance' : 'Settled');
+
+    return {
+      ...entry,
+      stepIndex: index + 1,
+      runningBalance,
+      balanceState: entryStatus
+    };
+  });
+
+  const closingBalance = runningBalance;
+  const receivableDue = !isSupplier ? Math.max(0, closingBalance) : 0;
+  const payableDue = isSupplier ? Math.max(0, closingBalance) : 0;
+  const advanceCredit = Math.max(0, -closingBalance);
+  const status = closingBalance > 0
+    ? (isSupplier ? 'Payable' : 'Receivable')
+    : (closingBalance < 0 ? 'Advance' : 'Settled');
+
+  // 3. Reverse for Newest-First display while keeping verified chronological running balance
+  const displayEntries = [...chronologicalEntries].reverse();
+
+  return {
+    party,
+    openingBalance: opBal,
+    totalDebit,
+    totalCredit,
+    netBalance: closingBalance,
+    closingBalance,
+    receivableDue,
+    payableDue,
+    advanceCredit,
+    status,
+    chronologicalEntries,
+    displayEntries
+  };
+};
+
 const normalizePurchase = (p) => {
   if (!p) return null;
   const grandTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
@@ -1765,7 +2195,10 @@ export const ERPProvider = ({ children }) => {
       computeWalkinUncollectedDues,
       computeSupplierKhataBalance,
       computeAllCustomersFinancials,
-      computeAllSuppliersFinancials
+      computeAllSuppliersFinancials,
+      computeLedgerStatement,
+      compareLedgerTransactions,
+      parseNormalizedTimestamp
     }}>
       {children}
     </ERPContext.Provider>
