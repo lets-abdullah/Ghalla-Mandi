@@ -6,7 +6,7 @@ import {
   BarChart3, Settings, Wheat, LogOut, X, PlusCircle,
   ChevronLeft, ChevronRight, ChevronDown,
   TrendingUp, DollarSign, RotateCcw, PieChart, Building,
-  CreditCard, UserCog
+  CreditCard
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
@@ -793,28 +793,7 @@ export const Sidebar = () => {
             </div>
           )}
 
-          {/* 8. Employees */}
-          <NavLink
-            to="/employees"
-            onClick={handleLinkClick}
-            title={effectivelyCollapsed ? (t('employees') || 'Employees') : undefined}
-            className={({ isActive }) =>
-              `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
-                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`
-            }
-          >
-            <UserCog className="w-4 h-4 shrink-0 stroke-[2.2]" />
-            {!effectivelyCollapsed && <span className="truncate">{t('employees') || 'Employees'}</span>}
-            {effectivelyCollapsed && (
-              <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-                {t('employees') || 'Employees'}
-              </div>
-            )}
-          </NavLink>
-
-          {/* 9. Settings */}
+          {/* 8. Settings */}
           <NavLink
             to="/settings"
             onClick={handleLinkClick}

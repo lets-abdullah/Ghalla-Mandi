@@ -79,7 +79,7 @@ export const Reports = () => {
   const [salesSupplierFilter, setSalesSupplierFilter] = useState('All');
   const [salesCustomerFilter, setSalesCustomerFilter] = useState('All');
   const [salesPaymentFilter, setSalesPaymentFilter] = useState('All'); // 'All' | 'Cash' | 'Credit' | 'Partial'
-  const [salesActiveSubTab, setSalesActiveSubTab] = useState('all'); // 'all' | 'dateWise' | 'productWise' | 'supplierWise' | 'supplierProduct' | 'analytics'
+  const [salesActiveSubTab, setSalesActiveSubTab] = useState('dateWise'); // 'dateWise' | 'productWise' | 'supplierWise' | 'supplierProduct' | 'analytics'
   const [expandedSuppliers, setExpandedSuppliers] = useState({});
 
   const toggleSupplierExpand = (supName) => {
@@ -2147,33 +2147,105 @@ export const Reports = () => {
       )}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 2. SALES & REVENUE REPORT (MULTI-DIMENSIONAL DEEP ANALYSIS) */}
+      {/* 2. SALES & REVENUE REPORT (CLEAN, MODULAR & INTUITIVE INTELLIGENCE) */}
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'Sales' && (
-        <div className="space-y-5">
-          {/* Top Common Filter Bar */}
+        <div className="space-y-6">
+          {/* Top KPI Cards (4 High-Impact Metrics) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* 1. Gross Sales */}
+            <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Gross Sales</span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-xl font-black font-mono mt-2 text-slate-900 dark:text-white">
+                Rs. {filteredGrossSales.toLocaleString()}
+              </div>
+              <div className="text-[11px] text-slate-400 font-semibold mt-1">
+                {filteredInvoicesCount} sale invoices registered
+              </div>
+            </div>
+
+            {/* 2. Net Revenue */}
+            <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Net Revenue</span>
+                <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-xl font-black font-mono mt-2 text-brand-500">
+                Rs. {filteredNetSales.toLocaleString()}
+              </div>
+              <div className="text-[11px] text-slate-400 font-semibold mt-1">
+                {filteredTotalQty.toLocaleString()} units sold • Rs. {filteredDiscount.toLocaleString()} discount
+              </div>
+            </div>
+
+            {/* 3. Cash Received */}
+            <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Cash Collected</span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                  <Banknote className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-xl font-black font-mono mt-2 text-emerald-600 dark:text-emerald-400">
+                Rs. {filteredCashSales.toLocaleString()}
+              </div>
+              <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+                {filteredGrossSales > 0 ? ((filteredCashSales / filteredGrossSales) * 100).toFixed(1) : 0}% settled at counter
+              </div>
+            </div>
+
+            {/* 4. Khata Due */}
+            <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Khata (Credit) Due</span>
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <Wallet className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-xl font-black font-mono mt-2 text-amber-600 dark:text-amber-400">
+                Rs. {filteredCreditSales.toLocaleString()}
+              </div>
+              <div className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold mt-1">
+                {filteredCreditSales > 0 ? 'Pending customer receivables' : 'All sales fully paid'}
+              </div>
+            </div>
+          </div>
+
+          {/* Clean Filter Panel */}
           <div className={`p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
             <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-brand-500" />
                 <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                  Sales Report Filters
+                  Filter Sales Data
                 </span>
               </div>
 
               {hasActiveSalesFilters && (
                 <button
+                  type="button"
                   onClick={handleResetSalesFilters}
-                  className="text-[11px] font-bold text-rose-500 hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-[11px] font-bold text-rose-500 hover:text-rose-600 flex items-center gap-1 cursor-pointer transition"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3.5 h-3.5" />
                   <span>Reset All Filters</span>
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {/* Date Filter */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
@@ -2182,30 +2254,30 @@ export const Reports = () => {
                 <select
                   value={salesDateFilter}
                   onChange={(e) => setSalesDateFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 >
-                  <option value="All">All Dates</option>
+                  <option value="All">All Time</option>
                   <option value="Today">Today</option>
                   <option value="Yesterday">Yesterday</option>
-                  <option value="This Week">This Week</option>
+                  <option value="This Week">This Week (Last 7 Days)</option>
                   <option value="This Month">This Month</option>
-                  <option value="Custom">Custom Date Range</option>
+                  <option value="Custom">Custom Range...</option>
                 </select>
               </div>
 
               {/* Product Filter */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Product / Commodity
+                  Commodity / Product
                 </label>
                 <select
                   value={salesProductFilter}
                   onChange={(e) => setSalesProductFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 >
-                  <option value="All">All Products</option>
+                  <option value="All">All Commodities</option>
                   {products.map(p => (
                     <option key={p.id} value={p.name}>{p.name}</option>
                   ))}
@@ -2220,7 +2292,7 @@ export const Reports = () => {
                 <select
                   value={salesSupplierFilter}
                   onChange={(e) => setSalesSupplierFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 >
                   <option value="All">All Suppliers</option>
@@ -2238,7 +2310,7 @@ export const Reports = () => {
                 <select
                   value={salesCustomerFilter}
                   onChange={(e) => setSalesCustomerFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 >
                   <option value="All">All Customers</option>
@@ -2251,52 +2323,32 @@ export const Reports = () => {
               {/* Payment Type */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Payment Type
+                  Payment Mode
                 </label>
                 <select
                   value={salesPaymentFilter}
                   onChange={(e) => setSalesPaymentFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 >
-                  <option value="All">All Payment Types</option>
-                  <option value="Cash">Cash Payments (Counter)</option>
-                  <option value="Credit">Credit (Khata Due)</option>
-                  <option value="Partial">Partial Payments</option>
-                </select>
-              </div>
-
-              {/* Report View Section */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Report Section / View
-                </label>
-                <select
-                  value={salesActiveSubTab}
-                  onChange={(e) => setSalesActiveSubTab(e.target.value)}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="all">All Sections (Overview)</option>
-                  <option value="dateWise">1. Date-wise Sales</option>
-                  <option value="productWise">2. Product-wise Sales</option>
-                  <option value="supplierWise">3. Supplier-wise Sales</option>
-                  <option value="supplierProduct">4. Supplier → Product Drill-down</option>
-                  <option value="analytics">5. Top Rankings & Analytics</option>
+                  <option value="All">All Payment Modes</option>
+                  <option value="Cash">Cash (Counter)</option>
+                  <option value="Credit">Khata Due (Credit)</option>
+                  <option value="Partial">Partial Paid</option>
                 </select>
               </div>
             </div>
 
             {/* Custom Date Pickers */}
             {salesDateFilter === 'Custom' && (
-              <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex flex-wrap items-center gap-4 pt-2.5 border-t border-slate-100 dark:border-slate-700">
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-bold text-slate-400">From Date:</span>
                   <input
                     type="date"
                     value={salesStartDate}
                     onChange={(e) => setSalesStartDate(e.target.value)}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
                 </div>
@@ -2306,7 +2358,7 @@ export const Reports = () => {
                     type="date"
                     value={salesEndDate}
                     onChange={(e) => setSalesEndDate(e.target.value)}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
                 </div>
@@ -2314,98 +2366,141 @@ export const Reports = () => {
             )}
           </div>
 
-          {/* 4 Overall Sales Summary Cards Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {/* 1. Gross Sales */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="text-[10px] font-black uppercase text-slate-400">Gross Sales</div>
-              <div className="text-lg font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
-                Rs. {filteredGrossSales.toLocaleString()}
-              </div>
-            </div>
+          {/* Interactive Sub-Navigation Tabs */}
+          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-200/70 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => setSalesActiveSubTab('dateWise')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
+                salesActiveSubTab === 'dateWise'
+                  ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>1. By Date</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950/60 font-bold text-brand-600 dark:text-brand-400">
+                {dateWiseSalesData.length}
+              </span>
+            </button>
 
-            {/* 2. Net Revenue */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="text-[10px] font-black uppercase text-slate-400">Net Revenue</div>
-              <div className="text-lg font-black font-mono mt-1 text-brand-600 dark:text-brand-400">
-                Rs. {filteredNetSales.toLocaleString()}
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setSalesActiveSubTab('productWise')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
+                salesActiveSubTab === 'productWise'
+                  ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Wheat className="w-3.5 h-3.5 text-emerald-500" />
+              <span>2. By Commodity</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 font-bold text-emerald-600 dark:text-emerald-400">
+                {productWiseSalesData.length}
+              </span>
+            </button>
 
-            {/* 3. Cash Received */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="text-[10px] font-black uppercase text-slate-400">Cash Received</div>
-              <div className="text-lg font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
-                Rs. {filteredCashSales.toLocaleString()}
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setSalesActiveSubTab('supplierWise')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
+                salesActiveSubTab === 'supplierWise'
+                  ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Building className="w-3.5 h-3.5 text-blue-500" />
+              <span>3. By Supplier Firm</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 font-bold text-blue-600 dark:text-blue-400">
+                {supplierWiseSalesData.length}
+              </span>
+            </button>
 
-            {/* 4. Khata Due */}
-            <div className={`p-3.5 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="text-[10px] font-black uppercase text-slate-400">Khata (Udhaar) Due</div>
-              <div className="text-lg font-black font-mono mt-1 text-amber-600 dark:text-amber-400">
-                Rs. {filteredCreditSales.toLocaleString()}
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setSalesActiveSubTab('supplierProduct')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
+                salesActiveSubTab === 'supplierProduct'
+                  ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 text-purple-500" />
+              <span>4. Supplier → Products</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSalesActiveSubTab('analytics')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
+                salesActiveSubTab === 'analytics'
+                  ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-amber-500" />
+              <span>5. Top Rankings</span>
+            </button>
           </div>
 
           {/* ========================================================================= */}
-          {/* SECTION 1: DATE-WISE SALES */}
+          {/* VIEW 1: DATE-WISE SALES */}
           {/* ========================================================================= */}
-          {(salesActiveSubTab === 'all' || salesActiveSubTab === 'dateWise') && (
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          {salesActiveSubTab === 'dateWise' && (
+            <div className={`border rounded-2xl p-4 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-brand-500" />
-                  <span>1. Date-Wise Sales Breakdown</span>
-                </h3>
-                <span className="text-[11px] text-slate-400 font-bold">
-                  {dateWiseSalesData.length} Active Sales Dates
+                <div>
+                  <h3 className="text-sm font-black tracking-tight flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-brand-500" />
+                    <span>Daily Sales & Settlement Register</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                    Aggregated daily transactions, trade discounts, counter cash vs khata dues
+                  </p>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                  {dateWiseSalesData.length} Trading Days
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                       }`}>
-                      <th className="py-2.5 px-3">Date</th>
-                      <th className="py-2.5 px-3 text-center">Invoices</th>
-                      <th className="py-2.5 px-3">Products Sold</th>
-                      <th className="py-2.5 px-3 text-right">Total Qty</th>
-                      <th className="py-2.5 px-3 text-right">Gross Sales</th>
-                      <th className="py-2.5 px-3 text-right">Discount</th>
-                      <th className="py-2.5 px-3 text-right font-black text-brand-500">Net Sales</th>
-                      <th className="py-2.5 px-3 text-right text-emerald-600">Cash</th>
-                      <th className="py-2.5 px-3 text-right text-amber-600">Khata Due</th>
+                      <th className="py-3 px-3">Date</th>
+                      <th className="py-3 px-3 text-center">Invoices</th>
+                      <th className="py-3 px-3">Commodities Summary</th>
+                      <th className="py-3 px-3 text-right">Total Qty</th>
+                      <th className="py-3 px-3 text-right">Gross Amount</th>
+                      <th className="py-3 px-3 text-right">Discount</th>
+                      <th className="py-3 px-3 text-right font-black text-brand-500">Net Sales</th>
+                      <th className="py-3 px-3 text-right text-emerald-600">Cash Received</th>
+                      <th className="py-3 px-3 text-right text-amber-600">Khata Due</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                     {dateWiseSalesData.length === 0 ? (
-                      <tr><td colSpan={9} className="py-8 text-center text-slate-400">No sales recorded for this date filter.</td></tr>
+                      <tr><td colSpan={9} className="py-10 text-center text-slate-400 font-medium">No sales recorded matching current filter selection.</td></tr>
                     ) : (
                       dateWiseSalesData.map((row, idx) => (
-                        <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
-                          <td className="py-2.5 px-3 font-mono font-bold">{row.date}</td>
-                          <td className="py-2.5 px-3 text-center font-bold text-slate-500">{row.invoiceCount}</td>
-                          <td className="py-2.5 px-3 max-w-xs truncate text-slate-600 dark:text-slate-300 font-medium">
+                        <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
+                          <td className="py-3 px-3 font-mono font-bold">{row.date}</td>
+                          <td className="py-3 px-3 text-center font-bold text-slate-500">{row.invoiceCount}</td>
+                          <td className="py-3 px-3 max-w-xs truncate text-slate-600 dark:text-slate-300 font-medium">
                             {row.productsSummary}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-bold">{row.totalQty} Units</td>
-                          <td className="py-2.5 px-3 text-right font-mono">Rs. {row.grossSales.toLocaleString()}</td>
-                          <td className="py-2.5 px-3 text-right font-mono text-rose-500">Rs. {row.discount.toLocaleString()}</td>
-                          <td className="py-2.5 px-3 text-right font-mono font-black text-brand-500">
+                          <td className="py-3 px-3 text-right font-mono font-bold">{row.totalQty} Units</td>
+                          <td className="py-3 px-3 text-right font-mono">Rs. {row.grossSales.toLocaleString()}</td>
+                          <td className="py-3 px-3 text-right font-mono text-rose-500">Rs. {row.discount.toLocaleString()}</td>
+                          <td className="py-3 px-3 text-right font-mono font-black text-brand-500">
                             Rs. {row.netSales.toLocaleString()}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                          <td className="py-3 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
                             Rs. {row.cash.toLocaleString()}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono text-amber-600 dark:text-amber-400">
+                          <td className="py-3 px-3 text-right font-mono text-amber-600 dark:text-amber-400">
                             Rs. {row.credit.toLocaleString()}
                           </td>
                         </tr>
@@ -2414,17 +2509,17 @@ export const Reports = () => {
                   </tbody>
                   {dateWiseSalesData.length > 0 && (
                     <tfoot>
-                      <tr className={`border-t-2 text-xs font-black ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-slate-100/80 border-slate-300 text-slate-900'
+                      <tr className={`border-t-2 text-xs font-black ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-slate-100/90 border-slate-300 text-slate-900'
                         }`}>
-                        <td className="py-3 px-3 uppercase">Total / Summary</td>
-                        <td className="py-3 px-3 text-center font-mono">{filteredInvoicesCount}</td>
-                        <td className="py-3 px-3 font-medium text-slate-400">—</td>
-                        <td className="py-3 px-3 text-right font-mono">{filteredTotalQty.toLocaleString()}</td>
-                        <td className="py-3 px-3 text-right font-mono">Rs. {filteredGrossSales.toLocaleString()}</td>
-                        <td className="py-3 px-3 text-right font-mono text-rose-500">Rs. {filteredDiscount.toLocaleString()}</td>
-                        <td className="py-3 px-3 text-right font-mono text-brand-500">Rs. {filteredNetSales.toLocaleString()}</td>
-                        <td className="py-3 px-3 text-right font-mono text-emerald-600">Rs. {filteredCashSales.toLocaleString()}</td>
-                        <td className="py-3 px-3 text-right font-mono text-amber-600">Rs. {filteredCreditSales.toLocaleString()}</td>
+                        <td className="py-3.5 px-3 uppercase">Total / Summary</td>
+                        <td className="py-3.5 px-3 text-center font-mono">{filteredInvoicesCount}</td>
+                        <td className="py-3.5 px-3 font-medium text-slate-400">—</td>
+                        <td className="py-3.5 px-3 text-right font-mono">{filteredTotalQty.toLocaleString()}</td>
+                        <td className="py-3.5 px-3 text-right font-mono">Rs. {filteredGrossSales.toLocaleString()}</td>
+                        <td className="py-3.5 px-3 text-right font-mono text-rose-500">Rs. {filteredDiscount.toLocaleString()}</td>
+                        <td className="py-3.5 px-3 text-right font-mono text-brand-500">Rs. {filteredNetSales.toLocaleString()}</td>
+                        <td className="py-3.5 px-3 text-right font-mono text-emerald-600">Rs. {filteredCashSales.toLocaleString()}</td>
+                        <td className="py-3.5 px-3 text-right font-mono text-amber-600">Rs. {filteredCreditSales.toLocaleString()}</td>
                       </tr>
                     </tfoot>
                   )}
@@ -2434,41 +2529,46 @@ export const Reports = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* SECTION 2: PRODUCT-WISE SALES */}
+          {/* VIEW 2: PRODUCT-WISE SALES */}
           {/* ========================================================================= */}
-          {(salesActiveSubTab === 'all' || salesActiveSubTab === 'productWise') && (
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          {salesActiveSubTab === 'productWise' && (
+            <div className={`border rounded-2xl p-4 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                  <Wheat className="w-4 h-4 text-emerald-500" />
-                  <span>2. Product-Wise Sales Performance</span>
-                </h3>
-                <span className="text-[11px] text-slate-400 font-bold">
-                  {productWiseSalesData.length} Unique Commodities Sold
+                <div>
+                  <h3 className="text-sm font-black tracking-tight flex items-center gap-2">
+                    <Wheat className="w-4 h-4 text-emerald-500" />
+                    <span>Commodity Sales Performance</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                    Total volume sold, average realised rate, and turnover share per commodity
+                  </p>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                  {productWiseSalesData.length} Unique Commodities
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                       }`}>
-                      <th className="py-2.5 px-3">Product Name</th>
-                      <th className="py-2.5 px-3">Supplied By</th>
-                      <th className="py-2.5 px-3 text-center">Qty Sold</th>
-                      <th className="py-2.5 px-3 text-center">Orders</th>
-                      <th className="py-2.5 px-3 text-right">Sales Amount</th>
-                      <th className="py-2.5 px-3 text-right">Avg. Rate</th>
-                      <th className="py-2.5 px-3 w-40 text-right">% of Total Sales</th>
+                      <th className="py-3 px-3">Commodity Name</th>
+                      <th className="py-3 px-3">Supplied By</th>
+                      <th className="py-3 px-3 text-center">Volume Sold</th>
+                      <th className="py-3 px-3 text-center">Orders</th>
+                      <th className="py-3 px-3 text-right">Sales Amount</th>
+                      <th className="py-3 px-3 text-right">Avg Rate</th>
+                      <th className="py-3 px-3 w-44 text-right">% of Total Revenue</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                     {productWiseSalesData.length === 0 ? (
-                      <tr><td colSpan={7} className="py-8 text-center text-slate-400">No products sold in this filter range.</td></tr>
+                      <tr><td colSpan={7} className="py-10 text-center text-slate-400 font-medium">No commodity sales recorded for this filter selection.</td></tr>
                     ) : (
                       productWiseSalesData.map((item, idx) => (
-                        <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
+                        <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
                           <td className="py-3 px-3 font-extrabold text-slate-900 dark:text-white">
                             {item.name}
                           </td>
@@ -2491,7 +2591,7 @@ export const Reports = () => {
                           </td>
                           <td className="py-3 px-3 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <div className="w-16 h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                              <div className="w-20 h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
                                 <div
                                   className="h-full bg-emerald-500 rounded-full"
                                   style={{ width: `${Math.min(100, Math.max(2, parseFloat(item.pctOfTotal)))}%` }}
@@ -2512,45 +2612,50 @@ export const Reports = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* SECTION 3: SUPPLIER-WISE SALES */}
+          {/* VIEW 3: SUPPLIER-WISE SALES */}
           {/* ========================================================================= */}
-          {(salesActiveSubTab === 'all' || salesActiveSubTab === 'supplierWise') && (
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          {salesActiveSubTab === 'supplierWise' && (
+            <div className={`border rounded-2xl p-4 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                  <Building className="w-4 h-4 text-blue-500" />
-                  <span>3. Supplier-Wise Sales Turnover</span>
-                </h3>
-                <span className="text-[11px] text-slate-400 font-bold">
+                <div>
+                  <h3 className="text-sm font-black tracking-tight flex items-center gap-2">
+                    <Building className="w-4 h-4 text-blue-500" />
+                    <span>Supplier Firm Contribution</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                    Turnover generated per supplying mandi firm and revenue contribution share
+                  </p>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                   {supplierWiseSalesData.length} Supplying Sources
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                       }`}>
-                      <th className="py-2.5 px-3">Supplier Firm</th>
-                      <th className="py-2.5 px-3 text-center">Products Count</th>
-                      <th className="py-2.5 px-3 text-right">Total Qty Sold</th>
-                      <th className="py-2.5 px-3 text-center">Orders Count</th>
-                      <th className="py-2.5 px-3 text-right">Total Sales (Rs.)</th>
-                      <th className="py-2.5 px-3 w-40 text-right">% Contribution</th>
+                      <th className="py-3 px-3">Supplier Firm</th>
+                      <th className="py-3 px-3 text-center">Products Count</th>
+                      <th className="py-3 px-3 text-right">Total Units Sold</th>
+                      <th className="py-3 px-3 text-center">Orders</th>
+                      <th className="py-3 px-3 text-right">Turnover Generated</th>
+                      <th className="py-3 px-3 w-44 text-right">% Contribution</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                     {supplierWiseSalesData.length === 0 ? (
-                      <tr><td colSpan={6} className="py-8 text-center text-slate-400">No supplier turnover data found.</td></tr>
+                      <tr><td colSpan={6} className="py-10 text-center text-slate-400 font-medium">No supplier turnover records found.</td></tr>
                     ) : (
                       supplierWiseSalesData.map((sup, idx) => (
-                        <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
+                        <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
                           <td className="py-3 px-3 font-extrabold text-slate-900 dark:text-white">
                             {sup.supplierName}
                           </td>
                           <td className="py-3 px-3 text-center font-bold text-slate-500">
-                            {sup.productsCount} Products
+                            {sup.productsCount} Commodities
                           </td>
                           <td className="py-3 px-3 text-right font-mono font-bold text-slate-800 dark:text-slate-200">
                             {sup.totalQty} Units
@@ -2563,7 +2668,7 @@ export const Reports = () => {
                           </td>
                           <td className="py-3 px-3 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <div className="w-16 h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                              <div className="w-20 h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
                                 <div
                                   className="h-full bg-blue-500 rounded-full"
                                   style={{ width: `${Math.min(100, Math.max(2, parseFloat(sup.pctContribution)))}%` }}
@@ -2584,23 +2689,28 @@ export const Reports = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* SECTION 4: SUPPLIER -> PRODUCT DRILL-DOWN */}
+          {/* VIEW 4: SUPPLIER -> PRODUCT DRILL-DOWN */}
           {/* ========================================================================= */}
-          {(salesActiveSubTab === 'all' || salesActiveSubTab === 'supplierProduct') && (
+          {salesActiveSubTab === 'supplierProduct' && (
             <div className={`border rounded-2xl p-4 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-purple-500" />
-                  <span>4. Supplier → Product Breakdown (Drill-Down)</span>
-                </h3>
-                <span className="text-[11px] text-slate-400 font-bold">
-                  Hierarchical Product Performance by Supplier
+                <div>
+                  <h3 className="text-sm font-black tracking-tight flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-purple-500" />
+                    <span>Supplier → Commodity Breakdown</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                    Click any supplier firm to expand and inspect commodity breakdown
+                  </p>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                  {supplierWiseSalesData.length} Supplier Sources
                 </span>
               </div>
 
               {supplierWiseSalesData.length === 0 ? (
-                <div className="py-8 text-center text-slate-400 text-xs">No supplier drill-down records available.</div>
+                <div className="py-10 text-center text-slate-400 text-xs font-medium">No supplier drill-down records available.</div>
               ) : (
                 <div className="space-y-3">
                   {supplierWiseSalesData.map((sup, idx) => {
@@ -2609,33 +2719,33 @@ export const Reports = () => {
                     return (
                       <div
                         key={idx}
-                        className={`border rounded-xl overflow-hidden transition ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                        className={`border rounded-2xl overflow-hidden transition ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
                           }`}
                       >
                         {/* Supplier Card Header */}
                         <div
                           onClick={() => toggleSupplierExpand(sup.supplierName)}
-                          className={`p-3 flex items-center justify-between cursor-pointer transition ${theme === 'dark' ? 'hover:bg-slate-900/80' : 'hover:bg-slate-100'
+                          className={`p-3.5 flex items-center justify-between cursor-pointer transition ${theme === 'dark' ? 'hover:bg-slate-900/80' : 'hover:bg-slate-100'
                             }`}
                         >
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center font-bold">
-                              <Building className="w-3.5 h-3.5" />
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center font-bold">
+                              <Building className="w-4 h-4" />
                             </div>
                             <div>
                               <div className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2">
                                 <span>{sup.supplierName}</span>
-                                <span className="text-[10px] px-2 py-0.2 rounded-full bg-purple-500/10 text-purple-600 font-bold">
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 font-bold">
                                   {sup.pctContribution}% Share
                                 </span>
                               </div>
                               <div className="text-[10px] text-slate-400 font-medium">
-                                {sup.productsCount} Products • {sup.orderCount} Orders Total
+                                {sup.productsCount} Commodities • {sup.orderCount} Orders Total
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-4">
                             <div className="text-right">
                               <div className="text-xs font-black font-mono text-brand-500">
                                 Rs. {sup.totalSales.toLocaleString()}
@@ -2654,37 +2764,37 @@ export const Reports = () => {
 
                         {/* Expanded Inner Table */}
                         {isExpanded && (
-                          <div className="border-t border-slate-200 dark:border-slate-700/80 p-2.5 bg-white dark:bg-slate-800">
+                          <div className="border-t border-slate-200 dark:border-slate-700/80 p-3 bg-white dark:bg-slate-800">
                             <table className="w-full text-left text-xs">
                               <thead>
-                                <tr className="text-[9px] uppercase font-bold text-slate-400 border-b border-slate-100 dark:border-slate-700/60">
-                                  <th className="pb-1.5 px-2">Product Name</th>
-                                  <th className="pb-1.5 px-2 text-center">Qty Sold</th>
-                                  <th className="pb-1.5 px-2 text-center">Orders</th>
-                                  <th className="pb-1.5 px-2 text-right">Avg Rate</th>
-                                  <th className="pb-1.5 px-2 text-right font-black">Sales Amount</th>
-                                  <th className="pb-1.5 px-2 text-right">% of Supplier</th>
+                                <tr className="text-[9px] uppercase font-black text-slate-400 border-b border-slate-100 dark:border-slate-700/60 pb-2">
+                                  <th className="pb-2 px-2">Commodity Name</th>
+                                  <th className="pb-2 px-2 text-center">Volume Sold</th>
+                                  <th className="pb-2 px-2 text-center">Orders</th>
+                                  <th className="pb-2 px-2 text-right">Avg Rate</th>
+                                  <th className="pb-2 px-2 text-right font-black">Sales Amount</th>
+                                  <th className="pb-2 px-2 text-right">% of Supplier</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/40">
+                              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/40 font-semibold">
                                 {sup.products.map((prod, pIdx) => (
                                   <tr key={pIdx} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                                    <td className="py-2 px-2 font-bold text-slate-800 dark:text-slate-200">
+                                    <td className="py-2.5 px-2 font-bold text-slate-800 dark:text-slate-200">
                                       {prod.name}
                                     </td>
-                                    <td className="py-2 px-2 text-center font-mono text-slate-600 dark:text-slate-300">
+                                    <td className="py-2.5 px-2 text-center font-mono text-slate-600 dark:text-slate-300">
                                       {prod.qty} {prod.unit}
                                     </td>
-                                    <td className="py-2 px-2 text-center font-medium text-slate-500">
+                                    <td className="py-2.5 px-2 text-center font-medium text-slate-500">
                                       {prod.orders}
                                     </td>
-                                    <td className="py-2 px-2 text-right font-mono text-slate-500">
+                                    <td className="py-2.5 px-2 text-right font-mono text-slate-500">
                                       Rs. {prod.avgRate.toLocaleString()}/{prod.unit}
                                     </td>
-                                    <td className="py-2 px-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                    <td className="py-2.5 px-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                                       Rs. {prod.revenue.toLocaleString()}
                                     </td>
-                                    <td className="py-2 px-2 text-right font-mono font-bold text-purple-600 dark:text-purple-400">
+                                    <td className="py-2.5 px-2 text-right font-mono font-bold text-purple-600 dark:text-purple-400">
                                       {prod.pctOfSupplier}%
                                     </td>
                                   </tr>
@@ -2702,36 +2812,41 @@ export const Reports = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* SECTION 5: TOP ANALYTICS & RANKINGS */}
+          {/* VIEW 5: TOP ANALYTICS & RANKINGS */}
           {/* ========================================================================= */}
-          {(salesActiveSubTab === 'all' || salesActiveSubTab === 'analytics') && (
+          {salesActiveSubTab === 'analytics' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Top Selling Products */}
-              <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              <div className={`border rounded-2xl p-4 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
                 }`}>
-                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-emerald-500" />
-                  <span>Top Selling Products by Revenue</span>
-                </h3>
+                <div>
+                  <h3 className="text-sm font-black tracking-tight flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-emerald-500" />
+                    <span>Top Selling Commodities</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                    Highest revenue generating commodities and contribution percentage
+                  </p>
+                </div>
 
                 {topSellingProducts.length === 0 ? (
-                  <div className="py-6 text-center text-slate-400 text-xs">No sales data.</div>
+                  <div className="py-8 text-center text-slate-400 text-xs font-medium">No sales recorded.</div>
                 ) : (
-                  <div className="space-y-2.5">
+                  <div className="space-y-3 pt-1">
                     {topSellingProducts.map((p, idx) => (
-                      <div key={idx} className="space-y-1">
+                      <div key={idx} className="space-y-1.5">
                         <div className="flex justify-between text-xs font-bold">
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-4 h-4 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] flex items-center justify-center font-black">
+                          <span className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-lg bg-emerald-500/10 text-emerald-600 text-[10px] flex items-center justify-center font-black">
                               {idx + 1}
                             </span>
-                            <span>{p.name}</span>
+                            <span className="text-slate-800 dark:text-slate-200">{p.name}</span>
                           </span>
-                          <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black">
                             Rs. {p.totalRevenue.toLocaleString()} ({p.pctOfTotal}%)
                           </span>
                         </div>
-                        <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                        <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
                           <div
                             className="h-full bg-emerald-500 rounded-full"
                             style={{ width: `${Math.min(100, Math.max(5, parseFloat(p.pctOfTotal)))}%` }}
@@ -2744,31 +2859,36 @@ export const Reports = () => {
               </div>
 
               {/* Top Suppliers by Sales */}
-              <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              <div className={`border rounded-2xl p-4 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
                 }`}>
-                <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-blue-500" />
-                  <span>Top Suppliers by Sales Contribution</span>
-                </h3>
+                <div>
+                  <h3 className="text-sm font-black tracking-tight flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-blue-500" />
+                    <span>Top Supplying Sources</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                    Highest turnover supplier partners across all commodity sales
+                  </p>
+                </div>
 
                 {topSuppliers.length === 0 ? (
-                  <div className="py-6 text-center text-slate-400 text-xs">No supplier sales data.</div>
+                  <div className="py-8 text-center text-slate-400 text-xs font-medium">No supplier turnover records.</div>
                 ) : (
-                  <div className="space-y-2.5">
+                  <div className="space-y-3 pt-1">
                     {topSuppliers.map((sup, idx) => (
-                      <div key={idx} className="space-y-1">
+                      <div key={idx} className="space-y-1.5">
                         <div className="flex justify-between text-xs font-bold">
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-4 h-4 rounded-full bg-blue-500/10 text-blue-600 text-[10px] flex items-center justify-center font-black">
+                          <span className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-lg bg-blue-500/10 text-blue-600 text-[10px] flex items-center justify-center font-black">
                               {idx + 1}
                             </span>
-                            <span>{sup.supplierName}</span>
+                            <span className="text-slate-800 dark:text-slate-200">{sup.supplierName}</span>
                           </span>
-                          <span className="font-mono text-blue-600 dark:text-blue-400">
+                          <span className="font-mono text-blue-600 dark:text-blue-400 font-black">
                             Rs. {sup.totalSales.toLocaleString()} ({sup.pctContribution}%)
                           </span>
                         </div>
-                        <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                        <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
                           <div
                             className="h-full bg-blue-500 rounded-full"
                             style={{ width: `${Math.min(100, Math.max(5, parseFloat(sup.pctContribution)))}%` }}
