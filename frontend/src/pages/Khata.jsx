@@ -192,9 +192,14 @@ export const Khata = () => {
         city: cust.city || 'Local Mandi',
         customerType: custType,
         totalSale: fin.totalSale,
-        totalPaid: fin.totalPaid,
+        grossSale: fin.totalSale,
         returnAmount: fin.returnAmount,
-        balance: fin.balance,
+        netSale: fin.netSale,
+        totalPaid: fin.totalPaid,
+        netBalance: fin.netBalance,
+        balance: fin.receivableDue,
+        receivableDue: fin.receivableDue,
+        advanceCredit: fin.advanceCredit,
         status: fin.status,
         ordersCount: fin.ordersCount,
         isRegistered: true
@@ -235,9 +240,14 @@ export const Khata = () => {
         city: 'Local Mandi',
         customerType: 'Walk-in Customer',
         totalSale: fin.totalSale,
-        totalPaid: fin.totalPaid,
+        grossSale: fin.totalSale,
         returnAmount: fin.returnAmount,
-        balance: fin.balance,
+        netSale: fin.netSale,
+        totalPaid: fin.totalPaid,
+        netBalance: fin.netBalance,
+        balance: fin.receivableDue,
+        receivableDue: fin.receivableDue,
+        advanceCredit: fin.advanceCredit,
         status: fin.status,
         ordersCount: fin.ordersCount,
         isRegistered: false
@@ -587,18 +597,28 @@ export const Khata = () => {
 
                       {/* Balance */}
                       <td className="py-3 px-4 text-right font-mono font-black text-xs">
-                        <span className={item.balance > 0 ? 'text-amber-500 font-black' : 'text-emerald-600 dark:text-emerald-400 font-bold'}>
-                          Rs. {item.balance.toLocaleString()}
-                        </span>
+                        {item.advanceCredit > 0 ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
+                            Credit: Rs. {item.advanceCredit.toLocaleString()}
+                          </span>
+                        ) : item.receivableDue > 0 ? (
+                          <span className="text-amber-500 dark:text-amber-400 font-black">
+                            Rs. {item.receivableDue.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-bold">Rs. 0</span>
+                        )}
                       </td>
 
                       {/* Status */}
                       <td className="py-3 px-3 text-center">
-                        <span className={`font-bold text-xs ${item.status === 'Clear'
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-amber-500'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${item.advanceCredit > 0
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                          : item.receivableDue > 0
+                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
                           }`}>
-                          {item.status === 'Clear' ? 'Clear' : 'Due'}
+                          {item.advanceCredit > 0 ? 'Advance' : item.receivableDue > 0 ? 'Due' : 'Clear'}
                         </span>
                       </td>
 

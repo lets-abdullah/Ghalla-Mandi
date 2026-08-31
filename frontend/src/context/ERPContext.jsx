@@ -4,10 +4,22 @@ import { authFetch } from '../services/api';
 
 const ERPContext = createContext();
 
-export const computeSaleFinancials = (sale, saleReturns = []) => {
+export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) => {
   if (!sale) return { total: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
   const total = Number(sale.amount !== undefined ? sale.amount : (sale.grandTotal !== undefined ? sale.grandTotal : (sale.grandtotal !== undefined ? sale.grandtotal : 0)));
-  const paid = Number(sale.paidAmount !== undefined ? sale.paidAmount : (sale.paidamount !== undefined ? sale.paidamount : 0));
+  
+  // Specific payment logs for this sale invoice
+  const directPaid = (paymentLogs || []).filter(pl =>
+    (pl.type === 'Customer' || pl.partyType === 'Customer') &&
+    (
+      (pl.saleId && String(pl.saleId) === String(sale.id)) ||
+      (sale.invoiceNo && pl.ref && pl.ref.includes(sale.invoiceNo))
+    )
+  ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+
+  const upfrontPaid = Number(sale.paidAmount !== undefined ? sale.paidAmount : (sale.paidamount !== undefined ? sale.paidamount : 0));
+  const paid = directPaid > 0 ? directPaid : upfrontPaid;
+
   const returns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(sale.id)) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
   const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(sale.returnAmount || 0);
   const isReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus && sale.returnStatus !== 'None') || (returnAmount >= total && total > 0);
@@ -43,7 +55,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
 };
 
 export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = [], saleReturns = []) => {
-  if (!customer) return { openingBalance: 0, totalSale: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, returnAmount: 0, balance: 0, status: 'Clear', ordersCount: 0 };
+  if (!customer) return { openingBalance: 0, totalSale: 0, grossSale: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, returnAmount: 0, netSale: 0, netBalance: 0, balance: 0, receivableDue: 0, advanceCredit: 0, status: 'Clear', ordersCount: 0 };
   const custId = customer.id ? String(customer.id) : null;
   const custName = (customer.name || '').trim().toLowerCase();
   const isRegularCust = custId && !custId.startsWith('walkin-') && custName !== 'walk-in customer';
@@ -94,19 +106,28 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   }).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
 
   const openingBalance = Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0));
-  const netPurchases = Math.max(0, totalSale - returnAmount);
-  // Receivable = Opening + (Sales - Returns) - Payments (Negative means Credit/Overpayment)
-  const balance = openingBalance + netPurchases - totalPaid;
-  const status = balance > 0 ? 'Due' : (balance < 0 ? 'Advance' : 'Clear');
+  const netSales = Math.max(0, totalSale - returnAmount);
+  // Net Balance: Opening + (Gross Sales - Returns) - Payments
+  // Positive = Customer owes Mandi (Receivable Due)
+  // Negative = Mandi owes Customer (Advance Credit / Overpayment)
+  const netBalance = openingBalance + (totalSale - returnAmount) - totalPaid;
+  const receivableDue = Math.max(0, netBalance);
+  const advanceCredit = Math.max(0, -netBalance);
+  const status = netBalance > 0 ? 'Due' : (netBalance < 0 ? 'Advance' : 'Clear');
 
   return {
     openingBalance,
     totalSale,
+    grossSale: totalSale,
     upfrontPaid: totalPaid,
     directPaid: totalPaidLogs,
     totalPaid,
     returnAmount,
-    balance,
+    netSale: netSales,
+    netBalance,
+    balance: receivableDue,
+    receivableDue,
+    advanceCredit,
     status,
     ordersCount: custSales.length
   };

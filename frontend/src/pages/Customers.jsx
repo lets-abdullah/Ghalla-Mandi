@@ -102,10 +102,15 @@ export const Customers = () => {
         city: cust.city || 'Local Mandi',
         address: cust.address || '',
         customerType: custType,
-        balance: fin.balance,
+        balance: fin.receivableDue,
+        receivableDue: fin.receivableDue,
+        advanceCredit: fin.advanceCredit,
+        netBalance: fin.netBalance,
         ordersCount: fin.ordersCount,
         totalSales: fin.totalSale,
         totalPaid: fin.totalPaid,
+        returnAmount: fin.returnAmount,
+        netSale: fin.netSale,
         isRegistered: true
       };
     });
@@ -146,11 +151,16 @@ export const Customers = () => {
         city: 'Local Mandi',
         address: 'Walk-in Counter',
         customerType: 'Walk-in Customer',
-        balance: fin.balance,
+        balance: fin.receivableDue,
+        receivableDue: fin.receivableDue,
+        advanceCredit: fin.advanceCredit,
+        netBalance: fin.netBalance,
         status: 'Active',
         ordersCount: fin.ordersCount,
         totalSales: fin.totalSale,
         totalPaid: fin.totalPaid,
+        returnAmount: fin.returnAmount,
+        netSale: fin.netSale,
         isRegistered: false
       });
     });
@@ -564,9 +574,17 @@ export const Customers = () => {
 
                         {/* 4. Balance */}
                         <td className="py-3 px-4 text-right font-mono font-black text-xs">
-                          <span className={bal > 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}>
-                            Rs. {bal.toLocaleString()}
-                          </span>
+                          {cust.advanceCredit > 0 ? (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
+                              Credit: Rs. {cust.advanceCredit.toLocaleString()}
+                            </span>
+                          ) : bal > 0 ? (
+                            <span className="text-amber-500 font-black">
+                              Rs. {bal.toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 font-bold">Rs. 0</span>
+                          )}
                         </td>
 
                         {/* 5. Actions (Screen Only) */}

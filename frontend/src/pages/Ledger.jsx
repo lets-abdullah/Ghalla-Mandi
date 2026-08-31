@@ -922,20 +922,22 @@ export const Ledger = () => {
                           {/* 4. Current Balance */}
                           <td className="py-3.5 px-4 text-right font-mono font-black text-sm">
                             <span className={
-                              isZero ? 'text-emerald-600 dark:text-emerald-400 font-bold' :
-                                'text-amber-500 font-black'
+                              isZero ? 'text-slate-400 font-bold' :
+                                isNeg ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' :
+                                  'text-amber-500 font-black'
                             }>
-                              {isNeg ? `-Rs. ${Math.abs(cust.balance).toLocaleString()}` : `Rs. ${cust.balance.toLocaleString()}`}
+                              {isNeg ? `Credit: Rs. ${Math.abs(cust.balance).toLocaleString()}` : `Rs. ${cust.balance.toLocaleString()}`}
                             </span>
                           </td>
 
-                          {/* 5. Condition Status (Plain Text Colored) */}
+                          {/* 5. Condition Status */}
                           <td className="py-3.5 px-4 text-center">
-                            <span className={`font-bold text-xs ${
-                              isZero ? 'text-emerald-600 dark:text-emerald-400' :
-                                'text-amber-500'
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                              isZero ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700' :
+                                isNeg ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
+                                  'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
                             }`}>
-                              {isPos ? (isSupplier ? 'Payable' : 'Receivable') : isNeg ? (isSupplier ? 'Receivable' : 'Payable') : 'Settled'}
+                              {isPos ? (isSupplier ? 'Payable' : 'Receivable') : isNeg ? (isSupplier ? 'Overpaid' : 'Customer Credit') : 'Settled'}
                             </span>
                           </td>
 
@@ -1045,13 +1047,17 @@ export const Ledger = () => {
                 : theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
                 }`}>
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  {isSupplier ? 'Remaining to Pay' : 'Remaining Balance'}
+                  {isSupplier ? 'Remaining to Pay' : 'Account Balance'}
                 </div>
-                <div className={`text-lg font-mono font-black mt-1 ${(activeCustomer?.balance || 0) === 0
+                <div className={`text-lg font-mono font-black mt-1 ${(activeCustomer?.balance || 0) < 0
                   ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-amber-500 dark:text-amber-400'
+                  : (activeCustomer?.balance || 0) > 0
+                    ? 'text-amber-500 dark:text-amber-400'
+                    : 'text-slate-400'
                   }`}>
-                  Rs. {(activeCustomer?.balance || 0).toLocaleString()}
+                  {(activeCustomer?.balance || 0) < 0
+                    ? `Credit: Rs. ${Math.abs(activeCustomer?.balance || 0).toLocaleString()}`
+                    : `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}`}
                 </div>
               </div>
             </div>
