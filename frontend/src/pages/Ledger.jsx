@@ -874,7 +874,7 @@ export const Ledger = () => {
                     <th className="py-3.5 px-4">{isSupplier ? 'Supplier Firm' : 'Customer Entity'}</th>
                     <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Purchases' : 'Total Sales'}</th>
                     <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Paid' : 'Total Received'}</th>
-                    <th className="py-3.5 px-4 text-right font-black">{isSupplier ? 'Remaining to Pay' : 'Remaining Balance'}</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Remaining to Pay' : 'Remaining Balance'}</th>
                     <th className="py-3.5 px-4 text-center">Status</th>
                     <th className="py-3.5 px-4 text-center no-print">Action</th>
                   </tr>
@@ -926,9 +926,8 @@ export const Ledger = () => {
                           {/* 4. Current Balance */}
                           <td className="py-3.5 px-4 text-right font-mono font-black text-sm">
                             <span className={
-                              isPos ? 'text-emerald-600 dark:text-emerald-400' :
-                                isNeg ? 'text-rose-600 dark:text-rose-400' :
-                                  'text-slate-400'
+                              isZero ? 'text-emerald-600 dark:text-emerald-400 font-bold' :
+                                'text-amber-500 font-black'
                             }>
                               {isNeg ? `-Rs. ${Math.abs(cust.balance).toLocaleString()}` : `Rs. ${cust.balance.toLocaleString()}`}
                             </span>
@@ -937,9 +936,8 @@ export const Ledger = () => {
                           {/* 5. Condition Status (Plain Text Colored) */}
                           <td className="py-3.5 px-4 text-center">
                             <span className={`font-bold text-xs ${
-                              isPos ? (isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400') :
-                              isNeg ? (isSupplier ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400') :
-                              'text-slate-400'
+                              isZero ? 'text-emerald-600 dark:text-emerald-400' :
+                                'text-amber-500'
                             }`}>
                               {isPos ? (isSupplier ? 'Payable' : 'Receivable') : isNeg ? (isSupplier ? 'Receivable' : 'Payable') : 'Settled'}
                             </span>
@@ -1005,12 +1003,10 @@ export const Ledger = () => {
               {/* Status Badge */}
               <div className="flex items-center gap-2">
                 <span className={`px-3 py-1.5 rounded-2xl text-xs font-black border uppercase tracking-wider flex items-center gap-1.5 ${(activeCustomer?.balance || 0) > 0
-                  ? isSupplier
-                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                  : 'bg-slate-500/10 text-slate-500 border-slate-500/30'
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                   }`}>
-                  <span className={`w-2 h-2 rounded-full ${(activeCustomer?.balance || 0) > 0 ? (isSupplier ? 'bg-rose-500' : 'bg-emerald-500') : 'bg-slate-400'
+                  <span className={`w-2 h-2 rounded-full ${(activeCustomer?.balance || 0) > 0 ? 'bg-amber-500' : 'bg-emerald-500'
                     }`}></span>
                   <span>
                     {(activeCustomer?.balance || 0) > 0
@@ -1055,9 +1051,9 @@ export const Ledger = () => {
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                   {isSupplier ? 'Remaining to Pay' : 'Remaining Balance'}
                 </div>
-                <div className={`text-lg font-mono font-black mt-1 ${(activeCustomer?.balance || 0) > 0
-                  ? isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-slate-600 dark:text-slate-300'
+                <div className={`text-lg font-mono font-black mt-1 ${(activeCustomer?.balance || 0) === 0
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-amber-500 dark:text-amber-400'
                   }`}>
                   Rs. {(activeCustomer?.balance || 0).toLocaleString()}
                 </div>

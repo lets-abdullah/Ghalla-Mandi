@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  CreditCard, 
-  Search, 
-  Printer, 
-  DollarSign, 
-  Clock, 
-  CheckCircle2, 
-  Users, 
-  User, 
-  Filter, 
-  RefreshCw, 
-  BookOpen, 
-  Check, 
+import {
+  CreditCard,
+  Search,
+  Printer,
+  DollarSign,
+  Clock,
+  CheckCircle2,
+  Users,
+  User,
+  Filter,
+  RefreshCw,
+  BookOpen,
+  Check,
   X,
   LayoutGrid,
   List,
@@ -339,9 +339,8 @@ export const Khata = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => window.print()}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
           >
             <Printer className="w-4 h-4" />
             <span>Print Khata</span>
@@ -354,9 +353,8 @@ export const Khata = () => {
         {/* Total Sales Volume */}
         <div
           onClick={() => { setBalanceStatusFilter('All'); setCustomerTypeFilter('All'); }}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${
-            theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-          }`}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+            }`}
           title="View all customer accounts"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
@@ -371,9 +369,8 @@ export const Khata = () => {
         {/* Total Payments Collected */}
         <div
           onClick={() => setBalanceStatusFilter('Clear')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${
-            theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-          }`}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+            }`}
           title="Filter fully settled accounts"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
@@ -388,9 +385,8 @@ export const Khata = () => {
         {/* Total Outstanding */}
         <div
           onClick={() => setBalanceStatusFilter('Outstanding')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${
-            theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
-          }`}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+            }`}
           title="Filter pending receivables"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
@@ -404,9 +400,8 @@ export const Khata = () => {
       </div>
 
       {/* Khata Filter Toolbar (Screen Only) */}
-      <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-      }`}>
+      <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+        }`}>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
           {/* Search Input */}
           <div className="flex-1 min-w-[200px]">
@@ -420,9 +415,8 @@ export const Khata = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by name, phone, city..."
-                className={`w-full border rounded-xl pl-3 pr-8 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl pl-3 pr-8 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
               {searchTerm && (
                 <button
@@ -445,9 +439,8 @@ export const Khata = () => {
             <select
               value={customerTypeFilter}
               onChange={(e) => setCustomerTypeFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Customer Types</option>
               <option value="Regular Customer">Regular Customers</option>
@@ -464,9 +457,8 @@ export const Khata = () => {
             <select
               value={balanceStatusFilter}
               onChange={(e) => setBalanceStatusFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Balances</option>
               <option value="Outstanding">Due / Outstanding</option>
@@ -504,141 +496,136 @@ export const Khata = () => {
       />
 
       {/* COMPACT TABLE VIEW */}
-      <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-      }`}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
-              <thead>
-                <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${
-                  theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+      <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        }`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+            <thead>
+              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                  <th className="py-3 px-4">Customer</th>
-                  <th className="py-3 px-3">Type</th>
-                  <th className="py-3 px-4 text-right">Total Sale</th>
-                  <th className="py-3 px-4 text-right">Paid</th>
-                  <th className="py-3 px-4 text-right font-black">Balance</th>
-                  <th className="py-3 px-3 text-center">Status</th>
-                  <th className="py-3 px-4 text-center no-print">Action</th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y font-medium ${
-                theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+                <th className="py-3 px-4">Customer</th>
+                <th className="py-3 px-3">Type</th>
+                <th className="py-3 px-4 text-right">Total Sale</th>
+                <th className="py-3 px-4 text-right">Paid</th>
+                <th className="py-3 px-4 text-right">Balance</th>
+                <th className="py-3 px-3 text-center">Status</th>
+                <th className="py-3 px-4 text-center no-print">Action</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
               }`}>
-                {filteredKhata.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
-                      No customer accounts found matching the selected Khata filter criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredKhata.map(item => {
-                    const isWalkin = item.customerType.toLowerCase().includes('walk-in');
+              {filteredKhata.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                    No customer accounts found matching the selected Khata filter criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredKhata.map(item => {
+                  const isWalkin = item.customerType.toLowerCase().includes('walk-in');
 
-                    return (
-                      <tr 
-                        key={item.id} 
-                        className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
-                      >
-                        {/* Customer Name */}
-                        <td className="py-3 px-4">
-                          <div className="font-extrabold text-slate-900 dark:text-white">
-                            {item.name}
+                  return (
+                    <tr
+                      key={item.id}
+                      className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                    >
+                      {/* Customer Name */}
+                      <td className="py-3 px-4">
+                        <div className="font-extrabold text-slate-900 dark:text-white">
+                          {item.name}
+                        </div>
+                        {(item.city || item.businessName) && (
+                          <div className="text-[10px] text-slate-400 font-medium">
+                            📍 {item.city} {item.businessName ? `• ${item.businessName}` : ''}
                           </div>
-                          {(item.city || item.businessName) && (
-                            <div className="text-[10px] text-slate-400 font-medium">
-                              📍 {item.city} {item.businessName ? `• ${item.businessName}` : ''}
-                            </div>
-                          )}
-                        </td>
+                        )}
+                      </td>
 
-                        {/* Customer Type */}
-                        <td className="py-3 px-3">
-                          <span className="font-semibold text-xs text-slate-600 dark:text-slate-300">
-                            {isWalkin ? 'Walk-in' : 'Regular'}
-                          </span>
-                        </td>
+                      {/* Customer Type */}
+                      <td className="py-3 px-3">
+                        <span className="font-semibold text-xs text-slate-600 dark:text-slate-300">
+                          {isWalkin ? 'Walk-in' : 'Regular'}
+                        </span>
+                      </td>
 
-                        {/* Total Sale */}
-                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">
-                          Rs. {item.totalSale.toLocaleString()}
-                        </td>
+                      {/* Total Sale */}
+                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">
+                        Rs. {item.totalSale.toLocaleString()}
+                      </td>
 
-                        {/* Total Paid */}
-                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          Rs. {item.totalPaid.toLocaleString()}
-                        </td>
+                      {/* Total Paid */}
+                      <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        Rs. {item.totalPaid.toLocaleString()}
+                      </td>
 
-                        {/* Balance */}
-                        <td className="py-3 px-4 text-right font-mono font-black text-xs">
-                          <span className={item.balance > 0 ? 'text-amber-500 font-black' : 'text-emerald-600 dark:text-emerald-400 font-bold'}>
-                            Rs. {item.balance.toLocaleString()}
-                          </span>
-                        </td>
+                      {/* Balance */}
+                      <td className="py-3 px-4 text-right font-mono font-black text-xs">
+                        <span className={item.balance > 0 ? 'text-amber-500 font-black' : 'text-emerald-600 dark:text-emerald-400 font-bold'}>
+                          Rs. {item.balance.toLocaleString()}
+                        </span>
+                      </td>
 
-                        {/* Status */}
-                        <td className="py-3 px-3 text-center">
-                          <span className={`font-bold text-xs ${
-                            item.status === 'Clear'
-                              ? 'text-emerald-600 dark:text-emerald-400'
-                              : 'text-amber-500'
+                      {/* Status */}
+                      <td className="py-3 px-3 text-center">
+                        <span className={`font-bold text-xs ${item.status === 'Clear'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-amber-500'
                           }`}>
-                            {item.status === 'Clear' ? 'Clear' : 'Due'}
-                          </span>
-                        </td>
+                          {item.status === 'Clear' ? 'Clear' : 'Due'}
+                        </span>
+                      </td>
 
-                        {/* Actions: Edit | Receive Payment | View Ledger (Screen Only) */}
-                        <td className="py-3 px-4 text-center no-print">
-                          <div className="flex items-center justify-center gap-1.5">
-                            {/* Edit Khata Account */}
+                      {/* Actions: Edit | Receive Payment | View Ledger (Screen Only) */}
+                      <td className="py-3 px-4 text-center no-print">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Edit Khata Account */}
+                          <button
+                            onClick={() => handleOpenEditModal(item)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                            title="Edit Khata / Customer Details"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Edit</span>
+                          </button>
+
+                          {/* Receive Payment */}
+                          {item.balance > 0 ? (
                             <button
-                              onClick={() => handleOpenEditModal(item)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                              title="Edit Khata / Customer Details"
+                              onClick={() => openReceiveModal(item)}
+                              className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
+                              title="Receive Payment for this Khata"
                             >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              <span>Edit</span>
+                              <CreditCard className="w-3.5 h-3.5" />
+                              <span>Receive</span>
                             </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                              <Check className="w-3 h-3" /> Clear
+                            </span>
+                          )}
 
-                            {/* Receive Payment */}
-                            {item.balance > 0 ? (
-                              <button
-                                onClick={() => openReceiveModal(item)}
-                                className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
-                                title="Receive Payment for this Khata"
-                              >
-                                <CreditCard className="w-3.5 h-3.5" />
-                                <span>Receive</span>
-                              </button>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                                <Check className="w-3 h-3" /> Clear
-                              </span>
-                            )}
-
-                            {/* View Ledger */}
-                            <button
-                              onClick={() => navigate(item.isRegistered ? `/ledger?customerId=${item.id}` : `/ledger?customerId=${encodeURIComponent(item.name)}`)}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${
-                                theme === 'dark' 
-                                  ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400' 
-                                  : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
+                          {/* View Ledger */}
+                          <button
+                            onClick={() => navigate(item.isRegistered ? `/ledger?customerId=${item.id}` : `/ledger?customerId=${encodeURIComponent(item.name)}`)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${theme === 'dark'
+                                ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400'
+                                : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
                               }`}
-                              title="View Full Ledger for this Customer"
-                            >
-                              <BookOpen className="w-3.5 h-3.5" />
-                              <span>Ledger</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                            title="View Full Ledger for this Customer"
+                          >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            <span>Ledger</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
 
       {/* Print Footer */}
       <PrintFooter note="Official Business Record • Ghalla Mandi Customer Khata & Balances" />
@@ -649,9 +636,8 @@ export const Khata = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setPaymentModalCust(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
               <h3 className="text-base font-extrabold flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-emerald-600" /> Receive Khata Settlement
@@ -666,9 +652,8 @@ export const Khata = () => {
             </div>
 
             {/* Khata Summary Box */}
-            <div className={`rounded-2xl p-3.5 space-y-2 border text-xs font-semibold ${
-              theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'
-            }`}>
+            <div className={`rounded-2xl p-3.5 space-y-2 border text-xs font-semibold ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
               <div className="flex justify-between items-center text-slate-400">
                 <span>Customer:</span>
                 <span className="font-extrabold text-slate-900 dark:text-white">{paymentModalCust.name}</span>
@@ -694,9 +679,8 @@ export const Khata = () => {
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                   placeholder="Enter amount"
-                  className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -706,9 +690,8 @@ export const Khata = () => {
                   <select
                     value={paymentMode}
                     onChange={(e) => setPaymentMode(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   >
                     <option value="Cash">Cash on Counter</option>
                     <option value="Bank Transfer">Bank Transfer</option>
@@ -724,9 +707,8 @@ export const Khata = () => {
                     value={paymentNote}
                     onChange={(e) => setPaymentNote(e.target.value)}
                     placeholder="e.g. Khata clearance"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -735,9 +717,8 @@ export const Khata = () => {
                 <button
                   type="button"
                   onClick={() => setPaymentModalCust(null)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>
@@ -761,9 +742,8 @@ export const Khata = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setEditingKhataCust(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
@@ -815,9 +795,8 @@ export const Khata = () => {
                   <span className="text-[10px] font-black uppercase text-slate-400">Remaining Due</span>
                   <AlertCircle className="w-3 h-3 text-amber-500" />
                 </div>
-                <div className={`text-xs sm:text-sm font-black font-mono ${
-                  Number(editForm.balance) === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400'
-                }`}>
+                <div className={`text-xs sm:text-sm font-black font-mono ${Number(editForm.balance) === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400'
+                  }`}>
                   Rs. {Number(editForm.balance || 0).toLocaleString()}
                 </div>
                 <div className="text-[9px] text-slate-400 font-semibold">Khata Balance</div>
@@ -833,9 +812,8 @@ export const Khata = () => {
                     required
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
 
@@ -846,9 +824,8 @@ export const Khata = () => {
                     value={editForm.businessName}
                     onChange={(e) => setEditForm({ ...editForm, businessName: e.target.value })}
                     placeholder="e.g. Mumtaz Store"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -863,9 +840,8 @@ export const Khata = () => {
                     value={editForm.phone}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                     placeholder="03001234567"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
 
@@ -876,9 +852,8 @@ export const Khata = () => {
                     value={editForm.city}
                     onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
                     placeholder="e.g. Local Mandi"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
               </div>
@@ -889,9 +864,8 @@ export const Khata = () => {
                   <select
                     value={editForm.customerType}
                     onChange={(e) => setEditForm({ ...editForm, customerType: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   >
                     <option value="Regular Customer">Regular Party</option>
                     <option value="Walk-in Customer">Walk-in Party</option>
@@ -913,11 +887,10 @@ export const Khata = () => {
                       value={editForm.balance}
                       onChange={(e) => setEditForm({ ...editForm, balance: e.target.value })}
                       placeholder="0"
-                      className={`w-full border rounded-xl px-3 py-2 pr-14 text-xs font-black outline-none focus:border-brand-500 font-mono ${
-                        Number(editForm.balance) === 0
+                      className={`w-full border rounded-xl px-3 py-2 pr-14 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(editForm.balance) === 0
                           ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
                           : 'text-amber-500 dark:text-amber-400 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
-                      }`}
+                        }`}
                     />
                     <button
                       type="button"
@@ -938,9 +911,8 @@ export const Khata = () => {
                 <button
                   type="button"
                   onClick={() => setEditingKhataCust(null)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>
