@@ -1,15 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Printer, 
+import {
+  Printer,
   Download,
   Loader2,
-  Wheat, 
-  X, 
-  CheckCircle2, 
-  Calendar, 
-  FileText, 
-  User, 
-  Phone, 
+  Wheat,
+  X,
+  CheckCircle2,
+  Calendar,
+  FileText,
+  User,
+  Phone,
   Truck,
   CreditCard
 } from 'lucide-react';
@@ -80,7 +80,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
     const is58 = paperSize === 'thermal-58';
     const isFullSheet = isA4 || isA5;
 
-    const pageSizeCss = isA4 
+    const pageSizeCss = isA4
       ? '@page { size: A4 portrait; margin: 10mm 12mm; }'
       : isA5
         ? '@page { size: A5 portrait; margin: 8mm 10mm; }'
@@ -388,21 +388,19 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
   const isFullSheet = paperSize === 'a4' || paperSize === 'a5';
 
   return (
-    <div 
+    <div
       onClick={onClose}
       className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-hidden print:p-0 print:bg-white print:static"
     >
       {/* Modal Container */}
-      <div 
+      <div
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-4xl max-h-[94vh] rounded-3xl shadow-2xl border overflow-hidden flex flex-col my-auto transition-all ${
-          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-        }`}
+        className={`w-full max-w-4xl max-h-[94vh] rounded-3xl shadow-2xl border overflow-hidden flex flex-col my-auto transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}
       >
         {/* Modal Top Control Bar */}
-        <div className={`px-4 py-3 border-b flex flex-wrap items-center justify-between gap-3 shrink-0 ${
-          theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
-        }`}>
+        <div className={`px-4 py-3 border-b flex flex-wrap items-center justify-between gap-3 shrink-0 ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+          }`}>
           {/* Title & Document Badge */}
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black shrink-0 border border-blue-500/20">
@@ -428,66 +426,42 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
             <button
               type="button"
               onClick={() => setPaperSize('thermal-80')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
-                paperSize === 'thermal-80'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${paperSize === 'thermal-80'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
-              <span>80mm POS</span>
+              <span>80mm</span>
             </button>
             <button
               type="button"
               onClick={() => setPaperSize('thermal-58')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
-                paperSize === 'thermal-58'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${paperSize === 'thermal-58'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
-              <span>58mm Mini</span>
+              <span>58mm</span>
             </button>
             <button
               type="button"
               onClick={() => setPaperSize('a5')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
-                paperSize === 'a5'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${paperSize === 'a5'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
-              <span>A5 Mandi</span>
+              <span>A5</span>
             </button>
             <button
               type="button"
               onClick={() => setPaperSize('a4')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
-                paperSize === 'a4'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${paperSize === 'a4'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               <span>A4 Full Page</span>
-            </button>
-          </div>
-
-          {/* Quick Action Buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition shadow-sm flex items-center gap-2 cursor-pointer active:scale-98"
-              title="Print (Ctrl + P)"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Print {paperSize === 'thermal-80' ? 'Receipt' : paperSize === 'thermal-58' ? 'Mini' : paperSize === 'a5' ? 'A5' : 'A4'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
-            >
-              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -498,13 +472,12 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
           {/* 1. FULL SHEET PREVIEW (A4 & A5 Layout) */}
           {/* ========================================================================= */}
           {isFullSheet ? (
-            <div 
+            <div
               ref={receiptRef}
               id="purchase-receipt-card"
               data-receipt-printable="true"
-              className={`w-full bg-white text-slate-900 shadow-xl rounded-2xl border border-slate-200/90 p-5 sm:p-8 space-y-4 my-auto transition-all ${
-                paperSize === 'a4' ? 'max-w-[760px]' : 'max-w-[620px]'
-              }`}
+              className={`w-full bg-white text-slate-900 shadow-xl rounded-2xl border border-slate-200/90 p-5 sm:p-8 space-y-4 my-auto transition-all ${paperSize === 'a4' ? 'max-w-[760px]' : 'max-w-[620px]'
+                }`}
             >
               {/* Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start pb-4 border-b-2 border-emerald-600 gap-3">
@@ -678,13 +651,12 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
             /* ========================================================================= */
             /* 2. THERMAL POS RECEIPT PREVIEW (80mm & 58mm) */
             /* ========================================================================= */
-            <div 
+            <div
               ref={receiptRef}
               id="purchase-receipt-card"
               data-receipt-printable="true"
-              className={`w-full bg-white text-slate-900 shadow-xl rounded-2xl border border-slate-200/90 p-4 space-y-3 my-auto transition-all ${
-                paperSize === 'thermal-58' ? 'max-w-[280px] text-[11px]' : 'max-w-[360px] text-xs'
-              }`}
+              className={`w-full bg-white text-slate-900 shadow-xl rounded-2xl border border-slate-200/90 p-4 space-y-3 my-auto transition-all ${paperSize === 'thermal-58' ? 'max-w-[280px] text-[11px]' : 'max-w-[360px] text-xs'
+                }`}
             >
               {/* Logo & Header */}
               <div className="text-center">
@@ -830,9 +802,8 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
         </div>
 
         {/* Modal Bottom Actions Bar */}
-        <div className={`px-4 py-2.5 border-t flex flex-wrap items-center justify-between gap-2 shrink-0 ${
-          theme === 'dark' ? 'bg-slate-800/90 border-slate-700' : 'bg-slate-50 border-slate-200'
-        }`}>
+        <div className={`px-4 py-2.5 border-t flex flex-wrap items-center justify-between gap-2 shrink-0 ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700' : 'bg-slate-50 border-slate-200'
+          }`}>
           <div className="text-xs text-slate-400 font-semibold">
             Mode: <b className="text-slate-700 dark:text-slate-200 uppercase">{paperSize}</b>
           </div>
@@ -841,9 +812,8 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
             <button
               type="button"
               onClick={onClose}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
-              }`}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                }`}
             >
               <X className="w-3.5 h-3.5" />
               <span>Close</span>
