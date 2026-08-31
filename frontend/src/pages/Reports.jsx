@@ -74,20 +74,15 @@ export const Reports = () => {
     setExpPage(1);
   };
 
-  // Multi-dimensional Sales Report Filters
+  // Streamlined Sales Report Filters
+  const [salesSearch, setSalesSearch] = useState('');
   const [salesDateFilter, setSalesDateFilter] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
   const [salesStartDate, setSalesStartDate] = useState('');
   const [salesEndDate, setSalesEndDate] = useState('');
   const [salesProductFilter, setSalesProductFilter] = useState('All');
-  const [salesSupplierFilter, setSalesSupplierFilter] = useState('All');
   const [salesCustomerFilter, setSalesCustomerFilter] = useState('All');
   const [salesPaymentFilter, setSalesPaymentFilter] = useState('All'); // 'All' | 'Cash' | 'Credit' | 'Partial'
-  const [salesActiveSubTab, setSalesActiveSubTab] = useState('invoices'); // 'invoices' | 'productWise' | 'customerWise' | 'dateWise' | 'supplierWise'
-  const [expandedSuppliers, setExpandedSuppliers] = useState({});
-
-  const toggleSupplierExpand = (supName) => {
-    setExpandedSuppliers(prev => ({ ...prev, [supName]: !prev[supName] }));
-  };
+  const [salesActiveSubTab, setSalesActiveSubTab] = useState('invoices'); // 'invoices' | 'productWise' | 'customerWise' | 'dateWise'
 
   // Multi-dimensional P&L Statement Filters
   const [plDateFilter, setPlDateFilter] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
@@ -331,6 +326,16 @@ export const Reports = () => {
   // Filtered Sales Array based on active filters
   const filteredSalesList = useMemo(() => {
     return salesList.filter(s => {
+      // 0. Search Filter (Invoice #, Customer Party, Commodity Items)
+      if (salesSearch.trim()) {
+        const q = salesSearch.toLowerCase().trim();
+        const invMatch = (s.invoiceNo || `inv-${s.id}`).toLowerCase().includes(q);
+        const partyMatch = (s.partyName || s.customerName || '').toLowerCase().includes(q);
+        const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : [{ name: s.productName || (typeof s.items === 'string' ? s.items : 'General'), qty: s.qty || 1 }]);
+        const prodMatch = cart.some(it => (it.name || it.productName || '').toLowerCase().includes(q));
+        if (!invMatch && !partyMatch && !prodMatch) return false;
+      }
+
       // 1. Date Filter
       let sDateObj = new Date();
       if (s.created_at) {
@@ -388,25 +393,16 @@ export const Reports = () => {
       if (salesPaymentFilter === 'Credit' && s.dueAmt <= 0) return false;
       if (salesPaymentFilter === 'Partial' && (s.paidAmt <= 0 || s.dueAmt <= 0)) return false;
 
-      // 4. Product / Supplier filter check
-      const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : [{ name: s.productName || (typeof s.items === 'string' ? s.items : 'General'), qty: s.qty || 1 }]);
-
+      // 4. Product filter check
       if (salesProductFilter !== 'All') {
+        const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : [{ name: s.productName || (typeof s.items === 'string' ? s.items : 'General'), qty: s.qty || 1 }]);
         const hasProd = cart.some(it => (it.name || '').toLowerCase() === salesProductFilter.toLowerCase());
         if (!hasProd) return false;
       }
 
-      if (salesSupplierFilter !== 'All') {
-        const hasSup = cart.some(it => {
-          const pSups = productSupplierMap[(it.name || '').toLowerCase()] || ['Direct Mandi Stock'];
-          return pSups.some(sup => sup.toLowerCase() === salesSupplierFilter.toLowerCase());
-        });
-        if (!hasSup) return false;
-      }
-
       return true;
     });
-  }, [salesList, salesDateFilter, salesStartDate, salesEndDate, salesCustomerFilter, salesPaymentFilter, salesProductFilter, salesSupplierFilter, productSupplierMap]);
+  }, [salesList, salesSearch, salesDateFilter, salesStartDate, salesEndDate, salesCustomerFilter, salesPaymentFilter, salesProductFilter]);
 
   // Overall KPI Metrics for Filtered Sales
   const filteredGrossSales = useMemo(() => filteredSalesList.reduce((sum, s) => sum + s.grossAmt, 0), [filteredSalesList]);
@@ -617,14 +613,14 @@ export const Reports = () => {
   const topSellingProducts = useMemo(() => productWiseSalesData.slice(0, 5), [productWiseSalesData]);
   const topSuppliers = useMemo(() => supplierWiseSalesData.slice(0, 5), [supplierWiseSalesData]);
 
-  const hasActiveSalesFilters = salesDateFilter !== 'All' || salesProductFilter !== 'All' || salesSupplierFilter !== 'All' || salesCustomerFilter !== 'All' || salesPaymentFilter !== 'All' || salesStartDate || salesEndDate;
+  const hasActiveSalesFilters = salesSearch.trim() !== '' || salesDateFilter !== 'All' || salesProductFilter !== 'All' || salesCustomerFilter !== 'All' || salesPaymentFilter !== 'All' || salesStartDate || salesEndDate;
 
   const handleResetSalesFilters = () => {
+    setSalesSearch('');
     setSalesDateFilter('All');
     setSalesStartDate('');
     setSalesEndDate('');
     setSalesProductFilter('All');
-    setSalesSupplierFilter('All');
     setSalesCustomerFilter('All');
     setSalesPaymentFilter('All');
   };
@@ -2192,9 +2188,6 @@ export const Reports = () => {
               <div className="text-2xl font-black font-mono mt-2 text-slate-900 dark:text-white">
                 Rs. {filteredGrossSales.toLocaleString()}
               </div>
-              <div className="text-[11px] text-slate-400 font-semibold mt-1">
-                {filteredInvoicesCount} sale orders before deductions
-              </div>
             </div>
 
             {/* 2. Returns & Discounts */}
@@ -2209,9 +2202,6 @@ export const Reports = () => {
               <div className="text-2xl font-black font-mono mt-2 text-rose-600 dark:text-rose-400">
                 -Rs. {(filteredDiscount + filteredSalesReturnsVal).toLocaleString()}
               </div>
-              <div className="text-[11px] text-slate-400 font-semibold mt-1">
-                Rs. {filteredSalesReturnsVal.toLocaleString()} returns • Rs. {filteredDiscount.toLocaleString()} discounts
-              </div>
             </div>
 
             {/* 3. Final Net Sales */}
@@ -2225,9 +2215,6 @@ export const Reports = () => {
               </div>
               <div className="text-2xl font-black font-mono mt-2 text-brand-600 dark:text-brand-400">
                 Rs. {filteredNetSales.toLocaleString()}
-              </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold mt-1">
-                {filteredTotalQty.toLocaleString()} units sold after returns
               </div>
             </div>
 
@@ -2254,162 +2241,101 @@ export const Reports = () => {
                   </div>
                 </div>
               </div>
-              <div className="text-[11px] text-slate-400 font-semibold mt-1">
-                {filteredGrossSales > 0 ? ((filteredCashSales / filteredGrossSales) * 100).toFixed(0) : 0}% collected in counter cash
-              </div>
             </div>
           </div>
 
-          {/* Plain-English Mathematical Equation Ribbon (Screen Only) */}
-          <div className={`no-print p-3.5 rounded-2xl border flex flex-wrap items-center justify-between gap-3 text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+          {/* Streamlined Filter Toolbar (Screen Only) */}
+          <div className={`no-print p-3.5 rounded-2xl border card-shadow flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
-            <div className="flex flex-wrap items-center gap-2 font-bold">
-              <span className="text-slate-400">Sales Formula:</span>
-              <span className="font-mono text-slate-800 dark:text-slate-200">Gross (Rs. {filteredGrossSales.toLocaleString()})</span>
-              <span className="text-rose-500 font-black">−</span>
-              <span className="font-mono text-rose-600 dark:text-rose-400">Deductions (Rs. {(filteredDiscount + filteredSalesReturnsVal).toLocaleString()})</span>
-              <span className="text-brand-500 font-black">=</span>
-              <span className="font-mono font-black text-brand-600 dark:text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-md">
-                Final Net Sales: Rs. {filteredNetSales.toLocaleString()}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3 font-mono font-bold text-[11px]">
-              <span className="text-emerald-600 dark:text-emerald-400">
-                ● Cash: Rs. {filteredCashSales.toLocaleString()}
-              </span>
-              <span className="text-amber-600 dark:text-amber-400">
-                ● Khata Due: Rs. {filteredCreditSales.toLocaleString()}
-              </span>
-            </div>
-          </div>
-
-          {/* Clean Filter Panel (Screen Only) */}
-          <div className={`no-print p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-brand-500" />
-                <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                  Filter Sales Data
-                </span>
-              </div>
-
-              {hasActiveSalesFilters && (
-                <button
-                  type="button"
-                  onClick={handleResetSalesFilters}
-                  className="text-[11px] font-bold text-rose-500 hover:text-rose-600 flex items-center gap-1 cursor-pointer transition"
-                >
+            {/* 1. Quick Search */}
+            <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}>
+              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search invoice #, customer name, commodity..."
+                value={salesSearch}
+                onChange={(e) => setSalesSearch(e.target.value)}
+                className="w-full text-xs font-bold bg-transparent outline-none placeholder-slate-400"
+              />
+              {salesSearch && (
+                <button type="button" onClick={() => setSalesSearch('')} className="text-slate-400 hover:text-slate-600">
                   <X className="w-3.5 h-3.5" />
-                  <span>Reset Filters</span>
                 </button>
               )}
             </div>
 
-            {/* Filter Controls Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Date Filter */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Time Period
-                </label>
-                <select
-                  value={salesDateFilter}
-                  onChange={(e) => setSalesDateFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Time</option>
-                  <option value="Today">Today</option>
-                  <option value="Yesterday">Yesterday</option>
-                  <option value="This Week">This Week</option>
-                  <option value="This Month">This Month</option>
-                  <option value="Custom">Custom Date Range</option>
-                </select>
-              </div>
-
-              {/* Product / Item */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Commodity Item
-                </label>
-                <select
-                  value={salesProductFilter}
-                  onChange={(e) => setSalesProductFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Commodities</option>
-                  {allProductsList.map(p => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Customer Party */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Customer Party
-                </label>
-                <select
-                  value={salesCustomerFilter}
-                  onChange={(e) => setSalesCustomerFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Customers</option>
-                  {allCustomersList.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Payment Mode */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Payment Status
-                </label>
-                <select
-                  value={salesPaymentFilter}
-                  onChange={(e) => setSalesPaymentFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Transactions</option>
-                  <option value="Paid">Fully Paid</option>
-                  <option value="Partial">Partial Paid</option>
-                  <option value="Khata">Khata Due</option>
-                </select>
-              </div>
+            {/* 2. Time Period Filter */}
+            <div className="min-w-[140px]">
+              <select
+                value={salesDateFilter}
+                onChange={(e) => setSalesDateFilter(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+              >
+                <option value="All">All Time</option>
+                <option value="Today">Today</option>
+                <option value="Yesterday">Yesterday</option>
+                <option value="This Week">This Week</option>
+                <option value="This Month">This Month</option>
+                <option value="Custom">Custom Date Range</option>
+              </select>
             </div>
 
-            {/* Custom Date Pickers */}
-            {salesDateFilter === 'Custom' && (
-              <div className="flex flex-wrap items-center gap-4 pt-2.5 border-t border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-slate-400">From:</span>
-                  <input
-                    type="date"
-                    value={salesStartDate}
-                    onChange={(e) => setSalesStartDate(e.target.value)}
-                    className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-slate-400">To:</span>
-                  <input
-                    type="date"
-                    value={salesEndDate}
-                    onChange={(e) => setSalesEndDate(e.target.value)}
-                    className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-                </div>
-              </div>
+            {/* 3. Payment Status Filter */}
+            <div className="min-w-[130px]">
+              <select
+                value={salesPaymentFilter}
+                onChange={(e) => setSalesPaymentFilter(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+              >
+                <option value="All">All Transactions</option>
+                <option value="Paid">Fully Paid</option>
+                <option value="Partial">Partial Paid</option>
+                <option value="Credit">Khata Due</option>
+              </select>
+            </div>
+
+            {/* 4. Reset Filters Button */}
+            {hasActiveSalesFilters && (
+              <button
+                type="button"
+                onClick={handleResetSalesFilters}
+                className="px-3 py-2 rounded-xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs font-bold flex items-center gap-1 cursor-pointer transition h-[38px] shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
             )}
           </div>
+
+          {/* Custom Date Pickers */}
+          {salesDateFilter === 'Custom' && (
+            <div className={`no-print p-3 rounded-2xl border card-shadow flex flex-wrap items-center gap-3 text-xs ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <span className="font-bold text-slate-400">Custom Date Range:</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-500">From:</span>
+                <input
+                  type="date"
+                  value={salesStartDate}
+                  onChange={(e) => setSalesStartDate(e.target.value)}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-500">To:</span>
+                <input
+                  type="date"
+                  value={salesEndDate}
+                  onChange={(e) => setSalesEndDate(e.target.value)}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Interactive Sub-Navigation Tabs (Screen Only) */}
           <div className="no-print flex items-center gap-2 p-1.5 rounded-2xl bg-slate-200/70 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-x-auto">
@@ -2515,22 +2441,19 @@ export const Reports = () => {
                   <thead>
                     <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                       }`}>
-                      <th className="py-3 px-3">Date</th>
-                      <th className="py-3 px-3">Invoice #</th>
+                      <th className="py-3 px-3">Invoice & Date</th>
                       <th className="py-3 px-3">Customer Party</th>
                       <th className="py-3 px-3">Commodities Sold</th>
-                      <th className="py-3 px-3 text-right">Gross Total</th>
-                      <th className="py-3 px-3 text-right">Deductions</th>
-                      <th className="py-3 px-3 text-right font-black text-brand-500">Net Sales</th>
-                      <th className="py-3 px-3 text-right text-emerald-600">Cash Paid</th>
-                      <th className="py-3 px-3 text-right text-amber-600">Khata Due</th>
+                      <th className="py-3 px-3 text-right font-black">Total Amount</th>
+                      <th className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400 font-bold">Paid</th>
+                      <th className="py-3 px-3 text-right text-amber-600 dark:text-amber-400 font-bold">Remaining Due</th>
                       <th className="py-3 px-3 text-center">Status</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                     {filteredSalesList.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="py-10 text-center text-slate-400 font-medium">
+                        <td colSpan={7} className="py-10 text-center text-slate-400 font-medium">
                           No sales orders found matching current filter selection.
                         </td>
                       </tr>
@@ -2538,16 +2461,16 @@ export const Reports = () => {
                       filteredSalesList.map((s, idx) => {
                         const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : [{ name: s.productName || 'Item', qty: s.qty || 1, unit: s.unit || 'KG' }]);
                         const itemsSummary = cart.map(it => `${it.name || it.productName || 'Item'} (${it.qty || it.enteredQty || 1} ${it.unit || it.unitName || 'KG'})`).join(', ');
-                        const returnAmt = Number(s.returnAmount || s.returnAmt || 0);
-                        const totalDeduction = Number(s.discount || 0) + returnAmt;
 
                         return (
                           <tr key={s.id || idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
-                            <td className="py-3 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
-                              {s.dateStr || s.date || '—'}
-                            </td>
-                            <td className="py-3 px-3 font-mono font-bold text-brand-600 dark:text-brand-400 whitespace-nowrap">
-                              {s.invoiceNo || `INV-${s.id}`}
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <div className="font-mono font-bold text-brand-600 dark:text-brand-400 text-xs">
+                                {s.invoiceNo || `INV-${s.id}`}
+                              </div>
+                              <div className="font-mono text-[10px] text-slate-400">
+                                {s.dateStr || s.date || '—'}
+                              </div>
                             </td>
                             <td className="py-3 px-3 font-bold text-slate-900 dark:text-white max-w-xs truncate">
                               {s.partyName || s.customerName || 'Walk-in Customer'}
@@ -2555,23 +2478,17 @@ export const Reports = () => {
                             <td className="py-3 px-3 text-slate-600 dark:text-slate-300 max-w-xs truncate font-medium">
                               {itemsSummary}
                             </td>
-                            <td className="py-3 px-3 text-right font-mono">
-                              Rs. {s.grossAmt.toLocaleString()}
-                            </td>
-                            <td className="py-3 px-3 text-right font-mono text-rose-500">
-                              {totalDeduction > 0 ? `-Rs. ${totalDeduction.toLocaleString()}` : '—'}
-                            </td>
-                            <td className="py-3 px-3 text-right font-mono font-black text-brand-500">
+                            <td className="py-3 px-3 text-right font-mono font-black text-slate-900 dark:text-white">
                               Rs. {s.netAmt.toLocaleString()}
                             </td>
-                            <td className="py-3 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                            <td className="py-3 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                               Rs. {s.paidAmt.toLocaleString()}
                             </td>
-                            <td className="py-3 px-3 text-right font-mono text-amber-600 dark:text-amber-400">
+                            <td className="py-3 px-3 text-right font-mono font-bold text-amber-600 dark:text-amber-400">
                               {s.dueAmt > 0 ? `Rs. ${s.dueAmt.toLocaleString()}` : <span className="text-emerald-500 font-bold text-[10px]">Cleared</span>}
                             </td>
                             <td className="py-3 px-3 text-center">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${s.dueAmt <= 0
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${s.dueAmt <= 0
                                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                 : s.paidAmt > 0
                                   ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
@@ -2589,14 +2506,10 @@ export const Reports = () => {
                     <tfoot>
                       <tr className={`border-t-2 text-xs font-black ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-slate-100/90 border-slate-300 text-slate-900'
                         }`}>
-                        <td className="py-3.5 px-3 uppercase" colSpan={4}>Total / Summary ({filteredSalesList.length} Orders)</td>
-                        <td className="py-3.5 px-3 text-right font-mono">Rs. {filteredGrossSales.toLocaleString()}</td>
-                        <td className="py-3.5 px-3 text-right font-mono text-rose-500">
-                          -Rs. {(filteredDiscount + filteredSalesReturnsVal).toLocaleString()}
-                        </td>
-                        <td className="py-3.5 px-3 text-right font-mono text-brand-500">Rs. {filteredNetSales.toLocaleString()}</td>
-                        <td className="py-3.5 px-3 text-right font-mono text-emerald-600">Rs. {filteredCashSales.toLocaleString()}</td>
-                        <td className="py-3.5 px-3 text-right font-mono text-amber-600">Rs. {filteredCreditSales.toLocaleString()}</td>
+                        <td className="py-3.5 px-3 uppercase" colSpan={3}>Total Summary ({filteredSalesList.length} Invoices)</td>
+                        <td className="py-3.5 px-3 text-right font-mono font-black">Rs. {filteredNetSales.toLocaleString()}</td>
+                        <td className="py-3.5 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400">Rs. {filteredCashSales.toLocaleString()}</td>
+                        <td className="py-3.5 px-3 text-right font-mono text-amber-600 dark:text-amber-400">Rs. {filteredCreditSales.toLocaleString()}</td>
                         <td className="py-3.5 px-3"></td>
                       </tr>
                     </tfoot>

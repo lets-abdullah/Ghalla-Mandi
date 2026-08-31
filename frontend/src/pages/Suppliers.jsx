@@ -111,8 +111,8 @@ const SuppliedProductsCombobox = ({
       <div
         onClick={() => setIsOpen(true)}
         className={`w-full border rounded-xl p-2 min-h-[38px] flex flex-wrap items-center gap-1.5 transition cursor-text ${theme === 'dark'
-            ? 'bg-slate-900 border-slate-700 text-white focus-within:border-brand-500'
-            : 'bg-slate-50 border-slate-200 text-slate-800 focus-within:border-brand-500'
+          ? 'bg-slate-900 border-slate-700 text-white focus-within:border-brand-500'
+          : 'bg-slate-50 border-slate-200 text-slate-800 focus-within:border-brand-500'
           }`}
       >
         {/* Selected Product Badges */}
@@ -120,8 +120,8 @@ const SuppliedProductsCombobox = ({
           <span
             key={name}
             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold select-none border ${theme === 'dark'
-                ? 'bg-brand-500/15 border-brand-500/30 text-brand-300'
-                : 'bg-brand-50 border-brand-200 text-brand-700'
+              ? 'bg-brand-500/15 border-brand-500/30 text-brand-300'
+              : 'bg-brand-50 border-brand-200 text-brand-700'
               }`}
           >
             <span>{name}</span>
@@ -211,10 +211,10 @@ const SuppliedProductsCombobox = ({
                     type="button"
                     onClick={() => toggleProduct(pName)}
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition cursor-pointer select-none border ${isSelected
-                        ? 'bg-brand-500 text-white border-brand-600 shadow-xs'
-                        : theme === 'dark'
-                          ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      ? 'bg-brand-500 text-white border-brand-600 shadow-xs'
+                      : theme === 'dark'
+                        ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                       }`}
                   >
                     {isSelected ? <Check className="w-3 h-3 stroke-[2.5]" /> : <Plus className="w-3 h-3 text-slate-400" />}
@@ -240,7 +240,7 @@ export const Suppliers = () => {
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'card'
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('All');
   const [selectedProductFilter, setSelectedProductFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Active' | 'Inactive' | 'Payable' | 'Settled'
+  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Payable' | 'Settled'
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -334,7 +334,6 @@ export const Suppliers = () => {
         bankName: form.bankName.trim(),
         accountTitle: form.accountTitle.trim(),
         accountNumber: form.accountNumber.trim(),
-        status: form.status || 'Active',
         notes: form.notes.trim()
       });
 
@@ -390,7 +389,6 @@ export const Suppliers = () => {
         bankName: editingSupplier.bankName?.trim() || '',
         accountTitle: editingSupplier.accountTitle?.trim() || '',
         accountNumber: (editingSupplier.accountNumber || editingSupplier.iban)?.trim() || '',
-        status: editingSupplier.status || 'Active',
         notes: editingSupplier.notes?.trim() || ''
       });
 
@@ -893,7 +891,6 @@ export const Suppliers = () => {
                   <th className="py-3 px-4">Contact</th>
                   <th className="py-3 px-4">Supplied Products</th>
                   <th className="py-3 px-4 text-right">Balance Due</th>
-                  <th className="py-3 px-4 text-center">Status</th>
                   <th className="py-3 px-4 text-center no-print">Actions</th>
                 </tr>
               </thead>
@@ -907,7 +904,6 @@ export const Suppliers = () => {
                 ) : (
                   filteredSuppliers.map(s => {
                     const bal = Number(s.balance) || 0;
-                    const isAct = (s.status || 'Active') === 'Active';
                     const suppliedProds = s.suppliedProducts || [];
 
                     return (
@@ -1444,21 +1440,6 @@ export const Suppliers = () => {
                           }`}
                       />
                     </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Account Status
-                      </label>
-                      <select
-                        value={editingSupplier.status || 'Active'}
-                        onChange={(e) => setEditingSupplier({ ...editingSupplier, status: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      >
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                      </select>
-                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -1516,7 +1497,7 @@ export const Suppliers = () => {
 
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                      Notes / Terms (Optional)
+                      Notes(Optional)
                     </label>
                     <input
                       type="text"
@@ -1597,33 +1578,6 @@ export const Suppliers = () => {
                 >
                   <X className="w-5 h-5" />
                 </button>
-              </div>
-
-              {/* Financial Metrics Strip */}
-              <div className="grid grid-cols-3 gap-2.5">
-                <div className={`p-3 rounded-2xl border text-center ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">Total Purchases</div>
-                  <div className="font-mono font-extrabold text-xs text-slate-900 dark:text-white mt-0.5">
-                    Rs. {totalPurchases.toLocaleString()}
-                  </div>
-                </div>
-
-                <div className={`p-3 rounded-2xl border text-center ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">Total Paid</div>
-                  <div className="font-mono font-extrabold text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
-                    Rs. {totalPaid.toLocaleString()}
-                  </div>
-                </div>
-
-                <div className={`p-3 rounded-2xl border text-center ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">Khata Balance</div>
-                  <div className={`font-mono font-extrabold text-xs mt-0.5 ${balance > 0 ? 'text-amber-500' : 'text-emerald-600'}`}>
-                    Rs. {balance.toLocaleString()}
-                  </div>
-                </div>
               </div>
 
               {/* Contact & Business Info Details */}
@@ -1708,33 +1662,6 @@ export const Suppliers = () => {
                     Note: {viewingSupplier.notes}
                   </div>
                 )}
-              </div>
-
-              {/* Action Jump Buttons */}
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewingSupplier(null);
-                    navigate(`/ledger?type=Supplier&customerId=${viewingSupplier.id}`);
-                  }}
-                  className="py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span>View Ledger</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewingSupplier(null);
-                    navigate(`/ledger?type=Supplier&customerId=${viewingSupplier.id}`);
-                  }}
-                  className="py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>View Khata</span>
-                </button>
               </div>
             </div>
           </div>
