@@ -769,7 +769,7 @@ export const Reports = () => {
         sum += (itQty * unitCost);
       });
     });
-    (filteredSaleReturnsList || []).forEach(r => {
+    (saleReturns || []).forEach(r => {
       const items = Array.isArray(r.items) && r.items.length > 0 ? r.items : [{ name: r.productName || 'Commodity', qty: r.qty || 1 }];
       items.forEach(it => {
         const itQty = Number(it.qty || it.enteredQty || 1);
@@ -779,7 +779,7 @@ export const Reports = () => {
       });
     });
     return Math.max(0, sum);
-  }, [filteredSalesList, filteredSaleReturnsList, products]);
+  }, [filteredSalesList, saleReturns, products]);
 
   const cogs = totalSalesCOGS;
   const grossOperatingProfit = useMemo(() => totalNetSales - cogs, [totalNetSales, cogs]);
