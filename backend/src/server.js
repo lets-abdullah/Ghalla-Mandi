@@ -86,7 +86,7 @@ app.use((err, req, res, next) => {
 });
 
 // Only listen when running standalone locally, not in serverless environments (like Vercel)
-if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
+if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`[Ghalla Mandi ERP Backend] Server listening on http://localhost:${PORT}`);
   });
