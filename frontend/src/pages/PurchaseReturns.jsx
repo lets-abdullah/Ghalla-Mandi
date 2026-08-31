@@ -20,7 +20,7 @@ import {
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
-import { PurchaseReturnModal } from '../components/PurchaseReturnModal';
+import { PurchaseReturnModal } from '../modals/PurchaseReturnModal';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 

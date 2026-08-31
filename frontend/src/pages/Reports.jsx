@@ -299,6 +299,34 @@ export const Reports = () => {
     return map;
   }, [products, suppliers, purchases]);
 
+  const allProductsList = useMemo(() => {
+    const set = new Set((products || []).map(p => p.name).filter(Boolean));
+    (sales || []).forEach(s => {
+      if (s.productName) set.add(s.productName);
+      if (Array.isArray(s.cart)) s.cart.forEach(it => it.name && set.add(it.name));
+      if (Array.isArray(s.items)) s.items.forEach(it => it.name && set.add(it.name));
+    });
+    return ['All', ...Array.from(set).sort()];
+  }, [products, sales]);
+
+  const allCustomersList = useMemo(() => {
+    const set = new Set((customers || []).map(c => c.name).filter(Boolean));
+    (sales || []).forEach(s => {
+      const name = s.partyName || s.customerName;
+      if (name) set.add(name);
+    });
+    return ['All', ...Array.from(set).sort()];
+  }, [customers, sales]);
+
+  const allSuppliersList = useMemo(() => {
+    const set = new Set((suppliers || []).map(s => s.name).filter(Boolean));
+    (purchases || []).forEach(p => {
+      const name = p.supplierName || p.supplier;
+      if (name) set.add(name);
+    });
+    return ['All', ...Array.from(set).sort()];
+  }, [suppliers, purchases]);
+
   // Filtered Sales Array based on active filters
   const filteredSalesList = useMemo(() => {
     return salesList.filter(s => {

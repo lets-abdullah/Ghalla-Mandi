@@ -12,7 +12,7 @@ import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useSidebar } from '../context/SidebarContext';
-import { ReceiptModal } from '../components/ReceiptModal';
+import { ReceiptModal } from '../modals/ReceiptModal';
 
 export const CreateOrder = () => {
   const { products = [], categories = [], customers = [], addCustomer, createSale } = useERP();

@@ -383,7 +383,7 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
               <div className="font-black text-slate-900 text-sm pl-4">
                 {displayCustomer}
               </div>
-              {customerPhone && (
+              ${customerPhone && (
                 <div className="flex items-center gap-1 text-xs text-slate-600 font-medium pl-4">
                   <Phone className="w-3 h-3 text-slate-400" />
                   <span>{customerPhone}</span>

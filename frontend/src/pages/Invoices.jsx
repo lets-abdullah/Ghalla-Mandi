@@ -25,8 +25,8 @@ import {
 import { useERP, computeSaleFinancials, computePurchaseFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
-import { ReceiptModal } from '../components/ReceiptModal';
-import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
+import { ReceiptModal } from '../modals/ReceiptModal';
+import { PurchaseReceiptModal } from '../modals/PurchaseReceiptModal';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 

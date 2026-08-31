@@ -26,9 +26,9 @@ import {
 import { useERP, computePurchaseFinancials, computeSupplierKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
-import { PurchaseReceiptModal } from '../components/PurchaseReceiptModal';
-import { PurchaseReturnModal } from '../components/PurchaseReturnModal';
-import { EditPurchaseModal } from '../components/EditPurchaseModal';
+import { PurchaseReceiptModal } from '../modals/PurchaseReceiptModal';
+import { PurchaseReturnModal } from '../modals/PurchaseReturnModal';
+import { EditPurchaseModal } from '../modals/EditPurchaseModal';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 

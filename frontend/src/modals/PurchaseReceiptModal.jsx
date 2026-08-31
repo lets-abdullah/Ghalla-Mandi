@@ -229,9 +229,9 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
               <div style="font-family: Georgia, serif; font-style: italic; font-size: 15px; font-weight: bold; color: #064e3b;">
                 — Thank You —
               </div>
-              <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">
+              <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5">
                 We appreciate your business
-              </div>
+              </p>
             </div>
           </div>
         </body>
@@ -382,18 +382,18 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
               <div className="font-black text-slate-900 text-sm pl-4">
                 {displaySupplier}
               </div>
-              {supplierPhone && (
+              ${supplierPhone && (
                 <div className="flex items-center gap-1 text-xs text-slate-600 font-medium pl-4">
                   <Phone className="w-3 h-3 text-slate-400" />
                   <span>{supplierPhone}</span>
                 </div>
               )}
-              {supplierCity && (
+              ${supplierCity && (
                 <div className="text-xs text-slate-500 font-medium pl-4">
                   📍 City: {supplierCity}
                 </div>
               )}
-              {truckNo && (
+              ${truckNo && (
                 <div className="text-xs text-slate-500 font-medium pl-4">
                   🚛 Truck: {truckNo}
                 </div>

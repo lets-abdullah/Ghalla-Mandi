@@ -7,12 +7,6 @@ export const translations = {
     allRightsReserved: "All rights reserved.",
     copyrightNotice: "© 2026 Ghalla Mandi. All rights reserved.",
 
-    // Language
-    language: "Language",
-    english: "English",
-    urdu: "Urdu",
-    selectLanguage: "Select Language",
-
     // Navigation & Sidebar
     dashboard: "Dashboard",
     createOrder: "Create Order (POS)",
