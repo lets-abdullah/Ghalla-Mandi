@@ -756,11 +756,33 @@ export const Reports = () => {
     return sorted.length > 0 ? sorted[0][0] : 'None';
   }, [expenses]);
 
-  // =========================================================================
   // 4. FINANCIAL STATEMENTS (P&L and Balance Sheet with Returns Deducted)
-  // =========================================================================
-  const cogs = useMemo(() => Math.max(0, totalNetPurchases), [totalNetPurchases]);
-  const grossOperatingProfit = useMemo(() => Math.max(0, totalNetSales - cogs), [totalNetSales, cogs]);
+  // COGS for all sales in filtered overview (Calculated from actual unit cost of sold goods)
+  const totalSalesCOGS = useMemo(() => {
+    let sum = 0;
+    (filteredSalesList || []).forEach(s => {
+      const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) && s.items.length > 0 ? s.items : [{ name: s.productName || 'Commodity', qty: s.qty || 1 }]);
+      cart.forEach(it => {
+        const itQty = Number(it.qty || it.enteredQty || 1);
+        const prod = (products || []).find(p => String(p.id) === String(it.productId || it.id) || (p.name && it.name && p.name.toLowerCase() === it.name.toLowerCase()));
+        const unitCost = Number(it.costPrice ?? it.purchasePrice ?? prod?.purchasePrice ?? prod?.purchaseprice ?? 0);
+        sum += (itQty * unitCost);
+      });
+    });
+    (filteredSaleReturnsList || []).forEach(r => {
+      const items = Array.isArray(r.items) && r.items.length > 0 ? r.items : [{ name: r.productName || 'Commodity', qty: r.qty || 1 }];
+      items.forEach(it => {
+        const itQty = Number(it.qty || it.enteredQty || 1);
+        const prod = (products || []).find(p => String(p.id) === String(it.productId || it.id) || (p.name && it.name && p.name.toLowerCase() === it.name.toLowerCase()));
+        const unitCost = Number(it.costPrice ?? it.purchasePrice ?? prod?.purchasePrice ?? prod?.purchaseprice ?? 0);
+        sum -= (itQty * unitCost);
+      });
+    });
+    return Math.max(0, sum);
+  }, [filteredSalesList, filteredSaleReturnsList, products]);
+
+  const cogs = totalSalesCOGS;
+  const grossOperatingProfit = useMemo(() => totalNetSales - cogs, [totalNetSales, cogs]);
   const netOperatingProfit = useMemo(() => grossOperatingProfit - totalExpensesAmount, [grossOperatingProfit, totalExpensesAmount]);
 
   // Combined Customer Receivables List (Regular + Walk-in Customers) for Balance Sheet
@@ -1118,7 +1140,13 @@ export const Reports = () => {
       const primaryCat = pCategories[0] || 'General';
       const totalQty = cart.reduce((sum, it) => sum + Number(it.qty || it.enteredQty || 1), 0);
       const unit = cart[0]?.unit || s.unit || 'KG';
-      const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.netAmt || 0)));
+      let saleCogs = 0;
+      cart.forEach(it => {
+        const itQty = Number(it.qty || it.enteredQty || 1);
+        const pObj = (products || []).find(p => String(p.id) === String(it.productId || it.id) || (p.name && it.name && p.name.toLowerCase() === it.name.toLowerCase()));
+        const unitCost = Number(it.costPrice ?? it.purchasePrice ?? pObj?.purchasePrice ?? pObj?.purchaseprice ?? 0);
+        saleCogs += (itQty * unitCost);
+      });
 
       journal.push({
         id: `sale-${s.id || s.invoiceNo || Math.random()}`,
@@ -1132,6 +1160,8 @@ export const Reports = () => {
         qty: `${totalQty} ${unit}`,
         rawQty: totalQty,
         amount: grossAmt,
+        cogs: saleCogs,
+        grossProfit: grossAmt - saleCogs,
         party: s.partyName || s.customerName || 'Customer Party',
         mode: s.paymentMode || (Number(s.paidAmount || s.paidAmt || 0) >= grossAmt ? 'Cash' : 'Credit')
       });
@@ -1195,6 +1225,14 @@ export const Reports = () => {
       const it = (r.items || [])[0] || {};
       const refAmt = Number(r.refundAmount || 0);
 
+      let returnCogs = 0;
+      (r.items || []).forEach(item => {
+        const itQty = Number(item.qty || item.enteredQty || 1);
+        const pObj = (products || []).find(p => String(p.id) === String(item.productId || item.id) || (p.name && item.name && p.name.toLowerCase() === item.name.toLowerCase()));
+        const unitCost = Number(item.costPrice ?? item.purchasePrice ?? pObj?.purchasePrice ?? pObj?.purchaseprice ?? 0);
+        returnCogs += (itQty * unitCost);
+      });
+
       journal.push({
         id: `sr-${r.id || r.returnNo || Math.random()}`,
         dateStr: r.date || rDateObj.toLocaleDateString('en-GB'),
@@ -1207,6 +1245,8 @@ export const Reports = () => {
         qty: it.qty ? `${it.qty} ${it.unit || 'KG'}` : '—',
         rawQty: Number(it.qty || 0),
         amount: -refAmt,
+        cogs: returnCogs,
+        grossProfit: -(refAmt - returnCogs),
         party: r.customerName || 'Customer Party',
         mode: r.refundMode || 'Ledger'
       });
@@ -1331,9 +1371,11 @@ export const Reports = () => {
     });
   }, [plJournalTransactions, plDateFilter, plStartDate, plEndDate, plProductFilter, plCategoryFilter, plTypeFilter, plPaymentFilter, plPartyFilter, plSearch]);
 
-  // P&L Statement Metrics
+  // P&L Statement Metrics (True Accrual Accounting: Sales - COGS - Expenses)
   const plTotalRevenue = useMemo(() => {
-    return filteredPlJournal.filter(t => t.isIncome).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const grossSales = filteredPlJournal.filter(t => t.type === 'Sale').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const saleReturnsVal = filteredPlJournal.filter(t => t.type === 'Sale Return').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    return Math.max(0, grossSales - saleReturnsVal);
   }, [filteredPlJournal]);
 
   const plTotalSalesIncome = useMemo(() => {
@@ -1341,18 +1383,28 @@ export const Reports = () => {
   }, [filteredPlJournal]);
 
   const plTotalReturns = useMemo(() => {
-    return filteredPlJournal.filter(t => t.type === 'Return' || t.type === 'Sale Return').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    return filteredPlJournal.filter(t => t.type === 'Sale Return').reduce((sum, t) => sum + Math.abs(t.amount), 0);
   }, [filteredPlJournal]);
 
+  // Cost of Goods Sold (COGS): Actual purchase cost of items sold in this period
   const plTotalCOGS = useMemo(() => {
-    return filteredPlJournal.filter(t => t.type === 'Purchase').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const soldCogs = filteredPlJournal.filter(t => t.type === 'Sale').reduce((sum, t) => sum + (Number(t.cogs) || 0), 0);
+    const returnCogs = filteredPlJournal.filter(t => t.type === 'Sale Return').reduce((sum, t) => sum + (Number(t.cogs) || 0), 0);
+    return Math.max(0, soldCogs - returnCogs);
+  }, [filteredPlJournal]);
+
+  // Total Procurement Purchases (Separate Operational Metric for Inventory Addition)
+  const plTotalPurchases = useMemo(() => {
+    const grossPur = filteredPlJournal.filter(t => t.type === 'Purchase').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const purReturnsVal = filteredPlJournal.filter(t => t.type === 'Purchase Return').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    return Math.max(0, grossPur - purReturnsVal);
   }, [filteredPlJournal]);
 
   const plGrossProfit = useMemo(() => plTotalRevenue - plTotalCOGS, [plTotalRevenue, plTotalCOGS]);
   const plGrossMargin = useMemo(() => plTotalRevenue > 0 ? ((plGrossProfit / plTotalRevenue) * 100).toFixed(2) : '0.00', [plGrossProfit, plTotalRevenue]);
 
   const plTotalExpenses = useMemo(() => {
-    return filteredPlJournal.filter(t => t.type === 'Expense' || t.type === 'Sale Return').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    return filteredPlJournal.filter(t => t.type === 'Expense').reduce((sum, t) => sum + Math.abs(t.amount), 0);
   }, [filteredPlJournal]);
 
   const plNetProfit = useMemo(() => plGrossProfit - plTotalExpenses, [plGrossProfit, plTotalExpenses]);
@@ -1423,15 +1475,17 @@ export const Reports = () => {
     }).sort((a, b) => b.grossProfit - a.grossProfit);
   }, [products, filteredSalesList]);
 
-  // Category-Wise P&L Analysis
+  // Category-Wise P&L Analysis (Accurate COGS & Gross Profit per Category)
   const categoryWisePnLData = useMemo(() => {
     const map = {};
     (allCategories || ['All', 'General']).filter(c => c !== 'All').forEach(cat => {
       map[cat.toLowerCase()] = {
         category: cat,
         sales: 0,
+        cogs: 0,
         purchases: 0,
         expenses: 0,
+        grossProfit: 0,
         netProfit: 0,
         margin: '0.0'
       };
@@ -1443,27 +1497,35 @@ export const Reports = () => {
         map[catKey] = {
           category: item.category || 'General',
           sales: 0,
+          cogs: 0,
           purchases: 0,
           expenses: 0,
+          grossProfit: 0,
           netProfit: 0,
           margin: '0.0'
         };
       }
 
-      if (item.type === 'Sale' || item.type === 'Purchase Return') {
+      if (item.type === 'Sale') {
         map[catKey].sales += Math.abs(item.amount);
+        map[catKey].cogs += Number(item.cogs || 0);
+      } else if (item.type === 'Sale Return') {
+        map[catKey].sales -= Math.abs(item.amount);
+        map[catKey].cogs -= Number(item.cogs || 0);
       } else if (item.type === 'Purchase') {
         map[catKey].purchases += Math.abs(item.amount);
-      } else {
+      } else if (item.type === 'Expense') {
         map[catKey].expenses += Math.abs(item.amount);
       }
     });
 
-    return Object.values(map).filter(c => c.sales > 0 || c.purchases > 0 || c.expenses > 0).map(c => {
-      const net = c.sales - c.purchases - c.expenses;
+    return Object.values(map).filter(c => c.sales > 0 || c.cogs > 0 || c.purchases > 0 || c.expenses > 0).map(c => {
+      const gp = c.sales - c.cogs;
+      const net = gp - c.expenses;
       const margin = c.sales > 0 ? ((net / c.sales) * 100).toFixed(1) : '0.0';
       return {
         ...c,
+        grossProfit: gp,
         netProfit: net,
         margin
       };
@@ -3075,7 +3137,7 @@ export const Reports = () => {
             <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">1. Money In (Sales)</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400"> Money In (Sales)</span>
                 <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-sm">
                   +
                 </div>
@@ -3090,11 +3152,11 @@ export const Reports = () => {
               </div>
             </div>
 
-            {/* Stage 2: Money Out (Direct Costs & Expenses) */}
+            {/* Stage 2: Cost of Sales (COGS) & Expenses */}
             <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-rose-500">2. Money Out (Purchases & Costs)</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-rose-500">2. Cost of Sales & Expenses</span>
                 <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-black text-sm">
                   −
                 </div>
@@ -3103,9 +3165,11 @@ export const Reports = () => {
                 -Rs. {(plTotalCOGS + plTotalExpenses).toLocaleString()}
               </div>
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/80 text-[10px] text-slate-500 font-mono">
-                <span>Purchases: Rs. {plTotalCOGS.toLocaleString()}</span>
+                <span>COGS: Rs. {plTotalCOGS.toLocaleString()}</span>
                 <span>•</span>
                 <span>Expenses: Rs. {plTotalExpenses.toLocaleString()}</span>
+                <span>•</span>
+                <span className="text-slate-400" title="Separate inventory procurement">Purchases: Rs. {plTotalPurchases.toLocaleString()}</span>
               </div>
             </div>
 
