@@ -1469,18 +1469,26 @@ export const Suppliers = () => {
         const supPayments = (paymentLogs || []).filter(p => (p.type === 'Supplier' || p.partyType === 'Supplier') && (p.partyId === fullSup.id || (p.partyName && p.partyName.trim().toLowerCase() === fullSup.name.trim().toLowerCase())));
         const supReturns = (purchaseReturns || []).filter(r => r.supplierId === fullSup.id || (r.supplierName && r.supplierName.trim().toLowerCase() === fullSup.name.trim().toLowerCase()));
 
+        const fin = computeSupplierKhataBalance(fullSup, purchases, paymentLogs, purchaseReturns);
+        const totalPurchasesVal = Number(fin.totalPurchase ?? fin.grossPurchase ?? 0);
+        const totalPaidVal = Number(fin.totalPaid ?? 0);
+        const balanceDueVal = Number(fin.payableDue ?? 0);
+        const isSettled = balanceDueVal === 0;
+
         // Chronological combined transactions
         const allTransactions = [
           ...supPurchases.map(p => ({
             id: `pur-${p.id}`,
             date: p.date || p.created_at || p.createdAt || '',
             type: 'Purchase',
-            billNo: p.billNumber || p.invoiceNo || `PUR-${p.id}`,
-            amount: Number(p.grandTotal || p.amount || 0),
-            paid: Number(p.paidAmount || (p.paymentStatus === 'Paid' || p.status === 'Paid' ? (p.grandTotal || p.amount) : 0)),
+            billNo: p.purchaseNo || p.billNumber || p.invoiceNo || `PUR-${p.id}`,
+            amount: Number(p.grandTotal !== undefined ? p.grandTotal : (p.amount !== undefined ? p.amount : 0)),
+            paid: Number(p.status === 'Paid' || p.paymentStatus === 'Paid' ? (p.grandTotal ?? p.amount ?? 0) : (p.paidAmount ?? p.paidamount ?? 0)),
             status: p.paymentStatus || p.status || 'Pending',
-            note: p.notes || p.note || 'Procurement Bill',
-            items: p.items || []
+            note: Array.isArray(p.cart || p.items) && (p.cart || p.items).length > 0
+              ? (p.cart || p.items).map(i => `${i.name || 'Produce'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
+              : (p.notes || p.note || 'Procurement Bill'),
+            items: p.items || p.cart || []
           })),
           ...supPayments.map(p => ({
             id: `pay-${p.id}`,
@@ -1491,13 +1499,13 @@ export const Suppliers = () => {
             paid: Number(p.amount || 0),
             status: 'Settled',
             mode: p.mode || p.paymentMode || 'Cash',
-            note: p.note || 'Supplier Payment'
+            note: p.note || (p.purchaseId ? `Payment for Bill #${p.purchaseId}` : 'Supplier Settlement Payment')
           })),
           ...supReturns.map(r => ({
             id: `ret-${r.id}`,
             date: r.date || r.created_at || r.createdAt || '',
             type: 'Return',
-            billNo: `RET-${r.id}`,
+            billNo: r.returnNo || `PR-${r.id}`,
             amount: Number(r.refundAmount || r.totalRefund || 0),
             paid: Number(r.refundAmount || r.totalRefund || 0),
             status: 'Returned',
@@ -1505,36 +1513,67 @@ export const Suppliers = () => {
           }))
         ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 
+        const displayedTxs = viewingTab === 'all'
+          ? allTransactions
+          : viewingTab === 'purchases'
+            ? allTransactions.filter(t => t.type === 'Purchase')
+            : allTransactions.filter(t => t.type === 'Payment');
+
         return (
           <div
             onClick={(e) => { if (e.target === e.currentTarget) setViewingSupplier(null); }}
-            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
           >
-            <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-7 space-y-5 border my-auto max-h-[90vh] overflow-y-auto shadow-2xl transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700/80 text-white' : 'bg-white border-slate-200/80 text-slate-900'
               }`}>
-              {/* Profile Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center font-black">
-                    <UserCheck className="w-6 h-6" />
+              
+              {/* Top Header Card */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-indigo-500 via-brand-500 to-blue-600 text-white flex items-center justify-center font-black text-xl shadow-md shadow-brand-500/20 ring-4 ring-brand-500/10">
+                    {fullSup.name?.charAt(0).toUpperCase() || 'S'}
                   </div>
                   <div>
-                    <h3 className="text-base font-extrabold flex items-center gap-2">
-                      <span>{fullSup.name}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg sm:text-xl font-black tracking-tight">{fullSup.name}</h3>
                       {fullSup.businessName && (
-                        <span className="text-xs text-slate-400 font-semibold">• {fullSup.businessName}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          {fullSup.businessName}
+                        </span>
                       )}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 font-bold">
-                      <span className="flex items-center gap-1 font-mono"><Phone className="w-3 h-3 text-slate-400" /> {fullSup.phone || 'N/A'}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> {fullSup.city || 'Local Mandi'}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${
+                        isSettled
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                          : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isSettled ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
+                        <span>{isSettled ? 'Settled' : 'Payable Due'}</span>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400 font-semibold flex-wrap">
+                      {fullSup.phone && (
+                        <a href={`tel:${fullSup.phone}`} className="flex items-center gap-1 hover:text-brand-500 font-mono transition">
+                          <Phone className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{fullSup.phone}</span>
+                        </a>
+                      )}
+                      {fullSup.city && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{fullSup.city}</span>
+                        </span>
+                      )}
+                      <span className="text-[11px] text-slate-400">
+                        • Mandi Supplier ID: #{fullSup.id || 'N/A'}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {fullSup.balance > 0 && (
+                {/* Header Action Buttons */}
+                <div className="flex items-center gap-2 self-end sm:self-center">
+                  {balanceDueVal > 0 && (
                     <button
                       type="button"
                       onClick={() => {
@@ -1542,7 +1581,7 @@ export const Suppliers = () => {
                         setViewingSupplier(null);
                         handleOpenPayModal(supToPay);
                       }}
-                      className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl transition shadow-md shadow-emerald-500/20 cursor-pointer active:scale-98"
+                      className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs px-4 py-2.5 rounded-2xl transition shadow-lg shadow-emerald-500/25 cursor-pointer active:scale-95"
                     >
                       <CreditCard className="w-4 h-4" />
                       <span>Pay Supplier</span>
@@ -1550,149 +1589,214 @@ export const Suppliers = () => {
                   )}
                   <button
                     type="button"
+                    onClick={() => {
+                      setViewingSupplier(null);
+                      navigate(`/ledger?type=Supplier&partyId=${fullSup.id}`);
+                    }}
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2.5 rounded-2xl border transition cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                    title="View in Master Ledger"
+                  >
+                    <BookOpen className="w-4 h-4 text-brand-500" />
+                    <span className="hidden sm:inline">Ledger Statement</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setViewingSupplier(null)}
-                    className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                    className="p-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              {/* Financial Metrics Summary Banner */}
-              <div className="grid grid-cols-3 gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
+              {/* 3 Premium Metric KPI Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 {/* 1. Total Purchases */}
-                <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-slate-400">Total Purchases</span>
-                    <ShoppingCart className="w-3 h-3 text-blue-500" />
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  theme === 'dark'
+                    ? 'bg-slate-800/80 border-slate-700/80'
+                    : 'bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/30 border-blue-100/90'
+                }`}>
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Total Purchases</span>
+                    <div className="w-7 h-7 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                      <ShoppingCart className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="text-xs sm:text-sm font-black font-mono text-slate-800 dark:text-slate-200">
-                    Rs. {Number(fullSup.totalPurchases || 0).toLocaleString()}
+                  <div className="text-xl sm:text-2xl font-black font-mono text-blue-600 dark:text-blue-400 mt-1">
+                    Rs. {totalPurchasesVal.toLocaleString()}
                   </div>
-                  <div className="text-[9px] text-slate-400 font-semibold">{supPurchases.length} Inward Bills</div>
+                  <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                    {supPurchases.length} Inward Procurement Bill{supPurchases.length === 1 ? '' : 's'}
+                  </div>
                 </div>
 
-                {/* 2. Total Paid */}
-                <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-slate-400">Total Paid Out</span>
-                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                {/* 2. Total Paid Out */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  theme === 'dark'
+                    ? 'bg-slate-800/80 border-slate-700/80'
+                    : 'bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/30 border-emerald-100/90'
+                }`}>
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Total Paid Out</span>
+                    <div className="w-7 h-7 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="text-xs sm:text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
-                    Rs. {Number(fullSup.totalPaid || 0).toLocaleString()}
+                  <div className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+                    Rs. {totalPaidVal.toLocaleString()}
                   </div>
-                  <div className="text-[9px] text-slate-400 font-semibold">{supPayments.length} Payment Logs</div>
+                  <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                    {supPayments.length} Payment Settlement Record{supPayments.length === 1 ? '' : 's'}
+                  </div>
                 </div>
 
-                {/* 3. Outstanding Balance Due */}
-                <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-slate-400">Balance Due</span>
-                    <AlertCircle className={`w-3 h-3 ${fullSup.balance > 0 ? 'text-rose-500' : 'text-emerald-500'}`} />
+                {/* 3. Balance Due */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  balanceDueVal > 0
+                    ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-gradient-to-br from-rose-50/80 via-white to-amber-50/30 border-rose-200'
+                    : theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 border-slate-200'
+                }`}>
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                    <span className="text-[10px] font-black uppercase tracking-wider">Remaining Balance</span>
+                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${
+                      balanceDueVal > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    }`}>
+                      {balanceDueVal > 0 ? <AlertCircle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+                    </div>
                   </div>
-                  <div className={`text-xs sm:text-sm font-black font-mono ${fullSup.balance > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                    Rs. {Number(fullSup.balance || 0).toLocaleString()}
+                  <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${
+                    balanceDueVal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                  }`}>
+                    Rs. {balanceDueVal.toLocaleString()}
                   </div>
-                  <div className="text-[9px] text-slate-400 font-semibold">
-                    {fullSup.balance > 0 ? 'Payable Liability' : '✓ Fully Settled'}
+                  <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                    {balanceDueVal > 0 ? 'Pending Payable Liability' : '✓ Account Fully Settled'}
                   </div>
                 </div>
               </div>
 
-              {/* Tabs Navigation */}
-              <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+              {/* Modern Segmented Tabs */}
+              <div className={`p-1.5 rounded-2xl border flex flex-wrap items-center gap-1.5 ${
+                theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-100/90 border-slate-200/80'
+              }`}>
                 <button
                   type="button"
                   onClick={() => setViewingTab('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${viewingTab === 'all'
-                    ? 'bg-brand-500 text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                    }`}
+                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    viewingTab === 'all'
+                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
                 >
-                  All History ({allTransactions.length})
+                  <span>All History</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${viewingTab === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                    {allTransactions.length}
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewingTab('purchases')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${viewingTab === 'purchases'
-                    ? 'bg-brand-500 text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                    }`}
+                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    viewingTab === 'purchases'
+                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
                 >
-                  Purchases ({supPurchases.length})
+                  <span>Purchases</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${viewingTab === 'purchases' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                    {supPurchases.length}
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewingTab('payments')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${viewingTab === 'payments'
-                    ? 'bg-brand-500 text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                    }`}
+                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    viewingTab === 'payments'
+                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
                 >
-                  Payments ({supPayments.length})
+                  <span>Payments</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${viewingTab === 'payments' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                    {supPayments.length}
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewingTab('info')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer ${viewingTab === 'info'
-                    ? 'bg-brand-500 text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                    }`}
+                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    viewingTab === 'info'
+                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
                 >
-                  Profile & Bank
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Profile & Bank</span>
                 </button>
               </div>
 
-              {/* Tab 1, 2, 3: Transactions / History Table */}
+              {/* Tab 1, 2, 3: High-End Transactions Table */}
               {viewingTab !== 'info' && (
-                <div className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
-                  <div className="max-h-64 overflow-y-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead className={`sticky top-0 ${theme === 'dark' ? 'bg-slate-900 border-b border-slate-700' : 'bg-slate-50 border-b border-slate-200'}`}>
-                        <tr className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                          <th className="py-2.5 px-3">Date</th>
-                          <th className="py-2.5 px-3">Type / Ref</th>
-                          <th className="py-2.5 px-3">Description / Note</th>
-                          <th className="py-2.5 px-3 text-right">Bill (PKR)</th>
-                          <th className="py-2.5 px-3 text-right">Paid Out (PKR)</th>
-                          <th className="py-2.5 px-3 text-center">Status</th>
+                <div className={`border rounded-2xl overflow-hidden ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700/80' : 'bg-white border-slate-200'}`}>
+                  <div className="max-h-72 overflow-y-auto">
+                    <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
+                      <thead className={`sticky top-0 z-10 ${theme === 'dark' ? 'bg-slate-800/90 backdrop-blur-md border-b border-slate-700 text-slate-400' : 'bg-slate-50/90 backdrop-blur-md border-b border-slate-200 text-slate-500'}`}>
+                        <tr className="text-[10px] font-black uppercase tracking-wider">
+                          <th className="py-3 px-4">Date</th>
+                          <th className="py-3 px-4">Type / Ref</th>
+                          <th className="py-3 px-4">Description / Note</th>
+                          <th className="py-3 px-4 text-right">Bill (PKR)</th>
+                          <th className="py-3 px-4 text-right">Paid Out (PKR)</th>
+                          <th className="py-3 px-4 text-center">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 font-medium">
-                        {(viewingTab === 'all' ? allTransactions : viewingTab === 'purchases' ? allTransactions.filter(t => t.type === 'Purchase') : allTransactions.filter(t => t.type === 'Payment')).length === 0 ? (
+                      <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-800' : 'divide-slate-100'}`}>
+                        {displayedTxs.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="py-6 text-center text-slate-400 text-xs">
-                              No transaction records found for this supplier.
+                            <td colSpan={6} className="py-10 text-center text-slate-400 text-xs">
+                              <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-2 text-slate-400">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <span>No transaction records found for this view.</span>
                             </td>
                           </tr>
                         ) : (
-                          (viewingTab === 'all' ? allTransactions : viewingTab === 'purchases' ? allTransactions.filter(t => t.type === 'Purchase') : allTransactions.filter(t => t.type === 'Payment')).map((tx, idx) => (
-                            <tr key={tx.id || idx} className={theme === 'dark' ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50/80'}>
-                              <td className="py-2 px-3 text-slate-500 font-mono text-[11px]">{tx.date || '—'}</td>
-                              <td className="py-2 px-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'Purchase'
-                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                                  : tx.type === 'Payment'
-                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                                  }`}>
-                                  {tx.type} {tx.billNo}
+                          displayedTxs.map((tx, idx) => (
+                            <tr key={tx.id || idx} className={`transition ${theme === 'dark' ? 'hover:bg-slate-800/50' : 'hover:bg-slate-50/80'}`}>
+                              <td className="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono text-[11px]">{tx.date || '—'}</td>
+                              <td className="py-3 px-4">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border ${
+                                  tx.type === 'Purchase'
+                                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                                    : tx.type === 'Payment'
+                                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                }`}>
+                                  {tx.type === 'Purchase' ? <ShoppingCart className="w-3 h-3" /> : tx.type === 'Payment' ? <CreditCard className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
+                                  <span>{tx.billNo}</span>
                                 </span>
                               </td>
-                              <td className="py-2 px-3 text-slate-700 dark:text-slate-300 text-xs max-w-xs truncate">{tx.note}</td>
-                              <td className="py-2 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
+                              <td className="py-3 px-4 text-slate-700 dark:text-slate-300 text-xs max-w-xs truncate">
+                                <span className="font-semibold">{tx.note}</span>
+                                {tx.mode && <span className="text-[10px] text-slate-400 block font-normal">Mode: {tx.mode}</span>}
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono font-black text-slate-900 dark:text-white">
                                 {tx.type === 'Purchase' ? `Rs. ${tx.amount.toLocaleString()}` : '—'}
                               </td>
-                              <td className="py-2 px-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
+                              <td className="py-3 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
                                 {tx.type === 'Payment' ? `Rs. ${tx.amount.toLocaleString()}` : (tx.paid > 0 ? `Rs. ${tx.paid.toLocaleString()}` : '—')}
                               </td>
-                              <td className="py-2 px-3 text-center">
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${tx.status === 'Paid' || tx.status === 'Settled'
-                                  ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40'
-                                  : tx.status === 'Partial'
-                                    ? 'text-blue-600 bg-blue-50 dark:bg-blue-950/40'
-                                    : 'text-amber-600 bg-amber-50 dark:bg-amber-950/40'
-                                  }`}>
+                              <td className="py-3 px-4 text-center">
+                                <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${
+                                  tx.status === 'Paid' || tx.status === 'Settled'
+                                    ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/30 dark:text-emerald-400'
+                                    : tx.status === 'Partial'
+                                      ? 'text-blue-600 bg-blue-500/10 border-blue-500/30 dark:text-blue-400'
+                                      : 'text-amber-600 bg-amber-500/10 border-amber-500/30 dark:text-amber-400'
+                                }`}>
                                   {tx.status}
                                 </span>
                               </td>
@@ -1705,76 +1809,107 @@ export const Suppliers = () => {
                 </div>
               )}
 
-              {/* Tab 4: Profile & Bank Info */}
+              {/* Tab 4: 2-Column Profile & Bank Details Card */}
               {viewingTab === 'info' && (
-                <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Left Column: Business & Mandi Details */}
+                  <div className={`p-5 rounded-2xl space-y-3.5 border ${
+                    theme === 'dark' ? 'bg-slate-800/60 border-slate-700/80' : 'bg-slate-50/70 border-slate-200'
                   }`}>
-                  {fullSup.businessName && (
-                    <div className="flex justify-between items-center text-slate-500">
-                      <span>Business / Shop:</span>
-                      <span className="font-bold text-slate-900 dark:text-white">{fullSup.businessName}</span>
+                    <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-700 text-xs font-black uppercase tracking-wider text-slate-400">
+                      <UserCheck className="w-4 h-4 text-brand-500" />
+                      <span>Business & Contact Profile</span>
                     </div>
-                  )}
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span>Phone Number:</span>
-                    <span className="font-mono font-bold text-slate-900 dark:text-white">{fullSup.phone || '-'}</span>
-                  </div>
-                  {fullSup.whatsapp && (
-                    <div className="flex justify-between items-center text-slate-500">
-                      <span>WhatsApp:</span>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white">{fullSup.whatsapp}</span>
-                    </div>
-                  )}
-                  {fullSup.email && (
-                    <div className="flex justify-between items-center text-slate-500">
-                      <span>Email:</span>
-                      <span className="font-bold text-slate-900 dark:text-white">{fullSup.email}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between items-center text-slate-500">
-                    <span>City / Mandi:</span>
-                    <span className="font-bold text-slate-900 dark:text-white">{fullSup.city || 'Local Mandi'}</span>
-                  </div>
-                  {fullSup.address && (
-                    <div className="flex justify-between items-center text-slate-500">
-                      <span>Address:</span>
-                      <span className="font-medium text-slate-800 dark:text-slate-200">{fullSup.address}</span>
-                    </div>
-                  )}
-                  {(fullSup.suppliedProducts || []).length > 0 && (
-                    <div className="flex justify-between items-center text-slate-500">
-                      <span>Supplied Products:</span>
-                      <span className="font-bold text-brand-600 dark:text-brand-400">
-                        {fullSup.suppliedProducts.join(', ')}
-                      </span>
-                    </div>
-                  )}
-                  {(fullSup.bankName || fullSup.accountNumber || fullSup.accountTitle) && (
-                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-1.5">
-                      <div className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        <Landmark className="w-3 h-3" />
-                        <span>Bank Account Details</span>
+
+                    <div className="space-y-2.5 text-xs">
+                      {fullSup.businessName && (
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span>Business / Shop:</span>
+                          <span className="font-bold text-slate-900 dark:text-white">{fullSup.businessName}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center text-slate-500">
+                        <span>Phone:</span>
+                        <span className="font-mono font-bold text-slate-900 dark:text-white">{fullSup.phone || 'N/A'}</span>
                       </div>
-                      {fullSup.bankName && (
+                      {fullSup.whatsapp && (
                         <div className="flex justify-between items-center text-slate-500">
-                          <span>Bank Name:</span>
-                          <span className="font-bold text-slate-900 dark:text-white">{fullSup.bankName}</span>
+                          <span>WhatsApp:</span>
+                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{fullSup.whatsapp}</span>
                         </div>
                       )}
-                      {fullSup.accountTitle && (
+                      {fullSup.email && (
                         <div className="flex justify-between items-center text-slate-500">
-                          <span>Account Title:</span>
-                          <span className="font-bold text-slate-900 dark:text-white">{fullSup.accountTitle}</span>
+                          <span>Email:</span>
+                          <span className="font-bold text-slate-900 dark:text-white">{fullSup.email}</span>
                         </div>
                       )}
-                      {(fullSup.accountNumber || fullSup.iban) && (
-                        <div className="flex justify-between items-center text-slate-500">
-                          <span>Account # / IBAN:</span>
-                          <span className="font-mono font-bold text-slate-900 dark:text-white">{fullSup.accountNumber || fullSup.iban}</span>
+                      <div className="flex justify-between items-center text-slate-500">
+                        <span>Mandi City:</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{fullSup.city || 'Local Mandi'}</span>
+                      </div>
+                      {fullSup.address && (
+                        <div className="flex justify-between items-start text-slate-500">
+                          <span>Address:</span>
+                          <span className="font-medium text-slate-800 dark:text-slate-200 text-right max-w-xs">{fullSup.address}</span>
                         </div>
                       )}
                     </div>
-                  )}
+
+                    {/* Supplied Commodities */}
+                    {(fullSup.suppliedProducts || []).length > 0 && (
+                      <div className="pt-3 border-t border-slate-200 dark:border-slate-700 space-y-1.5">
+                        <span className="text-[10px] font-black uppercase text-slate-400 block">Supplied Commodities</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {fullSup.suppliedProducts.map((p, i) => (
+                            <span key={i} className="px-2.5 py-1 rounded-xl text-xs font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Verified Bank & Settlement Details */}
+                  <div className={`p-5 rounded-2xl space-y-3.5 border ${
+                    theme === 'dark' ? 'bg-slate-800/60 border-slate-700/80' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                    <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-700 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                      <Landmark className="w-4 h-4" />
+                      <span>Bank & Settlement Accounts</span>
+                    </div>
+
+                    {fullSup.bankName || fullSup.accountNumber || fullSup.accountTitle || fullSup.iban ? (
+                      <div className="space-y-3 text-xs">
+                        {fullSup.bankName && (
+                          <div className="flex justify-between items-center text-slate-500">
+                            <span>Bank Name:</span>
+                            <span className="font-bold text-slate-900 dark:text-white">{fullSup.bankName}</span>
+                          </div>
+                        )}
+                        {fullSup.accountTitle && (
+                          <div className="flex justify-between items-center text-slate-500">
+                            <span>Account Title:</span>
+                            <span className="font-bold text-slate-900 dark:text-white">{fullSup.accountTitle}</span>
+                          </div>
+                        )}
+                        {(fullSup.accountNumber || fullSup.iban) && (
+                          <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-1">
+                            <span className="text-[10px] font-black uppercase text-slate-400 block">Account Number / IBAN</span>
+                            <div className="flex items-center justify-between font-mono font-black text-sm text-slate-900 dark:text-white">
+                              <span>{fullSup.accountNumber || fullSup.iban}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-slate-400 text-xs">
+                        <Landmark className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+                        <span>No bank account recorded for this supplier.</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
