@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   ShoppingBag, ShoppingCart, DollarSign,
-  TrendingUp, Users, CreditCard, Plus
+  TrendingUp, Users, CreditCard
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,6 @@ import { LowStockWidget } from '../components/LowStockWidget';
 import { TopProductsWidget } from '../components/TopProductsWidget';
 import { RecentTransactionsTable } from '../components/RecentTransactionsTable';
 import { InvoiceDrawer } from '../components/InvoiceDrawer';
-import { QuickSaleModal } from '../components/QuickSaleModal';
 import { useNavigate } from 'react-router-dom';
 
 export const Dashboard = () => {
@@ -21,7 +20,6 @@ export const Dashboard = () => {
   const { sales = [], purchases = [], customers = [], suppliers = [], products = [], saleReturns = [], purchaseReturns = [], paymentLogs = [] } = useERP();
   const navigate = useNavigate();
   const [activeInvoice, setActiveInvoice] = useState(null);
-  const [showQuickSaleModal, setShowQuickSaleModal] = useState(false);
 
   // Helper to accurately check if a record's date is today
   const isToday = (dateVal, createdVal) => {
@@ -233,28 +231,6 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Header & Quick Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-            Dashboard Overview
-          </h1>
-          <p className="text-xs text-slate-400 font-semibold mt-0.5">
-            Real-time business performance & mandi trading summary
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowQuickSaleModal(true)}
-            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Quick Sale</span>
-          </button>
-        </div>
-      </div>
-
       {/* 5 Essential High-Impact KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5">
         {/* 1. Strictly Today's Sales */}
@@ -352,11 +328,6 @@ export const Dashboard = () => {
       {/* Invoice Drawer Modal */}
       {activeInvoice && (
         <InvoiceDrawer invoice={activeInvoice} onClose={() => setActiveInvoice(null)} />
-      )}
-
-      {/* Quick Sale Form Modal */}
-      {showQuickSaleModal && (
-        <QuickSaleModal onClose={() => setShowQuickSaleModal(false)} />
       )}
     </div>
   );
