@@ -888,8 +888,10 @@ export const Ledger = () => {
                     </tr>
                   ) : (
                     filteredCustomerEntities.map(cust => {
-                      const isPos = cust.balance > 0;
-                      const isNeg = cust.balance < 0;
+                      const bal = Number(cust.balance || 0);
+                      const isPos = bal > 0;
+                      const isNeg = bal < 0;
+                      const isZero = bal === 0;
 
                       return (
                         <tr

@@ -48,13 +48,9 @@ export const Inventory = () => {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('All');
-  const [movementTypeFilter, setMovementTypeFilter] = useState('All'); // 'All' | 'IN' | 'OUT' | 'ADJUST' | 'RETURN'
-  const [sourceFilter, setSourceFilter] = useState('All'); // 'All' | 'Sales' | 'Purchases' | 'Sale Returns' | 'Purchase Returns' | 'Stock Adjustments' | 'Manual Adjustments'
+  const [movementTypeFilter, setMovementTypeFilter] = useState('All'); // 'All' | 'IN' | 'OUT' | 'RETURN'
+  const [sourceFilter, setSourceFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Modals
-  const [showAdjModal, setShowAdjModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Adjustment Form State
   const [adjForm, setAdjForm] = useState({
@@ -321,7 +317,6 @@ export const Inventory = () => {
       if (movementTypeFilter !== 'All') {
         if (movementTypeFilter === 'IN' && item.direction !== 'IN') return false;
         if (movementTypeFilter === 'OUT' && item.direction !== 'OUT') return false;
-        if (movementTypeFilter === 'ADJUST' && item.direction !== 'ADJUST') return false;
         if (movementTypeFilter === 'RETURN' && !item.sourceCategory.includes('Return')) return false;
       }
 
@@ -543,9 +538,8 @@ export const Inventory = () => {
                 }`}
             >
               <option value="All">All Movements</option>
-              <option value="IN">Stock In</option>
-              <option value="OUT">Stock Out</option>
-              <option value="ADJUST">Adjustments</option>
+              <option value="IN">Stock In (+)</option>
+              <option value="OUT">Stock Out (-)</option>
               <option value="RETURN">Returns</option>
             </select>
           </div>
@@ -713,110 +707,6 @@ export const Inventory = () => {
 
       {/* Print Footer */}
       <PrintFooter note="Official Business Record • Ghalla Mandi Warehouse & Stock Register" />
-
-      {/* Manual Stock Adjustment Modal */}
-      {showAdjModal && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAdjModal(false); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-              <div>
-                <h3 className="text-base font-black">Manual Stock Adjustment</h3>
-                <p className="text-[11px] text-slate-400 font-bold">Add or deduct warehouse stock count</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAdjModal(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-                title="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAdjSubmit} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Select Product *</label>
-                <select
-                  value={adjForm.productId || products[0]?.id}
-                  onChange={(e) => setAdjForm({ ...adjForm, productId: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} (Stock: {Number(p.stockQty ?? p.stockqty ?? 0).toLocaleString()} {p.unit || 'KG'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Adjustment Type *</label>
-                  <select
-                    value={adjForm.type}
-                    onChange={(e) => setAdjForm({ ...adjForm, type: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  >
-                    <option value="IN">Stock Addition (+)</option>
-                    <option value="OUT">Stock Deduction (-)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Quantity *</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    step="any"
-                    onWheel={(e) => e.target.blur()}
-                    onFocus={(e) => e.target.select()}
-                    value={adjForm.qtyKg}
-                    onChange={(e) => setAdjForm({ ...adjForm, qtyKg: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold font-mono outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Audit Reason / Note</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Manual Warehouse Count Audit, Spoilage, etc."
-                  value={adjForm.reason}
-                  onChange={(e) => setAdjForm({ ...adjForm, reason: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setShowAdjModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
-                >
-                  {isSubmitting ? 'Saving...' : 'Confirm Adjustment'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
