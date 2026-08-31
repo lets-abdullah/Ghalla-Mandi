@@ -792,7 +792,7 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10.5px] font-bold text-slate-600 px-0.5">
                   <span>Method ({paymentMethod}):</span>
-                  <span className="font-mono text-emerald-700 font-black">Paid: Rs. ${paidNum.toLocaleString()}</span>
+                  <span className="font-mono text-emerald-700 font-black">Paid: Rs. {paidNum.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10.5px] font-bold text-slate-600 px-0.5">
                   <span>Balance Due:</span>

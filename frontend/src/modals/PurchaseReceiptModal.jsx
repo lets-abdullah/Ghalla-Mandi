@@ -747,12 +747,12 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                 <div className="space-y-0.5 pt-1.5 px-0.5 font-bold text-[11px]">
                   <div className="flex justify-between items-center text-slate-600">
                     <span>Subtotal:</span>
-                    <span className="font-mono text-slate-900">Rs. ${calculatedSubtotal.toLocaleString()}</span>
+                    <span className="font-mono text-slate-900">Rs. {calculatedSubtotal.toLocaleString()}</span>
                   </div>
                   {adjustmentNum > 0 && (
                     <div className="flex justify-between items-center text-emerald-700">
                       <span>Adjustment / Disc:</span>
-                      <span className="font-mono">- Rs. ${adjustmentNum.toLocaleString()}</span>
+                      <span className="font-mono">- Rs. {adjustmentNum.toLocaleString()}</span>
                     </div>
                   )}
                 </div>
@@ -761,7 +761,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                 <div className="bg-[#064e3b] text-white px-2.5 py-1.5 rounded-sm flex justify-between items-center mt-1.5 shadow-2xs">
                   <span className="text-[10px] font-black uppercase tracking-wider">TOTAL PURCHASE</span>
                   <span className="font-mono text-sm font-black">
-                    Rs. ${grandTotalNum.toLocaleString()}
+                    Rs. {grandTotalNum.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -772,12 +772,12 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10.5px] font-bold text-slate-600 px-0.5">
                   <span>Paid to Supplier:</span>
-                  <span className="font-mono text-emerald-700 font-black">Rs. ${paidNum.toLocaleString()}</span>
+                  <span className="font-mono text-emerald-700 font-black">Rs. {paidNum.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10.5px] font-bold text-slate-600 px-0.5">
                   <span>Remaining to Pay:</span>
                   <span className={`font-mono font-black ${dueRemaining > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
-                    Rs. ${dueRemaining.toLocaleString()}
+                    Rs. {dueRemaining.toLocaleString()}
                   </span>
                 </div>
                 <div className="bg-[#f0fdf4] border border-emerald-200 text-emerald-800 rounded-md py-1 px-2 flex items-center justify-center gap-1 text-center font-black text-[10px] tracking-wide mt-1">
