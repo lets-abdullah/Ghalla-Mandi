@@ -5,7 +5,7 @@ import {
   FileSpreadsheet, Printer, Plus, Wheat, X, Trash2, Search, Filter,
   CheckCircle2, AlertTriangle, ArrowUpDown, Package, Eye,
   Calendar, Users, ShoppingCart, ChevronDown, ChevronUp, BarChart3, Percent, Layers,
-  RefreshCw, ArrowUpRight, ArrowDownRight, Wallet, Banknote, ChevronRight
+  RefreshCw, ArrowUpRight, ArrowDownRight, Wallet, Banknote, ChevronRight, CreditCard
 } from 'lucide-react';
 import { useERP, computeCustomerKhataBalance, computeSupplierKhataBalance, computeSaleFinancials, computePurchaseFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -3167,8 +3167,22 @@ export const Reports = () => {
               )}
             </div>
 
-            {/* 2. Time Period Filter */}
-            <div className="min-w-[140px]">
+            {/* 2. View Mode Selector (Replaces Sub-Tabs) */}
+            <div className="min-w-[210px]">
+              <select
+                value={plActiveSubTab}
+                onChange={(e) => setPlActiveSubTab(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+              >
+                <option value="statement">1. All Financial Transactions Journal ({filteredPlJournal.length})</option>
+                <option value="productWise">2. Commodity Profit Margins ({productWisePnLData.length})</option>
+                <option value="categoryWise">3. Expense & Category Breakdown ({categoryWisePnLData.length})</option>
+              </select>
+            </div>
+
+            {/* 3. Time Period Filter */}
+            <div className="min-w-[130px]">
               <select
                 value={plDateFilter}
                 onChange={(e) => { setPlDateFilter(e.target.value); setPlPage(1); }}
@@ -3184,8 +3198,8 @@ export const Reports = () => {
               </select>
             </div>
 
-            {/* 3. Transaction Type Filter */}
-            <div className="min-w-[140px]">
+            {/* 4. Transaction Type Filter */}
+            <div className="min-w-[130px]">
               <select
                 value={plTypeFilter}
                 onChange={(e) => { setPlTypeFilter(e.target.value); setPlPage(1); }}
@@ -3200,7 +3214,7 @@ export const Reports = () => {
               </select>
             </div>
 
-            {/* 4. Reset Filters Button */}
+            {/* 5. Reset Filters Button */}
             {hasActivePlFilters && (
               <button
                 type="button"
@@ -3239,54 +3253,6 @@ export const Reports = () => {
               </div>
             </div>
           )}
-
-          {/* Interactive Sub-Navigation Tabs (Screen Only) */}
-          <div className="no-print flex items-center gap-2 p-1.5 rounded-2xl bg-slate-200/70 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => setPlActiveSubTab('statement')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${plActiveSubTab === 'statement'
-                ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>1. All Financial Transactions Journal</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 font-bold text-emerald-600 dark:text-emerald-400">
-                {filteredPlJournal.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPlActiveSubTab('productWise')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${plActiveSubTab === 'productWise'
-                ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              <Wheat className="w-3.5 h-3.5 text-brand-500" />
-              <span>2. Commodity Profit Margins</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950/60 font-bold text-brand-600 dark:text-brand-400">
-                {productWisePnLData.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPlActiveSubTab('categoryWise')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${plActiveSubTab === 'categoryWise'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              <Building className="w-3.5 h-3.5 text-blue-500" />
-              <span>3. Expense & Category Breakdown</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 font-bold text-blue-600 dark:text-blue-400">
-                {categoryWisePnLData.length}
-              </span>
-            </button>
-          </div>
 
           {/* ========================================================================= */}
           {/* PRINT-ONLY HEADER (Profit & Loss) */}
