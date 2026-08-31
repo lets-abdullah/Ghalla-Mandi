@@ -747,22 +747,23 @@ export const Khata = () => {
         </div>
       )}
 
-      {/* Edit Khata Account Modal */}
+      {/* Edit Khata / Customer Settlement Modal (Matching Pay Supplier Style) */}
       {editingKhataCust && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setEditingKhataCust(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
+            {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
-                  <Edit3 className="w-4 h-4" />
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                  <CreditCard className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold">Edit Khata Account</h3>
-                  <p className="text-[11px] text-slate-400 font-bold">Review customer ledger & manage remaining balance</p>
+                  <h3 className="text-base font-extrabold">Receive Customer Payment</h3>
+                  <p className="text-[11px] text-slate-400 font-bold">Settle customer outstanding balance</p>
                 </div>
               </div>
               <button
@@ -774,176 +775,134 @@ export const Khata = () => {
               </button>
             </div>
 
-            {/* Financial Ledger Metrics Banner (Total Amount, Paid Amount, Remaining Due) */}
-            <div className="grid grid-cols-3 gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
-              {/* 1. Total Bill / Purchases */}
-              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400">Total Billed</span>
-                  <ShoppingBag className="w-3 h-3 text-blue-500" />
-                </div>
-                <div className="text-xs sm:text-sm font-black font-mono text-slate-800 dark:text-slate-200">
-                  Rs. {Number(editingKhataCust.totalSale || 0).toLocaleString()}
-                </div>
-                <div className="text-[9px] text-slate-400 font-semibold">Total Purchases</div>
+            {/* Customer Info Badge */}
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 space-y-1">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <span>{editingKhataCust.name}</span>
+                  {editingKhataCust.businessName && (
+                    <span className="text-slate-400 font-semibold">• {editingKhataCust.businessName}</span>
+                  )}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">{editingKhataCust.city || 'Karachi'}</span>
               </div>
-
-              {/* 2. Paid Amount */}
-              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400">Total Paid</span>
-                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                </div>
-                <div className="text-xs sm:text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
-                  Rs. {Number(editingKhataCust.totalPaid || 0).toLocaleString()}
-                </div>
-                <div className="text-[9px] text-slate-400 font-semibold">Received so far</div>
-              </div>
-
-              {/* 3. Remaining Due Balance */}
-              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/80 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400">Remaining Due</span>
-                  <AlertCircle className={`w-3 h-3 ${Number(editingKhataCust.initialDue || 0) === 0 ? 'text-emerald-500' : 'text-amber-500'}`} />
-                </div>
-                <div className={`text-xs sm:text-sm font-black font-mono ${Number(editingKhataCust.initialDue || 0) === 0 || (Number(editForm.receiveAmount || 0) >= Number(editingKhataCust.initialDue || 0) && Number(editingKhataCust.initialDue || 0) > 0)
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-amber-500 dark:text-amber-400'
-                  }`}>
-                  Rs. {Math.max(0, Number(editingKhataCust.initialDue || 0) - Number(editForm.receiveAmount || 0)).toLocaleString()}
-                </div>
-                <div className="text-[9px] text-slate-400 font-semibold">
-                  {Number(editingKhataCust.initialDue || 0) === 0 ? '✓ Account Cleared' : 'Khata Balance'}
-                </div>
+              <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-slate-500 font-semibold">Outstanding Due:</span>
+                <span className={`font-mono font-black ${Number(editingKhataCust.initialDue || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                  Rs. {Number(editingKhataCust.initialDue || 0).toLocaleString()}
+                </span>
               </div>
             </div>
 
             <form onSubmit={handleSaveKhataEdit} className="space-y-3.5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Customer Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editForm.name}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Business / Shop Name</label>
-                  <input
-                    type="text"
-                    value={editForm.businessName}
-                    onChange={(e) => setEditForm({ ...editForm, businessName: e.target.value })}
-                    placeholder="e.g. Mumtaz Store"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Phone Number</label>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={11}
-                    value={editForm.phone}
-                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                    placeholder="03001234567"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">City / Mandi</label>
-                  <input
-                    type="text"
-                    value={editForm.city}
-                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                    placeholder="e.g. Local Mandi"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Customer Type</label>
-                  <select
-                    value={editForm.customerType}
-                    onChange={(e) => setEditForm({ ...editForm, customerType: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  >
-                    <option value="Regular Customer">Regular Party</option>
-                    <option value="Walk-in Customer">Walk-in Party</option>
-                  </select>
-                </div>
-
-                <div>
-                  {Number(editingKhataCust.initialDue || 0) <= 0 ? (
-                    <div>
-                      <label className="text-xs font-bold text-slate-400 block mb-1">Khata Status</label>
-                      <div className="p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                        <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                        <div>
-                          <div className="text-xs font-extrabold">✓ Account Already Cleared</div>
-                          <div className="text-[10px] font-semibold text-emerald-600/80 dark:text-emerald-400/80">
-                            No pending dues remain (Rs. 0 Due).
-                          </div>
-                        </div>
-                      </div>
+              {Number(editingKhataCust.initialDue || 0) <= 0 ? (
+                <div className="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-center gap-3 text-emerald-700 dark:text-emerald-400">
+                  <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <div>
+                    <div className="text-xs font-extrabold">✓ Account Already Cleared</div>
+                    <div className="text-[11px] font-medium text-emerald-600/90 dark:text-emerald-400/90">
+                      This customer has no pending dues remaining (Rs. 0 Balance).
                     </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-bold text-slate-400">Amount to Pay (Rs.)</label>
-                        {Number(editForm.receiveAmount || 0) >= Number(editingKhataCust.initialDue || 0) ? (
-                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Cleared</span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-amber-500">Pending Due: Rs. {Number(editingKhataCust.initialDue || 0).toLocaleString()}</span>
-                        )}
-                      </div>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          min="0"
-                          max={Number(editingKhataCust.initialDue || 0)}
-                          value={editForm.receiveAmount}
-                          onChange={(e) => setEditForm({ ...editForm, receiveAmount: e.target.value })}
-                          placeholder={`e.g. ${Number(editingKhataCust.initialDue || 0)}`}
-                          className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(editForm.receiveAmount || 0) >= Number(editingKhataCust.initialDue || 0) && Number(editingKhataCust.initialDue || 0) > 0
-                            ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
-                            : 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
-                            }`}
-                        />
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-[10px] font-semibold">
-                        <span className="text-slate-400">
-                          {Number(editForm.receiveAmount || 0) > 0
-                            ? `New Due after payment: Rs. ${Math.max(0, Number(editingKhataCust.initialDue || 0) - Number(editForm.receiveAmount || 0)).toLocaleString()}`
-                            : 'Enter payment to reduce balance.'}
-                        </span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Payment Amount Input */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-400">Payment Amount (PKR) *</label>
+                      {Number(editForm.receiveAmount || 0) >= Number(editingKhataCust.initialDue || 0) ? (
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Settling</span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-amber-500">Partial Settlement</span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        max={Number(editingKhataCust.initialDue || 0)}
+                        value={editForm.receiveAmount}
+                        onChange={(e) => setEditForm({ ...editForm, receiveAmount: e.target.value })}
+                        placeholder={`e.g. ${Number(editingKhataCust.initialDue || 0)}`}
+                        autoFocus
+                        className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(editForm.receiveAmount || 0) >= Number(editingKhataCust.initialDue || 0) && Number(editingKhataCust.initialDue || 0) > 0
+                          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
+                          : 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                          }`}
+                      />
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[10px] font-semibold">
+                      <span className="text-slate-400">
+                        {Number(editForm.receiveAmount || 0) > 0
+                          ? `Remaining Due after payment: Rs. ${Math.max(0, Number(editingKhataCust.initialDue || 0) - Number(editForm.receiveAmount || 0)).toLocaleString()}`
+                          : 'Enter amount to reduce customer liability.'}
+                      </span>
+                      {Number(editingKhataCust.initialDue || 0) > 0 && (
                         <button
                           type="button"
-                          onClick={() => setEditForm(prev => ({ ...prev, receiveAmount: editingKhataCust.initialDue }))}
+                          onClick={() => setEditForm(prev => ({ ...prev, receiveAmount: editingKhataCust.initialDue.toString() }))}
                           className="text-brand-500 hover:underline font-bold cursor-pointer"
                         >
-                          Pay Full (Rs. {Number(editingKhataCust.initialDue || 0).toLocaleString()})
+                          Pay Full (Rs. {Number(editingKhataCust.initialDue).toLocaleString()})
                         </button>
-                      </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
+                  {/* Payment Account / Mode Selector */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 block mb-1">Payment Account / Mode *</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'Cash', label: 'Cash in Hand' },
+                        { id: 'Bank', label: 'Bank Transfer' },
+                        { id: 'Card', label: 'Card' }
+                      ].map(mode => (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => setEditForm(prev => ({ ...prev, paymentMode: mode.id }))}
+                          className={`py-2 px-2 rounded-xl text-xs font-black transition border cursor-pointer text-center ${editForm.paymentMode === mode.id
+                            ? 'bg-brand-500 text-white border-brand-600 shadow-xs'
+                            : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+                            }`}
+                        >
+                          {mode.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Payment Date */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 block mb-1">Payment Date</label>
+                    <input
+                      type="date"
+                      value={editForm.paymentDate || new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setEditForm({ ...editForm, paymentDate: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+
+                  {/* Note / Reference */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 block mb-1">Note / Reference (Optional)</label>
+                    <input
+                      type="text"
+                      value={editForm.paymentNote || ''}
+                      onChange={(e) => setEditForm({ ...editForm, paymentNote: e.target.value })}
+                      placeholder={`Settlement payment from ${editingKhataCust.name}`}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Action Buttons */}
               <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/80">
                 <button
                   type="button"
@@ -955,11 +914,14 @@ export const Khata = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingEdit}
-                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                  disabled={isSavingEdit || (Number(editingKhataCust.initialDue || 0) <= 0)}
+                  className={`w-1/2 py-2.5 font-extrabold text-xs rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-1.5 active:scale-98 ${Number(editingKhataCust.initialDue || 0) <= 0
+                    ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed'
+                    : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20'
+                    }`}
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{isSavingEdit ? 'Saving...' : 'Save & Settle Payment'}</span>
+                  <span>{isSavingEdit ? 'Recording...' : 'Confirm Payment'}</span>
                 </button>
               </div>
             </form>
