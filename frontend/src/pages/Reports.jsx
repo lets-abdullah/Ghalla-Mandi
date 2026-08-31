@@ -2264,10 +2264,10 @@ export const Reports = () => {
                 className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
-                <option value="invoices">All Sales & Invoices ({filteredSalesList.length})</option>
-                <option value="productWise">By Commodity ({productWiseSalesData.length})</option>
-                <option value="customerWise">By Customer Party ({customerWiseSalesData.length})</option>
-                <option value="dateWise">By Date (Daily Log) ({dateWiseSalesData.length})</option>
+                <option value="invoices">All Sales & Invoices</option>
+                <option value="productWise">By Commodity</option>
+                <option value="customerWise">By Customer Party</option>
+                <option value="dateWise">By Date (Daily Log)</option>
               </select>
             </div>
 
@@ -3161,9 +3161,9 @@ export const Reports = () => {
                 className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
-                <option value="statement">All Transactions ({filteredPlJournal.length})</option>
-                <option value="productWise">Profit by Item ({productWisePnLData.length})</option>
-                <option value="categoryWise">Expense Breakdown ({categoryWisePnLData.length})</option>
+                <option value="statement">All Transactions</option>
+                <option value="productWise">Profit by Item</option>
+                <option value="categoryWise">Expense Breakdown</option>
               </select>
             </div>
 
