@@ -87,7 +87,7 @@ export const Dashboard = () => {
   const netAllTimePurchases = Math.max(0, allTimeGrossPurchases - allTimePurchaseReturnsVal);
 
   // Combined Live Customer Receivables (Synchronized with Khata, Ledger & Invoices)
-  const { totalCustomerDues, regularDues, walkinDues, totalDueAccountsCount } = useMemo(() => {
+  const { totalCustomerDues, regularDues, walkinDues, totalDueAccountsCount, regDueCount, wDueCount } = useMemo(() => {
     const processedCustNames = new Set();
     const processedCustIds = new Set();
 
@@ -138,7 +138,9 @@ export const Dashboard = () => {
       totalCustomerDues: regDues + wDues,
       regularDues: regDues,
       walkinDues: wDues,
-      totalDueAccountsCount: regDueCount + wDueCount
+      totalDueAccountsCount: regDueCount + wDueCount,
+      regDueCount,
+      wDueCount
     };
   }, [customers, sales, saleReturns, paymentLogs]);
 

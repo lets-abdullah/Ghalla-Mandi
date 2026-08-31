@@ -595,8 +595,8 @@ export const Khata = () => {
                       {/* Status */}
                       <td className="py-3 px-3 text-center">
                         <span className={`font-bold text-xs ${item.status === 'Clear'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-amber-500'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-amber-500'
                           }`}>
                           {item.status === 'Clear' ? 'Clear' : 'Due'}
                         </span>
@@ -619,8 +619,8 @@ export const Khata = () => {
                           <button
                             onClick={() => navigate(item.isRegistered ? `/ledger?customerId=${item.id}` : `/ledger?customerId=${encodeURIComponent(item.name)}`)}
                             className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer shadow-2xs ${theme === 'dark'
-                                ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400'
-                                : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
+                              ? 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-brand-400'
+                              : 'bg-brand-50 border-brand-200 hover:bg-brand-100 text-brand-600'
                               }`}
                             title="View Full Ledger for this Customer"
                           >
@@ -885,7 +885,7 @@ export const Khata = () => {
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-slate-400">Receive Payment / Amount to Pay (Rs.)</label>
+                    <label className="text-xs font-bold text-slate-400">Amount to Pay (Rs.)</label>
                     {Number(editForm.receiveAmount || 0) >= Number(editingKhataCust.initialDue || 0) && Number(editingKhataCust.initialDue || 0) > 0 ? (
                       <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Cleared</span>
                     ) : (
@@ -901,26 +901,10 @@ export const Khata = () => {
                       onChange={(e) => setEditForm({ ...editForm, receiveAmount: e.target.value })}
                       placeholder={`e.g. ${Number(editingKhataCust.initialDue || 0)}`}
                       className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(editForm.receiveAmount || 0) >= Number(editingKhataCust.initialDue || 0) && Number(editingKhataCust.initialDue || 0) > 0
-                          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
-                          : 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
+                        : 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
                         }`}
                     />
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-[10px] font-semibold">
-                    <span className="text-slate-400">
-                      {Number(editForm.receiveAmount || 0) > 0
-                        ? `New Due after payment: Rs. ${Math.max(0, Number(editingKhataCust.initialDue || 0) - Number(editForm.receiveAmount || 0)).toLocaleString()}`
-                        : 'Enter payment amount to reduce customer due.'}
-                    </span>
-                    {Number(editingKhataCust.initialDue || 0) > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setEditForm(prev => ({ ...prev, receiveAmount: editingKhataCust.initialDue }))}
-                        className="text-brand-500 hover:underline font-bold cursor-pointer"
-                      >
-                        Pay Full (Rs. {Number(editingKhataCust.initialDue || 0).toLocaleString()})
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
