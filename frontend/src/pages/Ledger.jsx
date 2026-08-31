@@ -826,36 +826,9 @@ export const Ledger = () => {
                     }`}
                 >
                   <option value="All">All Conditions</option>
-                  <option value={isSupplier ? 'Payable' : 'Receivable'}>{isSupplier ? '🔴 Payable (Due)' : '🟢 Receivable (Due)'}</option>
-                  <option value="Settled">⚪ Settled (Zero Due)</option>
+                  <option value={isSupplier ? 'Payable' : 'Receivable'}>{isSupplier ? 'Payable' : 'Receivable'}</option>
+                  <option value="Settled">Settled</option>
                 </select>
-              </div>
-
-              {/* View Switcher */}
-              <div className={`flex items-center border rounded-xl p-0.5 h-[38px] shrink-0 ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'
-                }`}>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${viewMode === 'table'
-                    ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                    }`}
-                >
-                  <List className="w-3.5 h-3.5" />
-                  <span>Table</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('card')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${viewMode === 'card'
-                    ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                    }`}
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  <span>Cards</span>
-                </button>
               </div>
 
               {/* Reset Filters */}
@@ -890,213 +863,107 @@ export const Ledger = () => {
             ]}
           />
 
-          {/* Customer Entities View (Table or Cards) */}
-          {viewMode === 'table' ? (
-            <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-              }`}>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
-                  <thead>
-                    <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                      }`}>
-                      <th className="py-3.5 px-4">{isSupplier ? 'Supplier Firm' : 'Customer Entity'}</th>
-                      <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Purchases' : 'Total Sales'}</th>
-                      <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Paid' : 'Total Received'}</th>
-                      <th className="py-3.5 px-4 text-right font-black">{isSupplier ? 'Remaining to Pay' : 'Remaining Balance'}</th>
-                      <th className="py-3.5 px-4 text-center">Status</th>
-                      <th className="py-3.5 px-4 text-center no-print">Action</th>
+          {/* Customer Entities Directory Table */}
+          <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+            }`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+                <thead>
+                  <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                    }`}>
+                    <th className="py-3.5 px-4">{isSupplier ? 'Supplier Firm' : 'Customer Entity'}</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Purchases' : 'Total Sales'}</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Paid' : 'Total Received'}</th>
+                    <th className="py-3.5 px-4 text-right font-black">{isSupplier ? 'Remaining to Pay' : 'Remaining Balance'}</th>
+                    <th className="py-3.5 px-4 text-center">Status</th>
+                    <th className="py-3.5 px-4 text-center no-print">Action</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                  {filteredCustomerEntities.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
+                        No customer entities found matching your criteria.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                    {filteredCustomerEntities.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
-                          No customer entities found matching your criteria.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredCustomerEntities.map(cust => {
-                        const isPos = cust.balance > 0;
-                        const isNeg = cust.balance < 0;
-                        const isZero = cust.balance === 0;
+                  ) : (
+                    filteredCustomerEntities.map(cust => {
+                      const isPos = cust.balance > 0;
+                      const isNeg = cust.balance < 0;
 
-                        return (
-                          <tr
-                            key={cust.id}
-                            onClick={() => handleOpenCustomerLedger(cust)}
-                            className={`transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50/90'
-                              }`}
-                          >
-                            {/* 1. Customer Name & Details */}
-                            <td className="py-3.5 px-4">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm shrink-0 border ${cust.isWalkin
-                                  ? 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'
-                                  : 'bg-brand-500/10 text-brand-600 border-brand-500/20 dark:text-brand-400'
-                                  }`}>
-                                  {cust.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <div className="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm flex items-center gap-2">
-                                    <span>{cust.name}</span>
-                                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${cust.isWalkin
-                                      ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                                      : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
-                                      }`}>
-                                      {cust.customerType}
-                                    </span>
-                                  </div>
-                                  <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                                    {cust.businessName && <span>{cust.businessName} •</span>}
-                                    <span>{cust.city || 'Local Mandi'}</span>
-                                    {cust.txCount > 0 && <span className="text-slate-400">({cust.txCount} transactions)</span>}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* 2. Total Debit */}
-                            <td className="py-3.5 px-4 text-right font-mono font-black text-xs text-blue-600 dark:text-blue-400">
-                              {cust.totalDebit > 0 ? `Rs. ${cust.totalDebit.toLocaleString()}` : '—'}
-                            </td>
-
-                            {/* 3. Total Credit */}
-                            <td className="py-3.5 px-4 text-right font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
-                              {cust.totalCredit > 0 ? `Rs. ${cust.totalCredit.toLocaleString()}` : '—'}
-                            </td>
-
-                            {/* 4. Current Balance */}
-                            <td className="py-3.5 px-4 text-right font-mono font-black text-sm">
-                              <span className={
-                                isPos ? 'text-emerald-600 dark:text-emerald-400' :
-                                  isNeg ? 'text-rose-600 dark:text-rose-400' :
-                                    'text-slate-400'
-                              }>
-                                {isNeg ? `-Rs. ${Math.abs(cust.balance).toLocaleString()}` : `Rs. ${cust.balance.toLocaleString()}`}
-                              </span>
-                            </td>
-
-                            {/* 5. Condition Status */}
-                            <td className="py-3.5 px-4 text-center">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${isPos
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                                : isNeg
-                                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                                  : 'bg-slate-500/10 text-slate-500 border-slate-500/30'
+                      return (
+                        <tr
+                          key={cust.id}
+                          onClick={() => handleOpenCustomerLedger(cust)}
+                          className={`transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50/90'
+                            }`}
+                        >
+                          {/* 1. Customer Name */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 border ${cust.isWalkin
+                                ? 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'
+                                : 'bg-brand-500/10 text-brand-600 border-brand-500/20 dark:text-brand-400'
                                 }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${isPos ? 'bg-emerald-500' : isNeg ? 'bg-rose-500' : 'bg-slate-400'
-                                  }`}></span>
-                                <span>{isPos ? 'Receivable' : isNeg ? 'Payable' : 'Settled'}</span>
-                              </span>
-                            </td>
+                                {cust.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm">
+                                {cust.name}
+                              </div>
+                            </div>
+                          </td>
 
-                            {/* 6. Action */}
-                            <td className="py-3.5 px-4 text-center no-print" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                type="button"
-                                onClick={() => handleOpenCustomerLedger(cust)}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs transition shadow-xs cursor-pointer active:scale-98"
-                              >
-                                <span>View Ledger</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                          {/* 2. Total Debit */}
+                          <td className="py-3.5 px-4 text-right font-mono font-black text-xs text-blue-600 dark:text-blue-400">
+                            {cust.totalDebit > 0 ? `Rs. ${cust.totalDebit.toLocaleString()}` : '—'}
+                          </td>
+
+                          {/* 3. Total Credit */}
+                          <td className="py-3.5 px-4 text-right font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
+                            {cust.totalCredit > 0 ? `Rs. ${cust.totalCredit.toLocaleString()}` : '—'}
+                          </td>
+
+                          {/* 4. Current Balance */}
+                          <td className="py-3.5 px-4 text-right font-mono font-black text-sm">
+                            <span className={
+                              isPos ? 'text-emerald-600 dark:text-emerald-400' :
+                                isNeg ? 'text-rose-600 dark:text-rose-400' :
+                                  'text-slate-400'
+                            }>
+                              {isNeg ? `-Rs. ${Math.abs(cust.balance).toLocaleString()}` : `Rs. ${cust.balance.toLocaleString()}`}
+                            </span>
+                          </td>
+
+                          {/* 5. Condition Status (Plain Text Colored) */}
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`font-bold text-xs ${
+                              isPos ? (isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400') :
+                              isNeg ? (isSupplier ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400') :
+                              'text-slate-400'
+                            }`}>
+                              {isPos ? (isSupplier ? 'Payable' : 'Receivable') : isNeg ? (isSupplier ? 'Receivable' : 'Payable') : 'Settled'}
+                            </span>
+                          </td>
+
+                          {/* 6. Action */}
+                          <td className="py-3.5 px-4 text-center no-print" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCustomerLedger(cust)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs transition shadow-xs cursor-pointer active:scale-98"
+                            >
+                              <span>View Ledger</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-          ) : (
-            /* Card Grid View */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredCustomerEntities.map(cust => {
-                const isPos = cust.balance > 0;
-                const isNeg = cust.balance < 0;
-
-                return (
-                  <div
-                    key={cust.id}
-                    onClick={() => handleOpenCustomerLedger(cust)}
-                    className={`p-4 rounded-3xl border card-shadow flex flex-col justify-between transition cursor-pointer card-hover ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h4 className="font-extrabold text-base text-slate-900 dark:text-white leading-tight">
-                            {cust.name}
-                          </h4>
-                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                            {cust.businessName ? `${cust.businessName} • ` : ''}{cust.city}
-                          </p>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${cust.isWalkin
-                          ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                          : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
-                          }`}>
-                          {cust.customerType}
-                        </span>
-                      </div>
-
-                      {/* Financial Metrics Strip */}
-                      <div className={`p-3 rounded-2xl border text-center ${isPos
-                        ? theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-emerald-50/70 border-emerald-200'
-                        : isNeg
-                          ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-rose-50/70 border-rose-200'
-                          : theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50 border-slate-200'
-                        }`}>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current Balance</div>
-                        <div className={`text-lg font-mono font-black mt-0.5 ${isPos ? 'text-emerald-600 dark:text-emerald-400' :
-                          isNeg ? 'text-rose-600 dark:text-rose-400' :
-                            'text-slate-500'
-                          }`}>
-                          {isNeg ? `-Rs. ${Math.abs(cust.balance).toLocaleString()}` : `Rs. ${cust.balance.toLocaleString()}`}
-                        </div>
-                        <div className="text-[10px] font-bold mt-0.5">
-                          {isPos ? '🟢 Receivable' : isNeg ? '🔴 Payable' : '⚪ Settled'}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className={`p-2 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                          <div className="text-[10px] text-slate-400 font-bold">Total Debit</div>
-                          <div className="font-mono font-bold text-blue-600 dark:text-blue-400">
-                            Rs. {cust.totalDebit.toLocaleString()}
-                          </div>
-                        </div>
-                        <div className={`p-2 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                          <div className="text-[10px] text-slate-400 font-bold">Total Credit</div>
-                          <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Rs. {cust.totalCredit.toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400 font-bold">
-                        {cust.txCount} transactions
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenCustomerLedger(cust);
-                        }}
-                        className="inline-flex items-center gap-1 text-xs font-extrabold text-brand-600 dark:text-brand-400 hover:underline"
-                      >
-                        <span>View Complete Ledger</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          </div>
 
           {/* Print Footer for Directory View */}
           <PrintFooter note="Official Business Record • Ghalla Mandi Ledger Summary" />
