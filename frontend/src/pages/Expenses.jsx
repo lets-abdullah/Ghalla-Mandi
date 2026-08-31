@@ -230,7 +230,7 @@ export const Expenses = () => {
   }, [filteredExpenses, page, pageSize]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       {/* Header Banner (Screen Only) */}
       <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -265,15 +265,15 @@ export const Expenses = () => {
       </div>
 
       {/* Main Grid: Left Quick Record Form, Right Vouchers Ledger */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* ========================================================================= */}
         {/* 1. RECORD EXPENSE FORM (Screen Only) */}
         {/* ========================================================================= */}
-        <div className={`no-print lg:col-span-4 border rounded-3xl p-5 card-shadow h-fit space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        <div className={`no-print lg:col-span-4 border rounded-3xl p-6 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-700">
-            <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-              <PlusCircle className="w-4 h-4" />
+          <div className="flex items-center gap-2 pb-3.5 border-b border-slate-100 dark:border-slate-700">
+            <div className="w-9 h-9 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+              <PlusCircle className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-sm font-black uppercase tracking-wider">Record New Expense</h2>
@@ -281,10 +281,10 @@ export const Expenses = () => {
             </div>
           </div>
 
-          <form onSubmit={handleRecordExpense} className="space-y-3.5">
+          <form onSubmit={handleRecordExpense} className="space-y-4">
             {/* Category */}
             <div>
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
                 Expense Category *
               </label>
               <select
@@ -302,7 +302,7 @@ export const Expenses = () => {
 
             {/* Amount */}
             <div>
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
                 Amount (Rs.) *
               </label>
               <input
@@ -319,15 +319,15 @@ export const Expenses = () => {
             </div>
 
             {/* Payment Mode & Date */}
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
                   Payment Mode
                 </label>
                 <select
                   value={form.mode}
                   onChange={(e) => setForm(prev => ({ ...prev, mode: e.target.value }))}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none focus:border-rose-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-2.5 py-2.5 text-xs font-bold outline-none focus:border-rose-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 >
                   <option value="Cash">Cash on Counter</option>
@@ -338,7 +338,7 @@ export const Expenses = () => {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
                   Expense Date
                 </label>
                 <input
@@ -346,7 +346,7 @@ export const Expenses = () => {
                   required
                   value={form.date}
                   onChange={(e) => setForm(prev => ({ ...prev, date: e.target.value }))}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-2.5 py-2.5 text-xs font-bold outline-none focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 />
               </div>
@@ -354,15 +354,15 @@ export const Expenses = () => {
 
             {/* Description / Remarks */}
             <div>
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                Description(Optional)
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                Description (Optional)
               </label>
-              <input
-                type="text"
-                placeholder="Enter Description here"
+              <textarea
+                rows={3}
+                placeholder="Enter remarks or expense details here..."
                 value={form.desc}
                 onChange={(e) => setForm(prev => ({ ...prev, desc: e.target.value }))}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:border-rose-500 resize-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               />
             </div>
@@ -382,7 +382,7 @@ export const Expenses = () => {
         {/* ========================================================================= */}
         {/* 2. EXPENSE REGISTER / VOUCHERS LEDGER */}
         {/* ========================================================================= */}
-        <div className={`lg:col-span-8 border rounded-3xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        <div className={`lg:col-span-8 border rounded-3xl p-6 card-shadow space-y-4 min-h-[520px] flex flex-col justify-between ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
           {/* Header & Filter Bar (Screen Only) */}
           <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
@@ -464,7 +464,7 @@ export const Expenses = () => {
                 }`}>
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <td colSpan={7} className="py-20 text-center text-slate-400">
                       <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
                       <span>No expense records found. Record your first expense on the left panel.</span>
                     </td>
