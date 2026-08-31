@@ -1140,6 +1140,7 @@ export const Reports = () => {
       const primaryCat = pCategories[0] || 'General';
       const totalQty = cart.reduce((sum, it) => sum + Number(it.qty || it.enteredQty || 1), 0);
       const unit = cart[0]?.unit || s.unit || 'KG';
+      const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.netAmt || 0)));
       let saleCogs = 0;
       cart.forEach(it => {
         const itQty = Number(it.qty || it.enteredQty || 1);
