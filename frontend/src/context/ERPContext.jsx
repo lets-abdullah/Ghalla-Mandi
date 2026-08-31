@@ -34,11 +34,20 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   if (!customer) return { openingBalance: 0, totalSale: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, returnAmount: 0, balance: 0, status: 'Clear', ordersCount: 0 };
   const custId = customer.id ? String(customer.id) : null;
   const custName = (customer.name || '').trim().toLowerCase();
+  const isRegularCust = custId && !custId.startsWith('walkin-') && custName !== 'walk-in customer';
 
   const custSales = (sales || []).filter(s => {
     const sCustId = s.customerId ? String(s.customerId) : null;
     const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
-    return (custId && sCustId && sCustId === custId) || (custName && sPartyName === custName);
+    const isWalkinSale = (!sCustId && (sPartyName === 'walk-in customer' || sPartyName === '')) ||
+      (s.customerType || '').toLowerCase().includes('walk-in');
+
+    if (isRegularCust) {
+      if (isWalkinSale && !sCustId) return false;
+      return (sCustId && sCustId === custId) || (custName && sPartyName === custName && sPartyName !== 'walk-in customer');
+    } else {
+      return (custId && sCustId && sCustId === custId) || (custName && sPartyName === custName);
+    }
   });
 
   const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0)), 0);
@@ -50,7 +59,15 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     if (!isCustomer) return false;
     const pPartyId = p.partyId ? String(p.partyId) : null;
     const pPartyName = (p.partyName || '').trim().toLowerCase();
-    const matchesParty = (custId && pPartyId && pPartyId === custId) || (custName && pPartyName === custName);
+
+    let matchesParty = false;
+    if (isRegularCust) {
+      matchesParty = (custId && pPartyId && pPartyId === custId) ||
+        (custName && pPartyName === custName && !pPartyName.includes('walk-in'));
+    } else {
+      matchesParty = (custId && pPartyId && pPartyId === custId) || (custName && pPartyName === custName);
+    }
+
     const isPosLog = (p.saleId && custSales.some(s => String(s.id) === String(p.saleId))) ||
       (p.ref && p.ref.startsWith('POS-')) ||
       (p.note && p.note.includes('POS Payment Received'));
@@ -60,7 +77,11 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   const returnAmount = (saleReturns || []).filter(r => {
     const rCustId = r.customerId ? String(r.customerId) : null;
     const rCustName = (r.customerName || '').trim().toLowerCase();
-    return (custId && rCustId && rCustId === custId) || (custName && rCustName === custName);
+    if (isRegularCust) {
+      return (custId && rCustId && rCustId === custId) || (custName && rCustName === custName && !rCustName.includes('walk-in'));
+    } else {
+      return (custId && rCustId && rCustId === custId) || (custName && rCustName === custName);
+    }
   }).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
 
   const openingBalance = Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0));
@@ -80,6 +101,18 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     status,
     ordersCount: custSales.length
   };
+};
+
+export const computeWalkinUncollectedDues = (sales = [], saleReturns = []) => {
+  return (sales || []).filter(s => {
+    const sCustId = s.customerId ? String(s.customerId) : null;
+    const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
+    const isWalkin = !sCustId || sPartyName === 'walk-in customer' || (s.customerType || '').toLowerCase().includes('walk-in');
+    return isWalkin;
+  }).reduce((acc, s) => {
+    const fin = computeSaleFinancials(s, saleReturns);
+    return acc + Math.max(0, fin.due);
+  }, 0);
 };
 
 export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLogs = [], purchaseReturns = []) => {
@@ -1285,6 +1318,7 @@ export const ERPProvider = ({ children }) => {
       computeSaleFinancials,
       computePurchaseFinancials,
       computeCustomerKhataBalance,
+      computeWalkinUncollectedDues,
       computeSupplierKhataBalance
     }}>
       {children}

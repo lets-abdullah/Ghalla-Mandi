@@ -1338,6 +1338,14 @@ export const Reports = () => {
     return filteredPlJournal.filter(t => t.isIncome).reduce((sum, t) => sum + Math.abs(t.amount), 0);
   }, [filteredPlJournal]);
 
+  const plTotalSalesIncome = useMemo(() => {
+    return filteredPlJournal.filter(t => t.type === 'Sale').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  }, [filteredPlJournal]);
+
+  const plTotalReturns = useMemo(() => {
+    return filteredPlJournal.filter(t => t.type === 'Return' || t.type === 'Sale Return').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  }, [filteredPlJournal]);
+
   const plTotalCOGS = useMemo(() => {
     return filteredPlJournal.filter(t => t.type === 'Purchase').reduce((sum, t) => sum + Math.abs(t.amount), 0);
   }, [filteredPlJournal]);
@@ -2253,9 +2261,8 @@ export const Reports = () => {
           </div>
 
           {/* Plain-English Mathematical Equation Ribbon (Screen Only) */}
-          <div className={`no-print p-3.5 rounded-2xl border flex flex-wrap items-center justify-between gap-3 text-xs ${
-            theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
-          }`}>
+          <div className={`no-print p-3.5 rounded-2xl border flex flex-wrap items-center justify-between gap-3 text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+            }`}>
             <div className="flex flex-wrap items-center gap-2 font-bold">
               <span className="text-slate-400">Sales Formula:</span>
               <span className="font-mono text-slate-800 dark:text-slate-200">Gross (Rs. {filteredGrossSales.toLocaleString()})</span>
@@ -2409,11 +2416,10 @@ export const Reports = () => {
             <button
               type="button"
               onClick={() => setSalesActiveSubTab('invoices')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
-                salesActiveSubTab === 'invoices'
-                  ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${salesActiveSubTab === 'invoices'
+                ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               <ShoppingCart className="w-3.5 h-3.5" />
               <span>1. All Sales & Invoices</span>
@@ -2425,11 +2431,10 @@ export const Reports = () => {
             <button
               type="button"
               onClick={() => setSalesActiveSubTab('productWise')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
-                salesActiveSubTab === 'productWise'
-                  ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${salesActiveSubTab === 'productWise'
+                ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               <Wheat className="w-3.5 h-3.5 text-emerald-500" />
               <span>2. By Commodity</span>
@@ -2441,11 +2446,10 @@ export const Reports = () => {
             <button
               type="button"
               onClick={() => setSalesActiveSubTab('customerWise')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
-                salesActiveSubTab === 'customerWise'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${salesActiveSubTab === 'customerWise'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               <Users className="w-3.5 h-3.5 text-blue-500" />
               <span>3. By Customer Party</span>
@@ -2457,11 +2461,10 @@ export const Reports = () => {
             <button
               type="button"
               onClick={() => setSalesActiveSubTab('dateWise')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
-                salesActiveSubTab === 'dateWise'
-                  ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${salesActiveSubTab === 'dateWise'
+                ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               <Calendar className="w-3.5 h-3.5 text-purple-500" />
               <span>4. By Date (Daily Log)</span>
@@ -2568,13 +2571,12 @@ export const Reports = () => {
                               {s.dueAmt > 0 ? `Rs. ${s.dueAmt.toLocaleString()}` : <span className="text-emerald-500 font-bold text-[10px]">Cleared</span>}
                             </td>
                             <td className="py-3 px-3 text-center">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                                s.dueAmt <= 0
-                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                  : s.paidAmt > 0
-                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                              }`}>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${s.dueAmt <= 0
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                : s.paidAmt > 0
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                }`}>
                                 {s.dueAmt <= 0 ? 'Paid' : s.paidAmt > 0 ? 'Partial' : 'Khata'}
                               </span>
                             </td>
@@ -3238,7 +3240,7 @@ export const Reports = () => {
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/80 text-[10px] text-slate-500 font-mono">
                 <span>Sales: Rs. {plTotalSalesIncome.toLocaleString()}</span>
                 <span>•</span>
-                <span>Returns: Rs. {filteredSalesReturnsVal.toLocaleString()}</span>
+                <span>Returns: Rs. {plTotalReturns.toLocaleString()}</span>
               </div>
             </div>
 
@@ -3265,18 +3267,16 @@ export const Reports = () => {
             </div>
 
             {/* Stage 3: Final Net Profit / Loss */}
-            <div className={`p-4 rounded-2xl border card-shadow transition-all ${
-              plNetProfit >= 0
-                ? (theme === 'dark' ? 'bg-emerald-950/30 border-emerald-500/40 text-white' : 'bg-emerald-50/70 border-emerald-300 text-slate-900')
-                : (theme === 'dark' ? 'bg-rose-950/30 border-rose-500/40 text-white' : 'bg-rose-50/70 border-rose-300 text-slate-900')
-            }`}>
+            <div className={`p-4 rounded-2xl border card-shadow transition-all ${plNetProfit >= 0
+              ? (theme === 'dark' ? 'bg-emerald-950/30 border-emerald-500/40 text-white' : 'bg-emerald-50/70 border-emerald-300 text-slate-900')
+              : (theme === 'dark' ? 'bg-rose-950/30 border-rose-500/40 text-white' : 'bg-rose-50/70 border-rose-300 text-slate-900')
+              }`}>
               <div className="flex items-center justify-between">
                 <span className={`text-[11px] font-bold uppercase tracking-wider ${plNetProfit >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600'}`}>
                   3. Final Profit or Loss
                 </span>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono ${
-                  plNetProfit >= 0 ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
-                }`}>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono ${plNetProfit >= 0 ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                  }`}>
                   {plNetProfit >= 0 ? `${plNetMargin}% Margin` : 'Net Loss'}
                 </span>
               </div>
@@ -3293,9 +3293,8 @@ export const Reports = () => {
           </div>
 
           {/* Plain-English Mathematical Equation Ribbon (Screen Only) */}
-          <div className={`no-print p-3.5 rounded-2xl border flex flex-wrap items-center justify-between gap-3 text-xs ${
-            theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
-          }`}>
+          <div className={`no-print p-3.5 rounded-2xl border flex flex-wrap items-center justify-between gap-3 text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+            }`}>
             <div className="flex flex-wrap items-center gap-2 font-bold">
               <span className="text-slate-400">P&L Formula:</span>
               <span className="font-mono text-emerald-600 dark:text-emerald-400">Income (+Rs. {plTotalRevenue.toLocaleString()})</span>
@@ -3304,11 +3303,10 @@ export const Reports = () => {
               <span className="text-rose-500 font-black">−</span>
               <span className="font-mono text-rose-500">Expenses (-Rs. {plTotalExpenses.toLocaleString()})</span>
               <span className="text-brand-500 font-black">=</span>
-              <span className={`font-mono font-black px-2 py-0.5 rounded-md ${
-                plNetProfit >= 0
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-              }`}>
+              <span className={`font-mono font-black px-2 py-0.5 rounded-md ${plNetProfit >= 0
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                }`}>
                 Net Result: {plNetProfit >= 0 ? '+Rs. ' : '-Rs. '}{Math.abs(plNetProfit).toLocaleString()}
               </span>
             </div>
@@ -3488,11 +3486,10 @@ export const Reports = () => {
             <button
               type="button"
               onClick={() => setPlActiveSubTab('statement')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
-                plActiveSubTab === 'statement'
-                  ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${plActiveSubTab === 'statement'
+                ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               <span>1. All Financial Transactions Journal</span>
@@ -3504,11 +3501,10 @@ export const Reports = () => {
             <button
               type="button"
               onClick={() => setPlActiveSubTab('productWise')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
-                plActiveSubTab === 'productWise'
-                  ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${plActiveSubTab === 'productWise'
+                ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               <Wheat className="w-3.5 h-3.5 text-brand-500" />
               <span>2. Commodity Profit Margins</span>
@@ -3520,11 +3516,10 @@ export const Reports = () => {
             <button
               type="button"
               onClick={() => setPlActiveSubTab('categoryWise')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${
-                plActiveSubTab === 'categoryWise'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${plActiveSubTab === 'categoryWise'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               <Building className="w-3.5 h-3.5 text-blue-500" />
               <span>3. Expense & Category Breakdown</span>
@@ -3617,15 +3612,14 @@ export const Reports = () => {
                             </td>
 
                             <td className="py-3 px-3 text-center whitespace-nowrap">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                                tx.type === 'Sale'
-                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                  : tx.type === 'Purchase'
-                                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                                    : tx.type === 'Expense'
-                                      ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                                      : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
-                              }`}>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${tx.type === 'Sale'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                : tx.type === 'Purchase'
+                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                  : tx.type === 'Expense'
+                                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                    : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                                }`}>
                                 {tx.type}
                               </span>
                             </td>
@@ -3928,7 +3922,7 @@ export const Reports = () => {
                   Operating Profit (P&L)
                 </span>
                 <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                  <span>Trading Profit</span>
+                  <span>Profit</span>
                 </span>
               </div>
               <div className="text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
@@ -4019,17 +4013,6 @@ export const Reports = () => {
                         <span className="font-bold">Total Khata Receivables:</span>
                         <span className="font-mono font-black text-amber-600 dark:text-amber-400">Rs. {totalCustomerReceivables.toLocaleString()}</span>
                       </div>
-                      <div className="pt-1 text-right">
-                        <button
-                          onClick={() => {
-                            setBsDrilldownSearch('');
-                            setBsActiveDrilldownModal('customers');
-                          }}
-                          className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                        >
-                          View Customer & Walk-in Ledger →
-                        </button>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -4063,17 +4046,6 @@ export const Reports = () => {
                       <div className="flex justify-between">
                         <span>Damaged / Expired Goods:</span>
                         <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                      </div>
-                      <div className="pt-1 text-right">
-                        <button
-                          onClick={() => {
-                            setBsDrilldownSearch('');
-                            setBsActiveDrilldownModal('stock');
-                          }}
-                          className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                        >
-                          View Stock Valuation →
-                        </button>
                       </div>
                     </div>
                   )}
@@ -4136,17 +4108,6 @@ export const Reports = () => {
                       <div className="flex justify-between">
                         <span>Outstanding Operating Expenses:</span>
                         <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                      </div>
-                      <div className="pt-1 text-right">
-                        <button
-                          onClick={() => {
-                            setBsDrilldownSearch('');
-                            setBsActiveDrilldownModal('suppliers');
-                          }}
-                          className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
-                        >
-                          View Suppliers Ledger →
-                        </button>
                       </div>
                     </div>
                   )}

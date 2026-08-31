@@ -206,16 +206,14 @@ export const Dashboard = () => {
           onClick={() => navigate('/reports?type=Stock')}
         />
 
-        {/* 4. Customer Receivables (Regular + Walk-in) */}
+        {/* 4. Customer Receivables (Regular Party Khata Dues) */}
         <KPICard
-          title="Customer Dues"
-          amount={`Rs. ${totalCustomerDues.toLocaleString()}`}
+          title="Customer Receivables"
+          amount={`Rs. ${regularDues.toLocaleString()}`}
           subtext={
-            totalCustomerDues > 0
-              ? walkinDues > 0
-                ? `Regular: Rs. ${regularDues.toLocaleString()} • Walk-in: Rs. ${walkinDues.toLocaleString()}`
-                : `${totalDueAccountsCount} accounts with pending dues`
-              : 'All customer accounts settled (Rs. 0)'
+            walkinDues > 0
+              ? `Party Khata: Rs. ${regularDues.toLocaleString()} • Counter Dues: Rs. ${walkinDues.toLocaleString()}`
+              : (regularDues > 0 ? `${regDueCount} registered party accounts with dues` : 'All customer accounts settled (Rs. 0)')
           }
           icon={Users}
           color="amber"

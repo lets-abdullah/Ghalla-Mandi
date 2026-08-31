@@ -21,7 +21,7 @@ import {
   Eye,
   Plus
 } from 'lucide-react';
-import { useERP, computeSaleFinancials } from '../context/ERPContext';
+import { useERP, computeSaleFinancials, computeCustomerKhataBalance, computeWalkinUncollectedDues } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { ReceiptModal } from '../modals/ReceiptModal';
@@ -211,7 +211,7 @@ export const Sales = () => {
     0
   );
 
-  const { totalFilteredCashReceived, totalFilteredOutstandingDue } = useMemo(() => {
+  const { totalFilteredCashReceived, totalFilteredOutstandingDue, totalPartyKhataReceivables, totalWalkinUncollected } = useMemo(() => {
     let totalCollected = 0;
     let totalOutstanding = 0;
 
@@ -221,11 +221,25 @@ export const Sales = () => {
       totalOutstanding += fin.due;
     });
 
+    let partyDue = 0;
+    if (selectedCustomerId !== 'All') {
+      const targetCust = customers.find(c => String(c.id) === String(selectedCustomerId) || c.name.toLowerCase() === selectedCustomerId.toLowerCase());
+      if (targetCust) {
+        partyDue = computeCustomerKhataBalance(targetCust, sales, paymentLogs, saleReturns).balance;
+      }
+    } else {
+      partyDue = customers.reduce((sum, c) => sum + computeCustomerKhataBalance(c, sales, paymentLogs, saleReturns).balance, 0);
+    }
+
+    const walkinDue = computeWalkinUncollectedDues(sales, saleReturns);
+
     return {
       totalFilteredCashReceived: totalCollected,
-      totalFilteredOutstandingDue: totalOutstanding
+      totalFilteredOutstandingDue: selectedCustomerId !== 'All' ? partyDue : (customerTypeFilter === 'Walk-in Customer' ? walkinDue : (customerTypeFilter === 'Regular Customer' ? partyDue : totalOutstanding)),
+      totalPartyKhataReceivables: partyDue,
+      totalWalkinUncollected: walkinDue
     };
-  }, [filteredSales, saleReturns]);
+  }, [filteredSales, sales, saleReturns, customers, paymentLogs, selectedCustomerId, customerTypeFilter]);
 
   // Check if any filter is active
   const isAnyFilterActive = (
@@ -404,6 +418,11 @@ export const Sales = () => {
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalFilteredOutstandingDue.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+            {selectedCustomerId !== 'All'
+              ? 'Customer Ledger Khata balance'
+              : `Party Khata: Rs. ${totalPartyKhataReceivables.toLocaleString()} • Walk-in: Rs. ${totalWalkinUncollected.toLocaleString()}`}
           </div>
         </div>
       </div>

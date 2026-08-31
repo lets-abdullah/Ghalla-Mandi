@@ -150,22 +150,14 @@ export const Khata = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [paymentModalCust]);
 
-  // Build Financial Position List for each Customer (Regular & Walk-in)
-  const customerKhataList = useMemo(() => {
-    const list = [];
-    const processedCustNames = new Set();
-    const processedCustIds = new Set();
-
-    // 1. Process all registered customer accounts
-    customers.forEach(cust => {
-      processedCustIds.add(String(cust.id));
-      if (cust.name) processedCustNames.add(cust.name.trim().toLowerCase());
-
+  // 1. Build Financial Position List for Registered Customers (Primary Party Credit Ledger)
+  const registeredKhataList = useMemo(() => {
+    return (customers || []).map(cust => {
       const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
       const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
       const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
 
-      list.push({
+      return {
         id: cust.id,
         name: cust.name,
         businessName: cust.businessName || cust.shopName || '',
@@ -179,33 +171,35 @@ export const Khata = () => {
         status: fin.status,
         ordersCount: fin.ordersCount,
         isRegistered: true
-      });
+      };
     });
+  }, [customers, sales, saleReturns, paymentLogs]);
 
-    // 2. Process Walk-in / Counter Sales not attached to a registered customer ID
+  // 2. Process Walk-in / Counter Sales separately (Not mixed into permanent party khata)
+  const walkinKhataList = useMemo(() => {
     const walkinSalesMap = new Map();
+    const registeredCustIds = new Set((customers || []).map(c => String(c.id)));
+    const registeredCustNames = new Set((customers || []).map(c => (c.name || '').trim().toLowerCase()));
+
     (sales || []).forEach(s => {
       const sCustId = s.customerId ? String(s.customerId) : null;
       const sName = (s.partyName || s.customerName || '').trim().toLowerCase();
-      const isRegisteredCust = (sCustId && processedCustIds.has(sCustId)) ||
-        (sName && processedCustNames.has(sName));
+      const isRegisteredCust = (sCustId && registeredCustIds.has(sCustId)) ||
+        (sName && registeredCustNames.has(sName) && sName !== 'walk-in customer');
 
       if (!isRegisteredCust) {
         const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
         const key = rawName.toLowerCase();
         if (!walkinSalesMap.has(key)) {
-          walkinSalesMap.set(key, {
-            name: rawName,
-            sales: []
-          });
+          walkinSalesMap.set(key, { name: rawName, sales: [] });
         }
         walkinSalesMap.get(key).sales.push(s);
       }
     });
 
+    const list = [];
     walkinSalesMap.forEach((val, key) => {
       const fin = computeCustomerKhataBalance({ id: `walkin-${key}`, name: val.name }, val.sales, paymentLogs, saleReturns);
-
       list.push({
         id: `walkin-${val.name}`,
         name: val.name,
@@ -222,13 +216,16 @@ export const Khata = () => {
         isRegistered: false
       });
     });
-
     return list;
   }, [customers, sales, saleReturns, paymentLogs]);
 
   // Filtered Khata Accounts
   const filteredKhata = useMemo(() => {
-    return customerKhataList.filter(item => {
+    const baseList = customerTypeFilter === 'Walk-in Customer'
+      ? walkinKhataList
+      : registeredKhataList;
+
+    return baseList.filter(item => {
       // 0. Search Term Filter
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase().trim();
@@ -239,19 +236,14 @@ export const Khata = () => {
         if (!nameMatch && !phoneMatch && !cityMatch && !bizMatch) return false;
       }
 
-      // 1. Customer Type Filter
-      const isWalkin = item.customerType.toLowerCase().includes('walk-in');
-      if (customerTypeFilter === 'Regular Customer' && isWalkin) return false;
-      if (customerTypeFilter === 'Walk-in Customer' && !isWalkin) return false;
-
-      // 2. Selected Customer Filter
+      // 1. Selected Customer Filter
       if (selectedCustomerId !== 'All') {
         const idMatch = item.id === selectedCustomerId;
         const nameMatch = item.name.toLowerCase() === selectedCustomerId.toLowerCase();
         if (!idMatch && !nameMatch) return false;
       }
 
-      // 3. Balance Status Filter
+      // 2. Balance Status Filter
       if (balanceStatusFilter === 'Outstanding' && item.balance <= 0) return false;
       if (balanceStatusFilter === 'Clear' && item.balance !== 0) return false;
 
@@ -260,7 +252,7 @@ export const Khata = () => {
       if (b.balance !== a.balance) return b.balance - a.balance;
       return (Number(b.id) || 0) - (Number(a.id) || 0);
     });
-  }, [customerKhataList, searchTerm, customerTypeFilter, selectedCustomerId, balanceStatusFilter]);
+  }, [registeredKhataList, walkinKhataList, searchTerm, customerTypeFilter, selectedCustomerId, balanceStatusFilter]);
 
   // Aggregate Metrics based on Filtered Khata
   const totalVolume = filteredKhata.reduce((acc, k) => acc + k.totalSale, 0);
