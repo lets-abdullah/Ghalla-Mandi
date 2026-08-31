@@ -4,10 +4,27 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Ghalla Mandi ERP — Multi-Tenant SaaS Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+      window.addEventListener('vite:preloadError', (event) => {
+        window.location.reload();
+      });
+      window.addEventListener('error', (e) => {
+        const msg = e.message || '';
+        if (msg.includes('Failed to load module script') || msg.includes('dynamically imported module') || msg.includes('MIME type')) {
+          if (!sessionStorage.getItem('chunk_reload_lock')) {
+            sessionStorage.setItem('chunk_reload_lock', '1');
+            window.location.reload();
+          }
+        }
+      });
+    </script>
   </head>
   <body class="bg-slate-50 text-slate-800 antialiased font-sans">
     <div id="root"></div>
