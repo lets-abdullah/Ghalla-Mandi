@@ -57,6 +57,8 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
     discount = 0,
     tax = 0,
     grandTotal = 0,
+    appliedCredit = 0,
+    cashReceived = 0,
     paidAmount = 0,
     paymentMethod = 'Cash',
     saleNote = ''
@@ -67,6 +69,8 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
     : `SAL-${String(orderId).replace(/[^0-9A-Za-z]/g, '') || '000456'}`;
 
   const grandTotalNum = Number(grandTotal || subtotal || 0);
+  const appliedCreditNum = Number(appliedCredit || 0);
+  const cashReceivedNum = Number(cashReceived || 0);
   const paidNum = Number(paidAmount !== undefined ? paidAmount : grandTotalNum);
   const discountNum = Number(discount || 0);
   const calculatedSubtotal = Number(subtotal) > 0 ? Number(subtotal) : (grandTotalNum + discountNum);
@@ -217,8 +221,20 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                       <td style="padding: 6px 8px; font-weight: 900; font-size: 13px;">Grand Total:</td>
                       <td style="padding: 6px 8px; text-align: right; font-family: monospace; font-weight: 900; font-size: 14px;">Rs. ${grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
+                    ${appliedCreditNum > 0 ? `
+                      <tr style="background: #ecfdf5; color: #065f46;">
+                        <td style="padding: 4px 8px; font-weight: 700;">Applied Advance Credit:</td>
+                        <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 800;">- Rs. ${appliedCreditNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      </tr>
+                    ` : ''}
+                    ${cashReceivedNum > 0 || appliedCreditNum > 0 ? `
+                      <tr>
+                        <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Cash / Additional Paid:</td>
+                        <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 700; color: #059669;">Rs. ${cashReceivedNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      </tr>
+                    ` : ''}
                     <tr>
-                      <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Amount Paid:</td>
+                      <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Total Settled / Paid:</td>
                       <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 800; color: #059669;">Rs. ${paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                     <tr>
@@ -648,8 +664,16 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                       Rs. {grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
+                  {appliedCreditNum > 0 && (
+                    <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded text-[11px] font-bold">
+                      <span>Applied Advance Credit:</span>
+                      <span className="font-mono font-black">
+                        - Rs. {appliedCreditNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center text-slate-600 px-1 pt-0.5">
-                    <span>Paid Amount:</span>
+                    <span>Total Paid / Settled:</span>
                     <span className="font-mono text-emerald-700 font-black">
                       Rs. {paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>

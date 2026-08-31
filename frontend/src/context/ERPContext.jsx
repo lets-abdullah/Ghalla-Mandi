@@ -98,8 +98,19 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   let salesPaidSum = 0;
   custSales.forEach(s => {
     const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
+    const sAppliedCredit = Number(s.appliedCredit || 0);
     const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
-    const sUpfront = isMarkedPaid ? sTotal : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
+
+    let sUpfront = 0;
+    if (s.cashReceived !== undefined) {
+      sUpfront = Number(s.cashReceived);
+    } else if (sAppliedCredit > 0) {
+      const grossPaid = isMarkedPaid ? sTotal : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
+      sUpfront = Math.max(0, grossPaid - sAppliedCredit);
+    } else {
+      sUpfront = isMarkedPaid ? sTotal : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
+    }
+
     const sDirectLogs = custPayments.filter(p =>
       (p.saleId && String(p.saleId) === String(s.id)) ||
       (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
@@ -519,8 +530,19 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   let purchasesPaidSum = 0;
   supPurchases.forEach(p => {
     const pTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
+    const pAppliedAdvance = Number(p.appliedAdvance || p.appliedCredit || 0);
     const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
-    const pUpfront = isMarkedPaid ? pTotal : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
+
+    let pUpfront = 0;
+    if (p.cashPaid !== undefined) {
+      pUpfront = Number(p.cashPaid);
+    } else if (pAppliedAdvance > 0) {
+      const grossPaid = isMarkedPaid ? pTotal : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
+      pUpfront = Math.max(0, grossPaid - pAppliedAdvance);
+    } else {
+      pUpfront = isMarkedPaid ? pTotal : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
+    }
+
     const pDirectLogs = supPayments.filter(pl =>
       (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
       (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
