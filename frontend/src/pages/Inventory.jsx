@@ -54,7 +54,6 @@ export const Inventory = () => {
 
   // Modals
   const [showAdjModal, setShowAdjModal] = useState(false);
-  const [selectedMovementDetail, setSelectedMovementDetail] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Adjustment Form State
@@ -700,10 +699,7 @@ export const Inventory = () => {
                   return (
                     <tr 
                       key={tx.id} 
-                      onClick={() => setSelectedMovementDetail(tx)}
-                      className={`transition cursor-pointer group ${
-                        theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'
-                      }`}
+                      className={theme === 'dark' ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50/70'}
                     >
                       {/* Date */}
                       <td className="py-2.5 px-4 text-slate-400 font-mono whitespace-nowrap">
@@ -712,7 +708,7 @@ export const Inventory = () => {
 
                       {/* Product */}
                       <td className="py-2.5 px-4">
-                        <span className="font-extrabold text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors">
+                        <span className="font-extrabold text-slate-900 dark:text-white">
                           {tx.productName}
                         </span>
                       </td>
@@ -738,11 +734,8 @@ export const Inventory = () => {
                       </td>
 
                       {/* Reference No */}
-                      <td className="py-2.5 px-4 font-mono font-bold">
-                        <span className="text-brand-600 dark:text-brand-400 group-hover:underline flex items-center gap-1">
-                          <span>{tx.referenceNo}</span>
-                          <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </span>
+                      <td className="py-2.5 px-4 font-mono font-bold text-slate-600 dark:text-slate-300">
+                        {tx.referenceNo}
                       </td>
 
                       {/* Signed Quantity */}
@@ -766,97 +759,6 @@ export const Inventory = () => {
 
       {/* Print Footer */}
       <PrintFooter note="Official Business Record • Ghalla Mandi Warehouse & Stock Register" />
-
-      {/* Transaction Details Modal */}
-      {selectedMovementDetail && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setSelectedMovementDetail(null); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
-                  selectedMovementDetail.direction === 'IN' 
-                    ? 'bg-emerald-500/10 text-emerald-500' 
-                    : 'bg-rose-500/10 text-rose-500'
-                }`}>
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black">Movement Statement Detail</h3>
-                  <p className="text-[11px] text-slate-400 font-bold">{selectedMovementDetail.referenceNo}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedMovementDetail(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Details Grid */}
-            <div className={`border rounded-2xl p-4 space-y-2.5 text-xs ${
-              theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-            }`}>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Date & Time:</span>
-                <span className="font-bold font-mono">{selectedMovementDetail.dateStr}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Commodity / Product:</span>
-                <span className="font-extrabold">{selectedMovementDetail.productName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Movement Type:</span>
-                <span className={`font-black ${
-                  selectedMovementDetail.direction === 'IN' ? 'text-emerald-600' : 'text-rose-600'
-                }`}>
-                  {selectedMovementDetail.movementLabel}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Source / Module:</span>
-                <span className="font-bold">{selectedMovementDetail.sourceCategory}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Reference Number:</span>
-                <span className="font-mono font-bold text-brand-500">{selectedMovementDetail.referenceNo}</span>
-              </div>
-              <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
-                <span className="font-bold text-slate-700 dark:text-slate-300">Quantity Transacted:</span>
-                <span className={`font-black text-sm font-mono ${
-                  selectedMovementDetail.direction === 'IN' ? 'text-emerald-600' : 'text-rose-600'
-                }`}>
-                  {selectedMovementDetail.signedQty}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print Record</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedMovementDetail(null)}
-                className="flex-1 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs transition cursor-pointer shadow-md"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Manual Stock Adjustment Modal */}
       {showAdjModal && (

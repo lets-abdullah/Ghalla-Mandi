@@ -103,13 +103,10 @@ export const RecentTransactionsTable = ({ onViewInvoice }) => {
                     </span>
                   </td>
                   <td className="py-3 px-2 font-mono font-semibold">
-                    <button 
-                      onClick={() => onViewInvoice && onViewInvoice(tx)} 
-                      className="flex items-center gap-1.5 hover:text-brand-500 hover:underline text-left cursor-pointer"
-                    >
+                    <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
                       <FileText className="w-3.5 h-3.5 text-slate-400" />
-                      {tx.invoiceNo}
-                    </button>
+                      <span>{tx.invoiceNo}</span>
+                    </div>
                   </td>
                   <td className="py-3 px-2 font-bold">{tx.partyName}</td>
                   <td className="py-3 px-2 text-slate-400">{tx.date}</td>
