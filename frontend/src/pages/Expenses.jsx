@@ -12,16 +12,16 @@ import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 
 export const EXPENSE_CATEGORIES = [
-  'Salary (Staff / Workers)',
-  'Bills (Electricity / Gas / Water)',
-  'Transport & Freight (Bilty / Gaari)',
-  'Shop & Godown Rent',
-  'Labour & Loading (Mazdoori / Palla)',
-  'Bardana & Bags Purchase',
-  'Fuel & Generator Diesel',
-  'Tea & Hospitality (Chai Pani)',
-  'Repair & Maintenance',
-  'General Miscellaneous'
+  'Salary',
+  'Bills & Utilities',
+  'Shop Rent',
+  'Transport',
+  'Labour',
+  'Bags & Bardana',
+  'Fuel',
+  'Tea & Food',
+  'Maintenance',
+  'Other'
 ];
 
 export const Expenses = () => {
@@ -31,7 +31,7 @@ export const Expenses = () => {
 
   // Form State
   const [form, setForm] = useState({
-    category: 'Salary (Staff / Workers)',
+    category: 'Salary',
     amount: '',
     mode: 'Cash',
     date: new Date().toISOString().split('T')[0],
@@ -81,7 +81,7 @@ export const Expenses = () => {
 
       // Reset Form
       setForm({
-        category: 'Salary (Staff / Workers)',
+        category: 'Salary',
         amount: '',
         mode: 'Cash',
         date: new Date().toISOString().split('T')[0],

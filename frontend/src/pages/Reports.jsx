@@ -3436,19 +3436,19 @@ export const Reports = () => {
                             {p.name}
                           </td>
                           <td className="py-3 px-3 text-center font-mono font-bold text-slate-600 dark:text-slate-300">
-                            {p.units}
+                            {p.unitsSold || 0} {p.unit || 'Units'}
                           </td>
                           <td className="py-3 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Rs. {p.sales.toLocaleString()}
+                            Rs. {Number(p.salesRevenue || 0).toLocaleString()}
                           </td>
                           <td className="py-3 px-3 text-right font-mono text-blue-600 dark:text-blue-400">
-                            Rs. {p.cogs.toLocaleString()}
+                            Rs. {Number(p.cogs || 0).toLocaleString()}
                           </td>
                           <td className="py-3 px-3 text-right font-mono font-black text-brand-500">
-                            Rs. {p.grossProfit.toLocaleString()}
+                            Rs. {Number(p.grossProfit || 0).toLocaleString()}
                           </td>
                           <td className="py-3 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            {p.margin}%
+                            {p.margin || '0.0'}%
                           </td>
                         </tr>
                       ))
@@ -3503,19 +3503,19 @@ export const Reports = () => {
                             {c.category}
                           </td>
                           <td className="py-3 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Rs. {c.sales.toLocaleString()}
+                            Rs. {Number(c.sales || 0).toLocaleString()}
                           </td>
                           <td className="py-3 px-3 text-right font-mono text-blue-600 dark:text-blue-400">
-                            Rs. {c.purchases.toLocaleString()}
+                            Rs. {Number(c.purchases || 0).toLocaleString()}
                           </td>
                           <td className="py-3 px-3 text-right font-mono text-rose-500">
-                            Rs. {c.expenses.toLocaleString()}
+                            Rs. {Number(c.expenses || 0).toLocaleString()}
                           </td>
                           <td className="py-3 px-3 text-right font-mono font-black text-brand-500">
-                            Rs. {c.netProfit.toLocaleString()}
+                            Rs. {Number(c.netProfit || 0).toLocaleString()}
                           </td>
                           <td className="py-3 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            {c.margin}%
+                            {c.margin || '0.0'}%
                           </td>
                         </tr>
                       ))
