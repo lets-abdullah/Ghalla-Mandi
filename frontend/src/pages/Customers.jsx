@@ -23,7 +23,8 @@ import {
   FileText,
   Landmark,
   Hash,
-  Printer
+  Printer,
+  ShoppingBag
 } from 'lucide-react';
 import { useERP, computeCustomerKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -171,7 +172,20 @@ export const Customers = () => {
   const totalCustomers = registeredCustomersList.length;
   const regularCount = registeredCustomersList.filter(c => (c.customerType || '').toLowerCase().includes('regular')).length;
   const walkinCount = walkinCustomersList.length;
-  const totalReceivables = registeredCustomersList.reduce((acc, c) => acc + Math.max(0, Number(c.balance || 0)), 0);
+
+  const totalOverallSales = useMemo(() => {
+    return registeredCustomersList.reduce((acc, c) => acc + (Number(c.totalSales) || 0), 0);
+  }, [registeredCustomersList]);
+
+  const totalOverallReceived = useMemo(() => {
+    return registeredCustomersList.reduce((acc, c) => acc + (Number(c.totalPaid) || 0) + (Number(c.returnAmount) || 0), 0);
+  }, [registeredCustomersList]);
+
+  // Total Receivable is net of all customer balances (e.g. Test 1 = Rs.6,000 receivable and Haji Tariq = Rs.1,500 customer credit => Rs.4,500 net receivable)
+  const totalReceivables = useMemo(() => {
+    return Math.max(0, registeredCustomersList.reduce((acc, c) => acc + (Number(c.netBalance !== undefined ? c.netBalance : (c.balance || 0))), 0));
+  }, [registeredCustomersList]);
+
   const totalWalkinDues = walkinCustomersList.reduce((acc, c) => acc + Math.max(0, Number(c.balance || 0)), 0);
 
   // Filtered Customers Array
@@ -377,41 +391,41 @@ export const Customers = () => {
 
       {/* KPI Cards Row (Screen Only) */}
       <div className="no-print grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Total Registered Customers */}
+        {/* 1. Total Sales */}
         <div
-          onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('All'); }}
+          onClick={() => { setCustomerTypeFilter('All'); setBalanceFilter('All'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
             }`}
-          title="View all registered customer parties"
+          title="View total customer sales"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <Users className="w-4 h-4 text-blue-600" />
-            <span>Customer Parties</span>
+            <ShoppingBag className="w-4 h-4 text-blue-600" />
+            <span>Total Sales Volume</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
-            {totalCustomers}
+            Rs. {totalOverallSales.toLocaleString()}
           </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Permanent accounts</div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Total customer billing</div>
         </div>
 
-        {/* Parties with Dues */}
+        {/* 2. Total Received */}
         <div
-          onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('Due'); }}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-b from-indigo-50/50 to-white border-indigo-200/80'
+          onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('Paid'); }}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
             }`}
-          title="Filter parties with open dues"
+          title="Total cash & payment credits received"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-indigo-600" />
-            <span>Accounts with Due</span>
+            <DollarSign className="w-4 h-4 text-emerald-600" />
+            <span>Total Received</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-indigo-600 dark:text-indigo-400">
-            {registeredCustomersList.filter(c => c.balance > 0).length}
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
+            Rs. {totalOverallReceived.toLocaleString()}
           </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Open khata accounts</div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Payments & return settlements</div>
         </div>
 
-        {/* Walk-in Counter Dues */}
+        {/* 3. Walk-in Counter Dues */}
         <div
           onClick={() => { setCustomerTypeFilter('Walk-in'); setBalanceFilter('All'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-hover card-shadow transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-teal-500/30 text-white' : 'bg-gradient-to-b from-teal-50/50 to-white border-teal-200/80'
@@ -428,7 +442,7 @@ export const Customers = () => {
           <div className="text-[10px] text-slate-400 font-semibold mt-0.5">{walkinCount} spot counter transactions</div>
         </div>
 
-        {/* Total Party Receivables */}
+        {/* 4. Total Party Receivables (Net) */}
         <div
           onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('Due'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
@@ -436,13 +450,13 @@ export const Customers = () => {
           title="Filter Customers with Outstanding Balance"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-amber-600" />
-            <span>Party Receivables</span>
+            <Building2 className="w-4 h-4 text-amber-600" />
+            <span>Total Receivables</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalReceivables.toLocaleString()}
           </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Total registered khata balance</div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Net party receivables (incl. credits)</div>
         </div>
       </div>
 
