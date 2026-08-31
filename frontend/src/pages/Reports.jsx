@@ -3132,11 +3132,11 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* Streamlined Filter Toolbar (Screen Only) */}
-          <div className={`no-print p-3.5 rounded-2xl border card-shadow flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          {/* Modern Single-Row Compact Filter Toolbar (Screen Only) */}
+          <div className={`no-print p-2.5 sm:p-3 rounded-2xl border card-shadow flex flex-wrap lg:flex-nowrap items-center gap-2 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
-            {/* 1. Quick Search */}
-            <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+            {/* 1. Wide Quick Search */}
+            <div className={`flex-1 min-w-[200px] flex items-center gap-2 px-3 py-1.5 rounded-xl border ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
               }`}>
               <Search className="w-4 h-4 text-slate-400 shrink-0" />
               <input
@@ -3153,12 +3153,12 @@ export const Reports = () => {
               )}
             </div>
 
-            {/* 2. View Mode Selector (Replaces Sub-Tabs) */}
-            <div className="min-w-[190px]">
+            {/* 2. Compact View Mode Selector */}
+            <div className="w-full sm:w-auto min-w-[150px]">
               <select
                 value={plActiveSubTab}
                 onChange={(e) => setPlActiveSubTab(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[36px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="statement">All Transactions</option>
@@ -3167,12 +3167,12 @@ export const Reports = () => {
               </select>
             </div>
 
-            {/* 3. Time Period Filter */}
-            <div className="min-w-[130px]">
+            {/* 3. Compact Time Period Filter */}
+            <div className="w-full sm:w-auto min-w-[115px]">
               <select
                 value={plDateFilter}
                 onChange={(e) => { setPlDateFilter(e.target.value); setPlPage(1); }}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[36px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Time</option>
@@ -3180,32 +3180,33 @@ export const Reports = () => {
                 <option value="Yesterday">Yesterday</option>
                 <option value="This Week">This Week</option>
                 <option value="This Month">This Month</option>
-                <option value="Custom">Custom Date Range</option>
+                <option value="Custom">Custom Range</option>
               </select>
             </div>
 
-            {/* 4. Transaction Type Filter */}
-            <div className="min-w-[130px]">
+            {/* 4. Compact Income / Expense Type Filter */}
+            <div className="w-full sm:w-auto min-w-[125px]">
               <select
                 value={plTypeFilter}
                 onChange={(e) => { setPlTypeFilter(e.target.value); setPlPage(1); }}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[36px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All">All Types</option>
                 <option value="Sale">Sale (Income)</option>
-                <option value="Purchase">Purchase (COGS)</option>
+                <option value="Purchase">Purchase (Expense)</option>
                 <option value="Expense">Shop Expense</option>
                 <option value="Return">Returns</option>
               </select>
             </div>
 
-            {/* 5. Reset Filters Button */}
+            {/* 5. Subtle Reset Button */}
             {hasActivePlFilters && (
               <button
                 type="button"
                 onClick={handleResetPlFilters}
-                className="px-3 py-2 rounded-xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs font-bold flex items-center gap-1 cursor-pointer transition h-[38px] shrink-0"
+                className="px-3 py-1.5 rounded-xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs font-bold flex items-center gap-1 cursor-pointer transition h-[36px] shrink-0"
+                title="Reset Filters"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Reset</span>
@@ -3215,7 +3216,7 @@ export const Reports = () => {
 
           {/* Custom Date Pickers */}
           {plDateFilter === 'Custom' && (
-            <div className={`no-print p-3 rounded-2xl border card-shadow flex flex-wrap items-center gap-3 text-xs ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <div className={`no-print p-2.5 rounded-2xl border card-shadow flex flex-wrap items-center gap-3 text-xs ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
               <span className="font-bold text-slate-400">Custom Date Range:</span>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-500">From:</span>
@@ -3223,7 +3224,7 @@ export const Reports = () => {
                   type="date"
                   value={plStartDate}
                   onChange={(e) => { setPlStartDate(e.target.value); setPlPage(1); }}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 />
               </div>
@@ -3233,7 +3234,7 @@ export const Reports = () => {
                   type="date"
                   value={plEndDate}
                   onChange={(e) => { setPlEndDate(e.target.value); setPlPage(1); }}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 />
               </div>
@@ -3260,7 +3261,7 @@ export const Reports = () => {
           {plActiveSubTab === 'statement' && (
             <div className={`border rounded-2xl card-shadow overflow-hidden ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
-              <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
                     <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
@@ -3281,29 +3282,23 @@ export const Reports = () => {
                       <th className="py-3 px-3">Item & Party</th>
                       <th className="py-3 px-3 text-center">Type</th>
                       <th className="py-3 px-3 text-center">Qty</th>
-                      <th className="py-3 px-3 text-right">Inflow / Outflow</th>
-                      <th className="py-3 px-3.5 text-right font-black">Running Net Result</th>
+                      <th className="py-3 px-4 text-right">Inflow / Outflow</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                     {paginatedPlJournal.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-slate-400">
+                        <td colSpan={5} className="py-12 text-center text-slate-400">
                           No transactions match the selected filters.
                         </td>
                       </tr>
                     ) : (
                       paginatedPlJournal.map((tx) => {
-                        const isPositive = tx.amount >= 0;
-                        const isRunningPositive = (tx.runningPnL || 0) >= 0;
+                        const isIncome = tx.amount >= 0 || tx.type === 'Sale';
                         return (
                           <tr key={tx.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
                             <td className="py-3 px-3.5 whitespace-nowrap">
-                              <div className={`font-mono font-bold text-xs ${tx.type === 'Sale' ? 'text-emerald-600 dark:text-emerald-400' :
-                                tx.type === 'Purchase' ? 'text-blue-600 dark:text-blue-400' :
-                                  tx.type === 'Expense' ? 'text-rose-600 dark:text-rose-400' :
-                                    'text-purple-600 dark:text-purple-400'
-                                }`}>
+                              <div className={`font-mono font-bold text-xs ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                 {tx.ref}
                               </div>
                               <div className="text-[10px] text-slate-400 font-mono">
@@ -3317,13 +3312,9 @@ export const Reports = () => {
                             </td>
 
                             <td className="py-3 px-3 text-center whitespace-nowrap">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${tx.type === 'Sale'
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                : tx.type === 'Purchase'
-                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                                  : tx.type === 'Expense'
-                                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                                    : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase border ${isIncome
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                                 }`}>
                                 {tx.type}
                               </span>
@@ -3333,14 +3324,9 @@ export const Reports = () => {
                               {tx.qty}
                             </td>
 
-                            <td className={`py-3 px-3 text-right font-mono font-black text-xs whitespace-nowrap ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                            <td className={`py-3 px-4 text-right font-mono font-black text-xs whitespace-nowrap ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                               }`}>
-                              {isPositive ? '+' : ''}Rs. {tx.amount.toLocaleString()}
-                            </td>
-
-                            <td className={`py-3 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap ${isRunningPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                              }`}>
-                              {isRunningPositive ? '+Rs. ' : '-Rs. '}{Math.abs(tx.runningPnL || 0).toLocaleString()}
+                              {isIncome ? '+Rs. ' : '-Rs. '}{Math.abs(tx.amount || 0).toLocaleString()}
                             </td>
                           </tr>
                         );
