@@ -64,7 +64,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
     : `PUR-${String(purchaseNo).replace(/[^0-9A-Za-z]/g, '') || '000123'}`;
 
   const grandTotalNum = Number(totalAmount || 0);
-  const paidNum = Number(paidAmount !== undefined ? paidAmount : grandTotalNum);
+  const paidNum = Number(paidAmount !== undefined && paidAmount !== null ? paidAmount : 0);
   const adjustmentNum = Number(adjustment || discount || 0);
   const calculatedSubtotal = grandTotalNum + adjustmentNum;
   const dueRemaining = Math.max(0, grandTotalNum - paidNum);

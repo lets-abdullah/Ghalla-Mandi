@@ -869,7 +869,6 @@ export const Purchases = () => {
                 </tr>
               ) : (
                 filteredPurchases.map(p => {
-                  const upfrontPaid = Number(p.paidAmount ?? p.paidamount ?? (p.paymentStatus === 'Paid' ? (p.amount ?? p.grandTotal ?? p.grandtotal ?? 0) : 0));
                   const directPaid = (paymentLogs || []).filter(pl =>
                     (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
                     (
@@ -877,10 +876,11 @@ export const Purchases = () => {
                       (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
                     )
                   ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+                  const upfrontPaid = Number(p.paidAmount ?? p.paidamount ?? 0);
                   const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
                   const retAmt = Number(p.returnAmount ?? 0);
                   const netTotal = Math.max(0, total - retAmt);
-                  const paid = Math.min(netTotal, upfrontPaid + directPaid);
+                  const paid = Math.min(netTotal, directPaid > 0 ? directPaid : (p.paymentStatus === 'Paid' ? netTotal : upfrontPaid));
                   const due = Math.max(0, netTotal - paid);
                   const status = (due === 0 && total > 0) || p.paymentStatus === 'Paid' ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
 

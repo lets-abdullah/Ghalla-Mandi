@@ -17,10 +17,22 @@ export const computeSaleFinancials = (sale, saleReturns = []) => {
   return { total, paid, returnAmount, due, status, isReturned };
 };
 
-export const computePurchaseFinancials = (purchase, purchaseReturns = []) => {
+export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymentLogs = []) => {
   if (!purchase) return { total: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
   const total = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : (purchase.grandtotal !== undefined ? purchase.grandtotal : 0)));
-  const paid = Number(purchase.paidAmount !== undefined ? purchase.paidAmount : (purchase.paidamount !== undefined ? purchase.paidamount : 0));
+  
+  // Specific payment logs for this purchase
+  const directPaid = (paymentLogs || []).filter(pl =>
+    (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
+    (
+      (pl.purchaseId && String(pl.purchaseId) === String(purchase.id)) ||
+      (purchase.purchaseNo && pl.ref && pl.ref.includes(purchase.purchaseNo))
+    )
+  ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+
+  const upfrontPaid = Number(purchase.paidAmount !== undefined ? purchase.paidAmount : (purchase.paidamount !== undefined ? purchase.paidamount : 0));
+  const paid = directPaid > 0 ? directPaid : upfrontPaid;
+
   const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
   const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(purchase.returnAmount || 0);
   const isReturned = (purchase.status === 'Returned') || (purchase.paymentStatus === 'Returned') || purchase.isReturned || (purchase.returnStatus && purchase.returnStatus !== 'None') || (returnAmount >= total && total > 0);
@@ -128,26 +140,20 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
 
   const totalPurchase = supPurchases.reduce((acc, p) => acc + Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0)), 0);
 
-  // Track purchase IDs that have specific payment logs logged
-  const accountedPurchaseIds = new Set();
-  (paymentLogs || []).filter(p => p.type === 'Supplier' || p.partyType === 'Supplier').forEach(p => {
-    if (p.purchaseId) accountedPurchaseIds.add(String(p.purchaseId));
-  });
-
-  // Upfront cash paid on purchase entry (if not already logged as a separate payment log)
-  const upfrontPaid = supPurchases.reduce((acc, p) => {
-    if (accountedPurchaseIds.has(String(p.id))) return acc;
-    return acc + Number(p.paidAmount !== undefined ? p.paidAmount : 0);
-  }, 0);
-
-  // Standalone and invoice payment logs for this supplier
-  const directPaid = (paymentLogs || []).filter(p => {
+  // Single Source of Truth: Supplier Payment Transactions recorded in paymentLogs
+  const supPayments = (paymentLogs || []).filter(p => {
     const isSupplier = p.type === 'Supplier' || p.partyType === 'Supplier';
     if (!isSupplier) return false;
     const pPartyId = p.partyId ? String(p.partyId) : null;
     const pPartyName = (p.partyName || '').trim().toLowerCase();
     return (supId && pPartyId && pPartyId === supId) || (supName && pPartyName === supName);
-  }).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  });
+
+  const totalPaidLogs = supPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+  // Fallback to upfront purchase paidAmount only if no ledger payment logs exist
+  const upfrontOnly = supPurchases.reduce((acc, p) => acc + Number(p.paidAmount || 0), 0);
+  const totalPaid = totalPaidLogs > 0 ? totalPaidLogs : upfrontOnly;
 
   const returnAmount = (purchaseReturns || []).filter(r => {
     const rSupId = r.supplierId ? String(r.supplierId) : null;
@@ -156,16 +162,15 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   }).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
 
   const openingBalance = Number(supplier.openingBalance !== undefined ? supplier.openingBalance : (supplier.openingbalance !== undefined ? supplier.openingbalance : 0));
-  const totalPaid = upfrontPaid + directPaid;
   const netPurchases = Math.max(0, totalPurchase - returnAmount);
   const balance = Math.max(0, openingBalance + netPurchases - totalPaid);
-  const status = balance > 0 ? 'Payable' : 'Clear';
+  const status = balance > 0 ? 'Payable' : 'Settled';
 
   return {
     openingBalance,
     totalPurchase,
-    upfrontPaid,
-    directPaid,
+    upfrontPaid: totalPaid,
+    directPaid: totalPaidLogs,
     totalPaid,
     returnAmount,
     balance,
