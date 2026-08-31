@@ -2262,10 +2262,10 @@ export const Reports = () => {
                 className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
-                <option value="invoices">1. All Sales & Invoices ({filteredSalesList.length})</option>
-                <option value="productWise">2. By Commodity ({productWiseSalesData.length})</option>
-                <option value="customerWise">3. By Customer Party ({customerWiseSalesData.length})</option>
-                <option value="dateWise">4. By Date (Daily Log) ({dateWiseSalesData.length})</option>
+                <option value="invoices">All Sales & Invoices ({filteredSalesList.length})</option>
+                <option value="productWise">By Commodity ({productWiseSalesData.length})</option>
+                <option value="customerWise">By Customer Party ({customerWiseSalesData.length})</option>
+                <option value="dateWise">By Date (Daily Log) ({dateWiseSalesData.length})</option>
               </select>
             </div>
 
@@ -3076,11 +3076,11 @@ export const Reports = () => {
         <div className="space-y-5">
           {/* Top 3-Stage Visual Flow Cards (Screen Only) */}
           <div className="no-print grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            {/* Stage 1: Money In (Total Revenue) */}
+            {/* Stage 1: Money In (Sales) */}
             <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">1. Money In (Revenue)</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">1. Money In (Sales)</span>
                 <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-sm">
                   +
                 </div>
@@ -3089,7 +3089,7 @@ export const Reports = () => {
                 +Rs. {plTotalRevenue.toLocaleString()}
               </div>
               <div className="text-[11px] text-slate-400 font-semibold mt-1">
-                Total money made from sales orders after returns
+                Total money earned from sales after returns
               </div>
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/80 text-[10px] text-slate-500 font-mono">
                 <span>Sales: Rs. {plTotalSalesIncome.toLocaleString()}</span>
@@ -3102,7 +3102,7 @@ export const Reports = () => {
             <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-rose-500">2. Money Out (Costs & Expenses)</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-rose-500">2. Money Out (Purchases & Costs)</span>
                 <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-black text-sm">
                   −
                 </div>
@@ -3111,7 +3111,7 @@ export const Reports = () => {
                 -Rs. {(plTotalCOGS + plTotalExpenses).toLocaleString()}
               </div>
               <div className="text-[11px] text-slate-400 font-semibold mt-1">
-                Inventory purchases + Shop running expenses
+                Stock purchases + Shop running expenses
               </div>
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/80 text-[10px] text-slate-500 font-mono">
                 <span>Purchases: Rs. {plTotalCOGS.toLocaleString()}</span>
@@ -3127,18 +3127,18 @@ export const Reports = () => {
               }`}>
               <div className="flex items-center justify-between">
                 <span className={`text-[11px] font-bold uppercase tracking-wider ${plNetProfit >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600'}`}>
-                  3. Final Profit or Loss
+                  3. Net Profit / Loss
                 </span>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono ${plNetProfit >= 0 ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
                   }`}>
-                  {plNetProfit >= 0 ? `${plNetMargin}% Margin` : 'Net Loss'}
+                  {plNetProfit >= 0 ? 'Net Profit' : 'Net Loss'}
                 </span>
               </div>
               <div className={`text-2xl font-black font-mono mt-2 ${plNetProfit >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-400'}`}>
                 {plNetProfit >= 0 ? '+Rs. ' : '-Rs. '}{Math.abs(plNetProfit).toLocaleString()}
               </div>
               <div className={`text-[11px] font-semibold mt-1 ${plNetProfit >= 0 ? 'text-emerald-700/80 dark:text-emerald-300/80' : 'text-rose-600/80'}`}>
-                {plNetProfit >= 0 ? 'Real earnings remaining in your pocket after all costs' : 'Expenses and stock costs exceeded sales revenue'}
+                {plNetProfit >= 0 ? 'Real profit earned in pocket after all costs' : 'Total loss: costs and purchases were higher than sales'}
               </div>
               <div className="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-800 text-[10px] font-mono text-slate-500">
                 Gross Profit: Rs. {plGrossProfit.toLocaleString()} ({plGrossMargin}% Gross Margin)
@@ -3168,16 +3168,16 @@ export const Reports = () => {
             </div>
 
             {/* 2. View Mode Selector (Replaces Sub-Tabs) */}
-            <div className="min-w-[210px]">
+            <div className="min-w-[190px]">
               <select
                 value={plActiveSubTab}
                 onChange={(e) => setPlActiveSubTab(e.target.value)}
                 className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
-                <option value="statement">1. All Financial Transactions Journal ({filteredPlJournal.length})</option>
-                <option value="productWise">2. Commodity Profit Margins ({productWisePnLData.length})</option>
-                <option value="categoryWise">3. Expense & Category Breakdown ({categoryWisePnLData.length})</option>
+                <option value="statement">All Transactions ({filteredPlJournal.length})</option>
+                <option value="productWise">Profit by Item ({productWisePnLData.length})</option>
+                <option value="categoryWise">Expense Breakdown ({categoryWisePnLData.length})</option>
               </select>
             </div>
 
@@ -3278,10 +3278,10 @@ export const Reports = () => {
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
                     <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
-                    <span>Financial Transaction Journal</span>
+                    <span>Income & Expense Records</span>
                   </h3>
                   <span className="text-[11px] text-slate-400 font-medium">
-                    Complete chronological list of all sales, purchases, and expenses
+                    Easy list of all sales (money earned) and purchases / expenses (money spent)
                   </span>
                 </div>
               </div>
@@ -3292,22 +3292,24 @@ export const Reports = () => {
                     <tr className={`border-b text-[10px] font-black uppercase tracking-wider sticky top-0 ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-slate-400' : 'bg-slate-50/90 border-slate-200 text-slate-500'
                       }`}>
                       <th className="py-3 px-3.5">Reference & Date</th>
-                      <th className="py-3 px-3">Description & Party</th>
+                      <th className="py-3 px-3">Item & Party</th>
                       <th className="py-3 px-3 text-center">Type</th>
                       <th className="py-3 px-3 text-center">Qty</th>
-                      <th className="py-3 px-3.5 text-right font-black">Inflow / Outflow</th>
+                      <th className="py-3 px-3 text-right">Inflow / Outflow</th>
+                      <th className="py-3 px-3.5 text-right font-black">Running Net Result</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                     {paginatedPlJournal.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-12 text-center text-slate-400">
-                          No financial transactions match the selected filters.
+                        <td colSpan={6} className="py-12 text-center text-slate-400">
+                          No transactions match the selected filters.
                         </td>
                       </tr>
                     ) : (
                       paginatedPlJournal.map((tx) => {
                         const isPositive = tx.amount >= 0;
+                        const isRunningPositive = (tx.runningPnL || 0) >= 0;
                         return (
                           <tr key={tx.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
                             <td className="py-3 px-3.5 whitespace-nowrap">
@@ -3345,9 +3347,15 @@ export const Reports = () => {
                               {tx.qty}
                             </td>
 
-                            <td className={`py-3 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                            <td className={`py-3 px-3 text-right font-mono font-black text-xs whitespace-nowrap ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                               }`}>
                               {isPositive ? '+' : ''}Rs. {tx.amount.toLocaleString()}
+                            </td>
+
+                            <td className={`py-3 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap ${
+                              isRunningPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                            }`}>
+                              {isRunningPositive ? '+Rs. ' : '-Rs. '}{Math.abs(tx.runningPnL || 0).toLocaleString()}
                             </td>
                           </tr>
                         );
