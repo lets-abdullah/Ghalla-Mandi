@@ -22,7 +22,7 @@ import {
   TrendingUp,
   Receipt
 } from 'lucide-react';
-import { useERP, computeSaleFinancials, computePurchaseFinancials } from '../context/ERPContext';
+import { useERP, computeSaleFinancials, computePurchaseFinancials, computeCustomerKhataBalance, computeSupplierKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { ReceiptModal } from '../modals/ReceiptModal';
@@ -154,7 +154,7 @@ export const Invoices = () => {
   const rawList = useMemo(() => {
     if (isPurchases) {
       return purchases.map(p => {
-        const { total, paid, due, status } = computePurchaseFinancials(p, purchaseReturns);
+        const { total, paid, due, status } = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
 
         return {
           id: p.id,
@@ -200,7 +200,7 @@ export const Invoices = () => {
         };
       });
     }
-  }, [isPurchases, sales, purchases, saleReturns, purchaseReturns]);
+  }, [isPurchases, sales, purchases, saleReturns, purchaseReturns, paymentLogs]);
 
   // Filtered List
   const filteredInvoices = useMemo(() => {
@@ -248,60 +248,73 @@ export const Invoices = () => {
   }, [filteredInvoices]);
 
   const { totalSettledAmount, totalOutstandingDue } = useMemo(() => {
-    const partyType = isPurchases ? 'Supplier' : 'Customer';
-    const partyMap = new Map();
-
-    filteredInvoices.forEach(inv => {
-      const key = (inv.partyId ? String(inv.partyId) : (inv.partyName || 'party')).trim().toLowerCase();
-      if (!partyMap.has(key)) {
-        partyMap.set(key, {
-          partyId: inv.partyId,
-          partyName: inv.partyName || '',
-          invoices: []
-        });
-      }
-      partyMap.get(key).invoices.push(inv);
-    });
-
     let totalCollected = 0;
     let totalDue = 0;
 
-    partyMap.forEach(group => {
-      const groupTotal = group.invoices.reduce((acc, inv) => acc + Number(inv.amount || 0), 0);
-      const groupUpfrontPaid = group.invoices.reduce((acc, inv) => acc + Number(inv.paidAmount || (inv.status === 'Paid' ? inv.amount : 0)), 0);
+    if (isPurchases) {
+      const supMap = new Map();
+      filteredInvoices.forEach(inv => {
+        const key = (inv.partyId ? String(inv.partyId) : (inv.partyName || 'supplier')).trim().toLowerCase();
+        if (!supMap.has(key)) {
+          supMap.set(key, { id: inv.partyId, name: inv.partyName || '', purchases: [] });
+        }
+        const origPur = purchases.find(p => String(p.id) === String(inv.id)) || {
+          id: inv.id,
+          amount: inv.amount,
+          grandTotal: inv.amount,
+          paidAmount: inv.paidAmount,
+          supplierId: inv.partyId,
+          supplier: inv.partyName
+        };
+        supMap.get(key).purchases.push(origPur);
+      });
 
-      const groupDirectPaid = (paymentLogs || []).filter(p =>
-        (p.type === partyType || p.partyType === partyType) &&
-        (
-          (group.partyId && p.partyId && String(p.partyId) === String(group.partyId)) ||
-          (group.partyName && p.partyName && p.partyName.trim().toLowerCase() === group.partyName.trim().toLowerCase()) ||
-          group.invoices.some(inv => (
-            (isPurchases && p.purchaseId && String(p.purchaseId) === String(inv.id)) ||
-            (!isPurchases && p.saleId && String(p.saleId) === String(inv.id)) ||
-            (inv.invoiceNo && p.ref && p.ref.includes(inv.invoiceNo))
-          ))
-        )
-      ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+      supMap.forEach(supGroup => {
+        const fin = computeSupplierKhataBalance(
+          { id: supGroup.id, name: supGroup.name },
+          supGroup.purchases,
+          paymentLogs,
+          purchaseReturns
+        );
+        totalCollected += fin.totalPaid;
+        totalDue += fin.balance;
+      });
+    } else {
+      const custMap = new Map();
+      filteredInvoices.forEach(inv => {
+        const key = (inv.partyId ? String(inv.partyId) : (inv.partyName || 'customer')).trim().toLowerCase();
+        if (!custMap.has(key)) {
+          custMap.set(key, { id: inv.partyId, name: inv.partyName || '', sales: [] });
+        }
+        const origSale = sales.find(s => String(s.id) === String(inv.id)) || {
+          id: inv.id,
+          amount: inv.amount,
+          grandTotal: inv.amount,
+          paidAmount: inv.paidAmount,
+          customerId: inv.partyId,
+          partyName: inv.partyName,
+          customerName: inv.partyName
+        };
+        custMap.get(key).sales.push(origSale);
+      });
 
-      const groupReturnAmt = (isPurchases ? purchaseReturns : (saleReturns || [])).filter(r =>
-        (group.partyId && (r.customerId === group.partyId || r.supplierId === group.partyId)) ||
-        (group.partyName && (r.customerName?.toLowerCase() === group.partyName.toLowerCase() || r.supplierName?.toLowerCase() === group.partyName.toLowerCase())) ||
-        group.invoices.some(inv => (r.saleId && String(r.saleId) === String(inv.id)) || (r.purchaseId && String(r.purchaseId) === String(inv.id)))
-      ).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-      const groupNetTarget = Math.max(0, groupTotal - groupReturnAmt);
-      const groupPaid = Math.min(groupNetTarget, groupUpfrontPaid + groupDirectPaid);
-      const groupOutstanding = Math.max(0, groupNetTarget - groupPaid);
-
-      totalCollected += groupPaid;
-      totalDue += groupOutstanding;
-    });
+      custMap.forEach(custGroup => {
+        const fin = computeCustomerKhataBalance(
+          { id: custGroup.id, name: custGroup.name },
+          custGroup.sales,
+          paymentLogs,
+          saleReturns
+        );
+        totalCollected += fin.totalPaid;
+        totalDue += fin.balance;
+      });
+    }
 
     return {
       totalSettledAmount: totalCollected,
       totalOutstandingDue: totalDue
     };
-  }, [filteredInvoices, paymentLogs, isPurchases, saleReturns, purchaseReturns]);
+  }, [isPurchases, filteredInvoices, purchases, sales, paymentLogs, purchaseReturns, saleReturns]);
 
   const isAnyFilterActive =
     dateFilterType !== 'All' ||
@@ -621,26 +634,11 @@ export const Invoices = () => {
                 </tr>
               ) : (
                 filteredInvoices.map(inv => {
-                  const upfrontPaid = Number(inv.paidAmount || (inv.status === 'Paid' ? inv.amount : 0));
-                  const partyType = isPurchases ? 'Supplier' : 'Customer';
-                  const partyName = (inv.partyName || inv.customerName || inv.supplierName || '').trim().toLowerCase();
-                  const partyId = inv.customerId || inv.supplierId;
-
-                  // Direct payment specifically linked to this document
-                  const directPaid = (paymentLogs || []).filter(p =>
-                    (p.type === partyType || p.partyType === partyType) &&
-                    (
-                      (isPurchases && p.purchaseId && String(p.purchaseId) === String(inv.id)) ||
-                      (!isPurchases && p.saleId && String(p.saleId) === String(inv.id)) ||
-                      (inv.invoiceNo && p.ref && p.ref.includes(inv.invoiceNo)) ||
-                      (inv.purchaseNo && p.ref && p.ref.includes(inv.purchaseNo))
-                    )
-                  ).reduce((acc, p) => acc + Number(p.amount || 0), 0);
-
+                  const paid = Number(inv.paidAmount || 0);
                   const total = Number(inv.amount || 0);
                   const retAmt = Number(inv.returnAmount || 0);
                   const netTotal = Math.max(0, total - retAmt);
-                  const paid = Math.min(netTotal, upfrontPaid + directPaid);
+                  const due = Math.max(0, netTotal - paid);
 
                   return (
                     <tr
