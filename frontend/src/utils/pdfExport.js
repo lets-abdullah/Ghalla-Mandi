@@ -235,6 +235,8 @@ export const exportReceiptToImage = async (element, filename = 'receipt.png', fo
   // 2. Wait a tick for repaint
   await new Promise(resolve => setTimeout(resolve, 80));
 
+  const naturalWidth = element.offsetWidth || 420;
+
   // 3. High-resolution canvas snapshot of the receipt
   const canvas = await html2canvas(element, {
     scale: 3, // 3x ultra-crisp print-grade resolution
@@ -244,7 +246,7 @@ export const exportReceiptToImage = async (element, filename = 'receipt.png', fo
     logging: false,
     scrollX: 0,
     scrollY: 0,
-    windowWidth: 440,
+    windowWidth: naturalWidth + 40,
     onclone: (clonedDoc) => {
       const targetId = element.id;
       const clonedElement = targetId ? clonedDoc.getElementById(targetId) : null;
@@ -256,8 +258,8 @@ export const exportReceiptToImage = async (element, filename = 'receipt.png', fo
         clonedElement.style.overflow = 'visible';
         clonedElement.style.height = 'auto';
         clonedElement.style.maxHeight = 'none';
-        clonedElement.style.width = '390px';
-        clonedElement.style.maxWidth = '390px';
+        clonedElement.style.width = `${naturalWidth}px`;
+        clonedElement.style.maxWidth = `${naturalWidth}px`;
         clonedElement.style.zoom = '1';
         clonedElement.style.transform = 'none';
         clonedElement.style.boxShadow = 'none';
