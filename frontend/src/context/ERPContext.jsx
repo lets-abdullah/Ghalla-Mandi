@@ -133,7 +133,7 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   };
 };
 
-export const computeProductValuation = (product, purchases = [], sales = [], saleReturns = [], purchaseReturns = []) => {
+export const computeProductValuation = (product, purchases = [], sales = [], saleReturns = [], purchaseReturns = [], stockMovements = []) => {
   if (!product) return { qty: 0, avgCost: 0, stockValue: 0, sellingRate: 0, purchaseRate: 0, totalInflowQty: 0, totalOutflowQty: 0 };
   
   const prodId = product.id ? String(product.id) : null;
