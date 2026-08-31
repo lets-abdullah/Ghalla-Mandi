@@ -562,28 +562,25 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
 
   const openingBalance = Number(supplier.openingBalance !== undefined ? supplier.openingBalance : (supplier.openingbalance !== undefined ? supplier.openingbalance : 0));
   const netPurchases = Math.max(0, totalPurchase - returnAmount);
-  // Net Balance: Opening + (Gross Purchases - Returns) - Payments
-  // Positive = Mandi owes Supplier (Payable Due / Liability)
-  // Negative = Supplier owes Mandi (Advance / Overpayment)
-  // Exactly 0 = Fully Settled
-  const netBalance = openingBalance + (totalPurchase - returnAmount) - totalPaid;
-  const payableDue = Math.max(0, netBalance);
-  const advanceCredit = Math.max(0, -netBalance);
-  const status = netBalance > 0 ? 'Payable' : (netBalance < 0 ? 'Advance' : 'Settled');
+  // Supplier payments cannot exceed total liability (opening + net purchases)
+  const totalLiability = openingBalance + netPurchases;
+  const effectivePaid = Math.min(totalPaid, totalLiability);
+  const payableDue = Math.max(0, totalLiability - effectivePaid);
+  const status = payableDue > 0 ? 'Payable' : 'Settled';
 
   return {
     openingBalance,
     totalPurchase,
     grossPurchase: totalPurchase,
-    upfrontPaid: totalPaid,
+    upfrontPaid: effectivePaid,
     directPaid: totalPaidLogs,
-    totalPaid,
+    totalPaid: effectivePaid,
     returnAmount,
     netPurchase: netPurchases,
-    netBalance,
+    netBalance: payableDue,
     balance: payableDue,
     payableDue,
-    advanceCredit,
+    advanceCredit: 0,
     status,
     ordersCount: supPurchases.length
   };
@@ -603,8 +600,8 @@ export const computeAllSuppliersFinancials = (suppliers = [], purchases = [], pa
   const totalNetPurchases = allSuppliers.reduce((sum, s) => sum + Number(s.netPurchase || 0), 0);
   const totalPaymentsPaid = allSuppliers.reduce((sum, s) => sum + Number(s.totalPaid || 0), 0);
   const totalPayables = allSuppliers.reduce((sum, s) => sum + Number(s.payableDue || 0), 0);
-  const totalSupplierAdvances = allSuppliers.reduce((sum, s) => sum + Number(s.advanceCredit || 0), 0);
-  const settledCount = allSuppliers.filter(s => s.status === 'Settled' || s.netBalance === 0).length;
+  const totalSupplierAdvances = 0;
+  const settledCount = allSuppliers.filter(s => s.status === 'Settled' || s.payableDue === 0).length;
 
   return {
     allSuppliers,
@@ -801,12 +798,13 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         sUpfrontCash = isMarkedPaid ? sGross : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
       }
 
+      const totalPaidLogs = partyPayments.reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
       const hasSpecificLog = partyPayments.some(pl =>
         (pl.saleId && String(pl.saleId) === String(s.id)) ||
         (s.invoiceNo && pl.ref && pl.ref.includes(s.invoiceNo))
       );
 
-      if (sUpfrontCash > 0 && !hasSpecificLog) {
+      if (sUpfrontCash > 0 && !hasSpecificLog && totalPaidLogs === 0) {
         entries.push({
           id: `pay-direct-${s.id || idx}`,
           timestamp: ts,
@@ -926,12 +924,13 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         pUpfrontCash = isMarkedPaid ? pGross : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
       }
 
+      const totalPaidLogs = partyPayments.reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
       const hasSpecificLog = partyPayments.some(pl =>
         (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
         (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
       );
 
-      if (pUpfrontCash > 0 && !hasSpecificLog) {
+      if (pUpfrontCash > 0 && !hasSpecificLog && totalPaidLogs === 0) {
         entries.push({
           id: `pay-sup-direct-${p.id || idx}`,
           timestamp: ts,

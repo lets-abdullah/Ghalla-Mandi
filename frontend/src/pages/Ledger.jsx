@@ -28,7 +28,7 @@ import {
   MapPin,
   FileText
 } from 'lucide-react';
-import { useERP, computeLedgerStatement } from '../context/ERPContext';
+import { useERP, computeLedgerStatement, computeAllCustomersFinancials, computeAllSuppliersFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
@@ -437,113 +437,52 @@ export const Ledger = () => {
   }, [sales, purchases, paymentLogs, saleReturns, purchaseReturns, customers, suppliers, isSupplier]);
 
   // Aggregate Customer / Party Entities for the Customer-First List View
+  // Universal Financials from Centralized Engine (Single Source of Truth)
+  const custFin = useMemo(() => {
+    return computeAllCustomersFinancials(customers, sales, paymentLogs, saleReturns);
+  }, [customers, sales, paymentLogs, saleReturns]);
+
+  const supFin = useMemo(() => {
+    return computeAllSuppliersFinancials(suppliers, purchases, paymentLogs, purchaseReturns);
+  }, [suppliers, purchases, paymentLogs, purchaseReturns]);
+
   const customerEntities = useMemo(() => {
-    const map = new Map();
-
-    // 1. Initialize registered entities
-    if (!isSupplier) {
-      (customers || []).forEach(cust => {
-        const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
-        const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
-        const key = String(cust.id);
-        map.set(key, {
-          id: key,
-          name: cust.name,
-          businessName: cust.businessName || cust.shopName || '',
-          phone: cust.phone || '',
-          city: cust.city || 'Local Mandi',
-          customerType: custType,
-          isWalkin,
-          totalDebit: 0,
-          totalCredit: 0,
-          txCount: 0,
-          lastTxDate: null
-        });
-      });
-    } else {
-      (suppliers || []).forEach(sup => {
-        const key = String(sup.id);
-        map.set(key, {
-          id: key,
-          name: sup.name,
-          businessName: sup.businessName || '',
-          phone: sup.phone || '',
-          city: sup.city || 'Local Mandi',
-          customerType: 'Supplier',
-          isWalkin: false,
-          totalDebit: 0,
-          totalCredit: 0,
-          txCount: 0,
-          lastTxDate: null
-        });
-      });
+    if (isSupplier) {
+      return (supFin.allSuppliers || []).map(s => ({
+        id: String(s.id),
+        name: s.name || 'Supplier',
+        businessName: s.businessName || '',
+        phone: s.phone || '',
+        city: s.city || 'Local Mandi',
+        customerType: 'Supplier',
+        isWalkin: false,
+        totalDebit: s.totalPurchase || 0,
+        totalCredit: s.totalPaid || 0,
+        balance: s.payableDue || 0,
+        status: (s.payableDue || 0) > 0 ? 'Payable' : 'Settled'
+      }));
     }
+    return (custFin.allCustomers || []).map(c => ({
+      id: String(c.id),
+      name: c.name || 'Customer',
+      businessName: c.businessName || c.shopName || '',
+      phone: c.phone || '',
+      city: c.city || 'Local Mandi',
+      customerType: c.customerType || 'Regular Customer',
+      isWalkin: Boolean(c.isWalkin),
+      totalDebit: c.totalSale || 0,
+      totalCredit: c.totalPaid || 0,
+      balance: c.receivableDue || 0,
+      status: (c.receivableDue || 0) > 0 ? 'Receivable' : (c.advanceCredit > 0 ? 'Advance' : 'Settled')
+    }));
+  }, [isSupplier, supFin, custFin]);
 
-    // 2. Aggregate transactions from rawLedgerEntries
-    rawLedgerEntries.forEach(entry => {
-      let key = String(entry.partyId || '').trim();
-      if (!key || key === 'null' || key === 'undefined') {
-        key = `walkin-${(entry.partyName || 'Walk-in Customer').trim()}`;
-      }
-
-      if (!map.has(key)) {
-        // Look up by matching name
-        const matchKey = Array.from(map.keys()).find(k => (map.get(k).name || '').trim().toLowerCase() === (entry.partyName || '').trim().toLowerCase());
-        if (matchKey) {
-          key = matchKey;
-        } else {
-          const isWalkin = (entry.customerType || '').toLowerCase().includes('walk-in') || !isSupplier;
-          map.set(key, {
-            id: key,
-            name: entry.partyName || 'Walk-in Customer',
-            businessName: isWalkin ? 'Walk-in Party' : '',
-            phone: '',
-            city: 'Local Mandi',
-            customerType: entry.customerType || (isSupplier ? 'Supplier' : 'Walk-in Customer'),
-            isWalkin,
-            totalDebit: 0,
-            totalCredit: 0,
-            txCount: 0,
-            lastTxDate: null
-          });
-        }
-      }
-
-      const entity = map.get(key);
-      entity.totalDebit += Number(entry.debit || 0);
-      entity.totalCredit += Number(entry.credit || 0);
-      entity.txCount += 1;
-      if (entry.date && entry.date !== 'N/A') {
-        entity.lastTxDate = entry.date;
-      }
-    });
-
-    // 3. Compute final balance & status for each party entity
-    const list = Array.from(map.values()).map(entity => {
-      let balance = entity.totalDebit - entity.totalCredit;
-      let status = 'Settled';
-      let displayCredit = entity.totalCredit;
-
-      if (!isSupplier) {
-        // Customers: Debit (Invoices) - Credit (Payments + Returns). Negative means Customer Credit/Advance
-        status = balance > 0 ? 'Receivable' : (balance < 0 ? 'Advance' : 'Settled');
-      } else {
-        // Suppliers: Debit (Purchases) - Credit (Payments + Returns). Negative means Mandi Advance/Overpayment
-        status = balance > 0 ? 'Payable' : (balance < 0 ? 'Advance' : 'Settled');
-      }
-
-      return {
-        ...entity,
-        totalCredit: displayCredit,
-        balance,
-        status
-      };
-    });
-
-    // Sort by largest financial activity first
-    return list.sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance));
-  }, [customers, suppliers, rawLedgerEntries, isSupplier]);
-
+  // Aggregate KPI Totals (Synchronized 100% with Khata, Purchases & Customers)
+  const totalReceivable = custFin.totalReceivables || 0;
+  const totalPayable = supFin.totalPayables || 0;
+  const totalDebitSum = isSupplier ? supFin.totalGrossPurchases : custFin.totalGrossSales;
+  const totalCreditSum = isSupplier ? supFin.totalPaymentsPaid : custFin.totalPaymentsReceived;
+  const settledCount = isSupplier ? supFin.settledCount : custFin.settledCount;
   // Filtered Customer Entities for the Customer List View
   const filteredCustomerEntities = useMemo(() => {
     return customerEntities.filter(c => {
@@ -553,7 +492,7 @@ export const Ledger = () => {
 
       // Status Filter
       if (statusFilter === 'Receivable' && c.balance <= 0) return false;
-      if (statusFilter === 'Payable' && c.balance >= 0) return false;
+      if (statusFilter === 'Payable' && c.balance <= 0) return false;
       if (statusFilter === 'Settled' && c.balance !== 0) return false;
 
       // Search Query
@@ -569,27 +508,6 @@ export const Ledger = () => {
       return true;
     });
   }, [customerEntities, customerTypeFilter, statusFilter, searchQuery]);
-
-  // Customer List Aggregate KPI Totals
-  const totalReceivable = useMemo(() => {
-    return customerEntities.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0);
-  }, [customerEntities]);
-
-  const totalPayable = useMemo(() => {
-    return customerEntities.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0);
-  }, [customerEntities]);
-
-  const totalDebitSum = useMemo(() => {
-    return customerEntities.reduce((sum, c) => sum + (c.totalDebit || 0), 0);
-  }, [customerEntities]);
-
-  const totalCreditSum = useMemo(() => {
-    return customerEntities.reduce((sum, c) => sum + (c.totalCredit || 0), 0);
-  }, [customerEntities]);
-
-  const settledCount = useMemo(() => {
-    return customerEntities.filter(c => c.balance === 0).length;
-  }, [customerEntities]);
 
   // Currently Selected Active Customer Object (when viewing complete ledger)
   const activeCustomer = useMemo(() => {
