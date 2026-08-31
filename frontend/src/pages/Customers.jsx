@@ -166,9 +166,17 @@ export const Customers = () => {
 
   // Filtered Customers Array
   const filteredCustomers = useMemo(() => {
-    const baseList = customerTypeFilter === 'Walk-in Customer'
-      ? walkinCustomersList
-      : registeredCustomersList;
+    let baseList = [];
+    const filter = (customerTypeFilter || 'All').toLowerCase();
+
+    if (filter.includes('walk-in')) {
+      baseList = walkinCustomersList;
+    } else if (filter.includes('regular')) {
+      baseList = registeredCustomersList;
+    } else {
+      // 'All' -> Display both Regular and Walk-in customers!
+      baseList = [...registeredCustomersList, ...walkinCustomersList];
+    }
 
     return baseList.filter(c => {
       // Balance Filter
@@ -361,7 +369,7 @@ export const Customers = () => {
       <div className="no-print grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Total Registered Customers */}
         <div
-          onClick={() => { setCustomerTypeFilter('Regular Customer'); setBalanceFilter('All'); }}
+          onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('All'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
             }`}
           title="View all registered customer parties"
@@ -378,7 +386,7 @@ export const Customers = () => {
 
         {/* Parties with Dues */}
         <div
-          onClick={() => { setCustomerTypeFilter('Regular Customer'); setBalanceFilter('Due'); }}
+          onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('Due'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-b from-indigo-50/50 to-white border-indigo-200/80'
             }`}
           title="Filter parties with open dues"
@@ -395,7 +403,7 @@ export const Customers = () => {
 
         {/* Walk-in Counter Dues */}
         <div
-          onClick={() => { setCustomerTypeFilter('Walk-in Customer'); setBalanceFilter('All'); }}
+          onClick={() => { setCustomerTypeFilter('Walk-in'); setBalanceFilter('All'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-hover card-shadow transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-teal-500/30 text-white' : 'bg-gradient-to-b from-teal-50/50 to-white border-teal-200/80'
             }`}
           title="Filter Walk-in Counter Sales"
@@ -412,7 +420,7 @@ export const Customers = () => {
 
         {/* Total Party Receivables */}
         <div
-          onClick={() => { setCustomerTypeFilter('Regular Customer'); setBalanceFilter('Due'); }}
+          onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('Due'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
             }`}
           title="Filter Customers with Outstanding Balance"
@@ -445,8 +453,8 @@ export const Customers = () => {
                 }`}
             >
               <option value="All">All Customer Types</option>
-              <option value="Regular Customer">Regular Customers</option>
-              <option value="Walk-in Customer">Walk-in Customers</option>
+              <option value="Regular">Regular</option>
+              <option value="Walk-in">Walk-in</option>
             </select>
           </div>
 

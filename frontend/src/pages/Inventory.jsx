@@ -435,14 +435,6 @@ export const Inventory = () => {
             <Printer className="w-4 h-4" />
             <span>Print List</span>
           </button>
-
-          <button
-            onClick={() => setShowAdjModal(true)}
-            className="flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Adjust Stock</span>
-          </button>
         </div>
       </div>
 
@@ -680,10 +672,10 @@ export const Inventory = () => {
                       {/* Movement Type Badge */}
                       <td className="py-2.5 px-4 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide border ${isAdjustment
-                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                            : isStockIn
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                          : isStockIn
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                           }`}>
                           {isAdjustment ? (
                             <RefreshCw className="w-3 h-3" />
@@ -703,10 +695,10 @@ export const Inventory = () => {
 
                       {/* Signed Quantity */}
                       <td className={`py-2.5 px-4 text-right font-black font-mono text-sm whitespace-nowrap ${isAdjustment
-                          ? 'text-amber-600 dark:text-amber-400'
-                          : isStockIn
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-rose-600 dark:text-rose-400'
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : isStockIn
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-rose-600 dark:text-rose-400'
                         }`}>
                         {tx.signedQty}
                       </td>
