@@ -87,11 +87,14 @@ export const Dashboard = () => {
   const netAllTimePurchases = Math.max(0, allTimeGrossPurchases - allTimePurchaseReturnsVal);
 
   // Combined Live Customer Receivables using Centralized Engine
-  const { totalReceivables: totalCustomerDues, allCustomers } = useMemo(() => {
+  const { totalReceivables: totalCustomerDues, allCustomers, registeredList, walkinList } = useMemo(() => {
     return computeAllCustomersFinancials(customers, sales, paymentLogs, saleReturns);
   }, [customers, sales, paymentLogs, saleReturns]);
 
-  const totalDueAccountsCount = allCustomers.filter(c => c.receivableDue > 0).length;
+  const regularDues = (registeredList || []).reduce((acc, c) => acc + Number(c.receivableDue || 0), 0);
+  const walkinDues = (walkinList || []).reduce((acc, c) => acc + Number(c.receivableDue || 0), 0);
+  const regDueCount = (registeredList || []).filter(c => c.receivableDue > 0).length;
+  const totalDueAccountsCount = (allCustomers || []).filter(c => c.receivableDue > 0).length;
 
   // Combined Live Supplier Payables using Centralized Engine
   const { totalPayables, allSuppliers } = useMemo(() => {
@@ -154,14 +157,14 @@ export const Dashboard = () => {
           onClick={() => navigate('/reports?type=Stock')}
         />
 
-        {/* 4. Customer Receivables (Regular Party Khata Dues) */}
+        {/* 4. Customer Receivables (Total Dues) */}
         <KPICard
           title="Customer Receivables"
-          amount={`Rs. ${regularDues.toLocaleString()}`}
+          amount={`Rs. ${totalCustomerDues.toLocaleString()}`}
           subtext={
             walkinDues > 0
-              ? `Party Khata: Rs. ${regularDues.toLocaleString()} • Counter Dues: Rs. ${walkinDues.toLocaleString()}`
-              : (regularDues > 0 ? `${regDueCount} registered party accounts with dues` : 'All customer accounts settled (Rs. 0)')
+              ? `Party Khata: Rs. ${regularDues.toLocaleString()} • Counter: Rs. ${walkinDues.toLocaleString()}`
+              : (totalCustomerDues > 0 ? `${totalDueAccountsCount} customer accounts with dues` : 'All customer accounts settled (Rs. 0)')
           }
           icon={Users}
           color="amber"
