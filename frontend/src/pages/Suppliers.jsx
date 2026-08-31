@@ -29,7 +29,8 @@ import {
   RotateCcw,
   BookOpen,
   CreditCard,
-  Printer
+  Printer,
+  AlertCircle
 } from 'lucide-react';
 import { useERP, computeSupplierKhataBalance, computeAllSuppliersFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
