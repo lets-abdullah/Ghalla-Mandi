@@ -787,9 +787,9 @@ export const Suppliers = () => {
                     <div>
                       <h3 className="font-extrabold text-sm flex items-center gap-1.5">
                         {s.name}
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isAct ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${bal > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                           }`}>
-                          {isAct ? 'Active' : 'Inactive'}
+                          {bal > 0 ? 'Payable' : 'Settled'}
                         </span>
                       </h3>
                       {s.businessName && (
@@ -932,29 +932,22 @@ export const Suppliers = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className={`font-bold text-xs ${isAct ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
-                            {isAct ? 'Active' : 'Inactive'}
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${bal > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'}`}>
+                            {bal > 0 ? 'Payable' : 'Settled'}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center no-print">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
-                              onClick={() => setViewingSupplier(s)}
-                              className="px-2.5 py-1 rounded-lg border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white transition text-xs font-bold cursor-pointer flex items-center gap-1"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>View</span>
-                            </button>
-                            <button
                               onClick={() => setEditingSupplier({ ...s })}
-                              className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition cursor-pointer"
+                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition cursor-pointer"
                               title="Edit"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDelete(s.id, s.name)}
-                              className="p-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 transition cursor-pointer"
+                              className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 transition cursor-pointer"
                               title="Delete"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
