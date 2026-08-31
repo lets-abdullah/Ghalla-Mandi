@@ -3205,194 +3205,99 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* Plain-English Mathematical Equation Ribbon (Screen Only) */}
-          <div className={`no-print p-3.5 rounded-2xl border flex flex-wrap items-center justify-between gap-3 text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+          {/* Streamlined Filter Toolbar (Screen Only) */}
+          <div className={`no-print p-3.5 rounded-2xl border card-shadow flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
-            <div className="flex flex-wrap items-center gap-2 font-bold">
-              <span className="text-slate-400">P&L Formula:</span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400">Income (+Rs. {plTotalRevenue.toLocaleString()})</span>
-              <span className="text-rose-500 font-black">−</span>
-              <span className="font-mono text-blue-600 dark:text-blue-400">Purchases (-Rs. {plTotalCOGS.toLocaleString()})</span>
-              <span className="text-rose-500 font-black">−</span>
-              <span className="font-mono text-rose-500">Expenses (-Rs. {plTotalExpenses.toLocaleString()})</span>
-              <span className="text-brand-500 font-black">=</span>
-              <span className={`font-mono font-black px-2 py-0.5 rounded-md ${plNetProfit >= 0
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                }`}>
-                Net Result: {plNetProfit >= 0 ? '+Rs. ' : '-Rs. '}{Math.abs(plNetProfit).toLocaleString()}
-              </span>
-            </div>
-
-            <div className="text-[11px] text-slate-400 font-medium">
-              Period: <strong className="text-slate-700 dark:text-slate-200">{plDateFilter}</strong>
-            </div>
-          </div>
-
-          {/* Statement Filter Bar (Screen Only) */}
-          <div className={`no-print p-4 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-emerald-500" />
-                <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                  Filter Financial Statement
-                </span>
-              </div>
-
-              {hasActivePlFilters && (
-                <button
-                  onClick={handleResetPlFilters}
-                  className="text-[11px] font-bold text-rose-500 hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <X className="w-3 h-3" />
-                  <span>Reset Statement Filters</span>
+            {/* 1. Quick Search */}
+            <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}>
+              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search ref #, party, item, category..."
+                value={plSearch}
+                onChange={(e) => { setPlSearch(e.target.value); setPlPage(1); }}
+                className="w-full text-xs font-bold bg-transparent outline-none placeholder-slate-400"
+              />
+              {plSearch && (
+                <button type="button" onClick={() => { setPlSearch(''); setPlPage(1); }} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 items-center">
-              {/* 1. Date Range */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Time Period
-                </label>
-                <select
-                  value={plDateFilter}
-                  onChange={(e) => {
-                    setPlDateFilter(e.target.value);
-                    setPlPage(1);
-                  }}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Time</option>
-                  <option value="Today">Today</option>
-                  <option value="Yesterday">Yesterday</option>
-                  <option value="This Week">This Week</option>
-                  <option value="This Month">This Month</option>
-                  <option value="Custom">Custom Date Range</option>
-                </select>
-              </div>
-
-              {/* 2. Product */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Commodity Item
-                </label>
-                <select
-                  value={plProductFilter}
-                  onChange={(e) => {
-                    setPlProductFilter(e.target.value);
-                    setPlPage(1);
-                  }}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Commodities</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.name}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 3. Category */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Category
-                </label>
-                <select
-                  value={plCategoryFilter}
-                  onChange={(e) => {
-                    setPlCategoryFilter(e.target.value);
-                    setPlPage(1);
-                  }}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Categories</option>
-                  {(allCategories || ['General']).filter(c => c !== 'All').map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 4. Transaction Type */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Transaction Type
-                </label>
-                <select
-                  value={plTypeFilter}
-                  onChange={(e) => {
-                    setPlTypeFilter(e.target.value);
-                    setPlPage(1);
-                  }}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Types</option>
-                  <option value="Sale">Sale (Income)</option>
-                  <option value="Purchase">Purchase (Stock Cost)</option>
-                  <option value="Expense">Shop Expense</option>
-                  <option value="Return">Returns</option>
-                </select>
-              </div>
-
-              {/* 5. Payment Mode */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Payment Mode
-                </label>
-                <select
-                  value={plPaymentFilter}
-                  onChange={(e) => {
-                    setPlPaymentFilter(e.target.value);
-                    setPlPage(1);
-                  }}
-                  className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Modes</option>
-                  <option value="Cash">Cash</option>
-                  <option value="Credit">Khata</option>
-                  <option value="Bank">Bank / Online</option>
-                </select>
-              </div>
-
-              {/* Custom Date Pickers */}
-              {plDateFilter === 'Custom' && (
-                <div className="col-span-full flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-slate-400">From Date:</span>
-                    <input
-                      type="date"
-                      value={plStartDate}
-                      onChange={(e) => {
-                        setPlStartDate(e.target.value);
-                        setPlPage(1);
-                      }}
-                      className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-slate-400">To Date:</span>
-                    <input
-                      type="date"
-                      value={plEndDate}
-                      onChange={(e) => {
-                        setPlEndDate(e.target.value);
-                        setPlPage(1);
-                      }}
-                      className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-              )}
+            {/* 2. Time Period Filter */}
+            <div className="min-w-[140px]">
+              <select
+                value={plDateFilter}
+                onChange={(e) => { setPlDateFilter(e.target.value); setPlPage(1); }}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+              >
+                <option value="All">All Time</option>
+                <option value="Today">Today</option>
+                <option value="Yesterday">Yesterday</option>
+                <option value="This Week">This Week</option>
+                <option value="This Month">This Month</option>
+                <option value="Custom">Custom Date Range</option>
+              </select>
             </div>
+
+            {/* 3. Transaction Type Filter */}
+            <div className="min-w-[140px]">
+              <select
+                value={plTypeFilter}
+                onChange={(e) => { setPlTypeFilter(e.target.value); setPlPage(1); }}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+              >
+                <option value="All">All Types</option>
+                <option value="Sale">Sale (Income)</option>
+                <option value="Purchase">Purchase (COGS)</option>
+                <option value="Expense">Shop Expense</option>
+                <option value="Return">Returns</option>
+              </select>
+            </div>
+
+            {/* 4. Reset Filters Button */}
+            {hasActivePlFilters && (
+              <button
+                type="button"
+                onClick={handleResetPlFilters}
+                className="px-3 py-2 rounded-xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs font-bold flex items-center gap-1 cursor-pointer transition h-[38px] shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
+
+          {/* Custom Date Pickers */}
+          {plDateFilter === 'Custom' && (
+            <div className={`no-print p-3 rounded-2xl border card-shadow flex flex-wrap items-center gap-3 text-xs ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <span className="font-bold text-slate-400">Custom Date Range:</span>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-500">From:</span>
+                <input
+                  type="date"
+                  value={plStartDate}
+                  onChange={(e) => { setPlStartDate(e.target.value); setPlPage(1); }}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-500">To:</span>
+                <input
+                  type="date"
+                  value={plEndDate}
+                  onChange={(e) => { setPlEndDate(e.target.value); setPlPage(1); }}
+                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Interactive Sub-Navigation Tabs (Screen Only) */}
           <div className="no-print flex items-center gap-2 p-1.5 rounded-2xl bg-slate-200/70 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-x-auto">
@@ -3479,20 +3384,17 @@ export const Reports = () => {
                   <thead>
                     <tr className={`border-b text-[10px] font-black uppercase tracking-wider sticky top-0 ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-slate-400' : 'bg-slate-50/90 border-slate-200 text-slate-500'
                       }`}>
-                      <th className="py-3 px-3.5">Date</th>
-                      <th className="py-3 px-3">Reference</th>
-                      <th className="py-3 px-3">Description / Party</th>
-                      <th className="py-3 px-3">Category</th>
+                      <th className="py-3 px-3.5">Reference & Date</th>
+                      <th className="py-3 px-3">Description & Party</th>
                       <th className="py-3 px-3 text-center">Type</th>
                       <th className="py-3 px-3 text-center">Qty</th>
-                      <th className="py-3 px-3 text-right">Inflow / Outflow</th>
-                      <th className="py-3 px-3.5 text-right font-black text-slate-900 dark:text-white">Running Balance</th>
+                      <th className="py-3 px-3.5 text-right font-black">Inflow / Outflow</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                     {paginatedPlJournal.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-slate-400">
+                        <td colSpan={5} className="py-12 text-center text-slate-400">
                           No financial transactions match the selected filters.
                         </td>
                       </tr>
@@ -3501,31 +3403,26 @@ export const Reports = () => {
                         const isPositive = tx.amount >= 0;
                         return (
                           <tr key={tx.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
-                            <td className="py-3 px-3.5 text-slate-600 dark:text-slate-300 font-mono text-[11px] whitespace-nowrap">
-                              {tx.dateStr}
-                            </td>
-
-                            <td className="py-3 px-3 font-mono font-bold whitespace-nowrap">
-                              <span className={`font-mono font-bold text-xs ${tx.type === 'Sale' ? 'text-emerald-600 dark:text-emerald-400' :
+                            <td className="py-3 px-3.5 whitespace-nowrap">
+                              <div className={`font-mono font-bold text-xs ${tx.type === 'Sale' ? 'text-emerald-600 dark:text-emerald-400' :
                                 tx.type === 'Purchase' ? 'text-blue-600 dark:text-blue-400' :
                                   tx.type === 'Expense' ? 'text-rose-600 dark:text-rose-400' :
                                     'text-purple-600 dark:text-purple-400'
                                 }`}>
                                 {tx.ref}
-                              </span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono">
+                                {tx.dateStr}
+                              </div>
                             </td>
 
-                            <td className="py-3 px-3 font-bold text-slate-900 dark:text-white max-w-xs truncate">
-                              <div>{tx.product}</div>
+                            <td className="py-3 px-3 max-w-xs truncate">
+                              <div className="font-bold text-slate-900 dark:text-white">{tx.product}</div>
                               <div className="text-[10px] text-slate-400 font-medium">{tx.party} • {tx.mode}</div>
                             </td>
 
-                            <td className="py-3 px-3 text-slate-600 dark:text-slate-400 font-semibold text-xs">
-                              {tx.category}
-                            </td>
-
                             <td className="py-3 px-3 text-center whitespace-nowrap">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${tx.type === 'Sale'
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${tx.type === 'Sale'
                                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                 : tx.type === 'Purchase'
                                   ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
@@ -3541,13 +3438,9 @@ export const Reports = () => {
                               {tx.qty}
                             </td>
 
-                            <td className={`py-3 px-3 text-right font-mono font-bold whitespace-nowrap ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                            <td className={`py-3 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                               }`}>
                               {isPositive ? '+' : ''}Rs. {tx.amount.toLocaleString()}
-                            </td>
-
-                            <td className="py-3 px-3.5 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
-                              Rs. {tx.runningPnL.toLocaleString()}
                             </td>
                           </tr>
                         );

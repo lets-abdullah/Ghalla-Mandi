@@ -559,10 +559,6 @@ export const Suppliers = () => {
 
     // 4. Status filter
     const bal = Number(s.balance) || 0;
-    const isAct = (s.status || 'Active') === 'Active';
-
-    if (statusFilter === 'Active' && !isAct) return false;
-    if (statusFilter === 'Inactive' && isAct) return false;
     if (statusFilter === 'Payable' && bal <= 0) return false;
     if (statusFilter === 'Settled' && bal > 0) return false;
 
@@ -736,8 +732,6 @@ export const Suppliers = () => {
                 }`}
             >
               <option value="All">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
               <option value="Payable">Due / Payable</option>
               <option value="Settled">Settled / Rs. 0</option>
             </select>
