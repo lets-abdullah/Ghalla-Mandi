@@ -3157,7 +3157,7 @@ export const Reports = () => {
             <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-rose-500">2. Cost of Sales & Expenses</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-rose-500">Cost of Sales & Expenses</span>
                 <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-black text-sm">
                   −
                 </div>
@@ -3181,7 +3181,7 @@ export const Reports = () => {
               }`}>
               <div className="flex items-center justify-between">
                 <span className={`text-[11px] font-bold uppercase tracking-wider ${plNetProfit >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600'}`}>
-                  3. Net Profit / Loss
+                  Net Profit / Loss
                 </span>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono ${plNetProfit >= 0 ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
                   }`}>

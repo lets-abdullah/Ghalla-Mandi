@@ -245,9 +245,12 @@ export const CreateOrder = () => {
     });
   };
 
-  // Apply Rate Override
+  // Apply Rate Override (Only allowed when Khata is active)
   const handleSaveRateOverride = () => {
-    if (!showRateModal) return;
+    if (!showRateModal || !isKhataActive) {
+      setShowRateModal(null);
+      return;
+    }
     const newPrice = Math.max(0, Number(tempNewRate) || 0);
     setCart(prev => {
       return prev.map(item => {
@@ -310,6 +313,40 @@ export const CreateOrder = () => {
   // Customer Khata balances
   const previousKhataBalance = selectedParty ? Number(selectedParty.balance || 0) : 0;
   const newKhataBalance = previousKhataBalance + remainingDue;
+
+  // Khata Mode is active if Payment Mode is Credit or Customer Type is Regular Party with selected Khata customer
+  const isKhataActive = paymentMode === 'Credit' || (customerType === 'Regular Party' && Boolean(selectedParty));
+
+  // Reset cart item prices to catalog default when switching back to Cash / Non-Khata mode
+  useEffect(() => {
+    if (!isKhataActive) {
+      setShowRateModal(null);
+      setCart(prev => prev.map(item => {
+        const prod = (products || []).find(p => p.id === item.productId);
+        const catalogBasePrice = Number(prod?.sellingPrice || item.basePrice || 0);
+        let adjustedPrice = catalogBasePrice;
+        if (item.unit === 'Mann' || item.unit === 'Mann (40 KG)') {
+          adjustedPrice = catalogBasePrice * 40;
+        } else if (item.unit === 'Bori' || item.unit === 'Bori (50 KG)' || item.unit === 'Bag') {
+          adjustedPrice = catalogBasePrice * 50;
+        } else if (item.unit === 'Gram' || item.unit === 'ML') {
+          adjustedPrice = catalogBasePrice / 1000;
+        } else if (item.unit === 'Dozen') {
+          adjustedPrice = catalogBasePrice * 12;
+        } else if (item.unit === 'Ton') {
+          adjustedPrice = catalogBasePrice * 1000;
+        }
+        if (item.price !== adjustedPrice || item.basePrice !== catalogBasePrice) {
+          return recalculateLineItem({
+            ...item,
+            basePrice: catalogBasePrice,
+            price: adjustedPrice
+          });
+        }
+        return item;
+      }));
+    }
+  }, [isKhataActive, products]);
 
   // Dynamic Unique Categories directly from Products Catalog (no duplicates, no mutations)
   const availableCategories = useMemo(() => {
@@ -941,7 +978,7 @@ export const CreateOrder = () => {
                       </div>
 
                       <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <div className="inline-flex items-center bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 text-[11px] font-black">
                             <button
                               type="button"
@@ -984,9 +1021,31 @@ export const CreateOrder = () => {
                             <option value="Piece">Piece</option>
                             <option value="Ton">Ton</option>
                           </select>
+
+                          {/* Unit Rate & Khata-Only Edit Control */}
+                          <div className="flex items-center gap-1 text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400">
+                            <span>@Rs.{Number(item.price).toLocaleString()}</span>
+                            {isKhataActive ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowRateModal(item);
+                                  setTempNewRate(item.price.toString());
+                                }}
+                                className="p-1 rounded-md bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 transition cursor-pointer flex items-center gap-0.5"
+                                title="Edit Selling Price (Khata Customer)"
+                              >
+                                <Edit3 className="w-2.5 h-2.5" />
+                              </button>
+                            ) : (
+                              <span className="text-[9px] font-bold text-slate-400 px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 select-none" title="Catalog price is fixed for Cash, Bank & Card sales without Khata">
+                                Fixed
+                              </span>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
+                        <div className="font-mono font-black text-xs text-emerald-600 dark:text-emerald-400 shrink-0">
                           Rs. {Number(item.total).toLocaleString()}
                         </div>
                       </div>
@@ -1766,8 +1825,8 @@ export const CreateOrder = () => {
         </div>
       )}
 
-      {/* QUICK RATE OVERRIDE MODAL */}
-      {showRateModal && (
+      {/* QUICK RATE OVERRIDE MODAL (Only when Khata is active) */}
+      {showRateModal && isKhataActive && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowRateModal(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
@@ -1777,7 +1836,7 @@ export const CreateOrder = () => {
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-base font-black flex items-center gap-2">
                 <Edit3 className="w-5 h-5 text-brand-500" />
-                {t('editItemPriceModalTitle')}
+                {t('editItemPriceModalTitle') || 'Edit Selling Rate (Khata)'}
               </h3>
               <button
                 onClick={() => setShowRateModal(null)}
@@ -1789,7 +1848,7 @@ export const CreateOrder = () => {
 
             <div>
               <div className="font-black text-xs mb-2 text-brand-500">{showRateModal.name}</div>
-              <label className="text-xs font-bold text-slate-400 block mb-1">{t('newRatePerUnit')}</label>
+              <label className="text-xs font-bold text-slate-400 block mb-1">{t('newRatePerUnit') || 'Selling Rate (PKR)'}</label>
               <input
                 type="number"
                 min="0"
@@ -1797,6 +1856,7 @@ export const CreateOrder = () => {
                 onChange={(e) => setTempNewRate(e.target.value)}
                 className={`w-full border rounded-2xl px-3.5 py-2.5 text-sm font-black outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
+                autoFocus
               />
             </div>
 
@@ -1813,7 +1873,7 @@ export const CreateOrder = () => {
                 onClick={handleSaveRateOverride}
                 className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-black text-xs rounded-2xl shadow-md transition cursor-pointer"
               >
-                {t('saveRate')}
+                {t('saveRate') || 'Save Rate'}
               </button>
             </div>
           </div>
