@@ -421,7 +421,7 @@ export const Expenses = () => {
         {/* ========================================================================= */}
         {/* 2. EXPENSE REGISTER / VOUCHERS LEDGER */}
         {/* ========================================================================= */}
-        <div className={`lg:col-span-8 border rounded-3xl p-6 card-shadow space-y-4 min-h-[520px] flex flex-col justify-between ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        <div className={`lg:col-span-8 border rounded-3xl p-5 sm:p-6 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
           {/* Header & Filter Bar (Screen Only) */}
           <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
@@ -546,7 +546,7 @@ export const Expenses = () => {
                 }`}>
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-20 text-center text-slate-400">
+                    <td colSpan={7} className="py-12 text-center text-slate-400">
                       <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
                       <span>No expense records found. Record your first expense on the left panel.</span>
                     </td>
