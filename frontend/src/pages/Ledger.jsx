@@ -218,10 +218,21 @@ export const Ledger = () => {
           notes: s.note || ''
         });
 
-        // Upfront cash paid on POS counter only if no paymentLogs exist at all in database
-        const paidAmt = Number(s.paidAmount || 0);
-        const hasAnyCustPaymentLogs = (paymentLogs || []).some(p => p.type === 'Customer' || p.partyType === 'Customer');
-        if (paidAmt > 0 && !hasAnyCustPaymentLogs) {
+        // Upfront cash paid on POS counter or marked Paid invoice
+        const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
+        const sTotal = Number(s.amount ?? s.grandTotal ?? 0);
+        const paidAmt = isMarkedPaid ? sTotal : Number(s.paidAmount || 0);
+
+        // Check if there is a payment log recorded specifically for this invoice
+        const hasSpecificInvoiceLog = (paymentLogs || []).some(p =>
+          (p.type === 'Customer' || p.partyType === 'Customer') &&
+          (
+            (p.saleId && String(p.saleId) === String(s.id)) ||
+            (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+          )
+        );
+
+        if (paidAmt > 0 && !hasSpecificInvoiceLog) {
           entries.push({
             id: `pay-direct-${s.id}`,
             rawDate: s.date,
@@ -340,6 +351,38 @@ export const Ledger = () => {
           productNames: '',
           notes: ''
         });
+
+        // Upfront cash paid on Purchase or marked Paid invoice
+        const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
+        const pTotal = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
+        const pPaidAmt = isMarkedPaid ? pTotal : Number(p.paidAmount || 0);
+
+        const hasSpecificPurLog = (paymentLogs || []).some(pl =>
+          (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
+          (
+            (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+            (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+          )
+        );
+
+        if (pPaidAmt > 0 && !hasSpecificPurLog) {
+          entries.push({
+            id: `pay-sup-direct-${p.id}`,
+            rawDate: p.date,
+            date: p.date || 'N/A',
+            partyId,
+            partyName: p.supplier || p.supplierName || 'Supplier',
+            customerType: 'Supplier',
+            ref: `PAY-${p.purchaseNo || p.id}`,
+            txType: 'Payments',
+            desc: `Upfront Payment against ${p.purchaseNo || 'Purchase'}`,
+            debit: 0,
+            credit: pPaidAmt,
+            items: [],
+            productNames: '',
+            notes: p.paymentMethod || 'Upfront Payment'
+          });
+        }
       });
 
       (paymentLogs || []).filter(p => p.type === 'Supplier' || p.partyType === 'Supplier').forEach(p => {

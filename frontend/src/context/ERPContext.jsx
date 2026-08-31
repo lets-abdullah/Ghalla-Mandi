@@ -17,8 +17,9 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) 
     )
   ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
 
-  const upfrontPaid = Number(sale.paidAmount !== undefined ? sale.paidAmount : (sale.paidamount !== undefined ? sale.paidamount : 0));
-  const paid = directPaid > 0 ? directPaid : upfrontPaid;
+  const isMarkedPaid = sale.status === 'Paid' || sale.paymentStatus === 'Paid';
+  const upfrontPaid = isMarkedPaid ? total : Number(sale.paidAmount !== undefined ? sale.paidAmount : (sale.paidamount !== undefined ? sale.paidamount : 0));
+  const paid = Math.min(total, Math.max(upfrontPaid, directPaid));
 
   const returns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(sale.id)) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
   const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(sale.returnAmount || 0);
@@ -42,8 +43,9 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     )
   ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
 
-  const upfrontPaid = Number(purchase.paidAmount !== undefined ? purchase.paidAmount : (purchase.paidamount !== undefined ? purchase.paidamount : 0));
-  const paid = directPaid > 0 ? directPaid : upfrontPaid;
+  const isMarkedPaid = purchase.status === 'Paid' || purchase.paymentStatus === 'Paid';
+  const upfrontPaid = isMarkedPaid ? total : Number(purchase.paidAmount !== undefined ? purchase.paidAmount : (purchase.paidamount !== undefined ? purchase.paidamount : 0));
+  const paid = Math.min(total, Math.max(upfrontPaid, directPaid));
 
   const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
   const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(purchase.returnAmount || 0);
@@ -55,7 +57,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
 };
 
 export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = [], saleReturns = []) => {
-  if (!customer) return { openingBalance: 0, totalSale: 0, grossSale: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, returnAmount: 0, netSale: 0, netBalance: 0, balance: 0, receivableDue: 0, advanceCredit: 0, status: 'Clear', ordersCount: 0 };
+  if (!customer) return { openingBalance: 0, totalSale: 0, grossSale: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, returnAmount: 0, netSale: 0, netBalance: 0, balance: 0, receivableDue: 0, advanceCredit: 0, status: 'Settled', ordersCount: 0 };
   const custId = customer.id ? String(customer.id) : null;
   const custName = (customer.name || '').trim().toLowerCase();
   const isRegularCust = custId && !custId.startsWith('walkin-') && custName !== 'walk-in customer';
@@ -76,7 +78,7 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
 
   const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0)), 0);
 
-  // Single Source of Truth: Customer Payment Transactions in paymentLogs
+  // Customer Payment Transactions in paymentLogs
   const custPayments = (paymentLogs || []).filter(p => {
     const isCustomer = p.type === 'Customer' || p.partyType === 'Customer';
     if (!isCustomer) return false;
@@ -91,9 +93,29 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     }
   });
 
+  // Calculate actual total paid:
+  // 1. For each sale, paid amount is full sale amount if marked Paid, or recorded paidAmount, or direct payment log for that sale
+  let salesPaidSum = 0;
+  custSales.forEach(s => {
+    const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
+    const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
+    const sUpfront = isMarkedPaid ? sTotal : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
+    const sDirectLogs = custPayments.filter(p =>
+      (p.saleId && String(p.saleId) === String(s.id)) ||
+      (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+    ).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    salesPaidSum += Math.max(sUpfront, sDirectLogs);
+  });
+
+  // 2. Standalone Khata payment logs (not tied to specific sales)
+  const standalonePayments = custPayments.filter(p =>
+    !p.saleId &&
+    !(p.ref && custSales.some(s => s.invoiceNo && p.ref.includes(s.invoiceNo)))
+  ).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
   const totalPaidLogs = custPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-  const upfrontOnly = custSales.reduce((acc, s) => acc + Number(s.paidAmount !== undefined ? s.paidAmount : 0), 0);
-  const totalPaid = totalPaidLogs > 0 ? totalPaidLogs : upfrontOnly;
+  const totalPaid = Math.max(totalPaidLogs, salesPaidSum + standalonePayments);
 
   const returnAmount = (saleReturns || []).filter(r => {
     const rCustId = r.customerId ? String(r.customerId) : null;
@@ -110,10 +132,11 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   // Net Balance: Opening + (Gross Sales - Returns) - Payments
   // Positive = Customer owes Mandi (Receivable Due)
   // Negative = Mandi owes Customer (Advance Credit / Overpayment)
+  // Exactly 0 = Fully Settled
   const netBalance = openingBalance + (totalSale - returnAmount) - totalPaid;
   const receivableDue = Math.max(0, netBalance);
   const advanceCredit = Math.max(0, -netBalance);
-  const status = netBalance > 0 ? 'Due' : (netBalance < 0 ? 'Advance' : 'Clear');
+  const status = netBalance > 0 ? 'Due' : (netBalance < 0 ? 'Advance' : 'Settled');
 
   return {
     openingBalance,
