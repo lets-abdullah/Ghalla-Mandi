@@ -2204,42 +2204,31 @@ export const Reports = () => {
               </div>
             </div>
 
-            {/* 3. Final Net Sales */}
-            <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-brand-500/40 text-white' : 'bg-brand-50/50 border-brand-200 text-slate-900'
-              }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">3. Final Net Sales</span>
-                <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-black font-mono mt-2 text-brand-600 dark:text-brand-400">
-                Rs. {filteredNetSales.toLocaleString()}
-              </div>
-            </div>
-
-            {/* 4. Cash Received vs Khata Due */}
+            {/* 3. Cash in Hand */}
             <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">4. Payment Split</span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">3. Cash in Hand</span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <Wallet className="w-4 h-4" />
                 </div>
               </div>
-              <div className="flex items-baseline justify-between mt-2">
-                <div>
-                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase">Cash in Hand</div>
-                  <div className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400">
-                    Rs. {filteredCashSales.toLocaleString()}
-                  </div>
+              <div className="text-2xl font-black font-mono mt-2 text-emerald-600 dark:text-emerald-400">
+                Rs. {filteredCashSales.toLocaleString()}
+              </div>
+            </div>
+
+            {/* 4. Khata Due */}
+            <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">4. Khata Due</span>
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <CreditCard className="w-4 h-4" />
                 </div>
-                <div className="text-right">
-                  <div className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase">Khata Due</div>
-                  <div className="text-lg font-black font-mono text-amber-600 dark:text-amber-400">
-                    Rs. {filteredCreditSales.toLocaleString()}
-                  </div>
-                </div>
+              </div>
+              <div className="text-2xl font-black font-mono mt-2 text-amber-600 dark:text-amber-400">
+                Rs. {filteredCreditSales.toLocaleString()}
               </div>
             </div>
           </div>
@@ -2265,8 +2254,23 @@ export const Reports = () => {
               )}
             </div>
 
-            {/* 2. Time Period Filter */}
-            <div className="min-w-[140px]">
+            {/* 2. View Mode Selector (Replaces Sub-Tabs) */}
+            <div className="min-w-[200px]">
+              <select
+                value={salesActiveSubTab}
+                onChange={(e) => setSalesActiveSubTab(e.target.value)}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+              >
+                <option value="invoices">1. All Sales & Invoices ({filteredSalesList.length})</option>
+                <option value="productWise">2. By Commodity ({productWiseSalesData.length})</option>
+                <option value="customerWise">3. By Customer Party ({customerWiseSalesData.length})</option>
+                <option value="dateWise">4. By Date (Daily Log) ({dateWiseSalesData.length})</option>
+              </select>
+            </div>
+
+            {/* 3. Time Period Filter */}
+            <div className="min-w-[130px]">
               <select
                 value={salesDateFilter}
                 onChange={(e) => setSalesDateFilter(e.target.value)}
@@ -2282,22 +2286,22 @@ export const Reports = () => {
               </select>
             </div>
 
-            {/* 3. Payment Status Filter */}
-            <div className="min-w-[130px]">
+            {/* 4. Payment Status Filter */}
+            <div className="min-w-[125px]">
               <select
                 value={salesPaymentFilter}
                 onChange={(e) => setSalesPaymentFilter(e.target.value)}
                 className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
-                <option value="All">All Transactions</option>
+                <option value="All">All Status</option>
                 <option value="Paid">Fully Paid</option>
                 <option value="Partial">Partial Paid</option>
                 <option value="Credit">Khata Due</option>
               </select>
             </div>
 
-            {/* 4. Reset Filters Button */}
+            {/* 5. Reset Filters Button */}
             {hasActiveSalesFilters && (
               <button
                 type="button"
@@ -2336,69 +2340,6 @@ export const Reports = () => {
               </div>
             </div>
           )}
-
-          {/* Interactive Sub-Navigation Tabs (Screen Only) */}
-          <div className="no-print flex items-center gap-2 p-1.5 rounded-2xl bg-slate-200/70 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => setSalesActiveSubTab('invoices')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${salesActiveSubTab === 'invoices'
-                ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              <ShoppingCart className="w-3.5 h-3.5" />
-              <span>1. All Sales & Invoices</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950/60 font-bold text-brand-600 dark:text-brand-400">
-                {filteredSalesList.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSalesActiveSubTab('productWise')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${salesActiveSubTab === 'productWise'
-                ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              <Wheat className="w-3.5 h-3.5 text-emerald-500" />
-              <span>2. By Commodity</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 font-bold text-emerald-600 dark:text-emerald-400">
-                {productWiseSalesData.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSalesActiveSubTab('customerWise')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${salesActiveSubTab === 'customerWise'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              <Users className="w-3.5 h-3.5 text-blue-500" />
-              <span>3. By Customer Party</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 font-bold text-blue-600 dark:text-blue-400">
-                {customerWiseSalesData.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSalesActiveSubTab('dateWise')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer whitespace-nowrap ${salesActiveSubTab === 'dateWise'
-                ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              <Calendar className="w-3.5 h-3.5 text-purple-500" />
-              <span>4. By Date (Daily Log)</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/60 font-bold text-purple-600 dark:text-purple-400">
-                {dateWiseSalesData.length}
-              </span>
-            </button>
-          </div>
 
           {/* ========================================================================= */}
           {/* PRINT-ONLY HEADER (Sales Report) */}
