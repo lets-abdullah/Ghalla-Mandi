@@ -133,6 +133,165 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   };
 };
 
+export const computeProductValuation = (product, purchases = [], sales = [], saleReturns = [], purchaseReturns = []) => {
+  if (!product) return { qty: 0, avgCost: 0, stockValue: 0, sellingRate: 0, purchaseRate: 0, totalInflowQty: 0, totalOutflowQty: 0 };
+  
+  const prodId = product.id ? String(product.id) : null;
+  const prodName = (product.name || '').trim().toLowerCase();
+
+  const isMatch = (it) => {
+    if (!it) return false;
+    const itId = it.productId || it.id || it.product_id;
+    if (prodId && itId && String(itId) === prodId) return true;
+    const itName = (it.name || it.productName || it.item || '').trim().toLowerCase();
+    return prodName && itName && (itName === prodName || itName.includes(prodName) || prodName.includes(itName));
+  };
+
+  // Collect all transactions in chronological order
+  const events = [];
+
+  const initialQty = Number(product.openingStock ?? product.initialStock ?? 0);
+  const initialRate = Number(product.purchasePrice ?? product.purchase_price ?? product.rate ?? 0);
+  const sellingRate = Number(product.sellingPrice ?? product.selling_price ?? 0);
+
+  if (initialQty > 0) {
+    events.push({
+      date: new Date(product.created_at || '2026-01-01').getTime() || 0,
+      type: 'OPENING',
+      qty: initialQty,
+      rate: initialRate
+    });
+  }
+
+  // Purchases (IN)
+  (purchases || []).forEach(p => {
+    const pDate = new Date(p.created_at || p.createdAt || p.date || 0).getTime() || 0;
+    const items = p.cart || p.items || [];
+    items.forEach(it => {
+      if (isMatch(it)) {
+        events.push({
+          date: pDate,
+          type: 'PURCHASE',
+          qty: Number(it.qty || it.quantity || 0),
+          rate: Number(it.rate ?? it.price ?? it.purchasePrice ?? initialRate)
+        });
+      }
+    });
+  });
+
+  // Purchase Returns (OUT to vendor)
+  (purchaseReturns || []).forEach(pr => {
+    const prDate = new Date(pr.created_at || pr.createdAt || pr.date || 0).getTime() || 0;
+    const items = pr.items || [];
+    items.forEach(it => {
+      if (isMatch(it)) {
+        events.push({
+          date: prDate,
+          type: 'PURCHASE_RETURN',
+          qty: Number(it.qty || it.quantity || 0),
+          rate: Number(it.rate ?? it.price ?? it.refundRate ?? 0)
+        });
+      }
+    });
+  });
+
+  // Sales (OUT to customer)
+  (sales || []).forEach(s => {
+    const sDate = new Date(s.created_at || s.createdAt || s.date || 0).getTime() || 0;
+    const items = s.cart || s.items || [];
+    items.forEach(it => {
+      if (isMatch(it)) {
+        events.push({
+          date: sDate,
+          type: 'SALE',
+          qty: Number(it.qty || it.quantity || 0),
+          rate: Number(it.rate ?? it.price ?? it.sellingPrice ?? sellingRate)
+        });
+      }
+    });
+  });
+
+  // Sale Returns (IN back from customer)
+  (saleReturns || []).forEach(sr => {
+    const srDate = new Date(sr.created_at || sr.createdAt || sr.date || 0).getTime() || 0;
+    const items = sr.items || [];
+    items.forEach(it => {
+      if (isMatch(it)) {
+        events.push({
+          date: srDate,
+          type: 'SALE_RETURN',
+          qty: Number(it.qty || it.quantity || 0),
+          rate: Number(it.rate ?? it.price ?? 0)
+        });
+      }
+    });
+  });
+
+  // Sort chronologically
+  events.sort((a, b) => a.date - b.date);
+
+  // If no transactions exist, fallback to direct product stockQty and purchasePrice
+  if (events.length === 0) {
+    const currentStock = Number(product.stockQty !== undefined ? product.stockQty : (product.stockqty !== undefined ? product.stockqty : 0));
+    return {
+      qty: currentStock,
+      avgCost: initialRate,
+      stockValue: currentStock * initialRate,
+      sellingRate,
+      purchaseRate: initialRate,
+      totalInflowQty: currentStock,
+      totalOutflowQty: 0
+    };
+  }
+
+  // Perpetual Weighted Average Cost computation
+  let currentQty = 0;
+  let totalCost = 0;
+  let currentAvgCost = initialRate;
+  let totalInflowQty = 0;
+  let totalOutflowQty = 0;
+
+  events.forEach(ev => {
+    if (ev.type === 'OPENING' || ev.type === 'PURCHASE') {
+      currentQty += ev.qty;
+      totalCost += (ev.qty * ev.rate);
+      currentAvgCost = currentQty > 0 ? (totalCost / currentQty) : ev.rate;
+      totalInflowQty += ev.qty;
+    } else if (ev.type === 'PURCHASE_RETURN') {
+      const returnCost = ev.rate > 0 ? (ev.qty * ev.rate) : (ev.qty * currentAvgCost);
+      currentQty = Math.max(0, currentQty - ev.qty);
+      totalCost = Math.max(0, totalCost - returnCost);
+      currentAvgCost = currentQty > 0 ? (totalCost / currentQty) : currentAvgCost;
+      totalOutflowQty += ev.qty;
+    } else if (ev.type === 'SALE') {
+      const soldCost = ev.qty * currentAvgCost;
+      currentQty = Math.max(0, currentQty - ev.qty);
+      totalCost = Math.max(0, totalCost - soldCost);
+      totalOutflowQty += ev.qty;
+    } else if (ev.type === 'SALE_RETURN') {
+      const returnCost = ev.qty * currentAvgCost;
+      currentQty += ev.qty;
+      totalCost += returnCost;
+      currentAvgCost = currentQty > 0 ? (totalCost / currentQty) : currentAvgCost;
+      totalInflowQty += ev.qty;
+    }
+  });
+
+  const registeredStock = Number(product.stockQty !== undefined ? product.stockQty : (product.stockqty !== undefined ? product.stockqty : currentQty));
+  const finalQty = (registeredStock > 0 && currentQty === 0 && events.length === 0) ? registeredStock : currentQty;
+  const stockValue = finalQty * currentAvgCost;
+
+  return {
+    qty: finalQty,
+    avgCost: currentAvgCost,
+    stockValue,
+    sellingRate,
+    purchaseRate: currentAvgCost,
+    totalInflowQty,
+    totalOutflowQty
+  };
+};
+
 export const computeWalkinUncollectedDues = (sales = [], saleReturns = []) => {
   return (sales || []).filter(s => {
     const sCustId = s.customerId ? String(s.customerId) : null;

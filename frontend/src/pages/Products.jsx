@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Search, Plus, Filter, Barcode, Edit3, Trash2, AlertTriangle, FolderPlus, X, Image as ImageIcon, Upload, RefreshCw, Printer } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 
 export const Products = () => {
-  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, adjustStock } = useERP();
+  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, adjustStock, purchases = [], sales = [], saleReturns = [], purchaseReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
@@ -318,7 +318,10 @@ export const Products = () => {
                 </tr>
               ) : (
                 filtered.map(product => {
-                  const isLowStock = product.stockQty <= (product.minStock || 1000);
+                  const val = computeProductValuation(product, purchases, sales, saleReturns, purchaseReturns);
+                  const isLowStock = val.qty <= (product.minStock || 1000);
+                  const sellingRate = Number(product.sellingPrice ?? product.sellingprice ?? val.sellingRate ?? 0);
+
                   return (
                     <tr key={product.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
                       }`}>
@@ -350,14 +353,14 @@ export const Products = () => {
                       <td className="py-3 px-4 text-center">
                         <span className={`font-extrabold text-xs ${isLowStock ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                           {isLowStock && <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />}
-                          {(Number(product.stockQty ?? product.stockqty) || 0).toLocaleString()} {product.unit || product.baseUnit || t('kg')}
+                          {val.qty.toLocaleString()} {product.unit || product.baseUnit || t('kg')}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right text-slate-400 font-semibold">
-                        Rs. {(Number(product.purchasePrice ?? product.purchaseprice) || 0).toLocaleString()} / {product.unit || product.baseUnit || t('kg')}
+                        Rs. {val.purchaseRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} / {product.unit || product.baseUnit || t('kg')}
                       </td>
                       <td className="py-3 px-4 text-right text-brand-500 font-extrabold">
-                        Rs. {(Number(product.sellingPrice ?? product.sellingprice) || 0).toLocaleString()} / {product.unit || product.baseUnit || t('kg')}
+                        Rs. {sellingRate.toLocaleString()} / {product.unit || product.baseUnit || t('kg')}
                       </td>
                       <td className="py-3 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-2">

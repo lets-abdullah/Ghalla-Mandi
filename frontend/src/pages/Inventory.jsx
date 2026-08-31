@@ -22,7 +22,7 @@ import {
   CheckCircle2,
   Info
 } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
@@ -340,12 +340,20 @@ export const Inventory = () => {
   }, [allTransactions, dateFilter, customStartDate, customEndDate, selectedProduct, movementTypeFilter, sourceFilter, searchQuery]);
 
   // Overall KPI Metrics
-  const totalStockQty = (products || []).reduce((acc, p) => acc + (Number(p.stockQty ?? p.stockqty) || 0), 0);
-  const lowStockCount = (products || []).filter(p => {
-    const stock = Number(p.stockQty !== undefined ? p.stockQty : (p.stockqty !== undefined ? p.stockqty : 0));
-    const min = Number(p.minStock !== undefined ? p.minStock : (p.minstock !== undefined ? p.minstock : 10));
-    return stock <= min;
-  }).length;
+  const totalStockQty = useMemo(() => {
+    return (products || []).reduce((acc, p) => {
+      const val = computeProductValuation(p, purchases, sales, saleReturns, purchaseReturns);
+      return acc + val.qty;
+    }, 0);
+  }, [products, purchases, sales, saleReturns, purchaseReturns]);
+
+  const lowStockCount = useMemo(() => {
+    return (products || []).filter(p => {
+      const val = computeProductValuation(p, purchases, sales, saleReturns, purchaseReturns);
+      const min = Number(p.minStock !== undefined ? p.minStock : (p.minstock !== undefined ? p.minstock : 10));
+      return val.qty <= min;
+    }).length;
+  }, [products, purchases, sales, saleReturns, purchaseReturns]);
 
   const totalInflow = useMemo(() => {
     return filteredTransactions

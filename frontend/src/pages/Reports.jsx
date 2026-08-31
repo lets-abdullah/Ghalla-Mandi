@@ -7,7 +7,7 @@ import {
   Calendar, Users, ShoppingCart, ChevronDown, ChevronUp, BarChart3, Percent, Layers,
   RefreshCw, ArrowUpRight, ArrowDownRight, Wallet, Banknote, ChevronRight, CreditCard
 } from 'lucide-react';
-import { useERP, computeCustomerKhataBalance, computeSupplierKhataBalance, computeSaleFinancials, computePurchaseFinancials } from '../context/ERPContext';
+import { useERP, computeCustomerKhataBalance, computeSupplierKhataBalance, computeSaleFinancials, computePurchaseFinancials, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
@@ -154,9 +154,10 @@ export const Reports = () => {
 
   const processedStock = useMemo(() => {
     return (products || []).map(p => {
-      const qty = Number(p.stockQty || 0);
-      const purchaseRate = Number(p.purchasePrice || 0);
-      const sellingRate = Number(p.sellingPrice || 0);
+      const val = computeProductValuation(p, purchases, sales, saleReturns, purchaseReturns);
+      const qty = val.qty;
+      const purchaseRate = val.purchaseRate;
+      const sellingRate = Number(p.sellingPrice ?? p.selling_price ?? val.sellingRate ?? 0);
       const minStock = Number(p.minStock || 10);
       const unit = (p.unit || p.baseUnit || 'KG').trim();
       const unitLower = unit.toLowerCase();
@@ -192,12 +193,12 @@ export const Reports = () => {
         bagDetail,
         purchaseRate,
         sellingRate,
-        stockVal: qty * purchaseRate,
+        stockVal: val.stockValue,
         status,
         minStock
       };
     });
-  }, [products]);
+  }, [products, purchases, sales, saleReturns, purchaseReturns]);
 
   const allUnits = useMemo(() => {
     const set = new Set((products || []).map(p => (p.unit || p.baseUnit || 'KG').trim()));
