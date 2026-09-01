@@ -1091,19 +1091,21 @@ export const Reports = () => {
     return (suppliers || []).reduce((sum, s) => sum + Number(s.openingBalance || 0), 0);
   }, [suppliers]);
 
+  const totalAssets = useMemo(() => totalLiquidFunds + totalCustomerReceivables + totalStockValuation + totalSupplierAdvances, [totalLiquidFunds, totalCustomerReceivables, totalStockValuation, totalSupplierAdvances]);
+  const totalLiabilities = useMemo(() => totalSupplierPayables + totalOutstandingExpenses + totalCustomerAdvances, [totalSupplierPayables, totalOutstandingExpenses, totalCustomerAdvances]);
+
+  // Canonical Net Worth (Equity) Equation: Net Worth = Total Assets - Total Liabilities
+  const totalEquity = useMemo(() => totalAssets - totalLiabilities, [totalAssets, totalLiabilities]);
+
   const bsEquityBreakdown = useMemo(() => {
     const openingNetCapital = Math.max(0, openingCustomerReceivables - openingSupplierPayables);
     const retained = netOperatingProfit;
     return {
       ownersCapital: openingNetCapital,
       retainedProfit: retained,
-      total: openingNetCapital + retained
+      total: totalEquity
     };
-  }, [openingCustomerReceivables, openingSupplierPayables, netOperatingProfit]);
-
-  const totalAssets = useMemo(() => totalLiquidFunds + totalCustomerReceivables + totalStockValuation + totalSupplierAdvances, [totalLiquidFunds, totalCustomerReceivables, totalStockValuation, totalSupplierAdvances]);
-  const totalLiabilities = useMemo(() => totalSupplierPayables + totalOutstandingExpenses + totalCustomerAdvances, [totalSupplierPayables, totalOutstandingExpenses, totalCustomerAdvances]);
-  const totalEquity = useMemo(() => bsEquityBreakdown.total, [bsEquityBreakdown]);
+  }, [openingCustomerReceivables, openingSupplierPayables, netOperatingProfit, totalEquity]);
 
   // Granular Balance Sheet Breakdown Objects
   const bsCashBreakdown = useMemo(() => {
