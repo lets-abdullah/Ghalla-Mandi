@@ -1067,13 +1067,9 @@ export const Reports = () => {
     };
   }, [sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns]);
 
-  // Outstanding / Unpaid Operating Expenses Liability
+  // Outstanding Operating Expenses Liability
   const totalOutstandingExpenses = useMemo(() => {
-    return (expenses || []).filter(e => {
-      const mode = String(e.mode || e.paymentMode || e.paymentMethod || '').toLowerCase();
-      const status = String(e.status || e.paymentStatus || '').toLowerCase();
-      return status === 'unpaid' || status === 'pending' || status === 'due' || mode.includes('unpaid') || mode.includes('pending') || mode.includes('payable') || mode.includes('due') || mode === 'ledger' || mode === 'credit';
-    }).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    return (expenses || []).reduce((sum, e) => sum + Number(e.amount || 0), 0);
   }, [expenses]);
 
   const totalSupplierAdvances = useMemo(() => {
