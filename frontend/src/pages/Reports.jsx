@@ -3263,8 +3263,6 @@ export const Reports = () => {
                 <span>COGS: Rs. {plTotalCOGS.toLocaleString()}</span>
                 <span>•</span>
                 <span>Expenses: Rs. {plTotalExpenses.toLocaleString()}</span>
-                <span>•</span>
-                <span className="text-slate-400" title="Separate inventory procurement">Purchases: Rs. {plTotalPurchases.toLocaleString()}</span>
               </div>
             </div>
 

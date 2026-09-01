@@ -218,12 +218,7 @@ export const Ledger = () => {
           notes: s.note || ''
         });
 
-        // Upfront cash paid on POS counter or marked Paid invoice
-        const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
-        const sTotal = Number(s.amount ?? s.grandTotal ?? 0);
-        const paidAmt = isMarkedPaid ? sTotal : Number(s.paidAmount || 0);
-
-        // Check if there is a payment log recorded specifically for this invoice
+        // Upfront cash paid on POS counter (only if unlogged in paymentLogs)
         const hasSpecificInvoiceLog = (paymentLogs || []).some(p =>
           (p.type === 'Customer' || p.partyType === 'Customer') &&
           (
@@ -231,6 +226,16 @@ export const Ledger = () => {
             (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
           )
         );
+
+        let paidAmt = 0;
+        const customerPayments = (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer');
+        if (customerPayments.length === 0) {
+          const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
+          const sTotal = Number(s.amount ?? s.grandTotal ?? 0);
+          paidAmt = isMarkedPaid ? sTotal : Number(s.cashReceived !== undefined ? s.cashReceived : (s.paidAmount || 0));
+        } else if (!hasSpecificInvoiceLog && s.cashReceived !== undefined && Number(s.cashReceived) > 0) {
+          paidAmt = Number(s.cashReceived);
+        }
 
         if (paidAmt > 0 && !hasSpecificInvoiceLog) {
           entries.push({
@@ -352,11 +357,7 @@ export const Ledger = () => {
           notes: ''
         });
 
-        // Upfront cash paid on Purchase or marked Paid invoice
-        const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
-        const pTotal = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
-        const pPaidAmt = isMarkedPaid ? pTotal : Number(p.paidAmount || 0);
-
+        // Upfront cash paid on Purchase (only if unlogged in paymentLogs)
         const hasSpecificPurLog = (paymentLogs || []).some(pl =>
           (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
           (
@@ -364,6 +365,16 @@ export const Ledger = () => {
             (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
           )
         );
+
+        let pPaidAmt = 0;
+        const supplierPayments = (paymentLogs || []).filter(pl => pl.type === 'Supplier' || pl.partyType === 'Supplier');
+        if (supplierPayments.length === 0) {
+          const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
+          const pTotal = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
+          pPaidAmt = isMarkedPaid ? pTotal : Number(p.cashPaid !== undefined ? p.cashPaid : (p.paidAmount || 0));
+        } else if (!hasSpecificPurLog && p.cashPaid !== undefined && Number(p.cashPaid) > 0) {
+          pPaidAmt = Number(p.cashPaid);
+        }
 
         if (pPaidAmt > 0 && !hasSpecificPurLog) {
           entries.push({

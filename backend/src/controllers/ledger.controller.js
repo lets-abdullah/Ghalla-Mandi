@@ -69,7 +69,7 @@ export const recordPayment = async (req, res) => {
         targetPartyName = partyName || 'Walk-in Customer';
       }
 
-      // If specific sale is targeted, update its paidAmount
+      // If specific sale is targeted, update its paidAmount and cascade any excess
       if (saleId) {
         const sale = await Sale.findById(saleId, req.shop_id);
         if (sale) {
@@ -78,6 +78,27 @@ export const recordPayment = async (req, res) => {
           const newPaid = Number(sale.paidAmount || 0) + effectivePay;
           const newStatus = (newPaid >= Number(sale.amount || 0) && Number(sale.amount || 0) > 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
           await Sale.findByIdAndUpdate(saleId, { paidAmount: newPaid, status: newStatus }, { shop_id: req.shop_id });
+
+          let excessAmt = amtNum - effectivePay;
+          if (excessAmt > 0) {
+            const allShopSales = await Sale.find({ shop_id: req.shop_id });
+            const openSales = allShopSales.filter(s => {
+              const matchesCust = (cust && s.customerId === cust.id) ||
+                (targetPartyName && s.partyName && s.partyName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
+              const isUnpaid = String(s.id) !== String(saleId) && (s.status === 'Pending' || s.status === 'Partial' || (Number(s.paidAmount || 0) < Number(s.amount || 0)));
+              return matchesCust && isUnpaid && s.status !== 'Returned';
+            }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
+
+            for (const s of openSales) {
+              if (excessAmt <= 0) break;
+              const due = Math.max(0, Number(s.amount || 0) - Number(s.paidAmount || 0));
+              const payTowardsSale = Math.min(due, excessAmt);
+              const nextPaid = Number(s.paidAmount || 0) + payTowardsSale;
+              const nextStatus = (nextPaid >= Number(s.amount || 0) && Number(s.amount || 0) > 0) ? 'Paid' : 'Partial';
+              await Sale.findByIdAndUpdate(s.id, { paidAmount: nextPaid, status: nextStatus }, { shop_id: req.shop_id });
+              excessAmt -= payTowardsSale;
+            }
+          }
         }
       } else {
         // General Khata payment: allocate FIFO to open unpaid/partial sales
@@ -134,6 +155,28 @@ export const recordPayment = async (req, res) => {
           const newPaid = Number(pur.paidAmount || 0) + effectivePay;
           const newStatus = newPaid >= Number(pur.grandTotal || pur.amount || 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
           await Purchase.findByIdAndUpdate(purchaseId, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
+
+          let excessAmt = amtNum - effectivePay;
+          if (excessAmt > 0) {
+            const allShopPurchases = await Purchase.find({ shop_id: req.shop_id });
+            const openPurchases = allShopPurchases.filter(p => {
+              const matchesSup = (sup && p.supplierId === sup.id) ||
+                (targetPartyName && p.supplier && p.supplier.trim().toLowerCase() === targetPartyName.trim().toLowerCase()) ||
+                (targetPartyName && p.supplierName && p.supplierName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
+              const isUnpaid = String(p.id) !== String(purchaseId) && (p.paymentStatus === 'Pending' || p.paymentStatus === 'Partial' || (Number(p.paidAmount || 0) < Number(p.grandTotal || p.amount || 0)));
+              return matchesSup && isUnpaid && p.paymentStatus !== 'Returned' && p.status !== 'Returned';
+            }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
+
+            for (const p of openPurchases) {
+              if (excessAmt <= 0) break;
+              const due = Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.paidAmount || 0));
+              const payTowardsPur = Math.min(due, excessAmt);
+              const nextPaid = Number(p.paidAmount || 0) + payTowardsPur;
+              const nextStatus = nextPaid >= Number(p.grandTotal || p.amount || 0) ? 'Paid' : 'Partial';
+              await Purchase.findByIdAndUpdate(p.id, { paidAmount: nextPaid, paymentStatus: nextStatus }, { shop_id: req.shop_id });
+              excessAmt -= payTowardsPur;
+            }
+          }
         }
       } else {
         // General Supplier payment: allocate FIFO to open unpaid/partial purchases

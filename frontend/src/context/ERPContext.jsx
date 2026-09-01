@@ -2077,19 +2077,23 @@ export const ERPProvider = ({ children }) => {
             setPaymentLogs(prev => [res.entry, ...prev]);
 
             if (partyType === 'Customer') {
-              const [custRes, saleRes] = await Promise.all([
+              const [custRes, saleRes, ledgerRes] = await Promise.all([
                 authFetch('/api/customers'),
-                authFetch('/api/sales')
+                authFetch('/api/sales'),
+                authFetch('/api/ledger')
               ]);
               if (custRes.success) setCustomers(custRes.customers || []);
               if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
+              if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
             } else {
-              const [supRes, purRes] = await Promise.all([
+              const [supRes, purRes, ledgerRes] = await Promise.all([
                 authFetch('/api/suppliers'),
-                authFetch('/api/purchases')
+                authFetch('/api/purchases'),
+                authFetch('/api/ledger')
               ]);
               if (supRes.success) setSuppliers(supRes.suppliers || []);
               if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
+              if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
             }
           }
 
