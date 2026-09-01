@@ -886,7 +886,7 @@ export const Reports = () => {
   const {
     cashInHand,
     bankBalance,
-    walletBalance,
+    cardBalance,
     totalLiquidFunds,
     liquidTransactionsList
   } = useMemo(() => {
@@ -4254,14 +4254,14 @@ export const Reports = () => {
                           <td className="py-2.5 px-2.5 text-right font-mono font-bold text-blue-600 dark:text-blue-400">Rs. {bankBalance.toLocaleString()}</td>
                         </tr>
                         <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Mobile Digital Wallets</td>
+                          <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Card Payment Account</td>
                           <td className="py-2.5 px-2">
-                            <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
-                              Mobile Wallet
+                            <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
+                              Card Payment
                             </span>
                           </td>
-                          <td className="py-2.5 px-2 text-slate-500 font-medium">JazzCash & Easypaisa Merchant Wallets</td>
-                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {walletBalance.toLocaleString()}</td>
+                          <td className="py-2.5 px-2 text-slate-500 font-medium">POS Card & Merchant Payment Receipts</td>
+                          <td className="py-2.5 px-2.5 text-right font-mono font-bold text-purple-600 dark:text-purple-400">Rs. {cardBalance.toLocaleString()}</td>
                         </tr>
                       </tbody>
                       <tfoot>
