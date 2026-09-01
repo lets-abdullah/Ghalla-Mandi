@@ -1197,43 +1197,53 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         methodDisplay = 'Cash';
       }
 
-      let sUpfrontCash = 0;
-      if (s.paidAmount !== undefined && Number(s.paidAmount) > 0) {
-        sUpfrontCash = Math.min(sGross, Number(s.paidAmount));
-      } else if (s.cashReceived !== undefined && Number(s.cashReceived) > 0) {
-        sUpfrontCash = Math.min(sGross, Number(s.cashReceived));
-      } else if (!isCreditOnly && (s.status === 'Paid' || s.paymentStatus === 'Paid')) {
-        sUpfrontCash = sGross;
+      if (isCreditOnly) {
+        // Credit / Khata Invoice: Creates pure debit receivable, subsequent Khata payments step down balance
+        entries.push({
+          id: `sale-${s.id || idx}`,
+          timestamp: ts,
+          eventPriority: 1, // Invoice occurs before same-day payments
+          seq: Number(s.id) || (idx + 1),
+          rawDate: s.date,
+          date: s.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: s.invoiceNo || `INV-${s.id || idx}`,
+          txType: 'Sales',
+          desc: `Invoice: ${sItems}`,
+          sales: sGross,
+          payment: 0,
+          debit: sGross,
+          credit: 0,
+          paymentMethod: 'Credit / Khata',
+          paymentAccount: 'Credit / Khata',
+          status: 'Due',
+          notes: s.saleNote || s.note || ''
+        });
+      } else {
+        // Direct counter sale without Khata credit
+        entries.push({
+          id: `sale-${s.id || idx}`,
+          timestamp: ts,
+          eventPriority: 1,
+          seq: Number(s.id) || (idx + 1),
+          rawDate: s.date,
+          date: s.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: s.invoiceNo || `INV-${s.id || idx}`,
+          txType: 'Sales',
+          desc: `Invoice: ${sItems}`,
+          sales: sGross,
+          payment: sGross,
+          debit: 0,
+          credit: 0,
+          paymentMethod: methodDisplay,
+          paymentAccount: methodDisplay,
+          status: 'Settled',
+          notes: s.saleNote || s.note || ''
+        });
       }
-
-      const isDirectPaid = sUpfrontCash >= sGross && sGross > 0 && !isCreditOnly;
-      const unpaidDue = isDirectPaid ? 0 : Math.max(0, sGross - sUpfrontCash);
-
-      if (!isDirectPaid && sUpfrontCash > 0) {
-        methodDisplay = `${methodDisplay} (Split)`;
-      }
-
-      entries.push({
-        id: `sale-${s.id || idx}`,
-        timestamp: ts,
-        eventPriority: 1,
-        seq: Number(s.id) || (idx + 1),
-        rawDate: s.date,
-        date: s.date || 'N/A',
-        partyId,
-        partyName: party.name,
-        ref: s.invoiceNo || `INV-${s.id || idx}`,
-        txType: 'Sales',
-        desc: `Invoice: ${sItems}`,
-        sales: sGross,
-        payment: isDirectPaid ? sGross : (sUpfrontCash > 0 ? sUpfrontCash : 0),
-        debit: unpaidDue,
-        credit: 0,
-        paymentMethod: methodDisplay,
-        paymentAccount: methodDisplay,
-        status: isDirectPaid ? 'Settled' : (sUpfrontCash > 0 ? 'Partially Paid' : 'Due'),
-        notes: s.saleNote || s.note || ''
-      });
     });
 
     // Process Returns
@@ -1353,43 +1363,51 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         methodDisplay = 'Cash';
       }
 
-      let pUpfrontCash = 0;
-      if (p.paidAmount !== undefined && Number(p.paidAmount) > 0) {
-        pUpfrontCash = Math.min(pGross, Number(p.paidAmount));
-      } else if (p.cashPaid !== undefined && Number(p.cashPaid) > 0) {
-        pUpfrontCash = Math.min(pGross, Number(p.cashPaid));
-      } else if (!isCreditOnly && (p.status === 'Paid' || p.paymentStatus === 'Paid')) {
-        pUpfrontCash = pGross;
+      if (isCreditOnly) {
+        entries.push({
+          id: `pur-${p.id || idx}`,
+          timestamp: ts,
+          eventPriority: 1,
+          seq: Number(p.id) || (idx + 1),
+          rawDate: p.date,
+          date: p.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: p.purchaseNo || `PUR-${p.id || idx}`,
+          txType: 'Purchases',
+          desc: `Bill: ${pItems}`,
+          sales: pGross,
+          payment: 0,
+          debit: pGross,
+          credit: 0,
+          paymentMethod: 'Credit / Khata',
+          paymentAccount: 'Credit / Khata',
+          status: 'Due',
+          notes: p.note || ''
+        });
+      } else {
+        entries.push({
+          id: `pur-${p.id || idx}`,
+          timestamp: ts,
+          eventPriority: 1,
+          seq: Number(p.id) || (idx + 1),
+          rawDate: p.date,
+          date: p.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: p.purchaseNo || `PUR-${p.id || idx}`,
+          txType: 'Purchases',
+          desc: `Bill: ${pItems}`,
+          sales: pGross,
+          payment: pGross,
+          debit: 0,
+          credit: 0,
+          paymentMethod: methodDisplay,
+          paymentAccount: methodDisplay,
+          status: 'Settled',
+          notes: p.note || ''
+        });
       }
-
-      const isDirectPaid = pUpfrontCash >= pGross && pGross > 0 && !isCreditOnly;
-      const unpaidDue = isDirectPaid ? 0 : Math.max(0, pGross - pUpfrontCash);
-
-      if (!isDirectPaid && pUpfrontCash > 0) {
-        methodDisplay = `${methodDisplay} (Split)`;
-      }
-
-      entries.push({
-        id: `pur-${p.id || idx}`,
-        timestamp: ts,
-        eventPriority: 1,
-        seq: Number(p.id) || (idx + 1),
-        rawDate: p.date,
-        date: p.date || 'N/A',
-        partyId,
-        partyName: party.name,
-        ref: p.purchaseNo || `PUR-${p.id || idx}`,
-        txType: 'Purchases',
-        desc: `Bill: ${pItems}`,
-        sales: pGross,
-        payment: isDirectPaid ? pGross : (pUpfrontCash > 0 ? pUpfrontCash : 0),
-        debit: unpaidDue,
-        credit: 0,
-        paymentMethod: methodDisplay,
-        paymentAccount: methodDisplay,
-        status: isDirectPaid ? 'Settled' : (pUpfrontCash > 0 ? 'Partially Paid' : 'Due'),
-        notes: p.note || ''
-      });
     });
 
     // Process Purchase Returns

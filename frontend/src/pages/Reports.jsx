@@ -3876,7 +3876,7 @@ export const Reports = () => {
                   <Building className="w-4 h-4" />
                   <span>What You Own (Assets)</span>
                 </h3>
-                  <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                   Rs. {totalAssets.toLocaleString()}
                 </span>
               </div>
@@ -3914,7 +3914,7 @@ export const Reports = () => {
                         </div>
                         <div className="pl-3 space-y-0.5 text-[10px] text-slate-400">
                           <div className="flex justify-between">
-                            <span>Cash Inflows (Sales & Receipts):</span>
+                            <span>Cash Inflows:</span>
                             <span className="font-mono">+ Rs. {cashInflows.toLocaleString()}</span>
                           </div>
                           {cashExpenses > 0 && (
@@ -3940,7 +3940,7 @@ export const Reports = () => {
                         </div>
                         <div className="pl-3 space-y-0.5 text-[10px] text-slate-400">
                           <div className="flex justify-between">
-                            <span>Bank Inflows (Khata & Receipts):</span>
+                            <span>Bank Inflows:</span>
                             <span className="font-mono">+ Rs. {bankInflows.toLocaleString()}</span>
                           </div>
                           {bankExpenses > 0 && (
