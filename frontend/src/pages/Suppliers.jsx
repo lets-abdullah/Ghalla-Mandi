@@ -1353,6 +1353,7 @@ export const Suppliers = () => {
                       </label>
                       <input
                         type="number"
+                        min="0"
                         step="any"
                         value={editingSupplier.balance || 0}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, balance: Number(e.target.value) })}
@@ -1622,13 +1623,13 @@ export const Suppliers = () => {
                   </div>
                 </div>
 
-                {/* 2. Total Paid out Out */}
+                {/* 2. Total Paid Out */}
                 <div className={`p-4 rounded-2xl border transition-all ${theme === 'dark'
                   ? 'bg-slate-800/80 border-slate-700/80'
                   : 'bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/30 border-emerald-100/90'
                   }`}>
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Total Paid out Out</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider">Total Paid Out</span>
                     <div className="w-7 h-7 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                     </div>
