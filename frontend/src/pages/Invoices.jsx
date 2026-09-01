@@ -540,7 +540,7 @@ export const Invoices = () => {
         filterSummary={`Party: ${selectedPartyId === 'All' ? 'All Parties' : 'Filtered Party'} | Period: ${dateFilterType} | Status: ${statusFilter}`}
         stats={[
           { label: isPurchases ? 'Total Purchases' : 'Total Sales', value: `Rs. ${totalBilledVolume.toLocaleString()}` },
-          { label: isPurchases ? 'Total Paid out out' : 'Cash Received', value: `Rs. ${totalSettledAmount.toLocaleString()}` },
+          { label: isPurchases ? 'Total Paid Out' : 'Cash Received', value: `Rs. ${totalSettledAmount.toLocaleString()}` },
           { label: isPurchases ? 'Supplier dues deducted' : 'Customer Receivables', value: `Rs. ${totalOutstandingDue.toLocaleString()}` }
         ]}
       />

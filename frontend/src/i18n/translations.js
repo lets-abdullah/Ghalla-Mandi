@@ -360,7 +360,7 @@ export const translations = {
     recordNewPurchase: "Record New Purchase",
     totalPurchases: "Total Purchases",
     totalPurchasesVolume: "Total Purchases Volume",
-    totalPaidOut: "Total Paid out Out",
+    totalPaidOut: "Total Paid Out",
     totalPaidToSuppliers: "Total Paid out to Suppliers",
     outstandingPayables: "Supplier dues deducted",
     totalPayableDue: "Customer Receivables Payable",

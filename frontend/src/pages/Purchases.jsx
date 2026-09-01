@@ -21,7 +21,8 @@ import {
   Landmark,
   Hash,
   Edit3,
-  CreditCard
+  CreditCard,
+  Receipt
 } from 'lucide-react';
 import { useERP, computePurchaseFinancials, computeSupplierKhataBalance, computeAllSuppliersFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -411,6 +412,36 @@ export const Purchases = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const openReceiptForPurchase = (p) => {
+    const rawItems = Array.isArray(p.cart) && p.cart.length > 0 ? p.cart : (Array.isArray(p.items) ? p.items : []);
+    const formattedItems = rawItems.map(it => ({
+      name: it.name || it.productName || 'Produce',
+      qty: Number(it.qty || it.enteredQty || 1),
+      unit: it.unit || it.unitName || 'KG',
+      price: Number(it.rate || it.price || 0),
+      total: Number(it.total || (Number(it.rate || 0) * Number(it.qty || 1)) || 0)
+    }));
+
+    setSelectedReceipt({
+      purchaseNo: p.purchaseNo || `PUR-${p.id}`,
+      date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'N/A'),
+      supplierName: p.supplierName || p.supplier || 'Supplier Vendor',
+      supplierPhone: p.supplierPhone || p.phone || '',
+      supplierCity: p.supplierCity || p.city || '',
+      items: formattedItems.length > 0 ? formattedItems : [{
+        name: typeof p.items === 'string' ? p.items : 'Commodity Purchase',
+        qty: Number(p.qtyKg || 1),
+        unit: 'KG',
+        price: Number(p.rate || p.amount || 0),
+        total: Number(p.amount || 0)
+      }],
+      totalAmount: Number(p.amount || 0),
+      paidAmount: Number(p.paidAmount || 0),
+      paymentMode: p.paymentMode || p.paymentMethod || 'Supplier Khata',
+      note: p.note || 'Inward commodity arrival record.'
+    });
   };
 
   const openPayModal = (purchase) => {
@@ -928,18 +959,38 @@ export const Purchases = () => {
                         </div>
                       </td>
 
-                      {/* 7. Actions: Edit | Return Purchase (Screen Only) */}
+                      {/* 7. Actions: Receipt | Edit | Return Purchase (Screen Only) */}
                       <td className="py-3.5 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Edit Action */}
+                          {/* Receipt Action */}
                           <button
-                            onClick={() => setEditingPurchase(p)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                            title="Edit Purchase / Modify Items"
+                            onClick={() => openReceiptForPurchase(p)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-500 hover:text-white hover:border-brand-500 transition cursor-pointer text-xs font-bold active:scale-98 shadow-xs"
+                            title="View & Print Purchase Receipt"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>Edit</span>
+                            <Receipt className="w-3.5 h-3.5" />
+                            <span>Receipt</span>
                           </button>
+
+                          {/* Edit Action (Locked if stock has been returned) */}
+                          {(p.returnStatus || Number(p.returnAmount || 0) > 0 || isReturned) ? (
+                            <span
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold cursor-not-allowed select-none opacity-60"
+                              title="Purchase cannot be edited because returned goods exist in Purchase Returns"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setEditingPurchase(p)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
+                              title="Edit Purchase / Modify Items"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+                          )}
 
                           {/* Return Purchase Action */}
                           {(p.returnStatus === 'Fully Returned' || (Number(p.returnAmount || 0) >= (total - 1) && total > 0)) ? (
@@ -956,7 +1007,7 @@ export const Purchases = () => {
                                 setSelectedReturnPurchase(p);
                                 setShowReturnModal(true);
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
                               title="Return Purchase (Partial or Full)"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />

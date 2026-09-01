@@ -65,146 +65,48 @@ export const Inventory = () => {
   const allTransactions = useMemo(() => {
     const list = [];
 
-    // 1. Opening Stock from registered products
     (products || []).forEach(p => {
-      const initialQty = safeQty(p.openingStock ?? p.initialStock ?? p.opening_stock ?? p.initial_stock ?? p.stockQty ?? p.stock_qty ?? 0);
-      if (initialQty > 0) {
-        list.push({
-          id: `open-${p.id}`,
-          dateStr: p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Opening',
-          dateObj: p.created_at ? new Date(p.created_at) : new Date(0),
-          productId: p.id,
-          productName: p.name,
-          direction: 'IN',
-          movementCategory: 'OPENING',
-          movementLabel: 'Opening Stock',
-          referenceNo: 'OPENING-STOCK',
-          qtyNum: initialQty,
-          unit: p.unit || p.baseUnit || 'KG',
-          signedQty: `+${initialQty} ${p.unit || p.baseUnit || 'KG'}`,
-          raw: p
+      const val = computeProductValuation(p, purchases, sales, saleReturns, purchaseReturns);
+      if (val.ledger && val.ledger.length > 0) {
+        val.ledger.forEach(entry => {
+          let movementCategory = 'OPENING';
+          let movementLabel = 'Opening Stock';
+
+          if (entry.type === 'Purchase') {
+            movementCategory = 'PURCHASE';
+            movementLabel = 'Stock In (Purchase)';
+          } else if (entry.type === 'Sale Invoice' || entry.type === 'POS Sale' || entry.type === 'SALE') {
+            movementCategory = 'SALE';
+            movementLabel = 'Stock Out (POS Sale)';
+          } else if (entry.type === 'Sale Return' || entry.type === 'SALE_RETURN') {
+            movementCategory = 'SALE_RETURN';
+            movementLabel = 'Stock In (Sale Return)';
+          } else if (entry.type === 'Purchase Return' || entry.type === 'PURCHASE_RETURN') {
+            movementCategory = 'PURCHASE_RETURN';
+            movementLabel = 'Stock Out (Purchase Return)';
+          }
+
+          list.push({
+            id: `${p.id}-${entry.id}`,
+            dateStr: entry.dateStr || (entry.date ? new Date(entry.date).toLocaleDateString('en-GB') : 'Opening'),
+            dateObj: new Date(entry.date || 0),
+            productId: p.id,
+            productName: p.name,
+            direction: entry.direction,
+            movementCategory,
+            movementLabel,
+            referenceNo: entry.ref || 'N/A',
+            qtyNum: entry.qty,
+            unit: p.unit || p.baseUnit || 'KG',
+            signedQty: `${entry.direction === 'IN' ? '+' : '-'}${entry.qty} ${p.unit || p.baseUnit || 'KG'}`,
+            runningStock: entry.runningStock
+          });
         });
       }
     });
 
-    // 2. Stock In on Purchase
-    (purchases || []).forEach(p => {
-      const items = Array.isArray(p.items) && p.items.length > 0 ? p.items : (Array.isArray(p.cart) ? p.cart : [{ name: p.productName || 'Procured Commodity', qty: p.qty || 1, unit: p.unit || 'KG' }]);
-      items.forEach((it, i) => {
-        const itQty = safeQty(it.qty ?? it.quantity ?? it.enteredQty ?? 1);
-        if (itQty > 0) {
-          list.push({
-            id: `pur-${p.id || p.purchaseNo}-${i}`,
-            dateStr: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
-            dateObj: p.created_at ? new Date(p.created_at) : new Date(p.date || 0),
-            productId: it.productId || it.id,
-            productName: it.name || p.productName || 'Commodity',
-            direction: 'IN',
-            movementCategory: 'PURCHASE',
-            movementLabel: 'Stock In (Purchase)',
-            referenceNo: p.purchaseNo ? `PUR-#${p.purchaseNo}` : 'Purchase Bill',
-            qtyNum: itQty,
-            unit: it.unit || it.unitName || p.unit || 'KG',
-            signedQty: `+${itQty} ${it.unit || p.unit || 'KG'}`,
-            raw: p
-          });
-        }
-      });
-    });
-
-    // 3. Stock Out on POS Sale
-    (sales || []).forEach(s => {
-      const items = Array.isArray(s.items) && s.items.length > 0 ? s.items : (Array.isArray(s.cart) ? s.cart : [{ name: typeof s.items === 'string' ? s.items : (s.productName || 'Commodity'), qty: s.qty || 1, unit: s.unit || 'KG' }]);
-      items.forEach((it, i) => {
-        const itQty = safeQty(it.qty ?? it.quantity ?? it.enteredQty ?? 1);
-        if (itQty > 0) {
-          list.push({
-            id: `sale-${s.id || s.invoiceNo}-${i}`,
-            dateStr: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
-            dateObj: s.created_at ? new Date(s.created_at) : new Date(s.date || 0),
-            productId: it.productId || it.id,
-            productName: it.name || 'Commodity Product',
-            direction: 'OUT',
-            movementCategory: 'SALE',
-            movementLabel: 'Stock Out (POS Sale)',
-            referenceNo: s.invoiceNo ? `INV-#${s.invoiceNo}` : 'POS Checkout',
-            qtyNum: itQty,
-            unit: it.unit || it.unitName || s.unit || 'KG',
-            signedQty: `-${itQty} ${it.unit || s.unit || 'KG'}`,
-            raw: s
-          });
-        }
-      });
-    });
-
-    // 4. Stock In on Sale Return
-    (saleReturns || []).forEach(r => {
-      (r.items || [{ name: 'Returned Commodity', qty: r.qty || 1, unit: 'KG' }]).forEach((it, i) => {
-        const itQty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 1);
-        if (itQty > 0) {
-          list.push({
-            id: `sr-${r.id || r.returnNo}-${i}`,
-            dateStr: r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
-            dateObj: r.created_at ? new Date(r.created_at) : new Date(r.date || 0),
-            productId: it.productId || it.id,
-            productName: it.name || 'Returned Commodity',
-            direction: 'IN',
-            movementCategory: 'SALE_RETURN',
-            movementLabel: 'Stock In (Sale Return)',
-            referenceNo: r.returnNo ? `SR-#${r.returnNo}` : 'Credit Note',
-            qtyNum: itQty,
-            unit: it.unit || 'KG',
-            signedQty: `+${itQty} ${it.unit || 'KG'}`,
-            raw: r
-          });
-        }
-      });
-    });
-
-    // 5. Stock Out on Purchase Return
-    (purchaseReturns || []).forEach(r => {
-      (r.items || [{ name: 'Returned Commodity', qty: r.qty || 1, unit: 'KG' }]).forEach((it, i) => {
-        const itQty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 1);
-        if (itQty > 0) {
-          list.push({
-            id: `pr-${r.id || r.returnNo}-${i}`,
-            dateStr: r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
-            dateObj: r.created_at ? new Date(r.created_at) : new Date(r.date || 0),
-            productId: it.productId || it.id,
-            productName: it.name || 'Returned Commodity',
-            direction: 'OUT',
-            movementCategory: 'PURCHASE_RETURN',
-            movementLabel: 'Stock Out (Purchase Return)',
-            referenceNo: r.returnNo ? `PR-#${r.returnNo}` : 'Debit Note',
-            qtyNum: itQty,
-            unit: it.unit || 'KG',
-            signedQty: `-${itQty} ${it.unit || 'KG'}`,
-            raw: r
-          });
-        }
-      });
-    });
-
-    // Sort chronologically (oldest to newest) to compute running on-hand stock
-    list.sort((a, b) => a.dateObj - b.dateObj);
-
-    // Compute running on-hand balance per product
-    const prodBalanceMap = new Map();
-    const withRunningStock = list.map(item => {
-      const key = (item.productName || 'General').trim().toLowerCase();
-      const prevBal = prodBalanceMap.get(key) || 0;
-      const change = item.direction === 'IN' ? item.qtyNum : -item.qtyNum;
-      const newBal = prevBal + change;
-      prodBalanceMap.set(key, newBal);
-
-      return {
-        ...item,
-        runningStock: newBal
-      };
-    });
-
     // Return descending for display (latest on top)
-    return withRunningStock.sort((a, b) => b.dateObj - a.dateObj);
+    return list.sort((a, b) => b.dateObj - a.dateObj);
   }, [products, purchases, sales, saleReturns, purchaseReturns]);
 
   // Date Filtering Helper

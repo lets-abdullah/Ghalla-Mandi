@@ -671,18 +671,38 @@ export const Sales = () => {
                         </div>
                       </td>
 
-                      {/* 7. Actions: Edit | Return Sale (Screen Only) */}
+                      {/* 7. Actions: Receipt | Edit | Return Sale (Screen Only) */}
                       <td className="py-3.5 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Edit Action */}
+                          {/* Receipt Action */}
                           <button
-                            onClick={() => setEditingSale(s)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                            title="Edit Sale / Modify Items"
+                            onClick={() => openReceiptForSale(s)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-500 hover:text-white hover:border-brand-500 transition cursor-pointer text-xs font-bold active:scale-98 shadow-xs"
+                            title="View & Print Sale Receipt"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>Edit</span>
+                            <Receipt className="w-3.5 h-3.5" />
+                            <span>Receipt</span>
                           </button>
+
+                          {/* Edit Action (Locked if goods have been returned) */}
+                          {(s.returnStatus || Number(s.returnAmount || 0) > 0 || isReturned) ? (
+                            <span
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold cursor-not-allowed select-none opacity-60"
+                              title="Sale cannot be edited because returned goods exist in Sale Returns"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setEditingSale(s)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
+                              title="Edit Sale / Modify Items"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+                          )}
 
                           {/* Return Sale Action */}
                           {(s.returnStatus === 'Fully Returned' || (Number(s.returnAmount || 0) >= (total - 1) && total > 0)) ? (
@@ -699,7 +719,7 @@ export const Sales = () => {
                                 setSelectedReturnSale(s);
                                 setShowReturnModal(true);
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white transition cursor-pointer text-xs font-bold"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
                               title="Return Sale (Partial or Full)"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />

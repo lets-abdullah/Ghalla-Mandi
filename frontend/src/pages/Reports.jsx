@@ -5,7 +5,8 @@ import {
   FileSpreadsheet, Printer, Plus, Wheat, X, Trash2, Search, Filter,
   CheckCircle2, AlertTriangle, ArrowUpDown, Package, Eye,
   Calendar, Users, ShoppingCart, ChevronDown, ChevronUp, BarChart3, Percent, Layers,
-  RefreshCw, ArrowUpRight, ArrowDownRight, Wallet, Banknote, ChevronRight, CreditCard
+  RefreshCw, ArrowUpRight, ArrowDownRight, Wallet, Banknote, ChevronRight, CreditCard,
+  Receipt
 } from 'lucide-react';
 import { useERP, resolveTransactionPayment, computeCustomerKhataBalance, computeSupplierKhataBalance, computeSaleFinancials, computePurchaseFinancials, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -767,7 +768,14 @@ export const Reports = () => {
       cart.forEach(it => {
         const itQty = Number(it.qty || it.enteredQty || 1);
         const prod = (products || []).find(p => String(p.id) === String(it.productId || it.id) || (p.name && it.name && p.name.toLowerCase() === it.name.toLowerCase()));
-        const unitCost = Number(it.costPrice ?? it.purchasePrice ?? prod?.purchasePrice ?? prod?.purchaseprice ?? 0);
+        let unitCost = 0;
+        if (prod) {
+          const val = computeProductValuation(prod, purchases, sales, saleReturns, purchaseReturns);
+          unitCost = val.purchaseRate > 0 ? val.purchaseRate : (val.avgCost > 0 ? val.avgCost : Number(prod.purchasePrice || 0));
+        }
+        if (unitCost <= 0) {
+          unitCost = Number(it.costPrice ?? it.purchasePrice ?? prod?.purchasePrice ?? prod?.purchaseprice ?? 0);
+        }
         sum += (itQty * unitCost);
       });
     });
@@ -776,12 +784,19 @@ export const Reports = () => {
       items.forEach(it => {
         const itQty = Number(it.qty || it.enteredQty || 1);
         const prod = (products || []).find(p => String(p.id) === String(it.productId || it.id) || (p.name && it.name && p.name.toLowerCase() === it.name.toLowerCase()));
-        const unitCost = Number(it.costPrice ?? it.purchasePrice ?? prod?.purchasePrice ?? prod?.purchaseprice ?? 0);
+        let unitCost = 0;
+        if (prod) {
+          const val = computeProductValuation(prod, purchases, sales, saleReturns, purchaseReturns);
+          unitCost = val.purchaseRate > 0 ? val.purchaseRate : (val.avgCost > 0 ? val.avgCost : Number(prod.purchasePrice || 0));
+        }
+        if (unitCost <= 0) {
+          unitCost = Number(it.costPrice ?? it.purchasePrice ?? prod?.purchasePrice ?? prod?.purchaseprice ?? 0);
+        }
         sum -= (itQty * unitCost);
       });
     });
     return Math.max(0, sum);
-  }, [filteredSalesList, saleReturns, products]);
+  }, [filteredSalesList, saleReturns, products, purchases, sales, purchaseReturns]);
 
   const cogs = totalSalesCOGS;
   const grossOperatingProfit = useMemo(() => totalNetSales - cogs, [totalNetSales, cogs]);
@@ -1159,7 +1174,14 @@ export const Reports = () => {
       cart.forEach(it => {
         const itQty = Number(it.qty || it.enteredQty || 1);
         const pObj = (products || []).find(p => String(p.id) === String(it.productId || it.id) || (p.name && it.name && p.name.toLowerCase() === it.name.toLowerCase()));
-        const unitCost = Number(it.costPrice ?? it.purchasePrice ?? pObj?.purchasePrice ?? pObj?.purchaseprice ?? 0);
+        let unitCost = 0;
+        if (pObj) {
+          const val = computeProductValuation(pObj, purchases, sales, saleReturns, purchaseReturns);
+          unitCost = val.purchaseRate > 0 ? val.purchaseRate : (val.avgCost > 0 ? val.avgCost : Number(pObj.purchasePrice || 0));
+        }
+        if (unitCost <= 0) {
+          unitCost = Number(it.costPrice ?? it.purchasePrice ?? pObj?.purchasePrice ?? pObj?.purchaseprice ?? 0);
+        }
         saleCogs += (itQty * unitCost);
       });
 
@@ -1247,7 +1269,14 @@ export const Reports = () => {
       (r.items || []).forEach(item => {
         const itQty = Number(item.qty || item.enteredQty || 1);
         const pObj = (products || []).find(p => String(p.id) === String(item.productId || item.id) || (p.name && item.name && p.name.toLowerCase() === item.name.toLowerCase()));
-        const unitCost = Number(item.costPrice ?? item.purchasePrice ?? pObj?.purchasePrice ?? pObj?.purchaseprice ?? 0);
+        let unitCost = 0;
+        if (pObj) {
+          const val = computeProductValuation(pObj, purchases, sales, saleReturns, purchaseReturns);
+          unitCost = val.purchaseRate > 0 ? val.purchaseRate : (val.avgCost > 0 ? val.avgCost : Number(pObj.purchasePrice || 0));
+        }
+        if (unitCost <= 0) {
+          unitCost = Number(item.costPrice ?? item.purchasePrice ?? pObj?.purchasePrice ?? pObj?.purchaseprice ?? 0);
+        }
         returnCogs += (itQty * unitCost);
       });
 
@@ -1405,7 +1434,7 @@ export const Reports = () => {
   // P&L Statement Metrics (True Accrual Accounting: Sales - COGS - Expenses)
   const plTotalRevenue = useMemo(() => {
     const grossSales = filteredPlJournal.filter(t => t.type === 'Sale').reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    const saleReturnsVal = filteredPlJournal.filter(t => t.type === 'Sale Return').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const saleReturnsVal = filteredPlJournal.filter(t => t.category === 'Sale Return' || (t.type && t.type.includes('Sale Return'))).reduce((sum, t) => sum + Math.abs(t.amount), 0);
     return Math.max(0, grossSales - saleReturnsVal);
   }, [filteredPlJournal]);
 
@@ -1414,20 +1443,20 @@ export const Reports = () => {
   }, [filteredPlJournal]);
 
   const plTotalReturns = useMemo(() => {
-    return filteredPlJournal.filter(t => t.type === 'Sale Return').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    return filteredPlJournal.filter(t => t.category === 'Sale Return' || (t.type && t.type.includes('Sale Return'))).reduce((sum, t) => sum + Math.abs(t.amount), 0);
   }, [filteredPlJournal]);
 
   // Cost of Goods Sold (COGS): Actual purchase cost of items sold in this period
   const plTotalCOGS = useMemo(() => {
     const soldCogs = filteredPlJournal.filter(t => t.type === 'Sale').reduce((sum, t) => sum + (Number(t.cogs) || 0), 0);
-    const returnCogs = filteredPlJournal.filter(t => t.type === 'Sale Return').reduce((sum, t) => sum + (Number(t.cogs) || 0), 0);
+    const returnCogs = filteredPlJournal.filter(t => t.category === 'Sale Return' || (t.type && t.type.includes('Sale Return'))).reduce((sum, t) => sum + (Number(t.cogs) || 0), 0);
     return Math.max(0, soldCogs - returnCogs);
   }, [filteredPlJournal]);
 
   // Total Procurement Purchases (Separate Operational Metric for Inventory Addition)
   const plTotalPurchases = useMemo(() => {
     const grossPur = filteredPlJournal.filter(t => t.type === 'Purchase').reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    const purReturnsVal = filteredPlJournal.filter(t => t.type === 'Purchase Return').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const purReturnsVal = filteredPlJournal.filter(t => t.category === 'Purchase Return' || (t.type && t.type.includes('Purchase Return'))).reduce((sum, t) => sum + Math.abs(t.amount), 0);
     return Math.max(0, grossPur - purReturnsVal);
   }, [filteredPlJournal]);
 
