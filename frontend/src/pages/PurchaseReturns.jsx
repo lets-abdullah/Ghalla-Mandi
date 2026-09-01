@@ -160,6 +160,7 @@ export const PurchaseReturns = () => {
 
       {/* Summary KPI Cards (Screen Only) */}
       <div className="no-print grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 1. Total Returned Stock */}
         <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <RotateCcw className="w-4 h-4 text-rose-600" />
@@ -170,16 +171,18 @@ export const PurchaseReturns = () => {
           </div>
         </div>
 
+        {/* 2. Cash Received */}
         <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-600" />
-            <span>Cash Received from Suppliers</span>
+            <span>Cash Received</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalCashRefunds.toLocaleString()}
           </div>
         </div>
 
+        {/* 3. Supplier Dues Deducted */}
         <div
           onClick={() => navigate('/ledger?type=Supplier')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'}`}
@@ -187,7 +190,7 @@ export const PurchaseReturns = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-amber-600" />
-            <span>Supplier dues deducted</span>
+            <span>Supplier Dues Deducted</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalPayablesDeducted.toLocaleString()}
@@ -212,7 +215,7 @@ export const PurchaseReturns = () => {
             >
               <option value="All">All Return Modes</option>
               <option value="Cash">Cash Refunds</option>
-              <option value="Ledger">Supplier dues deducted</option>
+              <option value="Ledger">Supplier Dues Deducted (Debit Note)</option>
             </select>
           </div>
 

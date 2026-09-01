@@ -7,7 +7,7 @@ import {
   Calendar, Users, ShoppingCart, ChevronDown, ChevronUp, BarChart3, Percent, Layers,
   RefreshCw, ArrowUpRight, ArrowDownRight, Wallet, Banknote, ChevronRight, CreditCard
 } from 'lucide-react';
-import { useERP, computeCustomerKhataBalance, computeSupplierKhataBalance, computeSaleFinancials, computePurchaseFinancials, computeProductValuation } from '../context/ERPContext';
+import { useERP, resolveTransactionPayment, computeCustomerKhataBalance, computeSupplierKhataBalance, computeSaleFinancials, computePurchaseFinancials, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
@@ -867,6 +867,7 @@ export const Reports = () => {
   }, [suppliers, purchases, purchaseReturns, paymentLogs]);
 
   // Dynamic Liquid Funds (Cash, Bank, Mobile Wallets) Calculation
+  // Dynamic Liquid Funds (Cash, Bank, Mobile Wallets) Calculation - Single Source of Truth
   const {
     cashInHand,
     bankBalance,
@@ -879,176 +880,138 @@ export const Reports = () => {
     let wallet = 0;
     const txList = [];
 
-    // Helper to categorize channel
-    const getChannel = (modeStr) => {
-      const m = String(modeStr || 'Cash').toLowerCase();
-      if (m.includes('jazz') || m.includes('easy') || m.includes('wallet') || m.includes('upaisa')) return 'wallet';
-      if (m.includes('bank') || m.includes('card') || m.includes('online') || m.includes('cheque') || m.includes('raast') || m.includes('transfer')) return 'bank';
-      return 'cash';
-    };
-
     // 1. Sales Inflows
     (sales || []).forEach(s => {
-      const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.grandtotal !== undefined ? s.grandtotal : 0)));
-      const pMode = s.paymentMode || s.paymentMethod || 'Cash';
-      const isFullPaidMode = pMode === 'Cash' || pMode === 'Bank' || pMode === 'Card' || pMode === 'Bank Transfer' || pMode === 'JazzCash' || pMode === 'Easypaisa';
-      const paid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : (s.status === 'Paid' || s.paymentStatus === 'Paid' || isFullPaidMode ? grossAmt : 0)));
-
-      if (paid > 0) {
-        const chan = getChannel(pMode);
-        if (chan === 'wallet') wallet += paid;
-        else if (chan === 'bank') bank += paid;
-        else cash += paid;
+      const res = resolveTransactionPayment(s, 'Sale');
+      if (res.totalLiquid > 0) {
+        cash += res.cashAmount;
+        bank += res.bankAmount;
+        wallet += res.walletAmount;
 
         txList.push({
           date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : 'Today'),
           source: `Sale Receipt (#${s.invoiceNo || s.orderId || s.id || 'N/A'})`,
           party: s.customerName || s.partyName || 'Counter Sale',
-          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
           type: 'Inflow',
-          amount: paid
+          amount: res.totalLiquid
         });
       }
     });
 
     // 2. Customer Ledger Payments Inflow
-    (paymentLogs || []).filter(p => p.partyType === 'Customer').forEach(p => {
-      const amt = Number(p.amount || 0);
-      if (amt > 0) {
-        const chan = getChannel(p.mode || p.paymentMode);
-        if (chan === 'wallet') wallet += amt;
-        else if (chan === 'bank') bank += amt;
-        else cash += amt;
+    (paymentLogs || []).filter(p => p.partyType === 'Customer' || p.type === 'Customer').forEach(p => {
+      const res = resolveTransactionPayment(p, 'CustomerPayment');
+      if (res.totalLiquid > 0) {
+        cash += res.cashAmount;
+        bank += res.bankAmount;
+        wallet += res.walletAmount;
 
         txList.push({
           date: p.date || 'Today',
           source: `Customer Khata Settlement (${p.ref || 'Receipt'})`,
           party: p.partyName || 'Customer',
-          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
           type: 'Inflow',
-          amount: amt
+          amount: res.totalLiquid
         });
       }
     });
 
     // 3. Purchase Returns Inflow (ONLY actual Cash / Bank refunds received from supplier)
     (purchaseReturns || []).forEach(r => {
-      const mode = String(r.refundMode || r.refundmode || '').trim().toLowerCase();
-      const isCashRefund = mode === 'cash' || mode === 'bank' || mode === 'wallet' || mode === 'online';
-      const isLedgerDebitNote = mode === 'ledger' || mode === 'khata' || mode === 'debit note';
-
+      const res = resolveTransactionPayment(r, 'PurchaseReturn');
       // Crucial: Supplier Khata (Debit Note) NEVER touches physical Cash/Bank
-      if (isCashRefund && !isLedgerDebitNote) {
-        const refAmt = Number(r.refundAmount || 0);
-        if (refAmt > 0) {
-          const chan = getChannel(r.refundMode);
-          if (chan === 'wallet') wallet += refAmt;
-          else if (chan === 'bank') bank += refAmt;
-          else cash += refAmt;
+      if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
+        cash += res.cashAmount;
+        bank += res.bankAmount;
+        wallet += res.walletAmount;
 
-          txList.push({
-            date: r.date || 'Today',
-            source: `Purchase Return Cash Refund (#${r.returnNo || r.id || 'N/A'})`,
-            party: r.supplierName || 'Supplier',
-            channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
-            type: 'Inflow',
-            amount: refAmt
-          });
-        }
+        txList.push({
+          date: r.date || 'Today',
+          source: `Purchase Return Cash Refund (#${r.returnNo || r.id || 'N/A'})`,
+          party: r.supplierName || 'Supplier',
+          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          type: 'Inflow',
+          amount: res.totalLiquid
+        });
       }
     });
 
     // 4. Purchases Outflows
     (purchases || []).forEach(p => {
-      const grossAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
-      const paid = Number(p.paidAmount !== undefined ? p.paidAmount : (p.status === 'Paid' ? grossAmt : 0));
-      if (paid > 0) {
-        const chan = getChannel(p.paymentMode || p.paymentMethod);
-        if (chan === 'wallet') wallet -= paid;
-        else if (chan === 'bank') bank -= paid;
-        else cash -= paid;
+      const res = resolveTransactionPayment(p, 'Purchase');
+      if (res.totalLiquid > 0) {
+        cash -= res.cashAmount;
+        bank -= res.bankAmount;
+        wallet -= res.walletAmount;
 
         txList.push({
           date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Today'),
-          source: `Purchase Voucher (#${p.invoiceNo || p.id || 'N/A'})`,
+          source: `Purchase Voucher (#${p.purchaseNo || p.invoiceNo || p.id || 'N/A'})`,
           party: p.supplierName || p.supplier || 'Mandi Supplier',
-          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
           type: 'Outflow',
-          amount: paid
+          amount: res.totalLiquid
         });
       }
     });
 
     // 5. Supplier Ledger Payments Outflow
-    (paymentLogs || []).filter(p => p.partyType === 'Supplier').forEach(p => {
-      const amt = Number(p.amount || 0);
-      if (amt > 0) {
-        const chan = getChannel(p.mode || p.paymentMode);
-        if (chan === 'wallet') wallet -= amt;
-        else if (chan === 'bank') bank -= amt;
-        else cash -= amt;
+    (paymentLogs || []).filter(p => p.partyType === 'Supplier' || p.type === 'Supplier').forEach(p => {
+      const res = resolveTransactionPayment(p, 'SupplierPayment');
+      if (res.totalLiquid > 0) {
+        cash -= res.cashAmount;
+        bank -= res.bankAmount;
+        wallet -= res.walletAmount;
 
         txList.push({
           date: p.date || 'Today',
           source: `Supplier Payment Settlement (${p.ref || 'Voucher'})`,
           party: p.partyName || 'Supplier',
-          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
           type: 'Outflow',
-          amount: amt
+          amount: res.totalLiquid
         });
       }
     });
 
     // 6. Expenses Outflows (ONLY paid expenses deduct cash/bank)
     (expenses || []).forEach(e => {
-      const mode = String(e.mode || e.paymentMode || e.paymentMethod || '').toLowerCase();
-      const status = String(e.status || e.paymentStatus || '').toLowerCase();
-      const isUnpaid = status === 'unpaid' || status === 'pending' || status === 'due' || mode.includes('unpaid') || mode.includes('pending') || mode.includes('payable') || mode.includes('due') || mode === 'ledger' || mode === 'credit';
+      const res = resolveTransactionPayment(e, 'Expense');
+      if (res.isLiquid && res.totalLiquid > 0) {
+        cash -= res.cashAmount;
+        bank -= res.bankAmount;
+        wallet -= res.walletAmount;
 
-      if (!isUnpaid) {
-        const amt = Number(e.amount || 0);
-        if (amt > 0) {
-          const chan = getChannel(e.mode || e.paymentMode || e.paymentMethod);
-          if (chan === 'wallet') wallet -= amt;
-          else if (chan === 'bank') bank -= amt;
-          else cash -= amt;
-
-          txList.push({
-            date: e.date || 'Today',
-            source: `Expense: ${e.category || 'Shop'} (${e.desc || ''})`,
-            party: e.payee || 'Expense Payee',
-            channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
-            type: 'Outflow',
-            amount: amt
-          });
-        }
+        txList.push({
+          date: e.date || 'Today',
+          source: `Expense: ${e.category || 'Shop'} (${e.desc || ''})`,
+          party: e.payee || 'Expense Payee',
+          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          type: 'Outflow',
+          amount: res.totalLiquid
+        });
       }
     });
 
     // 7. Sale Returns Outflows (ONLY actual Cash / Bank refunds given to customers)
     (saleReturns || []).forEach(r => {
-      const mode = String(r.refundMode || r.refundmode || '').trim().toLowerCase();
-      const isCashRefund = mode === 'cash' || mode === 'bank' || mode === 'wallet' || mode === 'online';
-      const isLedgerCreditNote = mode === 'ledger' || mode === 'khata' || mode === 'credit note';
-
+      const res = resolveTransactionPayment(r, 'SaleReturn');
       // Crucial: Customer Khata (Credit Note) NEVER touches physical Cash/Bank
-      if (isCashRefund && !isLedgerCreditNote) {
-        const refAmt = Number(r.refundAmount || 0);
-        if (refAmt > 0) {
-          const chan = getChannel(r.refundMode);
-          if (chan === 'wallet') wallet -= refAmt;
-          else if (chan === 'bank') bank -= refAmt;
-          else cash -= refAmt;
+      if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
+        cash -= res.cashAmount;
+        bank -= res.bankAmount;
+        wallet -= res.walletAmount;
 
-          txList.push({
-            date: r.date || 'Today',
-            source: `Sale Return Cash Refund (${r.refundMode || 'Cash'})`,
-            party: r.customerName || 'Customer',
-            channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
-            type: 'Outflow',
-            amount: refAmt
-          });
-        }
+        txList.push({
+          date: r.date || 'Today',
+          source: `Sale Return Cash Refund (${res.refundMode || 'Cash'})`,
+          party: r.customerName || 'Customer',
+          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          type: 'Outflow',
+          amount: res.totalLiquid
+        });
       }
     });
 
@@ -1070,9 +1033,21 @@ export const Reports = () => {
     }).reduce((sum, e) => sum + Number(e.amount || 0), 0);
   }, [expenses]);
 
+  const bsEquityBreakdown = useMemo(() => {
+    // Retained Operating Profit from P&L operations
+    const retained = Math.max(0, netOperatingProfit);
+    // Verified Owner Capital (0 unless an explicit capital injection record is present)
+    const verifiedOwnerCapital = 0;
+    return {
+      ownersCapital: verifiedOwnerCapital,
+      retainedProfit: retained,
+      total: retained + verifiedOwnerCapital
+    };
+  }, [netOperatingProfit]);
+
   const totalAssets = useMemo(() => totalLiquidFunds + totalCustomerReceivables + totalStockValuation, [totalLiquidFunds, totalCustomerReceivables, totalStockValuation]);
   const totalLiabilities = useMemo(() => totalSupplierPayables + totalOutstandingExpenses, [totalSupplierPayables, totalOutstandingExpenses]);
-  const totalEquity = useMemo(() => totalAssets - totalLiabilities, [totalAssets, totalLiabilities]);
+  const totalEquity = useMemo(() => bsEquityBreakdown.total, [bsEquityBreakdown]);
 
   // Granular Balance Sheet Breakdown Objects
   const bsCashBreakdown = useMemo(() => {
@@ -1108,15 +1083,25 @@ export const Reports = () => {
     };
   }, [totalSupplierPayables, totalOutstandingExpenses, totalLiabilities]);
 
-  const bsEquityBreakdown = useMemo(() => {
-    const retained = Math.max(0, netOperatingProfit);
-    const capital = Math.max(0, totalAssets - totalLiabilities - retained);
-    return {
-      ownersCapital: capital,
-      retainedProfit: retained,
-      total: totalEquity
-    };
-  }, [totalAssets, totalLiabilities, netOperatingProfit, totalEquity]);
+  // Development-Safe Accounting Integrity & Reconciliation Check
+  useEffect(() => {
+    const isBalanceSheetBalanced = Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01;
+    const isProfitReconciled = Math.abs(netOperatingProfit - (bsEquityBreakdown.retainedProfit || 0)) < 0.01;
+    if (!isBalanceSheetBalanced) {
+      console.warn('[Balance Sheet Imbalance]: Assets do not match Liabilities + Equity!', {
+        totalAssets,
+        totalLiabilities,
+        totalEquity,
+        diff: totalAssets - (totalLiabilities + totalEquity)
+      });
+    }
+    if (!isProfitReconciled) {
+      console.warn('[P&L / Retained Profit Discrepancy]:', {
+        netOperatingProfit,
+        retainedProfit: bsEquityBreakdown.retainedProfit
+      });
+    }
+  }, [totalAssets, totalLiabilities, totalEquity, netOperatingProfit, bsEquityBreakdown]);
 
   // Helper for universal date parsing in Journal
   const parseJournalDate = (dateVal, createdVal) => {
@@ -1193,7 +1178,7 @@ export const Reports = () => {
         cogs: saleCogs,
         grossProfit: grossAmt - saleCogs,
         party: s.partyName || s.customerName || 'Customer Party',
-        mode: s.paymentMode || (Number(s.paidAmount || s.paidAmt || 0) >= grossAmt ? 'Cash' : 'Credit')
+        mode: resolveTransactionPayment(s, 'Sale').channel === 'khata' ? 'Khata (Credit)' : resolveTransactionPayment(s, 'Sale').channel === 'bank' ? 'Bank' : resolveTransactionPayment(s, 'Sale').channel === 'wallet' ? 'Mobile Wallet' : 'Cash'
       });
     });
 
@@ -1210,6 +1195,7 @@ export const Reports = () => {
       const totalQty = cart.reduce((sum, it) => sum + Number(it.qty || it.enteredQty || 1), 0);
       const unit = cart[0]?.unit || p.unit || 'KG';
       const grossAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.netAmt || 0)));
+      const pPay = resolveTransactionPayment(p, 'Purchase');
 
       journal.push({
         id: `pur-${p.id || p.purchaseNo || Math.random()}`,
@@ -1224,13 +1210,14 @@ export const Reports = () => {
         rawQty: totalQty,
         amount: -grossAmt,
         party: p.supplierName || p.supplier || 'Supplier Firm',
-        mode: p.paymentMode || (Number(p.paidAmount || p.paidAmt || 0) >= grossAmt ? 'Cash' : 'Credit')
+        mode: pPay.channel === 'khata' ? 'Supplier Khata' : (pPay.channel === 'bank' ? 'Bank' : (pPay.channel === 'wallet' ? 'Mobile Wallet' : 'Cash'))
       });
     });
 
     // 3. Shop Expenses
     (expenses || []).forEach(e => {
       const eDateObj = parseJournalDate(e.date, e.created_at);
+      const ePay = resolveTransactionPayment(e, 'Expense');
 
       journal.push({
         id: `exp-${e.id || e.ref || Math.random()}`,
@@ -1245,7 +1232,7 @@ export const Reports = () => {
         rawQty: 0,
         amount: -Number(e.amount || 0),
         party: 'Shop Operations',
-        mode: e.mode || 'Cash'
+        mode: ePay.channel === 'khata' ? 'Payable (Due)' : (ePay.channel === 'bank' ? 'Bank' : (ePay.channel === 'wallet' ? 'Mobile Wallet' : 'Cash'))
       });
     });
 
@@ -1254,6 +1241,7 @@ export const Reports = () => {
       const rDateObj = parseJournalDate(r.date, r.created_at);
       const it = (r.items || [])[0] || {};
       const refAmt = Number(r.refundAmount || 0);
+      const srPay = resolveTransactionPayment(r, 'SaleReturn');
 
       let returnCogs = 0;
       (r.items || []).forEach(item => {
@@ -1270,7 +1258,7 @@ export const Reports = () => {
         ref: r.returnNo ? (String(r.returnNo).startsWith('SR-') ? r.returnNo : `SR-${r.returnNo}`) : (r.ref || `SR-${r.id || 'RET'}`),
         product: it.name || 'Returned Commodity',
         category: 'Sale Return',
-        type: (r.refundMode || '').toLowerCase() === 'cash' ? 'Sale Return (Cash Refund)' : 'Sale Return (Credit Note)',
+        type: srPay.isLiquid ? 'Sale Return (Cash Refund)' : 'Sale Return (Credit Note)',
         isIncome: false,
         qty: it.qty ? `${it.qty} ${it.unit || 'KG'}` : '—',
         rawQty: Number(it.qty || 0),
@@ -1278,7 +1266,7 @@ export const Reports = () => {
         cogs: returnCogs,
         grossProfit: -(refAmt - returnCogs),
         party: r.customerName || 'Customer Party',
-        mode: (r.refundMode || '').toLowerCase() === 'cash' ? 'Cash' : 'Ledger'
+        mode: srPay.isLiquid ? (srPay.channel === 'bank' ? 'Bank' : srPay.channel === 'wallet' ? 'Mobile Wallet' : 'Cash') : 'Credit Note'
       });
     });
 
@@ -1287,7 +1275,7 @@ export const Reports = () => {
       const rDateObj = parseJournalDate(r.date, r.created_at);
       const it = (r.items || [])[0] || {};
       const refAmt = Number(r.refundAmount || 0);
-      const isCash = (r.refundMode || '').toLowerCase() === 'cash';
+      const prPay = resolveTransactionPayment(r, 'PurchaseReturn');
 
       journal.push({
         id: `pr-${r.id || r.returnNo || Math.random()}`,
@@ -1296,13 +1284,13 @@ export const Reports = () => {
         ref: r.returnNo ? (String(r.returnNo).startsWith('PR-') ? r.returnNo : `PR-${r.returnNo}`) : (r.ref || `PR-${r.id || 'RET'}`),
         product: it.name || 'Returned Commodity',
         category: 'Purchase Return',
-        type: isCash ? 'Purchase Return (Cash Refund)' : 'Purchase Return (Debit Note)',
+        type: prPay.isLiquid ? 'Purchase Return (Cash Refund)' : 'Purchase Return (Debit Note)',
         isIncome: true,
         qty: it.qty ? `${it.qty} ${it.unit || 'KG'}` : '—',
         rawQty: Number(it.qty || 0),
         amount: refAmt,
         party: r.supplierName || 'Supplier Firm',
-        mode: isCash ? 'Cash' : 'Ledger'
+        mode: prPay.isLiquid ? (prPay.channel === 'bank' ? 'Bank' : prPay.channel === 'wallet' ? 'Mobile Wallet' : 'Cash') : 'Debit Note'
       });
     });
 
@@ -3179,12 +3167,9 @@ export const Reports = () => {
               }`}>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400"> Sales Revenue</span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-sm">
-                  +
-                </div>
               </div>
               <div className="text-2xl font-black font-mono mt-2 text-emerald-600 dark:text-emerald-400">
-                +Rs. {plTotalRevenue.toLocaleString()}
+                Rs. {plTotalRevenue.toLocaleString()}
               </div>
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/80 text-[10px] text-slate-500 font-mono">
                 <span>Sales: Rs. {plTotalSalesIncome.toLocaleString()}</span>
@@ -3198,12 +3183,9 @@ export const Reports = () => {
               }`}>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-rose-500">Cost of Sales & Expenses</span>
-                <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-black text-sm">
-                  −
-                </div>
               </div>
               <div className="text-2xl font-black font-mono mt-2 text-rose-600 dark:text-rose-400">
-                -Rs. {(plTotalCOGS + plTotalExpenses).toLocaleString()}
+                Rs. {(plTotalCOGS + plTotalExpenses).toLocaleString()}
               </div>
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/80 text-[10px] text-slate-500 font-mono">
                 <span>COGS: Rs. {plTotalCOGS.toLocaleString()}</span>
@@ -3740,7 +3722,7 @@ export const Reports = () => {
               </div>
             </div>
           </div>
-          
+
           {/* ========================================================================= */}
           {/* PRINT-ONLY HEADER (Balance Sheet) */}
           {/* ========================================================================= */}

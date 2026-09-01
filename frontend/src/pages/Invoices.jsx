@@ -358,7 +358,7 @@ export const Invoices = () => {
 
       {/* Financial KPI Summary Cards (Screen Only) */}
       <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* 1. Total Billed Volume */}
+        {/* 1. Total Invoice Amount */}
         <div
           onClick={() => setStatusFilter('All')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark'
@@ -369,14 +369,14 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             {isPurchases ? <ShoppingCart className="w-4 h-4 text-emerald-600" /> : <Receipt className="w-4 h-4 text-brand-600" />}
-            <span>{isPurchases ? 'Total Purchases' : 'Total Sales'}</span>
+            <span>{isPurchases ? 'Total Invoiced' : 'Total Invoice Amount'}</span>
           </div>
           <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${isPurchases ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand-600 dark:text-brand-400'}`}>
             Rs. {totalBilledVolume.toLocaleString()}
           </div>
         </div>
 
-        {/* 2. Settled Payments */}
+        {/* 2. Total Invoice Paid */}
         <div
           onClick={() => setStatusFilter('Paid')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
@@ -385,14 +385,14 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-600" />
-            <span>{isPurchases ? 'Total Paid out out' : 'Cash Received'}</span>
+            <span>{isPurchases ? 'Total Paid' : 'Total Invoice Paid'}</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalSettledAmount.toLocaleString()}
           </div>
         </div>
 
-        {/* 3. Pending Khata / Due */}
+        {/* 3. Invoice Remaining */}
         <div
           onClick={() => setStatusFilter('Pending')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
@@ -401,7 +401,7 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-600" />
-            <span>{isPurchases ? 'Supplier dues deducted' : 'Customer Receivables'}</span>
+            <span>{isPurchases ? 'Outstanding Balance' : 'Invoice Remaining'}</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalOutstandingDue.toLocaleString()}

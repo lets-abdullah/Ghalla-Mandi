@@ -657,9 +657,37 @@ export const Ledger = () => {
       {/* ========================================================================= */}
       {selectedPartyId === 'All' ? (
         <div className="space-y-4">
-          {/* 4 Financial Condition KPI Cards (Screen Only) */}
-          <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {/* 1. Customer Receivables / Payable */}
+          {/* 3 Financial Condition KPI Cards (Screen Only) */}
+          <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            {/* 1. Total Customer Sales / Purchases */}
+            <div
+              className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
+                }`}
+            >
+              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>{isSupplier ? 'Total Supplier Purchases' : 'Total Customer Sales'}</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+              </div>
+              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-blue-600 dark:text-blue-400">
+                Rs. {totalDebitSum.toLocaleString()}
+              </div>
+            </div>
+
+            {/* 2. Total Received / Paid Out */}
+            <div
+              className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
+                }`}
+            >
+              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                <span>{isSupplier ? 'Total Paid Out' : 'Total Received'}</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+              </div>
+              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-indigo-600 dark:text-indigo-400">
+                Rs. {totalCreditSum.toLocaleString()}
+              </div>
+            </div>
+
+            {/* 3. Customer Receivables / Supplier Payables */}
             <div
               onClick={() => setStatusFilter(statusFilter === (isSupplier ? 'Payable' : 'Receivable') ? 'All' : (isSupplier ? 'Payable' : 'Receivable'))}
               className={`p-4 rounded-2xl border transition cursor-pointer card-hover card-shadow ${statusFilter === (isSupplier ? 'Payable' : 'Receivable')
@@ -668,56 +696,11 @@ export const Ledger = () => {
                 } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : (isSupplier ? 'bg-gradient-to-b from-rose-50/60 to-white border-rose-200/80' : 'bg-gradient-to-b from-emerald-50/60 to-white border-emerald-200/80')}`}
             >
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>{isSupplier ? 'Supplier dues deducted' : 'Customer Receivables'}</span>
+                <span>{isSupplier ? 'Supplier Payables' : 'Customer Receivables'}</span>
                 <span className={`w-2.5 h-2.5 rounded-full ${isSupplier ? 'bg-rose-500 shadow-xs shadow-rose-500/50' : 'bg-emerald-500 shadow-xs shadow-emerald-500/50'}`}></span>
               </div>
               <div className={`text-xl sm:text-2xl font-mono font-black mt-1.5 ${isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 Rs. {(isSupplier ? totalPayable : totalReceivable).toLocaleString()}
-              </div>
-            </div>
-
-            {/* 2. Total Sales / Purchases */}
-            <div
-              className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
-                }`}
-            >
-              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>{isSupplier ? 'Total Purchases' : 'Total Sales'}</span>
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-              </div>
-              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-blue-600 dark:text-blue-400">
-                Rs. {totalDebitSum.toLocaleString()}
-              </div>
-            </div>
-
-            {/* 3. Cash Received / Paid */}
-            <div
-              className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
-                }`}
-            >
-              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>{isSupplier ? 'Total Paid out' : 'Cash Received'}</span>
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-              </div>
-              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-indigo-600 dark:text-indigo-400">
-                Rs. {totalCreditSum.toLocaleString()}
-              </div>
-            </div>
-
-            {/* 4. Settled Accounts */}
-            <div
-              onClick={() => setStatusFilter(statusFilter === 'Settled' ? 'All' : 'Settled')}
-              className={`p-4 rounded-2xl border transition cursor-pointer card-hover card-shadow ${statusFilter === 'Settled'
-                ? 'ring-2 ring-slate-400'
-                : ''
-                } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
-            >
-              <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>Settled Accounts</span>
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-              </div>
-              <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-slate-700 dark:text-slate-200">
-                {settledCount} Accounts
               </div>
             </div>
           </div>

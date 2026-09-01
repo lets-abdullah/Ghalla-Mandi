@@ -171,9 +171,9 @@ export const Dashboard = () => {
           onClick={() => navigate('/khata')}
         />
 
-        {/* 5. Supplier dues deducted */}
+        {/* 5. Supplier Payables */}
         <KPICard
-          title="Supplier dues deducted"
+          title="Supplier Payables"
           amount={`Rs. ${totalPayables.toLocaleString()}`}
           subtext={
             totalPayables > 0

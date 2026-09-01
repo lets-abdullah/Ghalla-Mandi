@@ -24,7 +24,8 @@ import {
   Landmark,
   Hash,
   Printer,
-  ShoppingBag
+  ShoppingBag,
+  Clock
 } from 'lucide-react';
 import { useERP, computeCustomerKhataBalance, computeAllCustomersFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -309,61 +310,53 @@ export const Customers = () => {
 
       {/* KPI Cards Row (Screen Only) */}
       <div className="no-print grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* 1. Total Sales */}
+        {/* 1. Regular Customers */}
         <div
-          onClick={() => { setCustomerTypeFilter('All'); setBalanceFilter('All'); }}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+          onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('All'); }}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${customerTypeFilter === 'Regular'
+            ? 'ring-2 ring-blue-500'
+            : ''
+            } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
             }`}
-          title="View total customer sales"
+          title="Filter saved regular customers"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <ShoppingBag className="w-4 h-4 text-blue-600" />
-            <span>Total Sales</span>
+            <Users className="w-4 h-4 text-blue-600" />
+            <span>Regular Customers</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
-            Rs. {totalOverallSales.toLocaleString()}
+            {regularCount || totalCustomers}
           </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Total customer billing</div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Registered customer profiles</div>
         </div>
 
-        {/* 2. Cash Received */}
-        <div
-          onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('Paid'); }}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-            }`}
-          title="Total cash & payment credits received"
-        >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-emerald-600" />
-            <span>Cash Received</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
-            Rs. {totalOverallReceived.toLocaleString()}
-          </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Payments & return settlements</div>
-        </div>
-
-        {/* 3. Walk-in Counter Dues */}
+        {/* 2. Walk-in Customers */}
         <div
           onClick={() => { setCustomerTypeFilter('Walk-in'); setBalanceFilter('All'); }}
-          className={`border rounded-2xl p-4 sm:p-5 card-hover card-shadow transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-teal-500/30 text-white' : 'bg-gradient-to-b from-teal-50/50 to-white border-teal-200/80'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${customerTypeFilter === 'Walk-in'
+            ? 'ring-2 ring-indigo-500'
+            : ''
+            } ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-b from-indigo-50/50 to-white border-indigo-200/80'
             }`}
-          title="Filter Walk-in Counter Sales"
+          title="Filter Walk-in Counter customers"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <User className="w-4 h-4 text-teal-600" />
-            <span>Walk-in Counter Dues</span>
+            <User className="w-4 h-4 text-indigo-600" />
+            <span>Walk-in Customers</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-teal-600 dark:text-teal-400">
-            Rs. {totalWalkinDues.toLocaleString()}
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-indigo-600 dark:text-indigo-400">
+            {walkinCount}
           </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">{walkinCount} spot counter transactions</div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Counter / spot buyer records</div>
         </div>
 
-        {/* 4. Total Party Receivables (Net) */}
+        {/* 3. Customer Receivables */}
         <div
           onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('Due'); }}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${balanceFilter === 'Due'
+            ? 'ring-2 ring-amber-500'
+            : ''
+            } ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
             }`}
           title="Filter Customers with Outstanding Balance"
         >
@@ -374,7 +367,24 @@ export const Customers = () => {
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalReceivables.toLocaleString()}
           </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Net party receivables (incl. credits)</div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Net party receivables (Khata)</div>
+        </div>
+
+        {/* 4. Walk-in Counter Dues */}
+        <div
+          onClick={() => { setCustomerTypeFilter('Walk-in'); setBalanceFilter('Due'); }}
+          className={`border rounded-2xl p-4 sm:p-5 card-hover card-shadow transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-teal-500/30 text-white' : 'bg-gradient-to-b from-teal-50/50 to-white border-teal-200/80'
+            }`}
+          title="Filter Walk-in Counter Sales with pending dues"
+        >
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-teal-600" />
+            <span>Walk-in Counter Dues</span>
+          </div>
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-teal-600 dark:text-teal-400">
+            Rs. {totalWalkinDues.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Unpaid walk-in counter balances</div>
         </div>
       </div>
 

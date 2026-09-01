@@ -638,7 +638,8 @@ export const Purchases = () => {
       </div>
 
       {/* KPI Cards Row (Screen Only) */}
-      <div className="no-print grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* 1. Total Purchases */}
         <div
           onClick={() => setFilterType('All')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
@@ -654,6 +655,7 @@ export const Purchases = () => {
           </div>
         </div>
 
+        {/* 2. Total Paid Out */}
         <div
           onClick={() => setFilterType('Paid')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
@@ -661,7 +663,7 @@ export const Purchases = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-600" />
-            <span>{t('totalPaidOut') || 'Total Paid out Out'}</span>
+            <span>{t('totalPaidOut') || 'Total Paid Out'}</span>
           </div>
 
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
@@ -669,20 +671,7 @@ export const Purchases = () => {
           </div>
         </div>
 
-        <div
-          onClick={() => setFilterType('Due')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
-            }`}
-        >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-rose-600" />
-            <span>{t('outstandingPayables') || 'Supplier dues deducted'}</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
-            Rs. {totalOutstandingPayable.toLocaleString()}
-          </div>
-        </div>
-
+        {/* 3. Purchase Returns */}
         <div
           onClick={() => setFilterType('Returns')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-purple-50/50 to-white border-purple-200/80'

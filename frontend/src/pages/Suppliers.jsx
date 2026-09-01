@@ -656,6 +656,7 @@ export const Suppliers = () => {
 
       {/* KPI Cards Row (Screen Only) */}
       <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* 1. Total Suppliers */}
         <div
           onClick={() => { setStatusFilter('All'); setSelectedProductFilter('All'); setSelectedSupplierFilter('All'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
@@ -670,6 +671,7 @@ export const Suppliers = () => {
           </div>
         </div>
 
+        {/* 2. Outstanding Dues */}
         <div
           onClick={() => setStatusFilter('Payable')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
@@ -677,13 +679,14 @@ export const Suppliers = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-rose-600" />
-            <span>Supplier dues deducted</span>
+            <span>Outstanding Dues</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
             Rs. {totalPayablesAmount.toLocaleString()}
           </div>
         </div>
 
+        {/* 3. Settled Suppliers */}
         <div
           onClick={() => setStatusFilter('Settled')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
@@ -691,7 +694,7 @@ export const Suppliers = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Settled</span>
+            <span>Settled Suppliers</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             {settledSuppliersCount}

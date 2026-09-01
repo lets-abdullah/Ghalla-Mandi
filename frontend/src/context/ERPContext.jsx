@@ -4,6 +4,170 @@ import { authFetch } from '../services/api';
 
 const ERPContext = createContext();
 
+/**
+ * Single Canonical Accounting Resolution for Transaction Payments, Inflows, Outflows, and Khata allocations.
+ * Precedence Rules:
+ * 1. Explicit Mode Check (e.g. 'Supplier Khata', 'Khata', 'Credit', 'Ledger', 'Debit Note', 'Credit Note' vs 'Cash', 'Bank', 'JazzCash', etc.)
+ * 2. If Khata/Credit/Debit Note: liquid paid is 0, credit amount is gross amount.
+ * 3. If Cash/Bank/Wallet:
+ *    - If tx has paidAmount explicitly specified (> 0), liquid paid is paidAmount.
+ *    - If status/paymentStatus is 'Paid' OR (paidAmount === 0 / undefined AND mode is explicitly 'Cash'/'Bank'/'Wallet' and not marked 'Pending'/'Unpaid'/'Credit'):
+ *      liquid paid is gross amount.
+ *    - Credit balance = Math.max(0, grossAmount - liquid paid).
+ * 4. Refund transactions:
+ *    - Check refundMode (e.g. 'Cash Refund', 'Cash' vs 'Debit Note', 'Credit Note', 'Ledger').
+ *    - If cash refund, refundAmount (or amount fallback) is liquid refund.
+ */
+export const resolveTransactionPayment = (tx, txType = 'Sale') => {
+  if (!tx) {
+    return {
+      channel: 'cash',
+      isLiquid: false,
+      isKhata: false,
+      cashAmount: 0,
+      bankAmount: 0,
+      walletAmount: 0,
+      totalLiquid: 0,
+      creditAmount: 0,
+      grossAmount: 0,
+      refundMode: 'Cash',
+      refundAmount: 0
+    };
+  }
+
+  const grossAmount = Number(
+    tx.amount !== undefined ? tx.amount :
+    tx.grandTotal !== undefined ? tx.grandTotal :
+    tx.grandtotal !== undefined ? tx.grandtotal :
+    tx.refundAmount !== undefined ? tx.refundAmount :
+    tx.refundamount !== undefined ? tx.refundamount : 0
+  );
+
+  const rawMode = String(
+    tx.paymentMode || tx.paymentmode ||
+    tx.paymentMethod || tx.paymentmethod ||
+    tx.refundMode || tx.refundmode ||
+    tx.mode || 'Cash'
+  ).trim();
+
+  const modeLower = rawMode.toLowerCase();
+
+  // Identify channel category
+  const isKhataOrCredit = 
+    modeLower.includes('khata') ||
+    modeLower.includes('credit') ||
+    modeLower.includes('ledger') ||
+    modeLower.includes('debit note') ||
+    modeLower.includes('credit note') ||
+    modeLower.includes('udhaar') ||
+    modeLower === 'pending' ||
+    modeLower === 'unpaid';
+
+  const isWallet = !isKhataOrCredit && (
+    modeLower.includes('jazz') ||
+    modeLower.includes('easy') ||
+    modeLower.includes('wallet') ||
+    modeLower.includes('upaisa')
+  );
+
+  const isBank = !isKhataOrCredit && !isWallet && (
+    modeLower.includes('bank') ||
+    modeLower.includes('card') ||
+    modeLower.includes('online') ||
+    modeLower.includes('cheque') ||
+    modeLower.includes('raast') ||
+    modeLower.includes('transfer')
+  );
+
+  const isCash = !isKhataOrCredit && !isWallet && !isBank;
+
+  const channel = isKhataOrCredit ? 'khata' : (isWallet ? 'wallet' : (isBank ? 'bank' : 'cash'));
+
+  // Handle Returns
+  if (txType === 'SaleReturn' || txType === 'PurchaseReturn') {
+    const isLiquidRefund = isCash || isBank || isWallet;
+    const refAmt = Number(
+      tx.refundAmount !== undefined ? tx.refundAmount :
+      tx.refundamount !== undefined ? tx.refundamount :
+      tx.amount !== undefined ? tx.amount : grossAmount
+    );
+
+    return {
+      channel,
+      isLiquid: isLiquidRefund,
+      isKhata: isKhataOrCredit,
+      cashAmount: (isCash && isLiquidRefund) ? refAmt : 0,
+      bankAmount: (isBank && isLiquidRefund) ? refAmt : 0,
+      walletAmount: (isWallet && isLiquidRefund) ? refAmt : 0,
+      totalLiquid: isLiquidRefund ? refAmt : 0,
+      creditAmount: isKhataOrCredit ? refAmt : 0,
+      grossAmount: refAmt,
+      refundMode: rawMode,
+      refundAmount: refAmt
+    };
+  }
+
+  // Handle Expenses
+  if (txType === 'Expense') {
+    const status = String(tx.status || tx.paymentStatus || '').toLowerCase();
+    const isUnpaid = isKhataOrCredit || status === 'unpaid' || status === 'pending' || status === 'due';
+    const expAmt = Number(tx.amount || grossAmount);
+
+    return {
+      channel: isUnpaid ? 'khata' : channel,
+      isLiquid: !isUnpaid,
+      isKhata: isUnpaid,
+      cashAmount: (!isUnpaid && isCash) ? expAmt : 0,
+      bankAmount: (!isUnpaid && isBank) ? expAmt : 0,
+      walletAmount: (!isUnpaid && isWallet) ? expAmt : 0,
+      totalLiquid: !isUnpaid ? expAmt : 0,
+      creditAmount: isUnpaid ? expAmt : 0,
+      grossAmount: expAmt
+    };
+  }
+
+  // Handle Sales / Purchases / Payments
+  let liquidPaid = 0;
+  if (isKhataOrCredit) {
+    liquidPaid = 0;
+  } else {
+    const rawPaid = Number(
+      tx.paidAmount !== undefined ? tx.paidAmount :
+      tx.paidamount !== undefined ? tx.paidamount :
+      tx.cashReceived !== undefined ? tx.cashReceived :
+      tx.cashPaid !== undefined ? tx.cashPaid : -1
+    );
+
+    const isMarkedPaid = tx.status === 'Paid' || tx.paymentStatus === 'Paid';
+
+    if (rawPaid > 0) {
+      liquidPaid = Math.min(grossAmount, rawPaid);
+    } else if (rawPaid === 0 && (isMarkedPaid || (isCash && !tx.status && !tx.paymentStatus))) {
+      // Legacy cash record where paidAmount was 0 or omitted but paymentMode is explicitly Cash
+      liquidPaid = grossAmount;
+    } else if (rawPaid < 0) {
+      // No paid field found: check status or full cash mode
+      liquidPaid = (isMarkedPaid || isCash || isBank || isWallet) ? grossAmount : 0;
+    } else {
+      liquidPaid = 0;
+    }
+  }
+
+  const creditDue = Math.max(0, grossAmount - liquidPaid);
+
+  return {
+    channel,
+    isLiquid: liquidPaid > 0,
+    isKhata: isKhataOrCredit || creditDue > 0,
+    cashAmount: isCash ? liquidPaid : 0,
+    bankAmount: isBank ? liquidPaid : 0,
+    walletAmount: isWallet ? liquidPaid : 0,
+    totalLiquid: liquidPaid,
+    creditAmount: creditDue,
+    grossAmount
+  };
+};
+
 export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) => {
   if (!sale) return { total: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
   const total = Number(sale.amount !== undefined ? sale.amount : (sale.grandTotal !== undefined ? sale.grandTotal : (sale.grandtotal !== undefined ? sale.grandtotal : 0)));
@@ -17,8 +181,8 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) 
     )
   ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
 
-  const isMarkedPaid = sale.status === 'Paid' || sale.paymentStatus === 'Paid';
-  const upfrontPaid = isMarkedPaid ? total : Number(sale.paidAmount !== undefined ? sale.paidAmount : (sale.paidamount !== undefined ? sale.paidamount : 0));
+  const res = resolveTransactionPayment(sale, 'Sale');
+  const upfrontPaid = res.totalLiquid;
   const paid = Math.min(total, Math.max(upfrontPaid, directPaid));
 
   const returns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(sale.id)) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
@@ -43,8 +207,8 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     )
   ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
 
-  const isMarkedPaid = purchase.status === 'Paid' || purchase.paymentStatus === 'Paid';
-  const upfrontPaid = isMarkedPaid ? total : Number(purchase.paidAmount !== undefined ? purchase.paidAmount : (purchase.paidamount !== undefined ? purchase.paidamount : 0));
+  const res = resolveTransactionPayment(purchase, 'Purchase');
+  const upfrontPaid = res.totalLiquid;
   const paid = Math.min(total, Math.max(upfrontPaid, directPaid));
 
   const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
@@ -288,29 +452,16 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     return prodName && itName && (itName === prodName || itName.includes(prodName) || prodName.includes(itName));
   };
 
-  const initialQty = safeQty(product.openingStock ?? product.initialStock ?? product.opening_stock ?? product.initial_stock ?? product.stockQty ?? product.stock_qty ?? 0);
   const initialRate = safeNum(product.purchasePrice ?? product.purchase_price ?? product.rate ?? 0, 0);
   const sellingRate = safeNum(product.sellingPrice ?? product.selling_price ?? 0, 0);
 
-  // Collect only authentic business transactions in chronological order:
-  // 1. Opening Stock on product creation
-  // 2. Stock In on Purchase
-  // 3. Stock Out on POS Sale
-  // 4. Stock In on Sale Return
-  // 5. Stock Out on Purchase Return
-  const events = [];
-
-  if (initialQty > 0) {
-    events.push({
-      id: `open-${product.id || 0}`,
-      date: new Date(product.created_at || '2026-01-01').getTime() || 0,
-      dateStr: product.created_at ? new Date(product.created_at).toLocaleDateString('en-GB') : 'Opening',
-      type: 'OPENING',
-      ref: 'OPENING-STOCK',
-      qty: initialQty,
-      rate: initialRate
-    });
-  }
+  // NOTE: product.stockQty represents the CURRENT physical stock maintained by the backend.
+  // The transaction ledger (Purchases, Sales, Returns) represents historical accounting events.
+  // We collect authentic transaction events and run strict FIFO layers without double-counting current stockQty as opening stock.
+  const purchaseEvents = [];
+  const purchaseReturnEvents = [];
+  const saleEvents = [];
+  const saleReturnEvents = [];
 
   // Purchases (Stock IN)
   (purchases || []).forEach(p => {
@@ -321,7 +472,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
       if (isMatch(it)) {
         const qty = safeQty(it.qty ?? it.quantity ?? it.enteredQty ?? 0);
         if (qty > 0) {
-          events.push({
+          purchaseEvents.push({
             id: `pur-${p.id || p.purchaseNo}-${idx}`,
             date: pDate,
             dateStr: pDateStr,
@@ -344,7 +495,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
       if (isMatch(it)) {
         const qty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 0);
         if (qty > 0) {
-          events.push({
+          purchaseReturnEvents.push({
             id: `pret-${pr.id || pr.returnNo}-${idx}`,
             date: prDate,
             dateStr: prDateStr,
@@ -367,7 +518,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
       if (isMatch(it)) {
         const qty = safeQty(it.qty ?? it.quantity ?? it.enteredQty ?? 0);
         if (qty > 0) {
-          events.push({
+          saleEvents.push({
             id: `sale-${s.id || s.invoiceNo}-${idx}`,
             date: sDate,
             dateStr: sDateStr,
@@ -390,7 +541,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
       if (isMatch(it)) {
         const qty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 0);
         if (qty > 0) {
-          events.push({
+          saleReturnEvents.push({
             id: `sret-${sr.id || sr.returnNo}-${idx}`,
             date: srDate,
             dateStr: srDateStr,
@@ -403,6 +554,25 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
       }
     });
   });
+
+  const hasTransactions = purchaseEvents.length > 0 || purchaseReturnEvents.length > 0 || saleEvents.length > 0 || saleReturnEvents.length > 0;
+  const events = [];
+
+  // Only include explicit opening stock if separate attribute exists AND no purchase transactions exist for this product
+  const explicitOpeningQty = safeQty(product.openingStock ?? product.initialStock ?? product.opening_stock ?? product.initial_stock ?? 0);
+  if (explicitOpeningQty > 0 && !hasTransactions) {
+    events.push({
+      id: `open-${product.id || 0}`,
+      date: new Date(product.created_at || '2026-01-01').getTime() || 0,
+      dateStr: product.created_at ? new Date(product.created_at).toLocaleDateString('en-GB') : 'Opening',
+      type: 'OPENING',
+      ref: 'OPENING-STOCK',
+      qty: explicitOpeningQty,
+      rate: initialRate
+    });
+  }
+
+  events.push(...purchaseEvents, ...purchaseReturnEvents, ...saleEvents, ...saleReturnEvents);
 
   // Sort chronologically
   events.sort((a, b) => a.date - b.date);
@@ -2302,6 +2472,7 @@ export const ERPProvider = ({ children }) => {
       addExpense,
       updateExpense,
       deleteExpense,
+      resolveTransactionPayment,
       computeSaleFinancials,
       computePurchaseFinancials,
       computeCustomerKhataBalance,

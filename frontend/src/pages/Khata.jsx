@@ -20,7 +20,8 @@ import {
   Phone,
   Edit3,
   ShoppingBag,
-  AlertCircle
+  AlertCircle,
+  Wallet
 } from 'lucide-react';
 import { useERP, computeCustomerKhataBalance, computeAllCustomersFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -220,9 +221,8 @@ export const Khata = () => {
   }, [allCustomers, registeredList, walkinList, searchTerm, customerTypeFilter, selectedCustomerId, balanceStatusFilter]);
 
   // Aggregate Metrics based on Filtered Khata
-  const totalVolume = filteredKhata.reduce((acc, k) => acc + (Number(k.totalSale) || 0), 0);
-  const totalCollected = filteredKhata.reduce((acc, k) => acc + (Number(k.totalPaid) || 0), 0);
-  const totalOutstanding = filteredKhata.reduce((acc, k) => acc + (Number(k.receivableDue) || 0), 0);
+  const totalOutstanding = filteredKhata.reduce((acc, k) => acc + (Number(k.receivableDue !== undefined ? k.receivableDue : (k.balance > 0 ? k.balance : 0)) || 0), 0);
+  const totalAdvanceCredit = filteredKhata.reduce((acc, k) => acc + (Number(k.advanceCredit !== undefined ? k.advanceCredit : (k.balance < 0 ? Math.abs(k.balance) : 0)) || 0), 0);
 
   const isAnyFilterActive = (
     searchTerm.trim() !== '' ||
@@ -281,31 +281,31 @@ export const Khata = () => {
       setPaymentAmount('');
       setPaymentNote('');
     } catch (err) {
-      alert(err.message || 'Failed to record payment in Khata');
+      alert(err.message || 'Failed to record payment');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page Header (Screen Only) */}
-      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5">
+      {/* Top Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
-            <CreditCard className="w-6 h-6 text-brand-500" />
-            <span>Khata</span>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-brand-500" />
+            <span>Customer Khata Ledger</span>
           </h1>
-          <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Customer balances, credit records, and payment settlements
+          <p className="text-xs text-slate-400 font-semibold mt-0.5">
+            Real-time balance tracking, credit limits & payment recovery
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="no-print flex items-center gap-2 self-start sm:self-auto">
           <button
+            type="button"
             onClick={() => window.print()}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold text-xs transition cursor-pointer text-slate-700 dark:text-slate-200 shadow-xs"
           >
             <Printer className="w-4 h-4" />
             <span>Print Khata</span>
@@ -314,43 +314,14 @@ export const Khata = () => {
       </div>
 
       {/* Summary KPI Cards Row (Screen Only) */}
-      <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Total Sales */}
+      <div className="no-print grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* 1. Customer Receivables */}
         <div
-          onClick={() => { setBalanceStatusFilter('All'); setCustomerTypeFilter('All'); }}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-            }`}
-          title="View all customer accounts"
-        >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <Users className="w-4 h-4 text-blue-600" />
-            <span>Total Sales</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
-            Rs. {totalVolume.toLocaleString()}
-          </div>
-        </div>
-
-        {/* Total Payments Collected */}
-        <div
-          onClick={() => setBalanceStatusFilter('Clear')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-            }`}
-          title="Filter fully settled accounts"
-        >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Cash Received</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
-            Rs. {totalCollected.toLocaleString()}
-          </div>
-        </div>
-
-        {/* Customer Receivables */}
-        <div
-          onClick={() => setBalanceStatusFilter('Outstanding')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+          onClick={() => setBalanceStatusFilter(balanceStatusFilter === 'Outstanding' ? 'All' : 'Outstanding')}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${balanceStatusFilter === 'Outstanding'
+            ? 'ring-2 ring-amber-500'
+            : ''
+            } ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
             }`}
           title="Filter pending receivables"
         >
@@ -360,6 +331,25 @@ export const Khata = () => {
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalOutstanding.toLocaleString()}
+          </div>
+        </div>
+
+        {/* 2. Customer Credit / Advance */}
+        <div
+          onClick={() => setBalanceStatusFilter(balanceStatusFilter === 'Clear' ? 'All' : 'Clear')}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${balanceStatusFilter === 'Clear'
+            ? 'ring-2 ring-emerald-500'
+            : ''
+            } ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+            }`}
+          title="Filter customer advance & clear accounts"
+        >
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-emerald-600" />
+            <span>Customer Credit / Advance</span>
+          </div>
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
+            Rs. {totalAdvanceCredit.toLocaleString()}
           </div>
         </div>
       </div>
