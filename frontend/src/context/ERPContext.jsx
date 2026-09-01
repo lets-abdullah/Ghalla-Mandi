@@ -2057,9 +2057,52 @@ export const ERPProvider = ({ children }) => {
 
   const inFlightLocks = useRef(new Map());
 
-  // 9. Record Payment with anti-duplicate lock
+  // 9. Record Payment with real-time balance validation and anti-duplicate lock
   const recordPayment = async ({ partyId, partyName, partyType, amount, paymentMode = 'Cash', note = '', saleId = null, purchaseId = null }) => {
-    const lockKey = `pay:${partyId || partyName || ''}:${partyType}:${amount}:${saleId || ''}:${purchaseId || ''}`;
+    const amtNum = Number(amount);
+    if (!amtNum || amtNum <= 0) {
+      throw new Error('Valid payment amount greater than zero is required');
+    }
+
+    if (partyType === 'Customer') {
+      const cust = (customers || []).find(c => (partyId && String(c.id) === String(partyId)) || (partyName && c.name && c.name.trim().toLowerCase() === partyName.trim().toLowerCase()));
+      let maxCustomerDue = 0;
+      if (cust) {
+        const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
+        maxCustomerDue = Math.max(0, fin.receivableDue || 0);
+      } else if (saleId) {
+        const targetSale = (sales || []).find(s => String(s.id) === String(saleId));
+        const fin = computeSaleFinancials(targetSale, saleReturns, paymentLogs);
+        maxCustomerDue = Math.max(0, fin.due || 0);
+      }
+
+      if (maxCustomerDue <= 0) {
+        throw new Error('Customer account is already settled. No outstanding due to pay.');
+      }
+      if (amtNum > maxCustomerDue) {
+        throw new Error(`Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the customer's outstanding balance of Rs. ${maxCustomerDue.toLocaleString()}.`);
+      }
+    } else {
+      const sup = (suppliers || []).find(s => (partyId && String(s.id) === String(partyId)) || (partyName && s.name && s.name.trim().toLowerCase() === partyName.trim().toLowerCase()));
+      let maxSupplierPayable = 0;
+      if (sup) {
+        const fin = computeSupplierKhataBalance(sup, purchases, paymentLogs, purchaseReturns);
+        maxSupplierPayable = Math.max(0, fin.payableDue || 0);
+      } else if (purchaseId) {
+        const targetPur = (purchases || []).find(p => String(p.id) === String(purchaseId));
+        const fin = computePurchaseFinancials(targetPur, purchaseReturns, paymentLogs);
+        maxSupplierPayable = Math.max(0, fin.due || 0);
+      }
+
+      if (maxSupplierPayable <= 0) {
+        throw new Error('Supplier account is already settled. No outstanding payable balance.');
+      }
+      if (amtNum > maxSupplierPayable) {
+        throw new Error(`Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the supplier's outstanding payable of Rs. ${maxSupplierPayable.toLocaleString()}.`);
+      }
+    }
+
+    const lockKey = `pay:${partyId || partyName || ''}:${partyType}:${amtNum}:${saleId || ''}:${purchaseId || ''}`;
     if (inFlightLocks.current.has(lockKey)) {
       return inFlightLocks.current.get(lockKey);
     }
@@ -2068,7 +2111,7 @@ export const ERPProvider = ({ children }) => {
       try {
         const res = await authFetch('/api/ledger/payment', {
           method: 'POST',
-          body: { partyId, partyName, partyType, amount, paymentMode, note, saleId, purchaseId }
+          body: { partyId, partyName, partyType, amount: amtNum, paymentMode, note, saleId, purchaseId }
         });
 
         if (res.success && res.entry) {

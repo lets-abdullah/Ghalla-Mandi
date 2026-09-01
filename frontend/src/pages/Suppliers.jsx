@@ -334,7 +334,12 @@ export const Suppliers = () => {
       return;
     }
 
-    if (maxDue > 0 && amt > maxDue) {
+    if (maxDue <= 0) {
+      alert('This supplier account is already fully settled (Rs. 0 balance). No payment is required.');
+      return;
+    }
+
+    if (amt > maxDue) {
       alert(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed the supplier's outstanding payable balance of Rs. ${maxDue.toLocaleString()}.`);
       return;
     }

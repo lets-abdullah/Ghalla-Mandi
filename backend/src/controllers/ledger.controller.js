@@ -60,10 +60,35 @@ export const recordPayment = async (req, res) => {
         }
       }
 
+      // Compute actual outstanding customer balance/due in real-time
+      let maxCustomerDue = 0;
       if (cust) {
         targetPartyName = cust.name;
+        maxCustomerDue = Math.max(0, Number(cust.balance || 0));
+      } else if (saleId) {
+        const sale = await Sale.findById(saleId, req.shop_id);
+        if (sale) {
+          maxCustomerDue = Math.max(0, Number(sale.amount || 0) - Number(sale.paidAmount || 0));
+        }
+      }
+
+      if (maxCustomerDue <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Customer has no outstanding due to pay (account is already settled).'
+        });
+      }
+
+      if (amtNum > maxCustomerDue) {
+        return res.status(400).json({
+          success: false,
+          message: `Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the customer's outstanding balance of Rs. ${maxCustomerDue.toLocaleString()}.`
+        });
+      }
+
+      if (cust) {
         const currentBal = Number(cust.balance || 0);
-        const newBalance = currentBal - amtNum;
+        const newBalance = Math.max(0, currentBal - amtNum);
         await Customer.findByIdAndUpdate(cust.id, { balance: newBalance }, { shop_id: req.shop_id });
       } else {
         targetPartyName = partyName || 'Walk-in Customer';
@@ -140,10 +165,34 @@ export const recordPayment = async (req, res) => {
     } else {
       // Supplier payment
       const sup = partyId ? await Supplier.findById(partyId, req.shop_id) : null;
+      let maxSupplierPayable = 0;
       if (sup) {
         targetPartyName = sup.name;
+        maxSupplierPayable = Math.max(0, Number(sup.balance || 0));
+      } else if (purchaseId) {
+        const pur = await Purchase.findById(purchaseId, req.shop_id);
+        if (pur) {
+          maxSupplierPayable = Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.paidAmount || 0));
+        }
+      }
+
+      if (maxSupplierPayable <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Supplier has no outstanding payable balance (account is already settled).'
+        });
+      }
+
+      if (amtNum > maxSupplierPayable) {
+        return res.status(400).json({
+          success: false,
+          message: `Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the supplier's outstanding payable of Rs. ${maxSupplierPayable.toLocaleString()}.`
+        });
+      }
+
+      if (sup) {
         const currentBal = Number(sup.balance || 0);
-        const newBalance = currentBal - amtNum;
+        const newBalance = Math.max(0, currentBal - amtNum);
         await Supplier.findByIdAndUpdate(sup.id, { balance: newBalance }, { shop_id: req.shop_id });
       }
 
