@@ -143,32 +143,31 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
   }
 
   // Handle Sales / Purchases / Payments
+  const rawPaid = Number(
+    tx.paidAmount !== undefined ? tx.paidAmount :
+    tx.paidamount !== undefined ? tx.paidamount :
+    tx.cashReceived !== undefined ? tx.cashReceived :
+    tx.cashPaid !== undefined ? tx.cashPaid : -1
+  );
+
+  const isMarkedPaid = tx.status === 'Paid' || tx.paymentStatus === 'Paid';
+  const isMarkedPending = tx.status === 'Pending' || tx.paymentStatus === 'Pending' || tx.status === 'Unpaid' || tx.paymentStatus === 'Unpaid';
+  const isMarkedPartial = tx.status === 'Partial' || tx.paymentStatus === 'Partial';
+
   let liquidPaid = 0;
-  if (isKhataOrCredit) {
+  if (rawPaid > 0) {
+    liquidPaid = Math.min(grossAmount, rawPaid);
+  } else if (isMarkedPaid) {
+    liquidPaid = grossAmount;
+  } else if (isMarkedPartial && rawPaid > 0) {
+    liquidPaid = Math.min(grossAmount, rawPaid);
+  } else if (isKhataOrCredit || isMarkedPending) {
     liquidPaid = 0;
+  } else if (!isKhataOrCredit && rawPaid === -1) {
+    // Default cash sale without explicit status/paidAmount is paid
+    liquidPaid = grossAmount;
   } else {
-    const rawPaid = Number(
-      tx.paidAmount !== undefined ? tx.paidAmount :
-      tx.paidamount !== undefined ? tx.paidamount :
-      tx.cashReceived !== undefined ? tx.cashReceived :
-      tx.cashPaid !== undefined ? tx.cashPaid : -1
-    );
-
-    const isMarkedPaid = tx.status === 'Paid' || tx.paymentStatus === 'Paid';
-    const isMarkedPending = tx.status === 'Pending' || tx.paymentStatus === 'Pending' || tx.status === 'Unpaid' || tx.paymentStatus === 'Unpaid';
-    const isMarkedPartial = tx.status === 'Partial' || tx.paymentStatus === 'Partial';
-
-    if (rawPaid > 0) {
-      liquidPaid = Math.min(grossAmount, rawPaid);
-    } else if (isMarkedPending) {
-      liquidPaid = 0;
-    } else if (isMarkedPartial) {
-      liquidPaid = rawPaid > 0 ? Math.min(grossAmount, rawPaid) : 0;
-    } else if (isMarkedPaid) {
-      liquidPaid = grossAmount;
-    } else {
-      liquidPaid = 0;
-    }
+    liquidPaid = 0;
   }
 
   const creditDue = Math.max(0, grossAmount - liquidPaid);
@@ -218,7 +217,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) 
   const res = resolveTransactionPayment(sale, 'Sale');
   const upfrontPaid = res.totalLiquid;
   const effectiveUpfront = Math.max(upfrontPaid, posLogsAmt);
-  const paid = Math.min(netDueableTotal, effectiveUpfront + otherLogsAmt);
+  const paid = Math.min(netDueableTotal, Math.max(effectiveUpfront, upfrontPaid + otherLogsAmt));
 
   const isReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus && sale.returnStatus !== 'None') || (returnAmount >= total && total > 0);
   const due = Math.max(0, total - paid - returnAmount);
@@ -259,7 +258,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const res = resolveTransactionPayment(purchase, 'Purchase');
   const upfrontPaid = res.totalLiquid;
   const effectiveUpfront = Math.max(upfrontPaid, posLogsAmt);
-  const paid = Math.min(netDueableTotal, effectiveUpfront + otherLogsAmt);
+  const paid = Math.min(netDueableTotal, Math.max(effectiveUpfront, upfrontPaid + otherLogsAmt));
 
   const isReturned = (purchase.status === 'Returned') || (purchase.paymentStatus === 'Returned') || purchase.isReturned || (purchase.returnStatus && purchase.returnStatus !== 'None') || (returnAmount >= total && total > 0);
   const due = Math.max(0, total - paid - returnAmount);
