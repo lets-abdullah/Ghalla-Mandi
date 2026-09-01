@@ -369,11 +369,9 @@ export const Expenses = () => {
                   className={`w-full border rounded-xl px-2.5 py-2.5 text-xs font-bold outline-none focus:border-rose-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 >
-                  <option value="Cash">Cash on Counter</option>
+                  <option value="Cash">Cash</option>
                   <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="Online">Online / Wallet</option>
-                  <option value="Cheque">Cheque</option>
-                  <option value="Unpaid">Unpaid / Accrued (Payable)</option>
+                  <option value="Card Payment">Card Payment</option>
                 </select>
               </div>
 

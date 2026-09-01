@@ -892,7 +892,7 @@ export const Reports = () => {
   } = useMemo(() => {
     let cash = 0;
     let bank = 0;
-    let wallet = 0;
+    let card = 0;
     const txList = [];
 
     // 1. Customer Payment Inflows from paymentLogs (strictly excluding Opening Balance and Credit Notes)
@@ -908,13 +908,13 @@ export const Reports = () => {
       if (res.totalLiquid > 0) {
         cash += res.cashAmount;
         bank += res.bankAmount;
-        wallet += res.walletAmount;
+        card += res.cardAmount;
 
         txList.push({
           date: p.date || 'Today',
           source: `Customer Payment (${p.ref || 'Receipt'})`,
           party: p.partyName || 'Customer',
-          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
           type: 'Inflow',
           amount: res.totalLiquid
         });
@@ -933,13 +933,13 @@ export const Reports = () => {
         if (res.totalLiquid > 0) {
           cash += res.cashAmount;
           bank += res.bankAmount;
-          wallet += res.walletAmount;
+          card += res.cardAmount;
 
           txList.push({
             date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : 'Today'),
             source: `Sale Counter Receipt (#${s.invoiceNo || s.id || 'N/A'})`,
             party: s.customerName || s.partyName || 'Counter Sale',
-            channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+            channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
             type: 'Inflow',
             amount: res.totalLiquid
           });
@@ -954,13 +954,13 @@ export const Reports = () => {
       if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
         cash += res.cashAmount;
         bank += res.bankAmount;
-        wallet += res.walletAmount;
+        card += res.cardAmount;
 
         txList.push({
           date: r.date || 'Today',
-          source: `Purchase Return Cash Refund (#${r.returnNo || r.id || 'N/A'})`,
+          source: `Purchase Return Refund (#${r.returnNo || r.id || 'N/A'})`,
           party: r.supplierName || 'Supplier',
-          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
           type: 'Inflow',
           amount: res.totalLiquid
         });
@@ -980,13 +980,13 @@ export const Reports = () => {
       if (res.totalLiquid > 0) {
         cash -= res.cashAmount;
         bank -= res.bankAmount;
-        wallet -= res.walletAmount;
+        card -= res.cardAmount;
 
         txList.push({
           date: p.date || 'Today',
           source: `Supplier Payment Settlement (${p.ref || 'Voucher'})`,
           party: p.partyName || 'Supplier',
-          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
           type: 'Outflow',
           amount: res.totalLiquid
         });
@@ -1005,13 +1005,13 @@ export const Reports = () => {
         if (res.totalLiquid > 0) {
           cash -= res.cashAmount;
           bank -= res.bankAmount;
-          wallet -= res.walletAmount;
+          card -= res.cardAmount;
 
           txList.push({
             date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Today'),
             source: `Purchase Direct Voucher (#${p.purchaseNo || p.id || 'N/A'})`,
             party: p.supplierName || p.supplier || 'Supplier',
-            channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+            channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
             type: 'Outflow',
             amount: res.totalLiquid
           });
@@ -1019,39 +1019,39 @@ export const Reports = () => {
       }
     });
 
-    // 6. Expenses Outflows (ONLY paid expenses deduct cash/bank)
+    // 6. Expenses Outflows (ONLY paid expenses deduct cash/bank/card)
     (expenses || []).forEach(e => {
       const res = resolveTransactionPayment(e, 'Expense');
       if (res.isLiquid && res.totalLiquid > 0) {
         cash -= res.cashAmount;
         bank -= res.bankAmount;
-        wallet -= res.walletAmount;
+        card -= res.cardAmount;
 
         txList.push({
           date: e.date || 'Today',
           source: `Expense: ${e.category || 'Shop'} (${e.desc || ''})`,
           party: e.payee || 'Expense Payee',
-          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
           type: 'Outflow',
           amount: res.totalLiquid
         });
       }
     });
 
-    // 7. Sale Returns Outflows (ONLY actual Cash / Bank refunds given to customers)
+    // 7. Sale Returns Outflows (ONLY actual Cash / Bank / Card refunds given to customers)
     (saleReturns || []).forEach(r => {
       const res = resolveTransactionPayment(r, 'SaleReturn');
       // Crucial: Customer Khata (Credit Note) NEVER touches physical Cash/Bank
       if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
         cash -= res.cashAmount;
         bank -= res.bankAmount;
-        wallet -= res.walletAmount;
+        card -= res.cardAmount;
 
         txList.push({
           date: r.date || 'Today',
           source: `Sale Return Cash Refund (${res.refundMode || 'Cash'})`,
           party: r.customerName || 'Customer',
-          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+          channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
           type: 'Outflow',
           amount: res.totalLiquid
         });
@@ -1061,8 +1061,8 @@ export const Reports = () => {
     return {
       cashInHand: Math.max(0, cash),
       bankBalance: Math.max(0, bank),
-      walletBalance: Math.max(0, wallet),
-      totalLiquidFunds: Math.max(0, cash) + Math.max(0, bank) + Math.max(0, wallet),
+      cardBalance: Math.max(0, card),
+      totalLiquidFunds: Math.max(0, cash) + Math.max(0, bank) + Math.max(0, card),
       liquidTransactionsList: txList
     };
   }, [sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns]);
@@ -1112,10 +1112,10 @@ export const Reports = () => {
     return {
       cashInHand: cashInHand,
       bankBalance: bankBalance,
-      walletBalance: walletBalance,
+      cardBalance: cardBalance,
       total: totalLiquidFunds
     };
-  }, [cashInHand, bankBalance, walletBalance, totalLiquidFunds]);
+  }, [cashInHand, bankBalance, cardBalance, totalLiquidFunds]);
 
   const bsReceivablesBreakdown = useMemo(() => {
     return {
@@ -1883,7 +1883,9 @@ export const Reports = () => {
       // Section 1: ASSETS
       csvContent += makeSectionHeader('1. ASSETS (WHAT THE BUSINESS OWNS)', COLS);
       csvContent += makeRow(['Asset Classification', 'Category / Subhead', 'Line Item / Description', 'Liquidity Details', 'Valuation (Rs.)', 'Subtotal (Rs.)'], COLS);
-      csvContent += makeRow(['Current Assets', 'Cash & Bank Balances', 'Cash in Hand / Register', 'Immediate Liquidity', num(cashInHand), ''], COLS);
+      csvContent += makeRow(['Current Assets', 'Cash & Liquid Accounts', 'Cash in Hand', 'Immediate Physical Liquidity', num(cashInHand), ''], COLS);
+      csvContent += makeRow(['Current Assets', 'Cash & Liquid Accounts', 'Bank Accounts', 'Direct Bank Transfers', num(bankBalance), ''], COLS);
+      csvContent += makeRow(['Current Assets', 'Cash & Liquid Accounts', 'Card Payment Account', 'POS / Card Payments', num(cardBalance), ''], COLS);
       csvContent += makeRow(['Current Assets', 'Receivables', 'Customer Khata Receivables', 'Outstanding Market Debtors', num(totalCustomerReceivables), ''], COLS);
       csvContent += makeRow(['Current Assets', 'Inventory', 'Warehouse Stock Valuation', 'Physical Grain Inventory', num(totalStockValuation), ''], COLS);
       csvContent += makeRow(['TOTAL CURRENT ASSETS', '', '', '', '', num(totalAssets)], COLS);
@@ -3848,7 +3850,7 @@ export const Reports = () => {
                   {bsExpandedSections.cashBank && (
                     <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
                       <div className="flex justify-between">
-                        <span>Cash in Hand (Counter Drawer):</span>
+                        <span>Cash in Hand:</span>
                         <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {cashInHand.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
@@ -3856,8 +3858,8 @@ export const Reports = () => {
                         <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {bankBalance.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Mobile Wallets (JazzCash / EasyPaisa):</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {walletBalance.toLocaleString()}</span>
+                        <span>Card Payment Account:</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {cardBalance.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-900 dark:text-white">
                         <span className="font-bold">Total Liquid Cash & Bank:</span>

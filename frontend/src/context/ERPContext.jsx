@@ -64,29 +64,27 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
     modeLower === 'pending' ||
     modeLower === 'unpaid';
 
-  const isWallet = !isKhataOrCredit && (
-    modeLower.includes('jazz') ||
-    modeLower.includes('easy') ||
-    modeLower.includes('wallet') ||
-    modeLower.includes('upaisa')
-  );
-
-  const isBank = !isKhataOrCredit && !isWallet && (
-    modeLower.includes('bank') ||
+  const isCard = !isKhataOrCredit && (
     modeLower.includes('card') ||
-    modeLower.includes('online') ||
-    modeLower.includes('cheque') ||
-    modeLower.includes('raast') ||
-    modeLower.includes('transfer')
+    modeLower === 'card payment' ||
+    modeLower === 'pos card'
   );
 
-  const isCash = !isKhataOrCredit && !isWallet && !isBank;
+  const isBank = !isKhataOrCredit && !isCard && (
+    modeLower.includes('bank') ||
+    modeLower.includes('transfer') ||
+    modeLower.includes('raast') ||
+    modeLower.includes('online') ||
+    modeLower.includes('cheque')
+  );
 
-  const channel = isKhataOrCredit ? 'khata' : (isWallet ? 'wallet' : (isBank ? 'bank' : 'cash'));
+  const isCash = !isKhataOrCredit && !isCard && !isBank;
+
+  const channel = isKhataOrCredit ? 'khata' : (isCard ? 'card' : (isBank ? 'bank' : 'cash'));
 
   // Handle Returns
   if (txType === 'SaleReturn' || txType === 'PurchaseReturn') {
-    const isLiquidRefund = isCash || isBank || isWallet;
+    const isLiquidRefund = isCash || isBank || isCard;
     const refAmt = Number(
       tx.refundAmount !== undefined ? tx.refundAmount :
       tx.refundamount !== undefined ? tx.refundamount :
@@ -99,7 +97,7 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
       isKhata: isKhataOrCredit,
       cashAmount: (isCash && isLiquidRefund) ? refAmt : 0,
       bankAmount: (isBank && isLiquidRefund) ? refAmt : 0,
-      walletAmount: (isWallet && isLiquidRefund) ? refAmt : 0,
+      cardAmount: (isCard && isLiquidRefund) ? refAmt : 0,
       totalLiquid: isLiquidRefund ? refAmt : 0,
       creditAmount: isKhataOrCredit ? refAmt : 0,
       grossAmount: refAmt,
@@ -120,7 +118,7 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
       isKhata: isUnpaid,
       cashAmount: (!isUnpaid && isCash) ? expAmt : 0,
       bankAmount: (!isUnpaid && isBank) ? expAmt : 0,
-      walletAmount: (!isUnpaid && isWallet) ? expAmt : 0,
+      cardAmount: (!isUnpaid && isCard) ? expAmt : 0,
       totalLiquid: !isUnpaid ? expAmt : 0,
       creditAmount: isUnpaid ? expAmt : 0,
       grossAmount: expAmt
@@ -135,7 +133,7 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
       isKhata: true,
       cashAmount: 0,
       bankAmount: 0,
-      walletAmount: 0,
+      cardAmount: 0,
       totalLiquid: 0,
       creditAmount: grossAmount,
       grossAmount
@@ -178,7 +176,7 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
     isKhata: isKhataOrCredit || creditDue > 0,
     cashAmount: isCash ? liquidPaid : 0,
     bankAmount: isBank ? liquidPaid : 0,
-    walletAmount: isWallet ? liquidPaid : 0,
+    cardAmount: isCard ? liquidPaid : 0,
     totalLiquid: liquidPaid,
     creditAmount: creditDue,
     grossAmount
