@@ -95,9 +95,10 @@ export const Sale = {
     const customerType = saleData.customerType || 'Regular Party';
     const date = saleData.date || new Date().toLocaleDateString('en-GB');
     const amount = Number(saleData.amount || saleData.grandTotal) || 0;
+    const paidAmount = Number(saleData.paidAmount !== undefined ? saleData.paidAmount : (saleData.paidamount !== undefined ? saleData.paidamount : 0));
     const paymentMode = saleData.paymentMode || saleData.paymentMethod || 'Cash';
     const profit = Number(saleData.profit || saleData.profitMargin) || 0;
-    const status = saleData.status || saleData.paymentStatus || (paidAmount >= amount ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+    const status = saleData.status || saleData.paymentStatus || ((paidAmount >= amount && amount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
     const cart = saleData.cart || saleData.items || [];
     const itemsCount = saleData.itemsCount || cart.length;
     const cartJson = JSON.stringify(cart);

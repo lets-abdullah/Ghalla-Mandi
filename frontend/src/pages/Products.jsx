@@ -454,9 +454,8 @@ export const Products = () => {
                     </div>
                   )}
 
-                  <label className={`flex-1 cursor-pointer border rounded-xl py-2.5 px-3 text-center text-xs font-bold transition flex items-center justify-center gap-2 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                  }`}>
+                  <label className={`flex-1 cursor-pointer border rounded-xl py-2.5 px-3 text-center text-xs font-bold transition flex items-center justify-center gap-2 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}>
                     <Upload className="w-4 h-4 text-emerald-600" />
                     <span>{newProduct.image ? t('edit') : t('optional')}</span>
                     <input
@@ -495,13 +494,6 @@ export const Products = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-bold text-slate-400">{t('category')} *</label>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddCategoryModal(true)}
-                      className="text-[11px] font-extrabold text-brand-500 hover:underline flex items-center gap-0.5 cursor-pointer"
-                    >
-                      <Plus className="w-3 h-3" /> {t('add')}
-                    </button>
                   </div>
                   <select
                     value={newProduct.category}
@@ -516,7 +508,7 @@ export const Products = () => {
                       }`}
                   >
                     {categories.length === 0 ? (
-                      <option value="">-- {t('selectCategory')} --</option>
+                      <option value="">{t('selectCategory')}</option>
                     ) : (
                       categories.map(c => (
                         <option key={c.id} value={c.name}>{c.name}</option>
@@ -677,9 +669,8 @@ export const Products = () => {
                     </div>
                   )}
 
-                  <label className={`flex-1 cursor-pointer border rounded-xl py-2.5 px-3 text-center text-xs font-bold transition flex items-center justify-center gap-2 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                  }`}>
+                  <label className={`flex-1 cursor-pointer border rounded-xl py-2.5 px-3 text-center text-xs font-bold transition flex items-center justify-center gap-2 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}>
                     <Upload className="w-4 h-4 text-emerald-600" />
                     <span>{editingProduct.image ? t('edit') : t('optional')}</span>
                     <input
