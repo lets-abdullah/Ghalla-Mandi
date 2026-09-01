@@ -760,10 +760,10 @@ export const Reports = () => {
   }, [expenses]);
 
   // 4. FINANCIAL STATEMENTS (P&L and Balance Sheet with Returns Deducted)
-  // COGS for all sales in filtered overview (Calculated from actual unit cost of sold goods)
+  // COGS for all sales (Calculated from actual unit cost of sold goods across all transactions)
   const totalSalesCOGS = useMemo(() => {
     let sum = 0;
-    (filteredSalesList || []).forEach(s => {
+    (sales || []).forEach(s => {
       const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) && s.items.length > 0 ? s.items : [{ name: s.productName || 'Commodity', qty: s.qty || 1 }]);
       cart.forEach(it => {
         const itQty = Number(it.qty || it.enteredQty || 1);
@@ -796,7 +796,7 @@ export const Reports = () => {
       });
     });
     return Math.max(0, sum);
-  }, [filteredSalesList, saleReturns, products, purchases, sales, purchaseReturns]);
+  }, [sales, saleReturns, products, purchases, purchaseReturns]);
 
   const cogs = totalSalesCOGS;
   const grossOperatingProfit = useMemo(() => totalNetSales - cogs, [totalNetSales, cogs]);
@@ -895,27 +895,15 @@ export const Reports = () => {
     let wallet = 0;
     const txList = [];
 
-    // 1. Sales Inflows
-    (sales || []).forEach(s => {
-      const res = resolveTransactionPayment(s, 'Sale');
-      if (res.totalLiquid > 0) {
-        cash += res.cashAmount;
-        bank += res.bankAmount;
-        wallet += res.walletAmount;
-
-        txList.push({
-          date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : 'Today'),
-          source: `Sale Receipt (#${s.invoiceNo || s.orderId || s.id || 'N/A'})`,
-          party: s.customerName || s.partyName || 'Counter Sale',
-          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
-          type: 'Inflow',
-          amount: res.totalLiquid
-        });
-      }
+    // 1. Customer Payment Inflows from paymentLogs (strictly excluding Opening Balance and Credit Notes)
+    const validCustPaymentLogs = (paymentLogs || []).filter(p => {
+      const isCust = p.partyType === 'Customer' || p.type === 'Customer';
+      if (!isCust) return false;
+      const mode = String(p.mode || '').trim().toLowerCase();
+      return mode !== 'opening balance' && mode !== 'credit note' && mode !== 'debit note';
     });
 
-    // 2. Customer Ledger Payments Inflow
-    (paymentLogs || []).filter(p => p.partyType === 'Customer' || p.type === 'Customer').forEach(p => {
+    validCustPaymentLogs.forEach(p => {
       const res = resolveTransactionPayment(p, 'CustomerPayment');
       if (res.totalLiquid > 0) {
         cash += res.cashAmount;
@@ -924,12 +912,38 @@ export const Reports = () => {
 
         txList.push({
           date: p.date || 'Today',
-          source: `Customer Khata Settlement (${p.ref || 'Receipt'})`,
+          source: `Customer Payment (${p.ref || 'Receipt'})`,
           party: p.partyName || 'Customer',
           channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
           type: 'Inflow',
           amount: res.totalLiquid
         });
+      }
+    });
+
+    // 2. Sales with upfront cash/bank that are NOT logged in paymentLogs
+    (sales || []).forEach(s => {
+      const hasLog = validCustPaymentLogs.some(p =>
+        (p.saleId && String(p.saleId) === String(s.id)) ||
+        (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+      );
+
+      if (!hasLog) {
+        const res = resolveTransactionPayment(s, 'Sale');
+        if (res.totalLiquid > 0) {
+          cash += res.cashAmount;
+          bank += res.bankAmount;
+          wallet += res.walletAmount;
+
+          txList.push({
+            date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : 'Today'),
+            source: `Sale Counter Receipt (#${s.invoiceNo || s.id || 'N/A'})`,
+            party: s.customerName || s.partyName || 'Counter Sale',
+            channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+            type: 'Inflow',
+            amount: res.totalLiquid
+          });
+        }
       }
     });
 
@@ -953,27 +967,15 @@ export const Reports = () => {
       }
     });
 
-    // 4. Purchases Outflows
-    (purchases || []).forEach(p => {
-      const res = resolveTransactionPayment(p, 'Purchase');
-      if (res.totalLiquid > 0) {
-        cash -= res.cashAmount;
-        bank -= res.bankAmount;
-        wallet -= res.walletAmount;
-
-        txList.push({
-          date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Today'),
-          source: `Purchase Voucher (#${p.purchaseNo || p.invoiceNo || p.id || 'N/A'})`,
-          party: p.supplierName || p.supplier || 'Mandi Supplier',
-          channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
-          type: 'Outflow',
-          amount: res.totalLiquid
-        });
-      }
+    // 4. Supplier Payment Outflows from paymentLogs (strictly excluding Opening Balance and Debit Notes)
+    const validSupPaymentLogs = (paymentLogs || []).filter(p => {
+      const isSup = p.partyType === 'Supplier' || p.type === 'Supplier';
+      if (!isSup) return false;
+      const mode = String(p.mode || '').trim().toLowerCase();
+      return mode !== 'opening balance' && mode !== 'credit note' && mode !== 'debit note';
     });
 
-    // 5. Supplier Ledger Payments Outflow
-    (paymentLogs || []).filter(p => p.partyType === 'Supplier' || p.type === 'Supplier').forEach(p => {
+    validSupPaymentLogs.forEach(p => {
       const res = resolveTransactionPayment(p, 'SupplierPayment');
       if (res.totalLiquid > 0) {
         cash -= res.cashAmount;
@@ -988,6 +990,32 @@ export const Reports = () => {
           type: 'Outflow',
           amount: res.totalLiquid
         });
+      }
+    });
+
+    // 5. Purchases with upfront cash/bank that are NOT logged in paymentLogs
+    (purchases || []).forEach(p => {
+      const hasLog = validSupPaymentLogs.some(pl =>
+        (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+        (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+      );
+
+      if (!hasLog) {
+        const res = resolveTransactionPayment(p, 'Purchase');
+        if (res.totalLiquid > 0) {
+          cash -= res.cashAmount;
+          bank -= res.bankAmount;
+          wallet -= res.walletAmount;
+
+          txList.push({
+            date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Today'),
+            source: `Purchase Direct Voucher (#${p.purchaseNo || p.id || 'N/A'})`,
+            party: p.supplierName || p.supplier || 'Supplier',
+            channel: res.channel === 'wallet' ? 'Mobile Wallet' : res.channel === 'bank' ? 'Bank Account' : 'Cash Drawer',
+            type: 'Outflow',
+            amount: res.totalLiquid
+          });
+        }
       }
     });
 
@@ -1048,20 +1076,37 @@ export const Reports = () => {
     }).reduce((sum, e) => sum + Number(e.amount || 0), 0);
   }, [expenses]);
 
-  const bsEquityBreakdown = useMemo(() => {
-    // Retained Operating Profit from P&L operations
-    const retained = Math.max(0, netOperatingProfit);
-    // Verified Owner Capital (0 unless an explicit capital injection record is present)
-    const verifiedOwnerCapital = 0;
-    return {
-      ownersCapital: verifiedOwnerCapital,
-      retainedProfit: retained,
-      total: retained + verifiedOwnerCapital
-    };
-  }, [netOperatingProfit]);
+  const totalSupplierAdvances = useMemo(() => {
+    return (suppliers || []).reduce((sum, s) => {
+      const fin = computeSupplierKhataBalance(s, purchases, paymentLogs, purchaseReturns);
+      return sum + (fin.advanceCredit || 0);
+    }, 0);
+  }, [suppliers, purchases, paymentLogs, purchaseReturns]);
 
-  const totalAssets = useMemo(() => totalLiquidFunds + totalCustomerReceivables + totalStockValuation, [totalLiquidFunds, totalCustomerReceivables, totalStockValuation]);
-  const totalLiabilities = useMemo(() => totalSupplierPayables + totalOutstandingExpenses, [totalSupplierPayables, totalOutstandingExpenses]);
+  const totalCustomerAdvances = useMemo(() => {
+    return allCustomerReceivablesList.reduce((sum, c) => sum + (c.advanceCredit || 0), 0);
+  }, [allCustomerReceivablesList]);
+
+  const openingCustomerReceivables = useMemo(() => {
+    return (customers || []).reduce((sum, c) => sum + Number(c.openingBalance || 0), 0);
+  }, [customers]);
+
+  const openingSupplierPayables = useMemo(() => {
+    return (suppliers || []).reduce((sum, s) => sum + Number(s.openingBalance || 0), 0);
+  }, [suppliers]);
+
+  const bsEquityBreakdown = useMemo(() => {
+    const openingNetCapital = Math.max(0, openingCustomerReceivables - openingSupplierPayables);
+    const retained = netOperatingProfit;
+    return {
+      ownersCapital: openingNetCapital,
+      retainedProfit: retained,
+      total: openingNetCapital + retained
+    };
+  }, [openingCustomerReceivables, openingSupplierPayables, netOperatingProfit]);
+
+  const totalAssets = useMemo(() => totalLiquidFunds + totalCustomerReceivables + totalStockValuation + totalSupplierAdvances, [totalLiquidFunds, totalCustomerReceivables, totalStockValuation, totalSupplierAdvances]);
+  const totalLiabilities = useMemo(() => totalSupplierPayables + totalOutstandingExpenses + totalCustomerAdvances, [totalSupplierPayables, totalOutstandingExpenses, totalCustomerAdvances]);
   const totalEquity = useMemo(() => bsEquityBreakdown.total, [bsEquityBreakdown]);
 
   // Granular Balance Sheet Breakdown Objects

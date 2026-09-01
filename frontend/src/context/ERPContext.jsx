@@ -59,6 +59,7 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
     modeLower.includes('ledger') ||
     modeLower.includes('debit note') ||
     modeLower.includes('credit note') ||
+    modeLower.includes('opening balance') ||
     modeLower.includes('udhaar') ||
     modeLower === 'pending' ||
     modeLower === 'unpaid';
@@ -126,6 +127,21 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
     };
   }
 
+  // Handle Opening Balance & Credit/Debit Note logs (strictly non-liquid)
+  if (modeLower.includes('opening balance') || modeLower.includes('credit note') || modeLower.includes('debit note')) {
+    return {
+      channel: 'khata',
+      isLiquid: false,
+      isKhata: true,
+      cashAmount: 0,
+      bankAmount: 0,
+      walletAmount: 0,
+      totalLiquid: 0,
+      creditAmount: grossAmount,
+      grossAmount
+    };
+  }
+
   // Handle Sales / Purchases / Payments
   let liquidPaid = 0;
   if (isKhataOrCredit) {
@@ -172,21 +188,36 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) 
   if (!sale) return { total: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
   const total = Number(sale.amount !== undefined ? sale.amount : (sale.grandTotal !== undefined ? sale.grandTotal : (sale.grandtotal !== undefined ? sale.grandtotal : 0)));
 
-  // Specific payment logs for this sale invoice
-  const directPaid = (paymentLogs || []).filter(pl =>
+  const returns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(sale.id)) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
+  const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(sale.returnAmount || 0);
+  const netDueableTotal = Math.max(0, total - returnAmount);
+
+  // Categorize specific payment logs for this sale invoice
+  const matchingLogs = (paymentLogs || []).filter(pl =>
     (pl.type === 'Customer' || pl.partyType === 'Customer') &&
     (
       (pl.saleId && String(pl.saleId) === String(sale.id)) ||
       (sale.invoiceNo && pl.ref && pl.ref.includes(sale.invoiceNo))
-    )
-  ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+    ) &&
+    pl.mode !== 'Opening Balance' &&
+    pl.mode !== 'Credit Note'
+  );
+
+  const posLogs = matchingLogs.filter(pl =>
+    String(pl.mode || '').includes('POS') || String(pl.ref || '').includes('POS') || String(pl.note || '').includes('POS')
+  );
+  const otherLogs = matchingLogs.filter(pl =>
+    !(String(pl.mode || '').includes('POS') || String(pl.ref || '').includes('POS') || String(pl.note || '').includes('POS'))
+  );
+
+  const posLogsAmt = posLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+  const otherLogsAmt = otherLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
 
   const res = resolveTransactionPayment(sale, 'Sale');
   const upfrontPaid = res.totalLiquid;
-  const paid = Math.min(total, Math.max(upfrontPaid, directPaid));
+  const effectiveUpfront = Math.max(upfrontPaid, posLogsAmt);
+  const paid = Math.min(netDueableTotal, effectiveUpfront + otherLogsAmt);
 
-  const returns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(sale.id)) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
-  const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(sale.returnAmount || 0);
   const isReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus && sale.returnStatus !== 'None') || (returnAmount >= total && total > 0);
   const due = Math.max(0, total - paid - returnAmount);
   const status = isReturned ? 'Returned' : ((due === 0 && total > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
@@ -198,21 +229,36 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   if (!purchase) return { total: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
   const total = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : (purchase.grandtotal !== undefined ? purchase.grandtotal : 0)));
 
-  // Specific payment logs for this purchase
-  const directPaid = (paymentLogs || []).filter(pl =>
+  const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
+  const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(purchase.returnAmount || 0);
+  const netDueableTotal = Math.max(0, total - returnAmount);
+
+  // Categorize specific payment logs for this purchase
+  const matchingLogs = (paymentLogs || []).filter(pl =>
     (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
     (
       (pl.purchaseId && String(pl.purchaseId) === String(purchase.id)) ||
       (purchase.purchaseNo && pl.ref && pl.ref.includes(purchase.purchaseNo))
-    )
-  ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+    ) &&
+    pl.mode !== 'Opening Balance' &&
+    pl.mode !== 'Debit Note'
+  );
+
+  const posLogs = matchingLogs.filter(pl =>
+    String(pl.note || '').includes('on Purchase') || String(pl.ref || '').includes(purchase.purchaseNo?.split('-')?.pop() || 'XYZ')
+  );
+  const otherLogs = matchingLogs.filter(pl =>
+    !(String(pl.note || '').includes('on Purchase') || String(pl.ref || '').includes(purchase.purchaseNo?.split('-')?.pop() || 'XYZ'))
+  );
+
+  const posLogsAmt = posLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+  const otherLogsAmt = otherLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
 
   const res = resolveTransactionPayment(purchase, 'Purchase');
   const upfrontPaid = res.totalLiquid;
-  const paid = Math.min(total, Math.max(upfrontPaid, directPaid));
+  const effectiveUpfront = Math.max(upfrontPaid, posLogsAmt);
+  const paid = Math.min(netDueableTotal, effectiveUpfront + otherLogsAmt);
 
-  const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
-  const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(purchase.returnAmount || 0);
   const isReturned = (purchase.status === 'Returned') || (purchase.paymentStatus === 'Returned') || purchase.isReturned || (purchase.returnStatus && purchase.returnStatus !== 'None') || (returnAmount >= total && total > 0);
   const due = Math.max(0, total - paid - returnAmount);
   const status = isReturned ? 'Returned' : ((due === 0 && total > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
@@ -240,12 +286,31 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     }
   });
 
-  const totalSale = custSales.reduce((acc, s) => acc + Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0)), 0);
+  const totalGrossSale = custSales.reduce((acc, s) => acc + Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0)), 0);
 
-  // Customer Payment Transactions in paymentLogs
+  // Filter returns for this customer
+  const custReturns = (saleReturns || []).filter(r => {
+    const rCustId = r.customerId ? String(r.customerId) : null;
+    const rCustName = (r.customerName || '').trim().toLowerCase();
+    if (isRegularCust) {
+      return (custId && rCustId && rCustId === custId) || (custName && rCustName === custName && !rCustName.includes('walk-in'));
+    } else {
+      return (custId && rCustId && rCustId === custId) || (custName && rCustName === custName);
+    }
+  });
+
+  const totalReturnAmount = custReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const ledgerReturnAmount = custReturns
+    .filter(r => String(r.refundMode || '').trim().toLowerCase() !== 'cash')
+    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+  // Customer Payment Transactions in paymentLogs (excluding Opening Balance and Credit Notes)
   const custPayments = (paymentLogs || []).filter(p => {
     const isCustomer = p.type === 'Customer' || p.partyType === 'Customer';
     if (!isCustomer) return false;
+    const pMode = String(p.mode || '').trim().toLowerCase();
+    if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+
     const pPartyId = p.partyId ? String(p.partyId) : null;
     const pPartyName = (p.partyName || '').trim().toLowerCase();
 
@@ -257,9 +322,10 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     }
   });
 
-  // Calculate actual Total Paid out:
-  // 1. For each sale, paid amount is full sale amount if marked Paid, or recorded paidAmount, or direct payment log for that sale
-  let salesPaidSum = 0;
+  const directPaidLogs = custPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+  // Upfront POS payments on sales that do not have a separate payment log
+  let unloggedUpfrontCash = 0;
   custSales.forEach(s => {
     const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
     const sAppliedCredit = Number(s.appliedCredit || 0);
@@ -275,46 +341,41 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
       sUpfront = isMarkedPaid ? sTotal : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
     }
 
-    const sDirectLogs = custPayments.filter(p =>
+    const sMatchingLog = custPayments.find(p =>
       (p.saleId && String(p.saleId) === String(s.id)) ||
       (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
-    ).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    );
 
-    salesPaidSum += Math.max(sUpfront, sDirectLogs);
+    if (!sMatchingLog && sUpfront > 0) {
+      unloggedUpfrontCash += sUpfront;
+    }
   });
 
-  const totalPaidLogs = custPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-  const totalPaid = Math.max(totalPaidLogs, salesPaidSum);
-
-  const returnAmount = (saleReturns || []).filter(r => {
-    const rCustId = r.customerId ? String(r.customerId) : null;
-    const rCustName = (r.customerName || '').trim().toLowerCase();
-    if (isRegularCust) {
-      return (custId && rCustId && rCustId === custId) || (custName && rCustName === custName && !rCustName.includes('walk-in'));
-    } else {
-      return (custId && rCustId && rCustId === custId) || (custName && rCustName === custName);
-    }
-  }).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const totalActualPaymentsReceived = directPaidLogs + unloggedUpfrontCash;
 
   const openingBalance = Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0));
-  const netSales = Math.max(0, totalSale - returnAmount);
-  // Net Balance: Opening + (Gross Sales - Returns) - Payments
-  // Positive = Customer owes Mandi (Receivable Due)
-  // Negative = Mandi owes Customer (Advance Credit / Overpayment)
-  // Exactly 0 = Fully Settled
-  const netBalance = openingBalance + (totalSale - returnAmount) - totalPaid;
+  const netSales = Math.max(0, totalGrossSale - totalReturnAmount);
+
+  // Canonical Accounting Equations:
+  // Total Debits = Opening Balance (Receivable) + Gross Sales Invoiced
+  // Total Credits = Actual Payments Received + Ledger Credit Notes (Returns adjusted against Khata)
+  // Net Balance = Debits - Credits
+  const totalDebits = openingBalance + totalGrossSale;
+  const totalCredits = totalActualPaymentsReceived + ledgerReturnAmount;
+  const netBalance = totalDebits - totalCredits;
+
   const receivableDue = Math.max(0, netBalance);
   const advanceCredit = Math.max(0, -netBalance);
   const status = netBalance > 0 ? 'Due' : (netBalance < 0 ? 'Advance' : 'Settled');
 
   return {
     openingBalance,
-    totalSale,
-    grossSale: totalSale,
-    upfrontPaid: totalPaid,
-    directPaid: totalPaidLogs,
-    totalPaid,
-    returnAmount,
+    totalSale: totalGrossSale,
+    grossSale: totalGrossSale,
+    upfrontPaid: totalActualPaymentsReceived,
+    directPaid: directPaidLogs,
+    totalPaid: totalActualPaymentsReceived,
+    returnAmount: totalReturnAmount,
     netSale: netSales,
     netBalance,
     balance: receivableDue,
@@ -424,7 +485,26 @@ const safeNum = (val, fallback = 0) => {
   return isNaN(n) || !isFinite(n) ? fallback : n;
 };
 
-export const computeProductValuation = (product, purchases = [], sales = [], saleReturns = [], purchaseReturns = []) => {
+export const getUnitFactor = (unitName = 'KG') => {
+  if (!unitName || typeof unitName !== 'string') return 1;
+  const clean = unitName.trim().toLowerCase();
+  if (clean === 'kg' || clean === 'kgs' || clean === 'kilogram') return 1;
+  if (clean.includes('mann') || clean.includes('maund') || clean.includes('mon')) return 40;
+  if (clean.includes('bori') || clean.includes('bag') || clean.includes('bora')) return 50;
+  if (clean.includes('ton') || clean.includes('tonne')) return 1000;
+  if (clean.includes('quintal') || clean.includes('qtl')) return 100;
+  if (clean === 'gram' || clean === 'gm' || clean === 'g') return 0.001;
+  return 1;
+};
+
+export const normalizeItemQty = (rawQty, enteredUnit, baseUnit = 'KG') => {
+  const q = safeQty(rawQty);
+  const factor = getUnitFactor(enteredUnit);
+  const baseFactor = getUnitFactor(baseUnit);
+  return (q * factor) / (baseFactor || 1);
+};
+
+export const computeProductValuation = (product, purchases = [], sales = [], saleReturns = [], purchaseReturns = [], stockMovements = []) => {
   if (!product) {
     return {
       qty: 0,
@@ -443,6 +523,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
 
   const prodId = product.id ? String(product.id) : null;
   const prodName = (product.name || '').trim().toLowerCase();
+  const baseUnit = product.unit || product.defaultUnit || 'KG';
 
   const isMatch = (it) => {
     if (!it) return false;
@@ -455,13 +536,12 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
   const initialRate = safeNum(product.purchasePrice ?? product.purchase_price ?? product.rate ?? 0, 0);
   const sellingRate = safeNum(product.sellingPrice ?? product.selling_price ?? 0, 0);
 
-  // NOTE: product.stockQty represents the CURRENT physical stock maintained by the backend.
-  // The transaction ledger (Purchases, Sales, Returns) represents historical accounting events.
-  // We collect authentic transaction events and run strict FIFO layers without double-counting current stockQty as opening stock.
+  // Collect authentic transaction events
   const purchaseEvents = [];
   const purchaseReturnEvents = [];
   const saleEvents = [];
   const saleReturnEvents = [];
+  const adjustmentEvents = [];
 
   // Purchases (Stock IN)
   (purchases || []).forEach(p => {
@@ -470,8 +550,11 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     const items = p.cart || p.items || [];
     items.forEach((it, idx) => {
       if (isMatch(it)) {
-        const qty = safeQty(it.qty ?? it.quantity ?? it.enteredQty ?? 0);
+        const itemUnit = it.unit || it.unitName || it.enteredUnit || baseUnit;
+        const qty = normalizeItemQty(it.qty ?? it.quantity ?? it.enteredQty ?? 0, itemUnit, baseUnit);
         if (qty > 0) {
+          const itemTotal = safeNum(it.total ?? it.totalAmount ?? (safeQty(it.enteredQty ?? it.qty ?? 0) * safeNum(it.ratePerEnteredUnit ?? it.rate ?? it.price ?? initialRate, initialRate)), 0);
+          const rate = qty > 0 && itemTotal > 0 ? (itemTotal / qty) : safeNum(it.rate ?? it.price ?? it.purchasePrice ?? initialRate, initialRate);
           purchaseEvents.push({
             id: `pur-${p.id || p.purchaseNo}-${idx}`,
             date: pDate,
@@ -479,7 +562,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
             type: 'PURCHASE',
             ref: p.purchaseNo ? `PUR-#${p.purchaseNo}` : `PUR-${p.id}`,
             qty,
-            rate: safeNum(it.rate ?? it.price ?? it.purchasePrice ?? initialRate, initialRate)
+            rate
           });
         }
       }
@@ -493,7 +576,8 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     const items = pr.items || [];
     items.forEach((it, idx) => {
       if (isMatch(it)) {
-        const qty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 0);
+        const itemUnit = it.unit || it.unitName || it.enteredUnit || baseUnit;
+        const qty = normalizeItemQty(it.qty ?? it.quantity ?? it.returnQty ?? 0, itemUnit, baseUnit);
         if (qty > 0) {
           purchaseReturnEvents.push({
             id: `pret-${pr.id || pr.returnNo}-${idx}`,
@@ -516,7 +600,8 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     const items = s.cart || s.items || [];
     items.forEach((it, idx) => {
       if (isMatch(it)) {
-        const qty = safeQty(it.qty ?? it.quantity ?? it.enteredQty ?? 0);
+        const itemUnit = it.unit || it.unitName || it.enteredUnit || baseUnit;
+        const qty = normalizeItemQty(it.qty ?? it.quantity ?? it.enteredQty ?? 0, itemUnit, baseUnit);
         if (qty > 0) {
           saleEvents.push({
             id: `sale-${s.id || s.invoiceNo}-${idx}`,
@@ -539,7 +624,8 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     const items = sr.items || [];
     items.forEach((it, idx) => {
       if (isMatch(it)) {
-        const qty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 0);
+        const itemUnit = it.unit || it.unitName || it.enteredUnit || baseUnit;
+        const qty = normalizeItemQty(it.qty ?? it.quantity ?? it.returnQty ?? 0, itemUnit, baseUnit);
         if (qty > 0) {
           saleReturnEvents.push({
             id: `sret-${sr.id || sr.returnNo}-${idx}`,
@@ -555,10 +641,43 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     });
   });
 
-  const hasTransactions = purchaseEvents.length > 0 || purchaseReturnEvents.length > 0 || saleEvents.length > 0 || saleReturnEvents.length > 0;
+  // Stock Adjustments (Audit Log)
+  (stockMovements || []).forEach((sm, smIdx) => {
+    const smProd = (sm.product || sm.productName || '').trim().toLowerCase();
+    if (prodName && (smProd === prodName || smProd.includes(prodName))) {
+      const smDate = new Date(sm.created_at || sm.date || 0).getTime() || 0;
+      const smDateStr = sm.date || (sm.created_at ? new Date(sm.created_at).toLocaleDateString('en-GB') : 'N/A');
+      const smType = String(sm.type || '').toUpperCase();
+      const parsedQty = safeQty(sm.qty);
+      if (parsedQty > 0 && smType.includes('ADJUSTED')) {
+        if (smType.includes('IN')) {
+          adjustmentEvents.push({
+            id: `adj-in-${sm.id || smIdx}`,
+            date: smDate,
+            dateStr: smDateStr,
+            type: 'ADJUSTMENT_IN',
+            ref: sm.ref || 'Stock Adj In',
+            qty: parsedQty,
+            rate: initialRate
+          });
+        } else if (smType.includes('OUT')) {
+          adjustmentEvents.push({
+            id: `adj-out-${sm.id || smIdx}`,
+            date: smDate,
+            dateStr: smDateStr,
+            type: 'ADJUSTMENT_OUT',
+            ref: sm.ref || 'Stock Adj Out',
+            qty: parsedQty,
+            rate: initialRate
+          });
+        }
+      }
+    }
+  });
+
+  const hasTransactions = purchaseEvents.length > 0 || purchaseReturnEvents.length > 0 || saleEvents.length > 0 || saleReturnEvents.length > 0 || adjustmentEvents.length > 0;
   const events = [];
 
-  // Only include explicit opening stock if separate attribute exists AND no purchase transactions exist for this product
   const explicitOpeningQty = safeQty(product.openingStock ?? product.initialStock ?? product.opening_stock ?? product.initial_stock ?? 0);
   if (explicitOpeningQty > 0 && !hasTransactions) {
     events.push({
@@ -572,9 +691,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     });
   }
 
-  events.push(...purchaseEvents, ...purchaseReturnEvents, ...saleEvents, ...saleReturnEvents);
-
-  // Sort chronologically
+  events.push(...purchaseEvents, ...purchaseReturnEvents, ...saleEvents, ...saleReturnEvents, ...adjustmentEvents);
   events.sort((a, b) => a.date - b.date);
 
   // If no transactions exist, fallback to direct product stockQty and purchasePrice
@@ -589,39 +706,39 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
       latestPurchaseRate: initialRate,
       totalInflowQty: currentStock,
       totalOutflowQty: 0,
-      batches: initialQty > 0 ? [{
+      batches: currentStock > 0 ? [{
         id: 'open-0',
         batchId: 'OPENING',
         dateStr: 'Opening',
         type: 'Opening Stock',
-        initialQty,
+        initialQty: currentStock,
         rate: initialRate,
-        initialTotalCost: initialQty * initialRate,
-        remainingQty: initialQty,
-        remainingValue: initialQty * initialRate
+        initialTotalCost: currentStock * initialRate,
+        remainingQty: currentStock,
+        remainingValue: currentStock * initialRate
       }] : [],
-      activeBatches: initialQty > 0 ? [{
+      activeBatches: currentStock > 0 ? [{
         id: 'open-0',
         batchId: 'OPENING',
         dateStr: 'Opening',
         type: 'Opening Stock',
-        initialQty,
+        initialQty: currentStock,
         rate: initialRate,
-        initialTotalCost: initialQty * initialRate,
-        remainingQty: initialQty,
-        remainingValue: initialQty * initialRate
+        initialTotalCost: currentStock * initialRate,
+        remainingQty: currentStock,
+        remainingValue: currentStock * initialRate
       }] : [],
-      ledger: initialQty > 0 ? [{
+      ledger: currentStock > 0 ? [{
         id: 'led-open-0',
         dateStr: 'Opening',
         date: 0,
         ref: 'OPENING-STOCK',
         type: 'Opening Stock',
         direction: 'IN',
-        qty: initialQty,
+        qty: currentStock,
         rate: initialRate,
-        total: initialQty * initialRate,
-        runningStock: initialQty
+        total: currentStock * initialRate,
+        runningStock: currentStock
       }] : []
     };
   }
@@ -771,14 +888,14 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
   };
 };
 
-export const computeWalkinUncollectedDues = (sales = [], saleReturns = []) => {
+export const computeWalkinUncollectedDues = (sales = [], saleReturns = [], paymentLogs = []) => {
   return (sales || []).filter(s => {
     const sCustId = s.customerId ? String(s.customerId) : null;
     const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
     const isWalkin = !sCustId || sPartyName === 'walk-in customer' || (s.customerType || '').toLowerCase().includes('walk-in');
     return isWalkin;
   }).reduce((acc, s) => {
-    const fin = computeSaleFinancials(s, saleReturns);
+    const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
     return acc + Math.max(0, fin.due);
   }, 0);
 };
@@ -794,18 +911,34 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
     return (supId && pSupId && pSupId === supId) || (supName && pSupName === supName);
   });
 
-  const totalPurchase = supPurchases.reduce((acc, p) => acc + Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0)), 0);
+  const totalGrossPurchase = supPurchases.reduce((acc, p) => acc + Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0)), 0);
 
-  // Supplier Payment Transactions recorded in paymentLogs
+  const supReturns = (purchaseReturns || []).filter(r => {
+    const rSupId = r.supplierId ? String(r.supplierId) : null;
+    const rSupName = (r.supplierName || '').trim().toLowerCase();
+    return (supId && rSupId && rSupId === supId) || (supName && rSupName === supName);
+  });
+
+  const totalReturnAmount = supReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const ledgerReturnAmount = supReturns
+    .filter(r => String(r.refundMode || '').trim().toLowerCase() !== 'cash')
+    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+  // Supplier Payment Transactions recorded in paymentLogs (excluding Opening Balance and Debit Notes)
   const supPayments = (paymentLogs || []).filter(p => {
     const isSupplier = p.type === 'Supplier' || p.partyType === 'Supplier';
     if (!isSupplier) return false;
+    const pMode = String(p.mode || '').trim().toLowerCase();
+    if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+
     const pPartyId = p.partyId ? String(p.partyId) : null;
     const pPartyName = (p.partyName || '').trim().toLowerCase();
     return (supId && pPartyId && pPartyId === supId) || (supName && pPartyName === supName);
   });
 
-  let purchasesPaidSum = 0;
+  const directPaidLogs = supPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+  let unloggedUpfrontCash = 0;
   supPurchases.forEach(p => {
     const pTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
     const pAppliedAdvance = Number(p.appliedAdvance || p.appliedCredit || 0);
@@ -821,44 +954,46 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
       pUpfront = isMarkedPaid ? pTotal : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
     }
 
-    const pDirectLogs = supPayments.filter(pl =>
+    const pMatchingLog = supPayments.find(pl =>
       (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
       (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
-    ).reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
+    );
 
-    purchasesPaidSum += Math.max(pUpfront, pDirectLogs);
+    if (!pMatchingLog && pUpfront > 0) {
+      unloggedUpfrontCash += pUpfront;
+    }
   });
 
-  const totalPaidLogs = supPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
-  const totalPaid = Math.max(totalPaidLogs, purchasesPaidSum);
-
-  const returnAmount = (purchaseReturns || []).filter(r => {
-    const rSupId = r.supplierId ? String(r.supplierId) : null;
-    const rSupName = (r.supplierName || '').trim().toLowerCase();
-    return (supId && rSupId && rSupId === supId) || (supName && rSupName === supName);
-  }).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const totalActualPaymentsPaid = directPaidLogs + unloggedUpfrontCash;
 
   const openingBalance = Number(supplier.openingBalance !== undefined ? supplier.openingBalance : (supplier.openingbalance !== undefined ? supplier.openingbalance : 0));
-  const netPurchases = Math.max(0, totalPurchase - returnAmount);
-  // Supplier payments cannot exceed total liability (opening + net purchases)
-  const totalLiability = openingBalance + netPurchases;
-  const effectivePaid = Math.min(totalPaid, totalLiability);
-  const payableDue = Math.max(0, totalLiability - effectivePaid);
-  const status = payableDue > 0 ? 'Payable' : 'Settled';
+  const netPurchases = Math.max(0, totalGrossPurchase - totalReturnAmount);
+
+  // Canonical Accounting Equations:
+  // Credits (Payable Liability) = Opening Balance + Gross Purchases Billed
+  // Debits = Actual Payments Paid + Ledger Debit Notes (Purchase Returns adjusted against Khata)
+  // Net Balance = Credits - Debits
+  const totalCredits = openingBalance + totalGrossPurchase;
+  const totalDebits = totalActualPaymentsPaid + ledgerReturnAmount;
+  const netBalance = totalCredits - totalDebits;
+
+  const payableDue = Math.max(0, netBalance);
+  const advanceCredit = Math.max(0, -netBalance);
+  const status = netBalance > 0 ? 'Payable' : (netBalance < 0 ? 'Advance' : 'Settled');
 
   return {
     openingBalance,
-    totalPurchase,
-    grossPurchase: totalPurchase,
-    upfrontPaid: effectivePaid,
-    directPaid: totalPaidLogs,
-    totalPaid: effectivePaid,
-    returnAmount,
+    totalPurchase: totalGrossPurchase,
+    grossPurchase: totalGrossPurchase,
+    upfrontPaid: totalActualPaymentsPaid,
+    directPaid: directPaidLogs,
+    totalPaid: totalActualPaymentsPaid,
+    returnAmount: totalReturnAmount,
     netPurchase: netPurchases,
-    netBalance: payableDue,
-    balance: payableDue,
+    netBalance,
+    balance: payableDue > 0 ? payableDue : -advanceCredit,
     payableDue,
-    advanceCredit: 0,
+    advanceCredit,
     status,
     ordersCount: supPurchases.length
   };
@@ -1016,10 +1151,13 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       return (partyId && sCustId && sCustId === partyId) || (partyName && sCustName === partyName);
     });
 
-    // 2. Customer Payments (Credit)
+    // 2. Customer Payments (Credit) - excluding Opening Balance and Credit Notes
     const partyPayments = (paymentLogs || []).filter(p => {
       const isCust = p.type === 'Customer' || p.partyType === 'Customer';
       if (!isCust) return false;
+      const pMode = String(p.mode || '').trim().toLowerCase();
+      if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+
       const pPartyId = p.partyId ? String(p.partyId) : null;
       const pPartyName = (p.partyName || '').trim().toLowerCase();
       if (isRegular) {
@@ -1028,7 +1166,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       return (partyId && pPartyId && pPartyId === partyId) || (partyName && pPartyName === partyName);
     });
 
-    // 3. Customer Returns (Credit)
+    // 3. Customer Returns
     const partyReturns = (saleReturns || []).filter(r => {
       const rCustId = r.customerId ? String(r.customerId) : null;
       const rCustName = (r.customerName || '').trim().toLowerCase();
@@ -1076,13 +1214,12 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         sUpfrontCash = isMarkedPaid ? sGross : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
       }
 
-      const totalPaidLogs = partyPayments.reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
       const hasSpecificLog = partyPayments.some(pl =>
         (pl.saleId && String(pl.saleId) === String(s.id)) ||
         (s.invoiceNo && pl.ref && pl.ref.includes(s.invoiceNo))
       );
 
-      if (sUpfrontCash > 0 && !hasSpecificLog && totalPaidLogs === 0) {
+      if (sUpfrontCash > 0 && !hasSpecificLog) {
         entries.push({
           id: `pay-direct-${s.id || idx}`,
           timestamp: ts,
@@ -1118,10 +1255,10 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         ref: r.returnNo || `RET-${r.id || idx}`,
         txType: 'Returns',
         desc: isCashRefund
-          ? `Sale Return (Cash Refund Paid)`
+          ? `Sale Return (Cash Refund Paid - Khata unaffected)`
           : `Sale Return (Credit Note / Khata Adjustment)`,
         debit: 0,
-        credit: Number(r.refundAmount || 0),
+        credit: isCashRefund ? 0 : Number(r.refundAmount || 0),
         notes: r.reason || (isCashRefund ? 'Cash Refund' : 'Khata Credit Note')
       });
     });
@@ -1157,6 +1294,9 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     const partyPayments = (paymentLogs || []).filter(p => {
       const isSup = p.type === 'Supplier' || p.partyType === 'Supplier';
       if (!isSup) return false;
+      const pMode = String(p.mode || '').trim().toLowerCase();
+      if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+
       const pPartyId = p.partyId ? String(p.partyId) : null;
       const pPartyName = (p.partyName || '').trim().toLowerCase();
       return (partyId && pPartyId && pPartyId === partyId) || (partyName && pPartyName === partyName);
@@ -1205,13 +1345,12 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         pUpfrontCash = isMarkedPaid ? pGross : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
       }
 
-      const totalPaidLogs = partyPayments.reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
       const hasSpecificLog = partyPayments.some(pl =>
         (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
         (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
       );
 
-      if (pUpfrontCash > 0 && !hasSpecificLog && totalPaidLogs === 0) {
+      if (pUpfrontCash > 0 && !hasSpecificLog) {
         entries.push({
           id: `pay-sup-direct-${p.id || idx}`,
           timestamp: ts,
@@ -1247,10 +1386,10 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         ref: r.returnNo || `PR-${r.id || idx}`,
         txType: 'Returns',
         desc: isCashRefund
-          ? `Purchase Return (Cash Refund Received)`
+          ? `Purchase Return (Cash Refund Received - Khata unaffected)`
           : `Purchase Return (Debit Note / Khata Adjustment)`,
         debit: 0,
-        credit: Number(r.refundAmount || 0),
+        credit: isCashRefund ? 0 : Number(r.refundAmount || 0),
         notes: r.reason || (isCashRefund ? 'Cash Refund' : 'Khata Debit Note')
       });
     });
@@ -2038,13 +2177,17 @@ export const ERPProvider = ({ children }) => {
           if (!res.deduplicated) {
             setPurchases(prev => [norm, ...prev]);
 
-            const [prodRes, supRes, movRes] = await Promise.all([
+            const [prodRes, supRes, purRes, ledgerRes, movRes] = await Promise.all([
               authFetch('/api/products'),
               authFetch('/api/suppliers'),
+              authFetch('/api/purchases'),
+              authFetch('/api/ledger'),
               authFetch('/api/inventory/movements')
             ]);
-            if (prodRes.success) setProducts(prodRes.products || []);
-            if (supRes.success) setSuppliers(supRes.suppliers || []);
+            if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
+            if (supRes.success) setSuppliers((supRes.suppliers || []).map(normalizeSupplier));
+            if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
+            if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
             if (movRes.success) setStockMovements(movRes.movements || []);
           }
 
@@ -2102,13 +2245,17 @@ export const ERPProvider = ({ children }) => {
           if (!res.deduplicated) {
             setSales(prev => [norm, ...prev]);
 
-            const [prodRes, custRes, movRes] = await Promise.all([
+            const [prodRes, custRes, saleRes, ledgerRes, movRes] = await Promise.all([
               authFetch('/api/products'),
               authFetch('/api/customers'),
+              authFetch('/api/sales'),
+              authFetch('/api/ledger'),
               authFetch('/api/inventory/movements')
             ]);
-            if (prodRes.success) setProducts(prodRes.products || []);
-            if (custRes.success) setCustomers(custRes.customers || []);
+            if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
+            if (custRes.success) setCustomers((custRes.customers || []).map(normalizeCustomer));
+            if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
+            if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
             if (movRes.success) setStockMovements(movRes.movements || []);
           }
 
@@ -2190,6 +2337,20 @@ export const ERPProvider = ({ children }) => {
       });
       if (res.success) {
         setSaleReturns(prev => prev.filter(r => r.id !== id));
+
+        const [prodRes, custRes, saleRes, ledgerRes, movRes] = await Promise.all([
+          authFetch('/api/products'),
+          authFetch('/api/customers'),
+          authFetch('/api/sales'),
+          authFetch('/api/ledger'),
+          authFetch('/api/inventory/movements')
+        ]);
+        if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
+        if (custRes.success) setCustomers((custRes.customers || []).map(normalizeCustomer));
+        if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
+        if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
+        if (movRes.success) setStockMovements(movRes.movements || []);
+
         return true;
       }
       throw new Error(res.message || 'Failed to delete sale return');
@@ -2260,6 +2421,20 @@ export const ERPProvider = ({ children }) => {
       });
       if (res.success) {
         setPurchaseReturns(prev => prev.filter(r => r.id !== id));
+
+        const [prodRes, supRes, purRes, ledgerRes, movRes] = await Promise.all([
+          authFetch('/api/products'),
+          authFetch('/api/suppliers'),
+          authFetch('/api/purchases'),
+          authFetch('/api/ledger'),
+          authFetch('/api/inventory/movements')
+        ]);
+        if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
+        if (supRes.success) setSuppliers((supRes.suppliers || []).map(normalizeSupplier));
+        if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
+        if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
+        if (movRes.success) setStockMovements(movRes.movements || []);
+
         return true;
       }
       throw new Error(res.message || 'Failed to delete purchase return');

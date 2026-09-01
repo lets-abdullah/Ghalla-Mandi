@@ -62,9 +62,8 @@ export const recordPayment = async (req, res) => {
 
       if (cust) {
         targetPartyName = cust.name;
-        const currentBal = Math.max(0, Number(cust.balance || 0));
-        const finalAmt = currentBal > 0 ? Math.min(currentBal, amtNum) : amtNum;
-        const newBalance = Math.max(0, currentBal - finalAmt);
+        const currentBal = Number(cust.balance || 0);
+        const newBalance = currentBal - amtNum;
         await Customer.findByIdAndUpdate(cust.id, { balance: newBalance }, { shop_id: req.shop_id });
       } else {
         targetPartyName = partyName || 'Walk-in Customer';
@@ -122,9 +121,8 @@ export const recordPayment = async (req, res) => {
       const sup = partyId ? await Supplier.findById(partyId, req.shop_id) : null;
       if (sup) {
         targetPartyName = sup.name;
-        const currentBal = Math.max(0, Number(sup.balance || 0));
-        const finalAmt = currentBal > 0 ? Math.min(currentBal, amtNum) : amtNum;
-        const newBalance = Math.max(0, currentBal - finalAmt);
+        const currentBal = Number(sup.balance || 0);
+        const newBalance = currentBal - amtNum;
         await Supplier.findByIdAndUpdate(sup.id, { balance: newBalance }, { shop_id: req.shop_id });
       }
 

@@ -94,29 +94,6 @@ export const createPurchase = async (req, res) => {
     let activeSupplierName = supplierName || 'Supplier';
     let targetSupId = supplierId || null;
 
-    if (targetSupId) {
-      const sup = await Supplier.findById(targetSupId, req.shop_id);
-      if (sup) {
-        activeSupplierName = sup.name;
-        const unpaid = Math.max(0, totalGrand - paid);
-        await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance) + unpaid }, { shop_id: req.shop_id });
-
-        if (paid > 0) {
-          await Ledger.create({
-            shop_id: req.shop_id,
-            partyId: sup.id,
-            partyType: 'Supplier',
-            partyName: sup.name,
-            amount: paid,
-            mode: 'Cash',
-            date: dateStr,
-            ref: `PAY-${purchaseNo.split('-').pop()}`,
-            note: `Payment made on Purchase (${purchaseNo})`
-          });
-        }
-      }
-    }
-
     const purchase = await Purchase.create({
       shop_id: req.shop_id,
       purchaseNo,
@@ -125,9 +102,34 @@ export const createPurchase = async (req, res) => {
       grandTotal: totalGrand,
       paidAmount: paid,
       paymentStatus,
+      paymentMode: req.body.paymentMode || req.body.paymentMethod || (paid >= totalGrand ? 'Cash' : paid > 0 ? 'Cash / Supplier Khata' : 'Supplier Khata'),
       notes,
       items: processedItems
     });
+
+    if (targetSupId) {
+      const sup = await Supplier.findById(targetSupId, req.shop_id);
+      if (sup) {
+        activeSupplierName = sup.name;
+        const unpaid = Math.max(0, totalGrand - paid);
+        await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance || 0) + unpaid }, { shop_id: req.shop_id });
+
+        if (paid > 0) {
+          await Ledger.create({
+            shop_id: req.shop_id,
+            partyId: sup.id,
+            partyType: 'Supplier',
+            partyName: sup.name,
+            amount: paid,
+            mode: req.body.paymentMode || req.body.paymentMethod || 'Cash',
+            date: dateStr,
+            ref: `PAY-${purchaseNo.split('-').pop()}`,
+            note: `Payment made on Purchase (${purchaseNo})`,
+            purchaseId: purchase.id
+          });
+        }
+      }
+    }
 
     recentPurchases.set(dedupKey, { timestamp: Date.now(), purchase });
     return res.status(201).json({ success: true, purchase });
@@ -159,13 +161,30 @@ export const getPurchases = async (req, res) => {
 export const updatePurchase = async (req, res) => {
   try {
     const { id } = req.params;
-    const { supplierName, supplierId, items, paidAmount, notes } = req.body;
+    const { supplierName, supplierId, items, paidAmount, notes, paymentMode } = req.body;
 
     const existingPurchase = await Purchase.findById(id, req.shop_id);
     if (!existingPurchase) {
       return res.status(404).json({ success: false, message: 'Purchase not found' });
     }
 
+    // 1. Revert previous stock from existing purchase items
+    const oldItems = Array.isArray(existingPurchase.items) ? existingPurchase.items : [];
+    for (const oldItem of oldItems) {
+      if (oldItem.productId) {
+        const prod = await Product.findById(oldItem.productId, req.shop_id);
+        if (prod) {
+          const itemUnit = oldItem.unit || oldItem.unitName || prod.unit || 'KG';
+          const qtyInKg = convertToKg(Number(oldItem.qty || oldItem.enteredQty || 1), itemUnit);
+          const baseProductFactor = convertToKg(1, prod.unit || 'KG') || 1;
+          const revertedBaseQty = qtyInKg / baseProductFactor;
+          const adjustedStock = Math.max(0, Number(prod.stockQty) - revertedBaseQty);
+          await Product.findByIdAndUpdate(prod.id, { stockQty: adjustedStock }, { shop_id: req.shop_id });
+        }
+      }
+    }
+
+    // 2. Process updated items & add new stock
     let totalGrand = 0;
     const processedItems = [];
 
@@ -178,6 +197,26 @@ export const updatePurchase = async (req, res) => {
       totalGrand += itemTotal;
 
       const itemUnit = item.unit || item.unitName || item.enteredUnit || product?.unit || 'KG';
+
+      if (product) {
+        const qtyInKg = convertToKg(qty, itemUnit);
+        const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
+        const addedBaseQty = qtyInKg / baseProductFactor;
+        const newStock = Number(product.stockQty) + addedBaseQty;
+        await Product.findByIdAndUpdate(product.id, {
+          stockQty: newStock,
+          purchasePrice: rate > 0 ? rate : product.purchasePrice
+        }, { shop_id: req.shop_id });
+
+        await AuditLog.create({
+          shop_id: req.shop_id,
+          product: product.name,
+          type: 'IN (Purchase Updated)',
+          qty: `${qty} ${itemUnit} (${addedBaseQty} ${product.unit || 'KG'})`,
+          ref: `Purchase #${existingPurchase.purchaseNo}`,
+          date: new Date().toLocaleDateString('en-GB')
+        });
+      }
 
       processedItems.push({
         productId: product ? product.id : item.productId,
@@ -210,9 +249,43 @@ export const updatePurchase = async (req, res) => {
         const newUnpaid = Math.max(0, totalGrand - paid);
         const balanceDiff = newUnpaid - oldUnpaid;
         if (balanceDiff !== 0) {
-          await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance) + balanceDiff }, { shop_id: req.shop_id });
+          await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance || 0) + balanceDiff }, { shop_id: req.shop_id });
         }
       }
+    }
+
+    // 3. Synchronize Ledger entry for this purchase
+    const allLedger = await Ledger.find({ shop_id: req.shop_id });
+    const existingLog = allLedger.find(l =>
+      (l.purchaseId && String(l.purchaseId) === String(id)) ||
+      (existingPurchase.purchaseNo && l.ref && l.ref.includes(existingPurchase.purchaseNo.split('-').pop()))
+    );
+
+    if (existingLog) {
+      if (paid > 0) {
+        await run('UPDATE payment_logs SET amount = $1, mode = $2 WHERE id = $3 AND shop_id = $4', [
+          paid,
+          paymentMode || existingLog.mode || 'Cash',
+          existingLog.id,
+          req.shop_id
+        ]);
+      } else {
+        await run('DELETE FROM payment_logs WHERE id = $1 AND shop_id = $2', [existingLog.id, req.shop_id]);
+      }
+    } else if (paid > 0 && targetSupId) {
+      const dateStr = new Date().toLocaleDateString('en-GB');
+      await Ledger.create({
+        shop_id: req.shop_id,
+        partyId: targetSupId,
+        partyType: 'Supplier',
+        partyName: activeSupplierName,
+        amount: paid,
+        mode: paymentMode || 'Cash',
+        date: dateStr,
+        ref: `PAY-${existingPurchase.purchaseNo.split('-').pop()}`,
+        note: `Payment made on Purchase (${existingPurchase.purchaseNo})`,
+        purchaseId: id
+      });
     }
 
     const updatedPurchase = await Purchase.findByIdAndUpdate(id, {
@@ -222,6 +295,7 @@ export const updatePurchase = async (req, res) => {
       amount: totalGrand,
       paidAmount: paid,
       paymentStatus,
+      paymentMode: paymentMode || existingPurchase.paymentMode || 'Supplier Khata',
       notes: notes !== undefined ? notes : existingPurchase.notes,
       items: processedItems
     }, { shop_id: req.shop_id });

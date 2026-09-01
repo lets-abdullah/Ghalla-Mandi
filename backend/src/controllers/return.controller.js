@@ -7,6 +7,7 @@ import { Ledger } from '../models/ledger.model.js';
 import { Sale } from '../models/sale.model.js';
 import { Purchase } from '../models/purchase.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
+import { run } from '../services/db.service.js';
 
 // =========================================================================
 // SALE RETURNS
@@ -121,11 +122,63 @@ export const updateSaleReturn = async (req, res) => {
 export const deleteSaleReturn = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await SaleReturn.findByIdAndDelete(id, req.shop_id);
-    if (!deleted) {
+    const existing = await SaleReturn.findById(id, req.shop_id);
+    if (!existing) {
       return res.status(404).json({ success: false, message: 'Sale return record not found' });
     }
-    return res.json({ success: true, message: 'Sale return deleted successfully' });
+
+    // 1. Reverse restocked inventory (deduct from product stock)
+    const items = Array.isArray(existing.items) ? existing.items : [];
+    for (const item of items) {
+      const pId = item.productId || item.id;
+      const rQty = Number(item.qty || item.enteredQty) || 0;
+      if (pId && rQty > 0) {
+        const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
+        if (prod) {
+          const newStock = Math.max(0, Number(prod.stockQty || 0) - rQty);
+          await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
+          await AuditLog.create({
+            shop_id: req.shop_id,
+            product: prod.name,
+            type: 'OUT (Sale Return Deleted)',
+            qty: `${rQty} ${prod.unit || 'KG'}`,
+            ref: `Delete SR #${existing.returnNo}`,
+            date: new Date().toLocaleDateString('en-GB')
+          });
+        }
+      }
+    }
+
+    // 2. Reverse customer balance & remove Ledger credit note
+    if (existing.refundMode === 'Ledger' && existing.customerId) {
+      const cust = await Customer.findOne({ id: existing.customerId, shop_id: req.shop_id });
+      if (cust) {
+        const restoredBal = Number(cust.balance || 0) + Number(existing.refundAmount || 0);
+        await Customer.findByIdAndUpdate(cust.id, { balance: restoredBal }, { shop_id: req.shop_id });
+      }
+      await run('DELETE FROM payment_logs WHERE ref = $1 AND shop_id = $2', [existing.returnNo, req.shop_id]);
+    }
+
+    // 3. Delete the sale return record
+    await SaleReturn.findByIdAndDelete(id, req.shop_id);
+
+    // 4. Update matching sale status
+    if (existing.saleId) {
+      const sale = await Sale.findOne({ id: existing.saleId, shop_id: req.shop_id });
+      if (sale) {
+        const remainingReturns = (await SaleReturn.find({ shop_id: req.shop_id })).filter(r =>
+          String(r.saleId) === String(existing.saleId) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo)
+        );
+        const totalReturnAmt = remainingReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+        const origAmt = Number(sale.amount || 0);
+        const paidAmt = Number(sale.paidAmount || 0);
+        const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
+        const newStatus = isFull ? 'Returned' : ((paidAmt >= (origAmt - totalReturnAmt) && origAmt > 0) ? 'Paid' : (paidAmt > 0 ? 'Partial' : 'Pending'));
+        await Sale.findByIdAndUpdate(sale.id, { status: newStatus }, { shop_id: req.shop_id });
+      }
+    }
+
+    return res.json({ success: true, message: 'Sale return deleted and inventory/balances restored successfully' });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -244,11 +297,63 @@ export const updatePurchaseReturn = async (req, res) => {
 export const deletePurchaseReturn = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await PurchaseReturn.findByIdAndDelete(id, req.shop_id);
-    if (!deleted) {
+    const existing = await PurchaseReturn.findById(id, req.shop_id);
+    if (!existing) {
       return res.status(404).json({ success: false, message: 'Purchase return record not found' });
     }
-    return res.json({ success: true, message: 'Purchase return deleted successfully' });
+
+    // 1. Restore deducted inventory (add back to product stock)
+    const items = Array.isArray(existing.items) ? existing.items : [];
+    for (const item of items) {
+      const pId = item.productId || item.id;
+      const rQty = Number(item.qty || item.enteredQty) || 0;
+      if (pId && rQty > 0) {
+        const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
+        if (prod) {
+          const newStock = Number(prod.stockQty || 0) + rQty;
+          await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
+          await AuditLog.create({
+            shop_id: req.shop_id,
+            product: prod.name,
+            type: 'IN (Purchase Return Deleted)',
+            qty: `${rQty} ${prod.unit || 'KG'}`,
+            ref: `Delete PR #${existing.returnNo}`,
+            date: new Date().toLocaleDateString('en-GB')
+          });
+        }
+      }
+    }
+
+    // 2. Reverse supplier balance & remove Ledger debit note
+    if (existing.refundMode === 'Ledger' && existing.supplierId) {
+      const sup = await Supplier.findOne({ id: existing.supplierId, shop_id: req.shop_id });
+      if (sup) {
+        const restoredBal = Number(sup.balance || 0) + Number(existing.refundAmount || 0);
+        await Supplier.findByIdAndUpdate(sup.id, { balance: restoredBal }, { shop_id: req.shop_id });
+      }
+      await run('DELETE FROM payment_logs WHERE ref = $1 AND shop_id = $2', [existing.returnNo, req.shop_id]);
+    }
+
+    // 3. Delete the purchase return record
+    await PurchaseReturn.findByIdAndDelete(id, req.shop_id);
+
+    // 4. Update matching purchase status
+    if (existing.purchaseId) {
+      const purchase = await Purchase.findOne({ id: existing.purchaseId, shop_id: req.shop_id });
+      if (purchase) {
+        const remainingReturns = (await PurchaseReturn.find({ shop_id: req.shop_id })).filter(r =>
+          String(r.purchaseId) === String(existing.purchaseId) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo)
+        );
+        const totalReturnAmt = remainingReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+        const origAmt = Number(purchase.grandTotal || purchase.amount || 0);
+        const paidAmt = Number(purchase.paidAmount || 0);
+        const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
+        const newStatus = isFull ? 'Returned' : ((paidAmt >= (origAmt - totalReturnAmt) && origAmt > 0) ? 'Paid' : (paidAmt > 0 ? 'Partial' : 'Pending'));
+        await Purchase.findByIdAndUpdate(purchase.id, { paymentStatus: newStatus }, { shop_id: req.shop_id });
+      }
+    }
+
+    return res.json({ success: true, message: 'Purchase return deleted and inventory/balances restored successfully' });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

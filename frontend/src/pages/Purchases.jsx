@@ -445,7 +445,7 @@ export const Purchases = () => {
   };
 
   const openPayModal = (purchase) => {
-    const fin = computePurchaseFinancials(purchase, purchaseReturns);
+    const fin = computePurchaseFinancials(purchase, purchaseReturns, paymentLogs);
     setPayModalPurchase(purchase);
     setPayForm({
       amount: fin.due,
@@ -457,7 +457,7 @@ export const Purchases = () => {
     e.preventDefault();
     if (!payModalPurchase || isSubmitting) return;
 
-    const fin = computePurchaseFinancials(payModalPurchase, purchaseReturns);
+    const fin = computePurchaseFinancials(payModalPurchase, purchaseReturns, paymentLogs);
     const payVal = Math.max(1, Number(payForm.amount) || 0);
 
     if (payVal > fin.due) {
@@ -963,16 +963,6 @@ export const Purchases = () => {
                       {/* 7. Actions: Receipt | Edit | Return Purchase (Screen Only) */}
                       <td className="py-3.5 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Receipt Action */}
-                          <button
-                            onClick={() => openReceiptForPurchase(p)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-500 hover:text-white hover:border-brand-500 transition cursor-pointer text-xs font-bold active:scale-98 shadow-xs"
-                            title="View & Print Purchase Receipt"
-                          >
-                            <Receipt className="w-3.5 h-3.5" />
-                            <span>Receipt</span>
-                          </button>
-
                           {/* Edit Action (Locked if stock has been returned) */}
                           {(p.returnStatus || Number(p.returnAmount || 0) > 0 || isReturned) ? (
                             <span

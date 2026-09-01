@@ -177,7 +177,7 @@ export const Sales = () => {
       }
 
       // 5. Payment Status Filter
-      const { status, isReturned } = computeSaleFinancials(s, saleReturns);
+      const { status, isReturned } = computeSaleFinancials(s, saleReturns, paymentLogs);
 
       if (statusFilter === 'Returned') {
         if (!isReturned) return false;
@@ -191,7 +191,7 @@ export const Sales = () => {
       const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
       return timeB - timeA;
     });
-  }, [sales, saleReturns, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter]);
+  }, [sales, saleReturns, paymentLogs, dateFilterType, customStartDate, customEndDate, customerTypeFilter, selectedCustomerId, statusFilter]);
 
   // Filtered Sale Returns (for when Processed Returns Only is selected)
   const filteredSaleReturns = useMemo(() => {
@@ -216,7 +216,7 @@ export const Sales = () => {
     let totalOutstanding = 0;
 
     filteredSales.forEach(s => {
-      const fin = computeSaleFinancials(s, saleReturns);
+      const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
       totalCollected += fin.paid;
       totalOutstanding += fin.due;
     });
@@ -231,7 +231,7 @@ export const Sales = () => {
       partyDue = customers.reduce((sum, c) => sum + computeCustomerKhataBalance(c, sales, paymentLogs, saleReturns).balance, 0);
     }
 
-    const walkinDue = computeWalkinUncollectedDues(sales, saleReturns);
+    const walkinDue = computeWalkinUncollectedDues(sales, saleReturns, paymentLogs);
 
     return {
       totalFilteredCashReceived: totalCollected,
@@ -595,7 +595,7 @@ export const Sales = () => {
                 </tr>
               ) : (
                 filteredSales.map(s => {
-                  const { total, paid, returnAmount: retAmt, due, status, isReturned } = computeSaleFinancials(s, saleReturns);
+                  const { total, paid, returnAmount: retAmt, due, status, isReturned } = computeSaleFinancials(s, saleReturns, paymentLogs);
                   const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') ||
                     (s.partyName || '').toLowerCase().includes('walk-in');
 
@@ -674,16 +674,6 @@ export const Sales = () => {
                       {/* 7. Actions: Receipt | Edit | Return Sale (Screen Only) */}
                       <td className="py-3.5 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Receipt Action */}
-                          <button
-                            onClick={() => openReceiptForSale(s)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-500 hover:text-white hover:border-brand-500 transition cursor-pointer text-xs font-bold active:scale-98 shadow-xs"
-                            title="View & Print Sale Receipt"
-                          >
-                            <Receipt className="w-3.5 h-3.5" />
-                            <span>Receipt</span>
-                          </button>
-
                           {/* Edit Action (Locked if goods have been returned) */}
                           {(s.returnStatus || Number(s.returnAmount || 0) > 0 || isReturned) ? (
                             <span

@@ -161,10 +161,13 @@ const createTables = async () => {
       paidAmount NUMERIC DEFAULT 0,
       profit NUMERIC DEFAULT 0,
       status TEXT NOT NULL,
+      paymentMode TEXT DEFAULT 'Cash',
       itemsCount INTEGER DEFAULT 0,
       cartJson TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    ALTER TABLE sales ADD COLUMN IF NOT EXISTS paymentMode TEXT DEFAULT 'Cash';
 
     -- Purchases Table
     CREATE TABLE IF NOT EXISTS purchases (
@@ -176,10 +179,13 @@ const createTables = async () => {
       grandTotal NUMERIC NOT NULL,
       paidAmount NUMERIC DEFAULT 0,
       paymentStatus TEXT DEFAULT 'Pending',
+      paymentMode TEXT DEFAULT 'Supplier Khata',
       notes TEXT,
       itemsJson TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    ALTER TABLE purchases ADD COLUMN IF NOT EXISTS paymentMode TEXT DEFAULT 'Supplier Khata';
 
     -- Payment Logs Table
     CREATE TABLE IF NOT EXISTS payment_logs (

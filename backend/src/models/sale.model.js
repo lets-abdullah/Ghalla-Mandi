@@ -10,6 +10,7 @@ const mapSaleRow = (r) => {
   const amount = Number(r.amount !== undefined ? r.amount : (r.grandtotal !== undefined ? r.grandtotal : (r.grandTotal !== undefined ? r.grandTotal : 0)));
   const paidAmount = Number(r.paidamount !== undefined ? r.paidamount : (r.paidAmount !== undefined ? r.paidAmount : 0));
   const profit = Number(r.profit !== undefined ? r.profit : (r.profitmargin !== undefined ? r.profitmargin : (r.profitMargin !== undefined ? r.profitMargin : 0)));
+  const paymentMode = r.paymentmode || r.paymentMode || r.paymentmethod || r.paymentMethod || r.mode || 'Cash';
   const isReturned = (r.status === 'Returned') || (r.returnStatus && r.returnStatus !== 'None');
   const status = isReturned ? 'Returned' : ((paidAmount >= amount && amount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : 'Pending'));
   const itemsCount = Number(r.itemscount !== undefined ? r.itemscount : (r.itemsCount !== undefined ? r.itemsCount : cart.length));
@@ -33,6 +34,9 @@ const mapSaleRow = (r) => {
     grandTotal: amount,
     paidAmount,
     paidamount: paidAmount,
+    paymentMode,
+    paymentmode: paymentMode,
+    paymentMethod: paymentMode,
     profit,
     status,
     paymentStatus: status,
@@ -91,7 +95,7 @@ export const Sale = {
     const customerType = saleData.customerType || 'Regular Party';
     const date = saleData.date || new Date().toLocaleDateString('en-GB');
     const amount = Number(saleData.amount || saleData.grandTotal) || 0;
-    const paidAmount = Number(saleData.paidAmount) || 0;
+    const paymentMode = saleData.paymentMode || saleData.paymentMethod || 'Cash';
     const profit = Number(saleData.profit || saleData.profitMargin) || 0;
     const status = saleData.status || saleData.paymentStatus || (paidAmount >= amount ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
     const cart = saleData.cart || saleData.items || [];
@@ -99,8 +103,8 @@ export const Sale = {
     const cartJson = JSON.stringify(cart);
 
     await run(
-      'INSERT INTO sales (id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, paidAmount, profit, status, itemsCount, cartJson) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
-      [id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, paidAmount, profit, status, itemsCount, cartJson]
+      'INSERT INTO sales (id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, paidAmount, paymentMode, profit, status, itemsCount, cartJson) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
+      [id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, paidAmount, paymentMode, profit, status, itemsCount, cartJson]
     );
 
     return await this.findById(id, shop_id);
@@ -120,6 +124,10 @@ export const Sale = {
     if (updateData.customerType !== undefined) { fields.push(`customerType = $${paramIndex++}`); params.push(updateData.customerType); }
     if (updateData.amount !== undefined || updateData.grandTotal !== undefined) { fields.push(`amount = $${paramIndex++}`); params.push(Number(updateData.amount !== undefined ? updateData.amount : updateData.grandTotal)); }
     if (updateData.paidAmount !== undefined) { fields.push(`paidAmount = $${paramIndex++}`); params.push(Number(updateData.paidAmount)); }
+    if (updateData.paymentMode !== undefined || updateData.paymentMethod !== undefined) {
+      fields.push(`paymentMode = $${paramIndex++}`);
+      params.push(updateData.paymentMode || updateData.paymentMethod);
+    }
     if (updateData.profit !== undefined) { fields.push(`profit = $${paramIndex++}`); params.push(Number(updateData.profit)); }
     if (updateData.status !== undefined) { fields.push(`status = $${paramIndex++}`); params.push(updateData.status); }
     if (updateData.itemsCount !== undefined) { fields.push(`itemsCount = $${paramIndex++}`); params.push(Number(updateData.itemsCount)); }

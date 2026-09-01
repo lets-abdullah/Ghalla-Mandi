@@ -177,7 +177,7 @@ export const Invoices = () => {
       });
     } else {
       return sales.map(s => {
-        const { total, paid, due, status } = computeSaleFinancials(s, saleReturns);
+        const { total, paid, due, status } = computeSaleFinancials(s, saleReturns, paymentLogs);
 
         return {
           id: s.id,

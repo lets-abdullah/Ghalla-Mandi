@@ -6,13 +6,13 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const RecentTransactionsTable = ({ onViewInvoice }) => {
-  const { sales = [], purchases = [], saleReturns = [], purchaseReturns = [] } = useERP();
+  const { sales = [], purchases = [], saleReturns = [], purchaseReturns = [], paymentLogs = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
   const combined = [
     ...(sales || []).map(s => {
-      const { total, paid, due, status } = computeSaleFinancials(s, saleReturns);
+      const { total, paid, due, status } = computeSaleFinancials(s, saleReturns, paymentLogs);
       const isPaid = status === 'Paid';
       const isPartial = status === 'Partial';
 
@@ -30,7 +30,7 @@ export const RecentTransactionsTable = ({ onViewInvoice }) => {
       };
     }),
     ...(purchases || []).map(p => {
-      const { total, paid, due, status } = computePurchaseFinancials(p, purchaseReturns);
+      const { total, paid, due, status } = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
       const isPaid = status === 'Paid';
       const isPartial = status === 'Partial';
 

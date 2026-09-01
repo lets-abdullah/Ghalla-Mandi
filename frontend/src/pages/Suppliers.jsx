@@ -1353,7 +1353,6 @@ export const Suppliers = () => {
                       </label>
                       <input
                         type="number"
-                        min="0"
                         step="any"
                         value={editingSupplier.balance || 0}
                         onChange={(e) => setEditingSupplier({ ...editingSupplier, balance: Number(e.target.value) })}

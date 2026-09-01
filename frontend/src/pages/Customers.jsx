@@ -144,36 +144,38 @@ export const Customers = () => {
   // Create Customer Handler
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) {
+    if (!(form.name || '').trim()) {
       alert('Customer name is required');
       return;
     }
 
-    if (form.phone.trim() && form.phone.replace(/\D/g, '').length !== 11) {
+    const cleanPhone = (form.phone || '').trim();
+    if (cleanPhone && cleanPhone.replace(/\D/g, '').length !== 11) {
       alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
       return;
     }
-    if (form.whatsapp.trim() && form.whatsapp.replace(/\D/g, '').length !== 11) {
+    const cleanWhatsapp = (form.whatsapp || '').trim();
+    if (cleanWhatsapp && cleanWhatsapp.replace(/\D/g, '').length !== 11) {
       alert('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
       return;
     }
 
     try {
       await addCustomer({
-        name: form.name.trim(),
-        shopName: form.businessName.trim(),
-        businessName: form.businessName.trim(),
-        phone: form.phone.trim() || 'N/A',
-        whatsapp: form.whatsapp.trim(),
-        email: form.email.trim(),
-        city: form.city.trim() || 'Local Mandi',
-        address: form.address.trim(),
-        customerType: form.customerType,
+        name: (form.name || '').trim(),
+        shopName: (form.businessName || form.shopName || '').trim(),
+        businessName: (form.businessName || form.shopName || '').trim(),
+        phone: cleanPhone || 'N/A',
+        whatsapp: cleanWhatsapp,
+        email: (form.email || '').trim(),
+        city: (form.city || '').trim() || 'Local Mandi',
+        address: (form.address || '').trim(),
+        customerType: form.customerType || 'Regular Customer',
         openingBalance: Number(form.openingBalance) || 0,
-        bankName: form.bankName.trim(),
-        accountTitle: form.accountTitle.trim(),
-        accountNumber: form.accountNumber.trim(),
-        notes: form.notes.trim()
+        bankName: (form.bankName || '').trim(),
+        accountTitle: (form.accountTitle || '').trim(),
+        accountNumber: (form.accountNumber || '').trim(),
+        notes: (form.notes || '').trim()
       });
 
       setShowAddModal(false);
