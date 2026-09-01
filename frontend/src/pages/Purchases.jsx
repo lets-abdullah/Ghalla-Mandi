@@ -893,6 +893,7 @@ export const Purchases = () => {
                   const paid = Math.min(netTotal, directPaid > 0 ? directPaid : (p.paymentStatus === 'Paid' ? netTotal : upfrontPaid));
                   const due = Math.max(0, netTotal - paid);
                   const status = (due === 0 && total > 0) || p.paymentStatus === 'Paid' ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
+                  const isReturned = (p.status === 'Returned') || (p.paymentStatus === 'Returned') || p.isReturned || (retAmt > 0) || Boolean(p.returnStatus && p.returnStatus !== 'None') || (purchaseReturns || []).some(r => r.purchaseId === p.id || r.purchaseNo === p.purchaseNo);
 
                   return (
                     <tr key={p.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
