@@ -815,9 +815,9 @@ export const Purchases = () => {
         filterSummary={`Period: ${dateFilterType} | Status: ${filterType}`}
         stats={[
           { label: 'Total Purchases', value: filteredPurchases.length },
-          { label: 'Net Purchases Volume', value: `Rs. ${totalNetPurchases.toLocaleString()}` },
-          { label: 'Total Paid out Out', value: `Rs. ${totalPaidOut.toLocaleString()}` },
-          { label: 'Supplier dues deducted', value: `Rs. ${totalOutstandingPayable.toLocaleString()}` }
+          { label: 'Purchases Volume', value: `Rs. ${totalNetPurchases.toLocaleString()}` },
+          { label: 'Total Paid Out', value: `Rs. ${totalPaidOut.toLocaleString()}` },
+          { label: 'Purchase Returns', value: `Rs. ${totalPurchaseReturnsVal.toLocaleString()}` }
         ]}
       />
 

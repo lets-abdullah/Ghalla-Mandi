@@ -444,9 +444,8 @@ export const Khata = () => {
         filterSummary={`Type: ${customerTypeFilter} | Status: ${balanceStatusFilter}`}
         stats={[
           { label: 'Total Accounts', value: filteredKhata.length },
-          { label: 'Total Sales', value: `Rs. ${totalVolume.toLocaleString()}` },
-          { label: 'Cash Received', value: `Rs. ${totalCollected.toLocaleString()}` },
-          { label: 'Customer Receivables Due', value: `Rs. ${totalOutstanding.toLocaleString()}` }
+          { label: 'Customer Receivables', value: `Rs. ${totalOutstanding.toLocaleString()}` },
+          { label: 'Customer Credit / Advance', value: `Rs. ${totalAdvanceCredit.toLocaleString()}` }
         ]}
       />
 
