@@ -3876,7 +3876,7 @@ export const Reports = () => {
                   <Building className="w-4 h-4" />
                   <span>What You Own (Assets)</span>
                 </h3>
-                <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                   Rs. {totalAssets.toLocaleString()}
                 </span>
               </div>
@@ -3897,9 +3897,11 @@ export const Reports = () => {
                       )}
                       <span className="text-slate-900 dark:text-white">Cash & Bank Balances</span>
                     </div>
-                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      Rs. {totalLiquidFunds.toLocaleString()}
-                    </span>
+                    {!bsExpandedSections.cashBank && (
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        Rs. {totalLiquidFunds.toLocaleString()}
+                      </span>
+                    )}
                   </div>
 
                   {bsExpandedSections.cashBank && (
@@ -3999,25 +4001,36 @@ export const Reports = () => {
                       )}
                       <span className="text-slate-900 dark:text-white">Receivables (Khata Dues)</span>
                     </div>
-                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                      Rs. {totalCustomerReceivables.toLocaleString()}
-                    </span>
+                    {!bsExpandedSections.receivables && (
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                        Rs. {totalCustomerReceivables.toLocaleString()}
+                      </span>
+                    )}
                   </div>
 
                   {bsExpandedSections.receivables && (
                     <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between">
-                        <span>Regular Customer Khata Dues:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {regularCustomerReceivables.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Walk-in Customer Khata Dues:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {walkinCustomerReceivables.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-900 dark:text-white">
-                        <span className="font-bold">Total Khata Receivables:</span>
-                        <span className="font-mono font-black text-amber-600 dark:text-amber-400">Rs. {totalCustomerReceivables.toLocaleString()}</span>
-                      </div>
+                      {regularCustomerReceivables > 0 && walkinCustomerReceivables > 0 ? (
+                        <>
+                          <div className="flex justify-between">
+                            <span>Regular Customer Khata Dues:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {regularCustomerReceivables.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Walk-in Customer Khata Dues:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {walkinCustomerReceivables.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-900 dark:text-white">
+                            <span className="font-bold">Total Khata Receivables:</span>
+                            <span className="font-mono font-black text-amber-600 dark:text-amber-400">Rs. {totalCustomerReceivables.toLocaleString()}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                          <span>Customer Khata Dues:</span>
+                          <span className="font-mono text-amber-600 dark:text-amber-400">Rs. {totalCustomerReceivables.toLocaleString()}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -4037,20 +4050,18 @@ export const Reports = () => {
                       )}
                       <span className="text-slate-900 dark:text-white">Inventory / Commodities</span>
                     </div>
-                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                      Rs. {totalStockValuation.toLocaleString()}
-                    </span>
+                    {!bsExpandedSections.inventory && (
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                        Rs. {totalStockValuation.toLocaleString()}
+                      </span>
+                    )}
                   </div>
 
                   {bsExpandedSections.inventory && (
                     <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
                         <span>Stock in Warehouse Godown:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {totalStockValuation.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Damaged / Expired Goods:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                        <span className="font-mono text-slate-900 dark:text-white">Rs. {totalStockValuation.toLocaleString()}</span>
                       </div>
                     </div>
                   )}
@@ -4095,27 +4106,36 @@ export const Reports = () => {
                       )}
                       <span className="text-slate-900 dark:text-white">Current Liabilities</span>
                     </div>
-                    <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
-                      Rs. {totalLiabilities.toLocaleString()}
-                    </span>
+                    {!bsExpandedSections.payables && (
+                      <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                        Rs. {totalLiabilities.toLocaleString()}
+                      </span>
+                    )}
                   </div>
 
                   {bsExpandedSections.payables && (
                     <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between">
-                        <span>Supplier Khata Payables:</span>
-                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
-                      </div>
-                      {totalCustomerAdvances > 0 && (
-                        <div className="flex justify-between">
-                          <span>Customer Advance Credits (Liability):</span>
-                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalCustomerAdvances.toLocaleString()}</span>
+                      {totalCustomerAdvances > 0 ? (
+                        <>
+                          <div className="flex justify-between">
+                            <span>Supplier Khata Payables:</span>
+                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Customer Advance Credits (Liability):</span>
+                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalCustomerAdvances.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
+                            <span>Total Current Liabilities:</span>
+                            <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {totalLiabilities.toLocaleString()}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                          <span>Supplier Khata Payables:</span>
+                          <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
                         </div>
                       )}
-                      <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
-                        <span>Total Current Liabilities:</span>
-                        <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {totalLiabilities.toLocaleString()}</span>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -4135,9 +4155,11 @@ export const Reports = () => {
                       )}
                       <span className="text-slate-900 dark:text-white">Equity & Capital</span>
                     </div>
-                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                      Rs. {totalEquity.toLocaleString()}
-                    </span>
+                    {!bsExpandedSections.equity && (
+                      <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                        Rs. {totalEquity.toLocaleString()}
+                      </span>
+                    )}
                   </div>
 
                   {bsExpandedSections.equity && (
