@@ -1170,7 +1170,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       return (partyId && rCustId && rCustId === partyId) || (partyName && rCustName === partyName);
     });
 
-    // Process Sales Invoices
+    // Process Sales Invoices (Each Sale is a pure Sales Debit entry)
     partySales.forEach((s, idx) => {
       const ts = parseNormalizedTimestamp(s.date, s.created_at);
       const sGross = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
@@ -1178,23 +1178,10 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         ? s.cart.map(i => `${i.name || 'Commodity'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
         : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
 
-      // Resolve immediate upfront payment on invoice
       const rawMode = String(s.paymentMethod || s.paymentMode || 'Cash').trim();
       const modeLower = rawMode.toLowerCase();
       const isCreditOnly = modeLower.includes('credit') || modeLower.includes('khata') || modeLower.includes('udhaar') || modeLower === 'unpaid' || modeLower === 'pending';
 
-      let upfrontPaid = 0;
-      if (s.paidAmount !== undefined && Number(s.paidAmount) >= 0) {
-        upfrontPaid = Math.min(sGross, Number(s.paidAmount));
-      } else if (s.cashReceived !== undefined && Number(s.cashReceived) >= 0) {
-        upfrontPaid = Math.min(sGross, Number(s.cashReceived));
-      } else if (s.status === 'Paid' || s.paymentStatus === 'Paid') {
-        upfrontPaid = sGross;
-      } else if (!isCreditOnly) {
-        upfrontPaid = sGross;
-      }
-
-      // Format payment method display
       let methodDisplay = 'Cash';
       if (modeLower.includes('bank') || modeLower.includes('transfer')) {
         methodDisplay = 'Bank Transfer';
@@ -1206,16 +1193,10 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         methodDisplay = 'Cash';
       }
 
-      if (upfrontPaid > 0 && upfrontPaid < sGross) {
-        methodDisplay = `${methodDisplay} (Split)`;
-      }
-
-      const invStatus = upfrontPaid >= sGross && sGross > 0 ? 'Settled' : (upfrontPaid > 0 ? 'Partially Paid' : 'Due');
-
       entries.push({
         id: `sale-${s.id || idx}`,
         timestamp: ts,
-        eventPriority: 1,
+        eventPriority: 1, // Invoice comes first
         seq: Number(s.id) || (idx + 1),
         rawDate: s.date,
         date: s.date || 'N/A',
@@ -1225,14 +1206,53 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         txType: 'Sales',
         desc: `Invoice: ${sItems}`,
         sales: sGross,
-        payment: upfrontPaid,
+        payment: 0,
         debit: sGross,
-        credit: upfrontPaid,
+        credit: 0,
         paymentMethod: methodDisplay,
         paymentAccount: methodDisplay,
-        status: invStatus,
+        status: 'Due',
         notes: s.saleNote || s.note || ''
       });
+
+      // Upfront payment on sale ONLY if no payment logs exist in partyPayments for this sale
+      const hasSpecificLog = partyPayments.some(pl =>
+        (pl.saleId && String(pl.saleId) === String(s.id)) ||
+        (s.invoiceNo && pl.ref && pl.ref.includes(s.invoiceNo.split('-').pop()))
+      );
+
+      let sUpfrontCash = 0;
+      if (s.paidAmount !== undefined && Number(s.paidAmount) > 0) {
+        sUpfrontCash = Math.min(sGross, Number(s.paidAmount));
+      } else if (s.cashReceived !== undefined && Number(s.cashReceived) > 0) {
+        sUpfrontCash = Math.min(sGross, Number(s.cashReceived));
+      } else if (!isCreditOnly && (s.status === 'Paid' || s.paymentStatus === 'Paid')) {
+        sUpfrontCash = sGross;
+      }
+
+      if (sUpfrontCash > 0 && !hasSpecificLog && !isCreditOnly) {
+        entries.push({
+          id: `pay-direct-${s.id || idx}`,
+          timestamp: ts,
+          eventPriority: 3, // Payment processed right after invoice
+          seq: Number(s.id) || (idx + 1),
+          rawDate: s.date,
+          date: s.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: `POS-PAY-${(s.invoiceNo || String(s.id)).split('-').pop()}`,
+          txType: 'Payments',
+          desc: `POS Payment Received via ${methodDisplay} on Invoice (${s.invoiceNo || s.id})`,
+          sales: 0,
+          payment: sUpfrontCash,
+          debit: 0,
+          credit: sUpfrontCash,
+          paymentMethod: methodDisplay,
+          paymentAccount: methodDisplay,
+          status: 'Settled',
+          notes: s.paymentMethod || s.paymentMode || 'Counter Payment'
+        });
+      }
     });
 
     // Process Returns
@@ -1264,14 +1284,8 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       });
     });
 
-    // Process Standalone Payment Logs (excluding auto POS payments already reflected in sales)
+    // Process Payment Logs
     partyPayments.forEach((p, idx) => {
-      const isPosDuplicate = p.saleId && partySales.some(s => String(s.id) === String(p.saleId));
-      const isPosRefDuplicate = p.ref && String(p.ref).startsWith('POS-PAY-') && partySales.some(s => s.invoiceNo && p.ref.includes(s.invoiceNo.split('-').pop()));
-      if (isPosDuplicate || isPosRefDuplicate) {
-        return; // Already accounted for in the invoice row
-      }
-
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
       const pAmt = Number(p.amount || 0);
       const rawPMode = String(p.mode || p.paymentMode || 'Cash').trim();
@@ -1333,7 +1347,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       return (partyId && rSupId && rSupId === partyId) || (partyName && rSupName === partyName);
     });
 
-    // Process Purchases
+    // Process Purchases (Debit)
     partyPurchases.forEach((p, idx) => {
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
       const pGross = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
@@ -1345,17 +1359,6 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       const modeLower = rawMode.toLowerCase();
       const isCreditOnly = modeLower.includes('credit') || modeLower.includes('khata') || modeLower.includes('udhaar') || modeLower === 'unpaid' || modeLower === 'pending';
 
-      let upfrontPaid = 0;
-      if (p.paidAmount !== undefined && Number(p.paidAmount) >= 0) {
-        upfrontPaid = Math.min(pGross, Number(p.paidAmount));
-      } else if (p.cashPaid !== undefined && Number(p.cashPaid) >= 0) {
-        upfrontPaid = Math.min(pGross, Number(p.cashPaid));
-      } else if (p.status === 'Paid' || p.paymentStatus === 'Paid') {
-        upfrontPaid = pGross;
-      } else if (!isCreditOnly) {
-        upfrontPaid = pGross;
-      }
-
       let methodDisplay = 'Cash';
       if (modeLower.includes('bank') || modeLower.includes('transfer')) {
         methodDisplay = 'Bank Transfer';
@@ -1366,12 +1369,6 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       } else {
         methodDisplay = 'Cash';
       }
-
-      if (upfrontPaid > 0 && upfrontPaid < pGross) {
-        methodDisplay = `${methodDisplay} (Split)`;
-      }
-
-      const billStatus = upfrontPaid >= pGross && pGross > 0 ? 'Settled' : (upfrontPaid > 0 ? 'Partially Paid' : 'Due');
 
       entries.push({
         id: `pur-${p.id || idx}`,
@@ -1386,14 +1383,52 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         txType: 'Purchases',
         desc: `Bill: ${pItems}`,
         sales: pGross,
-        payment: upfrontPaid,
+        payment: 0,
         debit: pGross,
-        credit: upfrontPaid,
+        credit: 0,
         paymentMethod: methodDisplay,
         paymentAccount: methodDisplay,
-        status: billStatus,
+        status: 'Due',
         notes: p.note || ''
       });
+
+      const hasSpecificLog = partyPayments.some(pl =>
+        (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+        (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo.split('-').pop()))
+      );
+
+      let pUpfrontCash = 0;
+      if (p.paidAmount !== undefined && Number(p.paidAmount) > 0) {
+        pUpfrontCash = Math.min(pGross, Number(p.paidAmount));
+      } else if (p.cashPaid !== undefined && Number(p.cashPaid) > 0) {
+        pUpfrontCash = Math.min(pGross, Number(p.cashPaid));
+      } else if (!isCreditOnly && (p.status === 'Paid' || p.paymentStatus === 'Paid')) {
+        pUpfrontCash = pGross;
+      }
+
+      if (pUpfrontCash > 0 && !hasSpecificLog && !isCreditOnly) {
+        entries.push({
+          id: `pay-sup-direct-${p.id || idx}`,
+          timestamp: ts,
+          eventPriority: 3,
+          seq: Number(p.id) || (idx + 1),
+          rawDate: p.date,
+          date: p.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: `PAY-${(p.purchaseNo || String(p.id)).split('-').pop()}`,
+          txType: 'Payments',
+          desc: `Upfront Payment against ${p.purchaseNo || 'Purchase'}`,
+          sales: 0,
+          payment: pUpfrontCash,
+          debit: 0,
+          credit: pUpfrontCash,
+          paymentMethod: methodDisplay,
+          paymentAccount: methodDisplay,
+          status: 'Settled',
+          notes: p.paymentMethod || 'Upfront Payment'
+        });
+      }
     });
 
     // Process Purchase Returns
@@ -1427,11 +1462,6 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
 
     // Process Supplier Payments
     partyPayments.forEach((p, idx) => {
-      const isPurDuplicate = p.purchaseId && partyPurchases.some(pur => String(pur.id) === String(p.purchaseId));
-      if (isPurDuplicate) {
-        return;
-      }
-
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
       const pAmt = Number(p.amount || 0);
       const rawPMode = String(p.mode || p.paymentMode || 'Cash').trim();
@@ -1470,7 +1500,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     });
   }
 
-  // 1. Sort strictly chronologically
+  // 1. Sort strictly chronologically (Oldest to Newest)
   entries.sort(compareLedgerTransactions);
 
   // 2. Compute Running Balances in strict chronological order
@@ -1485,16 +1515,18 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     totalCredit += c;
     runningBalance = runningBalance + d - c;
 
-    const entryStatus = runningBalance > 0
-      ? (isSupplier ? 'Payable' : 'Due')
-      : (runningBalance < 0 ? 'Advance' : 'Settled');
+    const entryStatus = runningBalance === 0
+      ? 'Settled'
+      : runningBalance > 0
+        ? (isSupplier ? 'Payable' : 'Due')
+        : 'Advance';
 
     return {
       ...entry,
       stepIndex: index + 1,
       runningBalance,
       balanceState: entryStatus,
-      status: entry.status || (runningBalance === 0 ? 'Settled' : (runningBalance < d ? 'Partially Paid' : 'Due'))
+      status: entryStatus
     };
   });
 

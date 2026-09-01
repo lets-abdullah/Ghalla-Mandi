@@ -1173,18 +1173,18 @@ export const Ledger = () => {
                             )}
                           </td>
 
-                          {/* 8. Status */}
+                          {/* 8. Status (Plain Colored Text - No oval pill/block) */}
                           <td className="py-3.5 px-4 text-center">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                              entry.status === 'Settled' || entry.runningBalance === 0
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                : entry.status === 'Partially Paid' || (entry.runningBalance > 0 && entry.runningBalance < (entry.sales || entry.debit))
-                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                            <span className={`text-[11px] font-black uppercase tracking-wider ${
+                              entry.runningBalance === 0 || entry.status === 'Settled'
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : entry.runningBalance > 0
+                                  ? 'text-amber-600 dark:text-amber-400'
+                                  : 'text-blue-600 dark:text-blue-400'
                             }`}>
-                              {entry.status === 'Settled' || entry.runningBalance === 0
+                              {entry.runningBalance === 0 || entry.status === 'Settled'
                                 ? 'Settled'
-                                : (entry.status === 'Partially Paid' || (entry.runningBalance > 0 && entry.runningBalance < (entry.sales || entry.debit)) ? 'Partially Paid' : 'Due')}
+                                : (isSupplier ? 'Payable' : 'Due')}
                             </span>
                           </td>
                         </tr>
