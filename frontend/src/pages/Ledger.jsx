@@ -1101,13 +1101,15 @@ export const Ledger = () => {
                     <th className="py-3.5 px-4">Description</th>
                     <th className="py-3.5 px-4 text-right">{isSupplier ? 'Purchases' : 'Sales'}</th>
                     <th className="py-3.5 px-4 text-right">{isSupplier ? 'Payments / Returns' : 'Payments / Returns'}</th>
+                    <th className="py-3.5 px-4 text-center">Payment Method / Account</th>
                     <th className="py-3.5 px-4 text-right font-black">{isSupplier ? 'Remaining Balance' : 'Running Balance'}</th>
+                    <th className="py-3.5 px-4 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                   {singleCustomerLedger.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                      <td colSpan={8} className="py-12 text-center text-slate-400 text-xs">
                         No transactions recorded for this customer yet.
                       </td>
                     </tr>
@@ -1137,17 +1139,24 @@ export const Ledger = () => {
                             {entry.notes && <span className="text-[10px] text-slate-400 block">{entry.notes}</span>}
                           </td>
 
-                          {/* 4. Debit */}
+                          {/* 4. Sales / Purchases */}
                           <td className="py-3.5 px-4 text-right font-mono font-black text-blue-600 dark:text-blue-400">
-                            {entry.debit > 0 ? `Rs. ${entry.debit.toLocaleString()}` : '—'}
+                            {entry.sales > 0 ? `Rs. ${entry.sales.toLocaleString()}` : (entry.debit > 0 ? `Rs. ${entry.debit.toLocaleString()}` : '—')}
                           </td>
 
-                          {/* 5. Credit */}
+                          {/* 5. Payments / Returns */}
                           <td className="py-3.5 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
-                            {entry.credit > 0 ? `Rs. ${entry.credit.toLocaleString()}` : '—'}
+                            {entry.payment > 0 ? `Rs. ${entry.payment.toLocaleString()}` : (entry.credit > 0 ? `Rs. ${entry.credit.toLocaleString()}` : '—')}
                           </td>
 
-                          {/* 6. Running Balance */}
+                          {/* 6. Payment Method / Account */}
+                          <td className="py-3.5 px-4 text-center">
+                            <span className="inline-block px-2.5 py-1 rounded-xl text-[11px] font-bold bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                              {entry.paymentMethod || 'Cash'}
+                            </span>
+                          </td>
+
+                          {/* 7. Running Balance */}
                           <td className="py-3.5 px-4 text-right font-mono font-black text-xs">
                             {isBalNeg ? (
                               <span className="text-emerald-600 dark:text-emerald-400">
@@ -1162,6 +1171,21 @@ export const Ledger = () => {
                                 Rs. 0 (Settled)
                               </span>
                             )}
+                          </td>
+
+                          {/* 8. Status */}
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                              entry.status === 'Settled' || entry.runningBalance === 0
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                : entry.status === 'Partially Paid' || (entry.runningBalance > 0 && entry.runningBalance < (entry.sales || entry.debit))
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                            }`}>
+                              {entry.status === 'Settled' || entry.runningBalance === 0
+                                ? 'Settled'
+                                : (entry.status === 'Partially Paid' || (entry.runningBalance > 0 && entry.runningBalance < (entry.sales || entry.debit)) ? 'Partially Paid' : 'Due')}
+                            </span>
                           </td>
                         </tr>
                       );
