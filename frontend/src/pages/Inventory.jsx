@@ -78,13 +78,27 @@ export const Inventory = () => {
     }
   }, [products]);
 
+  // Safe quantity helper
+  const safeQty = (val) => {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return isNaN(val) || !isFinite(val) ? 0 : val;
+    const str = String(val).trim();
+    const match = str.match(/^-?\d+(\.\d+)?/);
+    if (match) {
+      const n = parseFloat(match[0]);
+      return isNaN(n) || !isFinite(n) ? 0 : n;
+    }
+    const n = parseFloat(str);
+    return isNaN(n) || !isFinite(n) ? 0 : n;
+  };
+
   // Unified Chronological Inventory Movement Ledger
   const allTransactions = useMemo(() => {
     const list = [];
 
     // 1. Opening Stock from registered products
     (products || []).forEach(p => {
-      const initialQty = Number(p.openingStock ?? p.initialStock ?? p.opening_stock ?? p.initial_stock ?? p.stockQty ?? p.stock_qty ?? 0);
+      const initialQty = safeQty(p.openingStock ?? p.initialStock ?? p.opening_stock ?? p.initial_stock ?? p.stockQty ?? p.stock_qty ?? 0);
       if (initialQty > 0) {
         list.push({
           id: `open-${p.id}`,
@@ -108,22 +122,24 @@ export const Inventory = () => {
     (purchases || []).forEach(p => {
       const items = Array.isArray(p.items) && p.items.length > 0 ? p.items : (Array.isArray(p.cart) ? p.cart : [{ name: p.productName || 'Procured Commodity', qty: p.qty || 1, unit: p.unit || 'KG' }]);
       items.forEach((it, i) => {
-        const itQty = Number(it.qty || it.enteredQty || 1);
-        list.push({
-          id: `pur-${p.id || p.purchaseNo}-${i}`,
-          dateStr: p.date || new Date().toLocaleDateString('en-GB'),
-          dateObj: p.created_at ? new Date(p.created_at) : new Date(p.date || 0),
-          productId: it.productId || it.id,
-          productName: it.name || p.productName || 'Commodity',
-          direction: 'IN',
-          movementLabel: 'Purchase In',
-          sourceCategory: 'Purchases',
-          referenceNo: p.purchaseNo ? `Purchase #${p.purchaseNo}` : 'Purchase Bill',
-          qtyNum: itQty,
-          unit: it.unit || it.unitName || p.unit || 'KG',
-          signedQty: `+${itQty} ${it.unit || p.unit || 'KG'}`,
-          raw: p
-        });
+        const itQty = safeQty(it.qty ?? it.quantity ?? it.enteredQty ?? 1);
+        if (itQty > 0) {
+          list.push({
+            id: `pur-${p.id || p.purchaseNo}-${i}`,
+            dateStr: p.date || new Date().toLocaleDateString('en-GB'),
+            dateObj: p.created_at ? new Date(p.created_at) : new Date(p.date || 0),
+            productId: it.productId || it.id,
+            productName: it.name || p.productName || 'Commodity',
+            direction: 'IN',
+            movementLabel: 'Purchase In',
+            sourceCategory: 'Purchases',
+            referenceNo: p.purchaseNo ? `Purchase #${p.purchaseNo}` : 'Purchase Bill',
+            qtyNum: itQty,
+            unit: it.unit || it.unitName || p.unit || 'KG',
+            signedQty: `+${itQty} ${it.unit || p.unit || 'KG'}`,
+            raw: p
+          });
+        }
       });
     });
 
@@ -131,66 +147,72 @@ export const Inventory = () => {
     (sales || []).forEach(s => {
       const items = Array.isArray(s.items) && s.items.length > 0 ? s.items : (Array.isArray(s.cart) ? s.cart : [{ name: typeof s.items === 'string' ? s.items : (s.productName || 'Commodity'), qty: s.qty || 1, unit: s.unit || 'KG' }]);
       items.forEach((it, i) => {
-        const itQty = Number(it.qty || it.enteredQty || 1);
-        list.push({
-          id: `sale-${s.id || s.invoiceNo}-${i}`,
-          dateStr: s.date || new Date().toLocaleDateString('en-GB'),
-          dateObj: s.created_at ? new Date(s.created_at) : new Date(s.date || 0),
-          productId: it.productId || it.id,
-          productName: it.name || 'Commodity Product',
-          direction: 'OUT',
-          movementLabel: 'POS Sale Out',
-          sourceCategory: 'Sales',
-          referenceNo: s.invoiceNo ? `Sale #${s.invoiceNo}` : 'POS Checkout',
-          qtyNum: itQty,
-          unit: it.unit || it.unitName || s.unit || 'KG',
-          signedQty: `-${itQty} ${it.unit || s.unit || 'KG'}`,
-          raw: s
-        });
+        const itQty = safeQty(it.qty ?? it.quantity ?? it.enteredQty ?? 1);
+        if (itQty > 0) {
+          list.push({
+            id: `sale-${s.id || s.invoiceNo}-${i}`,
+            dateStr: s.date || new Date().toLocaleDateString('en-GB'),
+            dateObj: s.created_at ? new Date(s.created_at) : new Date(s.date || 0),
+            productId: it.productId || it.id,
+            productName: it.name || 'Commodity Product',
+            direction: 'OUT',
+            movementLabel: 'POS Sale Out',
+            sourceCategory: 'Sales',
+            referenceNo: s.invoiceNo ? `Sale #${s.invoiceNo}` : 'POS Checkout',
+            qtyNum: itQty,
+            unit: it.unit || it.unitName || s.unit || 'KG',
+            signedQty: `-${itQty} ${it.unit || s.unit || 'KG'}`,
+            raw: s
+          });
+        }
       });
     });
 
     // 4. Sale Returns (Stock In)
     (saleReturns || []).forEach(r => {
       (r.items || [{ name: 'Returned Commodity', qty: r.qty || 1, unit: 'KG' }]).forEach((it, i) => {
-        const itQty = Number(it.qty || 1);
-        list.push({
-          id: `sr-${r.id || r.returnNo}-${i}`,
-          dateStr: r.date || new Date().toLocaleDateString('en-GB'),
-          dateObj: r.created_at ? new Date(r.created_at) : new Date(r.date || 0),
-          productId: it.productId || it.id,
-          productName: it.name || 'Returned Commodity',
-          direction: 'IN',
-          movementLabel: 'Customer Return In',
-          sourceCategory: 'Sale Returns',
-          referenceNo: r.returnNo ? `Sale Return #${r.returnNo}` : 'Credit Note',
-          qtyNum: itQty,
-          unit: it.unit || 'KG',
-          signedQty: `+${itQty} ${it.unit || 'KG'}`,
-          raw: r
-        });
+        const itQty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 1);
+        if (itQty > 0) {
+          list.push({
+            id: `sr-${r.id || r.returnNo}-${i}`,
+            dateStr: r.date || new Date().toLocaleDateString('en-GB'),
+            dateObj: r.created_at ? new Date(r.created_at) : new Date(r.date || 0),
+            productId: it.productId || it.id,
+            productName: it.name || 'Returned Commodity',
+            direction: 'IN',
+            movementLabel: 'Customer Return In',
+            sourceCategory: 'Sale Returns',
+            referenceNo: r.returnNo ? `Sale Return #${r.returnNo}` : 'Credit Note',
+            qtyNum: itQty,
+            unit: it.unit || 'KG',
+            signedQty: `+${itQty} ${it.unit || 'KG'}`,
+            raw: r
+          });
+        }
       });
     });
 
     // 5. Purchase Returns (Stock Out)
     (purchaseReturns || []).forEach(r => {
       (r.items || [{ name: 'Returned Commodity', qty: r.qty || 1, unit: 'KG' }]).forEach((it, i) => {
-        const itQty = Number(it.qty || 1);
-        list.push({
-          id: `pr-${r.id || r.returnNo}-${i}`,
-          dateStr: r.date || new Date().toLocaleDateString('en-GB'),
-          dateObj: r.created_at ? new Date(r.created_at) : new Date(r.date || 0),
-          productId: it.productId || it.id,
-          productName: it.name || 'Returned Commodity',
-          direction: 'OUT',
-          movementLabel: 'Supplier Return Out',
-          sourceCategory: 'Purchase Returns',
-          referenceNo: r.returnNo ? `Purchase Return #${r.returnNo}` : 'Debit Note',
-          qtyNum: itQty,
-          unit: it.unit || 'KG',
-          signedQty: `-${itQty} ${it.unit || 'KG'}`,
-          raw: r
-        });
+        const itQty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 1);
+        if (itQty > 0) {
+          list.push({
+            id: `pr-${r.id || r.returnNo}-${i}`,
+            dateStr: r.date || new Date().toLocaleDateString('en-GB'),
+            dateObj: r.created_at ? new Date(r.created_at) : new Date(r.date || 0),
+            productId: it.productId || it.id,
+            productName: it.name || 'Returned Commodity',
+            direction: 'OUT',
+            movementLabel: 'Supplier Return Out',
+            sourceCategory: 'Purchase Returns',
+            referenceNo: r.returnNo ? `Purchase Return #${r.returnNo}` : 'Debit Note',
+            qtyNum: itQty,
+            unit: it.unit || 'KG',
+            signedQty: `-${itQty} ${it.unit || 'KG'}`,
+            raw: r
+          });
+        }
       });
     });
 
@@ -200,9 +222,9 @@ export const Inventory = () => {
       const refUpper = (m.ref || '').toUpperCase();
       const isAlreadyTracked = refUpper.includes('PURCHASE') || refUpper.includes('SALE') || refUpper.includes('RETURN') || refUpper.includes('INV-') || refUpper.includes('PUR-');
       if (!isAlreadyTracked) {
-        const isStockIn = typeUpper.includes('IN') || Number(m.qty || 0) > 0;
-        const itQty = Math.abs(Number(m.qty || 0));
+        const itQty = safeQty(m.qty);
         if (itQty > 0) {
+          const isStockIn = typeUpper.includes('IN') || (typeof m.qty === 'number' && m.qty > 0);
           list.push({
             id: `adj-${m.id || idx}`,
             dateStr: m.date || (m.created_at ? new Date(m.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),

@@ -3661,10 +3661,10 @@ export const Reports = () => {
               }`}>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                  Total Payables
+                  Total Liabilities
                 </span>
                 <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                  <span>External Debt</span>
+                  <span>Liabilities</span>
                 </span>
               </div>
               <div className="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
@@ -3677,7 +3677,7 @@ export const Reports = () => {
               }`}>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                  Operating Profit (P&L)
+                  Net Profit
                 </span>
                 <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
                   <span>Profit</span>
@@ -3713,8 +3713,8 @@ export const Reports = () => {
             filterSummary={`As of: ${bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}`}
             stats={[
               { label: 'Total Assets', value: `Rs. ${totalAssets.toLocaleString()}` },
-              { label: 'Total Payables', value: `Rs. ${totalLiabilities.toLocaleString()}` },
-              { label: 'Operating Profit', value: `Rs. ${netOperatingProfit.toLocaleString()}` },
+              { label: 'Total Liabilities', value: `Rs. ${totalLiabilities.toLocaleString()}` },
+              { label: 'Net Profit', value: `Rs. ${netOperatingProfit.toLocaleString()}` },
               { label: 'Net Worth', value: `Rs. ${totalEquity.toLocaleString()}` }
             ]}
           />
@@ -3825,7 +3825,7 @@ export const Reports = () => {
               <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
                 <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-rose-600 dark:text-rose-400">
                   <PieChart className="w-4 h-4" />
-                  <span>What You Owe & Equity</span>
+                  <span>Liabilities & Equity</span>
                 </h3>
                 <span className="text-[11px] font-mono font-bold text-slate-900 dark:text-white">
                   Rs. {(totalLiabilities + totalEquity).toLocaleString()}
@@ -3894,7 +3894,7 @@ export const Reports = () => {
                   {bsExpandedSections.equity && (
                     <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
                       <div className="flex justify-between">
-                        <span>Total Gross Assets:</span>
+                        <span>Total Assets:</span>
                         <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">

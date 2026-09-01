@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Search, Plus, Filter, Barcode, Edit3, Trash2, AlertTriangle, FolderPlus, X, Image as ImageIcon, Upload, RefreshCw, Printer, Layers, FileSpreadsheet, Coins, TrendingUp } from 'lucide-react';
+import { Package, Search, Plus, Filter, Barcode, Edit3, Trash2, AlertTriangle, FolderPlus, X, Image as ImageIcon, Upload, Printer, FileSpreadsheet, Coins, TrendingUp, History } from 'lucide-react';
 import { useERP, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
+import { ProductHistory } from './ProductHistory';
 
 export const Products = () => {
-  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, adjustStock, purchases = [], sales = [], saleReturns = [], purchaseReturns = [], stockMovements = [] } = useERP();
+  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, purchases = [], sales = [], saleReturns = [], purchaseReturns = [], stockMovements = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
@@ -16,25 +17,22 @@ export const Products = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [adjustingProduct, setAdjustingProduct] = useState(null);
-  const [viewingBatchesProduct, setViewingBatchesProduct] = useState(null);
-  const [adjForm, setAdjForm] = useState({ qty: 1, type: 'IN', reason: 'Stock Audit' });
+  const [viewingHistoryProduct, setViewingHistoryProduct] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Keyboard Esc Listener for closing active modals
+  // Keyboard Esc Listener for closing active modals or history view
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (showAddCategoryModal) setShowAddCategoryModal(false);
+        if (viewingHistoryProduct) setViewingHistoryProduct(null);
+        else if (showAddCategoryModal) setShowAddCategoryModal(false);
         else if (showAddModal) setShowAddModal(false);
         else if (editingProduct) setEditingProduct(null);
-        else if (adjustingProduct) setAdjustingProduct(null);
-        else if (viewingBatchesProduct) setViewingBatchesProduct(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAddCategoryModal, showAddModal, editingProduct, adjustingProduct, viewingBatchesProduct]);
+  }, [showAddCategoryModal, showAddModal, editingProduct, viewingHistoryProduct]);
 
   // New Category Form State
   const [newCatData, setNewCatData] = useState({
@@ -172,29 +170,14 @@ export const Products = () => {
     }
   };
 
-  const handleQuickAdjustStock = async (e) => {
-    e.preventDefault();
-    if (!adjustingProduct) return;
-    const qtyVal = Math.max(1, Number(adjForm.qty) || 1);
-    const currentStock = Number(adjustingProduct.stockQty ?? adjustingProduct.stockqty ?? 0);
-
-    if (adjForm.type === 'OUT' && currentStock < qtyVal) {
-      alert(t('cannotDeductStock', { qty: qtyVal, unit: adjustingProduct.unit || t('kg'), stock: currentStock }));
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const finalQty = adjForm.type === 'IN' ? qtyVal : -qtyVal;
-      await adjustStock(adjustingProduct.id, finalQty, adjForm.type, adjForm.reason);
-      setAdjustingProduct(null);
-      setAdjForm({ qty: 1, type: 'IN', reason: 'Stock Audit' });
-    } catch (err) {
-      alert(err.message || 'Failed to adjust stock');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  if (viewingHistoryProduct) {
+    return (
+      <ProductHistory
+        product={viewingHistoryProduct}
+        onBack={() => setViewingHistoryProduct(null)}
+      />
+    );
+  }
 
   const filtered = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase());
@@ -382,24 +365,14 @@ export const Products = () => {
                       </td>
                       <td className="py-3 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* View Batches / Purchase Cost Breakdown */}
+                          {/* View Full Product History & FIFO Valuation */}
                           <button
-                            onClick={() => setViewingBatchesProduct(product)}
-                            className={`p-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white transition cursor-pointer`}
-                            title="View Purchase Cost Batches & FIFO Breakdown"
+                            onClick={() => setViewingHistoryProduct(product)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white transition font-extrabold text-xs shadow-2xs cursor-pointer active:scale-95"
+                            title="View Full Product History, Batches & Valuation"
                           >
-                            <Layers className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setAdjustingProduct(product);
-                              setAdjForm({ qty: 1, type: 'IN', reason: 'Stock Audit' });
-                            }}
-                            className={`p-1.5 rounded-lg transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700 text-slate-300 hover:text-emerald-400' : 'hover:bg-slate-100 text-slate-600 hover:text-emerald-600'
-                              }`}
-                            title={t('adjustStock')}
-                          >
-                            <RefreshCw className="w-3.5 h-3.5" />
+                            <History className="w-3.5 h-3.5" />
+                            <span>History</span>
                           </button>
                           <button
                             onClick={() => setEditingProduct(product)}
@@ -951,293 +924,6 @@ export const Products = () => {
           </div>
         </div>
       )}
-      {/* Quick Stock Adjustment Modal */}
-      {adjustingProduct && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setAdjustingProduct(null); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className={`rounded-3xl max-w-sm w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <RefreshCw className="w-5 h-5 text-emerald-500" />
-                <div>
-                  <h3 className="text-base font-extrabold">{t('adjustStock')}</h3>
-                  <p className="text-[11px] text-slate-400 font-semibold">{adjustingProduct.name}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAdjustingProduct(null)}
-                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-                title={t('close')}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleQuickAdjustStock} className="space-y-3">
-              <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 flex justify-between items-center text-xs">
-                <span className="text-slate-400 font-semibold">{t('currentStock')}:</span>
-                <span className="font-extrabold text-brand-500">
-                  {Number(adjustingProduct.stockQty ?? adjustingProduct.stockqty ?? 0).toLocaleString()} {adjustingProduct.unit || adjustingProduct.baseUnit || t('kg')}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('adjustmentType')}</label>
-                  <select
-                    value={adjForm.type}
-                    onChange={(e) => setAdjForm({ ...adjForm, type: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  >
-                    <option value="IN">{t('stockAddition')}</option>
-                    <option value="OUT">{t('stockDeduction')}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('quantity')} ({adjustingProduct.unit || adjustingProduct.baseUnit || t('kg')})</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    step="1"
-                    onWheel={(e) => e.target.blur()}
-                    onFocus={(e) => e.target.select()}
-                    value={adjForm.qty}
-                    onChange={(e) => setAdjForm({ ...adjForm, qty: Number(e.target.value) })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">{t('auditReason')}</label>
-                <input
-                  type="text"
-                  value={adjForm.reason}
-                  onChange={(e) => setAdjForm({ ...adjForm, reason: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setAdjustingProduct(null)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
-                >
-                  {t('cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer"
-                >
-                  {isSubmitting ? 'Saving...' : t('confirmAdjustment')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* PURCHASE BATCH & COST BREAKDOWN MODAL */}
-      {/* ========================================================================= */}
-      {viewingBatchesProduct && (() => {
-        const val = computeProductValuation(viewingBatchesProduct, purchases, sales, saleReturns, purchaseReturns, stockMovements);
-        const unit = viewingBatchesProduct.unit || viewingBatchesProduct.baseUnit || t('kg');
-        const allBatches = val.batches || [];
-
-        return (
-          <div
-            onClick={(e) => { if (e.target === e.currentTarget) setViewingBatchesProduct(null); }}
-            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          >
-            <div className={`w-full max-w-3xl rounded-3xl p-6 shadow-2xl border transition-all animate-scaleIn my-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              {/* Modal Header */}
-              <div className="flex items-center justify-between border-b pb-4 mb-5 border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                    <Layers className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-extrabold flex items-center gap-2">
-                      <span>{viewingBatchesProduct.name}</span>
-                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">
-                        {viewingBatchesProduct.category}
-                      </span>
-                    </h3>
-                    <p className="text-xs text-slate-400 font-medium mt-0.5">
-                      FIFO Purchase Batch Cost Allocation & Real-time Valuation
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setViewingBatchesProduct(null)}
-                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 transition cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* 4 KPI Summary Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-                <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700/60' : 'bg-blue-50/50 border-blue-100'}`}>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Current Stock</div>
-                  <div className="text-lg font-black text-blue-600 dark:text-blue-400 mt-1">
-                    {val.qty.toLocaleString()} {unit}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">Available on hand</div>
-                </div>
-
-                <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700/60' : 'bg-emerald-50/50 border-emerald-100'}`}>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Stock Value</div>
-                  <div className="text-lg font-black text-emerald-600 dark:text-emerald-400 mt-1">
-                    Rs. {val.stockValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">FIFO Inventory Cost</div>
-                </div>
-
-                <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700/60' : 'bg-indigo-50/50 border-indigo-100'}`}>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Average Cost</div>
-                  <div className="text-lg font-black text-indigo-600 dark:text-indigo-400 mt-1">
-                    Rs. {val.avgCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">Per {unit}</div>
-                </div>
-
-                <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700/60' : 'bg-amber-50/50 border-amber-100'}`}>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Latest Purchase Rate</div>
-                  <div className="text-lg font-black text-amber-600 dark:text-amber-400 mt-1">
-                    Rs. {(val.latestPurchaseRate || val.avgCost).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">Most recent procurement</div>
-                </div>
-              </div>
-
-              {/* Purchase Cost Breakdown Equation Box */}
-              <div className={`p-4 rounded-2xl border mb-5 ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                <div className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-                  <Coins className="w-3.5 h-3.5 text-brand-500" />
-                  <span>Cost Equation & Inventory Lot Breakdown</span>
-                </div>
-                <div className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 flex flex-wrap items-center gap-2">
-                  {allBatches.length === 0 ? (
-                    <span className="text-slate-400">No purchase batches recorded yet. Direct initial stock rate applies.</span>
-                  ) : (
-                    <>
-                      {allBatches.map((b, i) => (
-                        <React.Fragment key={b.id || i}>
-                          {i > 0 && <span className="text-slate-400 font-normal">+</span>}
-                          <span className={`px-2.5 py-1 rounded-xl border ${b.remainingQty > 0 ? 'bg-white dark:bg-slate-800 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'}`}>
-                            {b.initialQty} {unit} @ Rs. {b.rate.toLocaleString()} → Rs. {b.initialTotalCost.toLocaleString()}
-                            {b.remainingQty < b.initialQty && (
-                              <span className="ml-1 text-[10px] font-semibold text-slate-400">
-                                ({b.remainingQty} rem.)
-                              </span>
-                            )}
-                          </span>
-                        </React.Fragment>
-                      ))}
-                      <span className="text-slate-400 font-normal">=</span>
-                      <span className="px-2.5 py-1 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-400 font-black">
-                        Total: {val.qty.toLocaleString()} {unit} → Rs. {val.stockValue.toLocaleString()} (Avg: Rs. {val.avgCost.toLocaleString(undefined, { maximumFractionDigits: 2 })})
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Batches Table */}
-              <div className="border rounded-2xl overflow-hidden border-slate-200 dark:border-slate-700 max-h-64 overflow-y-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                      <th className="py-2.5 px-3">Batch Ref / Date</th>
-                      <th className="py-2.5 px-3">Lot Type</th>
-                      <th className="py-2.5 px-3 text-right">Procured Qty</th>
-                      <th className="py-2.5 px-3 text-right">Unit Rate</th>
-                      <th className="py-2.5 px-3 text-right">Remaining Qty</th>
-                      <th className="py-2.5 px-3 text-right">Remaining Value</th>
-                      <th className="py-2.5 px-3 text-center">Lot Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                    {allBatches.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="py-8 text-center text-slate-400 text-xs font-bold">
-                          No distinct purchase lots recorded.
-                        </td>
-                      </tr>
-                    ) : (
-                      allBatches.map((batch, idx) => {
-                        const isFullyConsumed = batch.remainingQty === 0;
-                        const isPartial = batch.remainingQty > 0 && batch.remainingQty < batch.initialQty;
-
-                        return (
-                          <tr key={batch.id || idx} className={theme === 'dark' ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50/70'}>
-                            <td className="py-2.5 px-3 font-mono">
-                              <div className="font-bold text-slate-800 dark:text-slate-200">{batch.batchId}</div>
-                              <div className="text-[10px] text-slate-400">{batch.dateStr}</div>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                                {batch.type}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-300">
-                              {batch.initialQty.toLocaleString()} {unit}
-                            </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-extrabold text-slate-900 dark:text-white">
-                              Rs. {batch.rate.toLocaleString()}
-                            </td>
-                            <td className={`py-2.5 px-3 text-right font-mono font-black ${isFullyConsumed ? 'text-slate-400 line-through' : 'text-blue-600 dark:text-blue-400'}`}>
-                              {batch.remainingQty.toLocaleString()} {unit}
-                            </td>
-                            <td className={`py-2.5 px-3 text-right font-mono font-black ${isFullyConsumed ? 'text-slate-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                              Rs. {batch.remainingValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                            </td>
-                            <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isFullyConsumed
-                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
-                                : isPartial
-                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                                }`}>
-                                {isFullyConsumed ? 'Consumed' : isPartial ? 'Partially Sold' : 'Active Lot'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Close Button */}
-              <div className="mt-5 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setViewingBatchesProduct(null)}
-                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl transition cursor-pointer"
-                >
-                  Close Breakdown
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 };

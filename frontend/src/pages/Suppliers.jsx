@@ -870,16 +870,6 @@ export const Suppliers = () => {
                               </span>
                             )}
 
-                            {/* View Detail & Ledger */}
-                            <button
-                              onClick={() => { setViewingSupplier(s); setViewingTab('all'); }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold shadow-2xs"
-                              title="View Purchases & Payment Ledger History"
-                            >
-                              <BookOpen className="w-3.5 h-3.5" />
-                              <span>History</span>
-                            </button>
-
                             <button
                               onClick={() => setEditingSupplier({ ...s })}
                               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition cursor-pointer"

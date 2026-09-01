@@ -234,9 +234,49 @@ export const computeAllCustomersFinancials = (customers = [], sales = [], paymen
   };
 };
 
+const safeQty = (val) => {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return isNaN(val) || !isFinite(val) ? 0 : val;
+  const str = String(val).trim();
+  const match = str.match(/^-?\d+(\.\d+)?/);
+  if (match) {
+    const n = parseFloat(match[0]);
+    return isNaN(n) || !isFinite(n) ? 0 : n;
+  }
+  const n = parseFloat(str);
+  return isNaN(n) || !isFinite(n) ? 0 : n;
+};
+
+const safeNum = (val, fallback = 0) => {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'number') return isNaN(val) || !isFinite(val) ? fallback : val;
+  const str = String(val).trim();
+  const match = str.match(/^-?\d+(\.\d+)?/);
+  if (match) {
+    const n = parseFloat(match[0]);
+    return isNaN(n) || !isFinite(n) ? fallback : n;
+  }
+  const n = parseFloat(str);
+  return isNaN(n) || !isFinite(n) ? fallback : n;
+};
+
 export const computeProductValuation = (product, purchases = [], sales = [], saleReturns = [], purchaseReturns = [], stockMovements = []) => {
-  if (!product) return { qty: 0, avgCost: 0, stockValue: 0, sellingRate: 0, purchaseRate: 0, latestPurchaseRate: 0, totalInflowQty: 0, totalOutflowQty: 0, batches: [], activeBatches: [] };
-  
+  if (!product) {
+    return {
+      qty: 0,
+      avgCost: 0,
+      stockValue: 0,
+      sellingRate: 0,
+      purchaseRate: 0,
+      latestPurchaseRate: 0,
+      totalInflowQty: 0,
+      totalOutflowQty: 0,
+      batches: [],
+      activeBatches: [],
+      ledger: []
+    };
+  }
+
   const prodId = product.id ? String(product.id) : null;
   const prodName = (product.name || '').trim().toLowerCase();
 
@@ -248,9 +288,9 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     return prodName && itName && (itName === prodName || itName.includes(prodName) || prodName.includes(itName));
   };
 
-  const initialQty = Number(product.openingStock ?? product.initialStock ?? product.opening_stock ?? product.initial_stock ?? product.stockQty ?? product.stock_qty ?? 0);
-  const initialRate = Number(product.purchasePrice ?? product.purchase_price ?? product.rate ?? 0);
-  const sellingRate = Number(product.sellingPrice ?? product.selling_price ?? 0);
+  const initialQty = safeQty(product.openingStock ?? product.initialStock ?? product.opening_stock ?? product.initial_stock ?? product.stockQty ?? product.stock_qty ?? 0);
+  const initialRate = safeNum(product.purchasePrice ?? product.purchase_price ?? product.rate ?? 0, 0);
+  const sellingRate = safeNum(product.sellingPrice ?? product.selling_price ?? 0, 0);
 
   // Collect all transactions in chronological order
   const events = [];
@@ -274,15 +314,18 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     const items = p.cart || p.items || [];
     items.forEach((it, idx) => {
       if (isMatch(it)) {
-        events.push({
-          id: `pur-${p.id || p.purchaseNo}-${idx}`,
-          date: pDate,
-          dateStr: pDateStr,
-          type: 'PURCHASE',
-          ref: p.purchaseNo ? `PUR-#${p.purchaseNo}` : `PUR-${p.id}`,
-          qty: Number(it.qty || it.quantity || 0),
-          rate: Number(it.rate ?? it.price ?? it.purchasePrice ?? initialRate)
-        });
+        const qty = safeQty(it.qty ?? it.quantity ?? it.enteredQty ?? 0);
+        if (qty > 0) {
+          events.push({
+            id: `pur-${p.id || p.purchaseNo}-${idx}`,
+            date: pDate,
+            dateStr: pDateStr,
+            type: 'PURCHASE',
+            ref: p.purchaseNo ? `PUR-#${p.purchaseNo}` : `PUR-${p.id}`,
+            qty,
+            rate: safeNum(it.rate ?? it.price ?? it.purchasePrice ?? initialRate, initialRate)
+          });
+        }
       }
     });
   });
@@ -294,15 +337,18 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     const items = pr.items || [];
     items.forEach((it, idx) => {
       if (isMatch(it)) {
-        events.push({
-          id: `pret-${pr.id || pr.returnNo}-${idx}`,
-          date: prDate,
-          dateStr: prDateStr,
-          type: 'PURCHASE_RETURN',
-          ref: pr.returnNo ? `PR-#${pr.returnNo}` : `PR-${pr.id}`,
-          qty: Number(it.qty || it.quantity || 0),
-          rate: Number(it.rate ?? it.price ?? it.refundRate ?? 0)
-        });
+        const qty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 0);
+        if (qty > 0) {
+          events.push({
+            id: `pret-${pr.id || pr.returnNo}-${idx}`,
+            date: prDate,
+            dateStr: prDateStr,
+            type: 'PURCHASE_RETURN',
+            ref: pr.returnNo ? `PR-#${pr.returnNo}` : `PR-${pr.id}`,
+            qty,
+            rate: safeNum(it.rate ?? it.price ?? it.refundRate ?? initialRate, initialRate)
+          });
+        }
       }
     });
   });
@@ -314,15 +360,18 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     const items = s.cart || s.items || [];
     items.forEach((it, idx) => {
       if (isMatch(it)) {
-        events.push({
-          id: `sale-${s.id || s.invoiceNo}-${idx}`,
-          date: sDate,
-          dateStr: sDateStr,
-          type: 'SALE',
-          ref: s.invoiceNo ? `INV-#${s.invoiceNo}` : `INV-${s.id}`,
-          qty: Number(it.qty || it.quantity || 0),
-          rate: Number(it.rate ?? it.price ?? it.sellingPrice ?? sellingRate)
-        });
+        const qty = safeQty(it.qty ?? it.quantity ?? it.enteredQty ?? 0);
+        if (qty > 0) {
+          events.push({
+            id: `sale-${s.id || s.invoiceNo}-${idx}`,
+            date: sDate,
+            dateStr: sDateStr,
+            type: 'SALE',
+            ref: s.invoiceNo ? `INV-#${s.invoiceNo}` : `INV-${s.id}`,
+            qty,
+            rate: safeNum(it.rate ?? it.price ?? it.sellingPrice ?? sellingRate, sellingRate)
+          });
+        }
       }
     });
   });
@@ -334,15 +383,18 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     const items = sr.items || [];
     items.forEach((it, idx) => {
       if (isMatch(it)) {
-        events.push({
-          id: `sret-${sr.id || sr.returnNo}-${idx}`,
-          date: srDate,
-          dateStr: srDateStr,
-          type: 'SALE_RETURN',
-          ref: sr.returnNo ? `SR-#${sr.returnNo}` : `SR-${sr.id}`,
-          qty: Number(it.qty || it.quantity || 0),
-          rate: Number(it.rate ?? it.price ?? 0)
-        });
+        const qty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 0);
+        if (qty > 0) {
+          events.push({
+            id: `sret-${sr.id || sr.returnNo}-${idx}`,
+            date: srDate,
+            dateStr: srDateStr,
+            type: 'SALE_RETURN',
+            ref: sr.returnNo ? `SR-#${sr.returnNo}` : `SR-${sr.id}`,
+            qty,
+            rate: safeNum(it.rate ?? it.price ?? initialRate, initialRate)
+          });
+        }
       }
     });
   });
@@ -356,16 +408,19 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
       const refUpper = (m.ref || '').toUpperCase();
       const isAlreadyTracked = refUpper.includes('PURCHASE') || refUpper.includes('SALE') || refUpper.includes('RETURN') || refUpper.includes('INV-') || refUpper.includes('PUR-');
       if (!isAlreadyTracked) {
-        const isStockIn = typeUpper.includes('IN') || Number(m.qty || 0) > 0;
-        events.push({
-          id: `adj-${m.id || idx}`,
-          date: mDate,
-          dateStr: mDateStr,
-          type: isStockIn ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT',
-          ref: m.ref || 'Adjustment',
-          qty: Math.abs(Number(m.qty || 0)),
-          rate: Number(m.rate ?? initialRate)
-        });
+        const itQty = safeQty(m.qty);
+        if (itQty > 0) {
+          const isStockIn = typeUpper.includes('IN') || (typeof m.qty === 'number' && m.qty > 0);
+          events.push({
+            id: `adj-${m.id || idx}`,
+            date: mDate,
+            dateStr: mDateStr,
+            type: isStockIn ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT',
+            ref: m.ref || 'Adjustment',
+            qty: itQty,
+            rate: safeNum(m.rate ?? initialRate, initialRate)
+          });
+        }
       }
     }
   });
@@ -375,7 +430,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
 
   // If no transactions exist, fallback to direct product stockQty and purchasePrice
   if (events.length === 0) {
-    const currentStock = Number(product.stockQty !== undefined ? product.stockQty : (product.stockqty !== undefined ? product.stockqty : 0));
+    const currentStock = safeQty(product.stockQty !== undefined ? product.stockQty : (product.stockqty !== undefined ? product.stockqty : 0));
     return {
       qty: currentStock,
       avgCost: initialRate,
@@ -396,7 +451,29 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
         remainingQty: initialQty,
         remainingValue: initialQty * initialRate
       }] : [],
-      activeBatches: []
+      activeBatches: initialQty > 0 ? [{
+        id: 'open-0',
+        batchId: 'OPENING',
+        dateStr: 'Opening',
+        type: 'Opening Stock',
+        initialQty,
+        rate: initialRate,
+        initialTotalCost: initialQty * initialRate,
+        remainingQty: initialQty,
+        remainingValue: initialQty * initialRate
+      }] : [],
+      ledger: initialQty > 0 ? [{
+        id: 'led-open-0',
+        dateStr: 'Opening',
+        date: 0,
+        ref: 'OPENING-STOCK',
+        type: 'Opening Stock',
+        direction: 'IN',
+        qty: initialQty,
+        rate: initialRate,
+        total: initialQty * initialRate,
+        runningStock: initialQty
+      }] : []
     };
   }
 
@@ -405,28 +482,49 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
   let totalInflowQty = 0;
   let totalOutflowQty = 0;
   let latestPurchaseRate = initialRate;
+  let runningStockBalance = 0;
+  const ledger = [];
 
-  events.forEach(ev => {
+  events.forEach((ev, evIdx) => {
+    const evQty = safeQty(ev.qty);
+    if (evQty <= 0) return;
+
     if (ev.type === 'OPENING' || ev.type === 'PURCHASE' || ev.type === 'ADJUSTMENT_IN') {
-      const batchRate = ev.rate > 0 ? ev.rate : initialRate;
-      if (ev.type === 'PURCHASE' || (ev.type === 'OPENING' && latestPurchaseRate === 0)) {
+      const batchRate = safeNum(ev.rate, initialRate);
+      if (batchRate > 0) {
         latestPurchaseRate = batchRate;
       }
+      const initialTotalCost = evQty * batchRate;
       batches.push({
         id: ev.id,
         batchId: ev.ref || `BATCH-${batches.length + 1}`,
         dateStr: ev.dateStr,
         type: ev.type === 'OPENING' ? 'Opening Stock' : (ev.type === 'PURCHASE' ? 'Purchase' : 'Adjustment In'),
-        initialQty: ev.qty,
+        initialQty: evQty,
         rate: batchRate,
-        initialTotalCost: ev.qty * batchRate,
-        remainingQty: ev.qty,
-        remainingValue: ev.qty * batchRate
+        initialTotalCost: isNaN(initialTotalCost) ? 0 : initialTotalCost,
+        remainingQty: evQty,
+        remainingValue: isNaN(initialTotalCost) ? 0 : initialTotalCost
       });
-      totalInflowQty += ev.qty;
+      totalInflowQty += evQty;
+      runningStockBalance += evQty;
+
+      ledger.push({
+        id: `led-${ev.id || evIdx}`,
+        dateStr: ev.dateStr,
+        date: ev.date,
+        ref: ev.ref,
+        type: ev.type === 'OPENING' ? 'Opening Stock' : (ev.type === 'PURCHASE' ? 'Purchase' : 'Stock Adjustment In'),
+        direction: 'IN',
+        qty: evQty,
+        rate: batchRate,
+        total: initialTotalCost,
+        runningStock: runningStockBalance
+      });
     } else if (ev.type === 'SALE' || ev.type === 'PURCHASE_RETURN' || ev.type === 'ADJUSTMENT_OUT') {
-      let needed = ev.qty;
-      totalOutflowQty += ev.qty;
+      let needed = evQty;
+      totalOutflowQty += evQty;
+      runningStockBalance = Math.max(0, runningStockBalance - evQty);
 
       // FIFO deduction from oldest active batches
       for (let i = 0; i < batches.length; i++) {
@@ -434,14 +532,29 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
         const b = batches[i];
         if (b.remainingQty > 0) {
           const deduct = Math.min(b.remainingQty, needed);
-          b.remainingQty -= deduct;
+          b.remainingQty = Math.max(0, b.remainingQty - deduct);
           b.remainingValue = b.remainingQty * b.rate;
           needed -= deduct;
         }
       }
+
+      const txRate = safeNum(ev.rate, ev.type === 'SALE' ? sellingRate : initialRate);
+      ledger.push({
+        id: `led-${ev.id || evIdx}`,
+        dateStr: ev.dateStr,
+        date: ev.date,
+        ref: ev.ref,
+        type: ev.type === 'SALE' ? 'Sale Invoice' : (ev.type === 'PURCHASE_RETURN' ? 'Purchase Return' : 'Stock Adjustment Out'),
+        direction: 'OUT',
+        qty: evQty,
+        rate: txRate,
+        total: evQty * txRate,
+        runningStock: runningStockBalance
+      });
     } else if (ev.type === 'SALE_RETURN') {
-      let returnRestored = ev.qty;
-      totalInflowQty += ev.qty;
+      let returnRestored = evQty;
+      totalInflowQty += evQty;
+      runningStockBalance += evQty;
 
       // Restore to most recently deducted batch
       for (let i = batches.length - 1; i >= 0; i--) {
@@ -459,6 +572,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
       // If more returned than original batch capacities, add as return lot
       if (returnRestored > 0) {
         const returnRate = latestPurchaseRate > 0 ? latestPurchaseRate : initialRate;
+        const lotCost = returnRestored * returnRate;
         batches.push({
           id: ev.id,
           batchId: ev.ref || `SR-LOT-${batches.length + 1}`,
@@ -466,30 +580,45 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
           type: 'Sale Return In',
           initialQty: returnRestored,
           rate: returnRate,
-          initialTotalCost: returnRestored * returnRate,
+          initialTotalCost: isNaN(lotCost) ? 0 : lotCost,
           remainingQty: returnRestored,
-          remainingValue: returnRestored * returnRate
+          remainingValue: isNaN(lotCost) ? 0 : lotCost
         });
       }
+
+      const txRate = safeNum(ev.rate, sellingRate);
+      ledger.push({
+        id: `led-${ev.id || evIdx}`,
+        dateStr: ev.dateStr,
+        date: ev.date,
+        ref: ev.ref,
+        type: 'Sale Return',
+        direction: 'IN',
+        qty: evQty,
+        rate: txRate,
+        total: evQty * txRate,
+        runningStock: runningStockBalance
+      });
     }
   });
 
-  const totalCurrentStock = batches.reduce((sum, b) => sum + b.remainingQty, 0);
-  const totalStockValue = batches.reduce((sum, b) => sum + b.remainingValue, 0);
-  const averageCost = totalCurrentStock > 0 ? (totalStockValue / totalCurrentStock) : (latestPurchaseRate || initialRate);
-  const activeBatches = batches.filter(b => b.remainingQty > 0);
+  const totalCurrentStock = batches.reduce((sum, b) => sum + (safeQty(b.remainingQty) || 0), 0);
+  const totalStockValue = batches.reduce((sum, b) => sum + (safeNum(b.remainingValue, 0) || 0), 0);
+  const averageCost = totalCurrentStock > 0 ? (totalStockValue / totalCurrentStock) : (latestPurchaseRate || initialRate || 0);
+  const activeBatches = batches.filter(b => (b.remainingQty || 0) > 0);
 
   return {
-    qty: totalCurrentStock,
-    avgCost: averageCost,
-    stockValue: totalStockValue,
-    sellingRate,
-    purchaseRate: averageCost,
-    latestPurchaseRate,
-    totalInflowQty,
-    totalOutflowQty,
+    qty: isNaN(totalCurrentStock) ? 0 : totalCurrentStock,
+    avgCost: isNaN(averageCost) ? 0 : averageCost,
+    stockValue: isNaN(totalStockValue) ? 0 : totalStockValue,
+    sellingRate: isNaN(sellingRate) ? 0 : sellingRate,
+    purchaseRate: isNaN(averageCost) ? 0 : averageCost,
+    latestPurchaseRate: isNaN(latestPurchaseRate) ? (isNaN(initialRate) ? 0 : initialRate) : latestPurchaseRate,
+    totalInflowQty: isNaN(totalInflowQty) ? 0 : totalInflowQty,
+    totalOutflowQty: isNaN(totalOutflowQty) ? 0 : totalOutflowQty,
     batches,
-    activeBatches
+    activeBatches,
+    ledger: ledger.sort((a, b) => b.date - a.date)
   };
 };
 
