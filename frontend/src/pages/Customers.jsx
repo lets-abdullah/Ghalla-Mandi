@@ -263,15 +263,12 @@ export const Customers = () => {
   // Calculate customer metrics for profile view
   const getCustomerMetrics = (cust) => {
     if (!cust) return { totalSales: 0, totalPaid: 0, balance: 0, ordersCount: 0 };
-    const custSales = (sales || []).filter(s => s.customerId === cust.id || s.partyName === cust.name);
-    const totalSales = custSales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
-    const totalPaid = custSales.reduce((acc, s) => acc + Number(s.paidAmount || (s.status === 'Paid' ? s.amount : 0)), 0);
-    const balance = Number(cust.balance !== undefined ? cust.balance : Math.max(0, totalSales - totalPaid));
+    const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
     return {
-      totalSales,
-      totalPaid,
-      balance,
-      ordersCount: custSales.length
+      totalSales: fin.totalSale,
+      totalPaid: fin.totalPaid,
+      balance: fin.balance,
+      ordersCount: fin.ordersCount
     };
   };
 

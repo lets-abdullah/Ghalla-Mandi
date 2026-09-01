@@ -155,15 +155,17 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
     );
 
     const isMarkedPaid = tx.status === 'Paid' || tx.paymentStatus === 'Paid';
+    const isMarkedPending = tx.status === 'Pending' || tx.paymentStatus === 'Pending' || tx.status === 'Unpaid' || tx.paymentStatus === 'Unpaid';
+    const isMarkedPartial = tx.status === 'Partial' || tx.paymentStatus === 'Partial';
 
     if (rawPaid > 0) {
       liquidPaid = Math.min(grossAmount, rawPaid);
-    } else if (rawPaid === 0 && (isMarkedPaid || (isCash && !tx.status && !tx.paymentStatus))) {
-      // Legacy cash record where paidAmount was 0 or omitted but paymentMode is explicitly Cash
+    } else if (isMarkedPending) {
+      liquidPaid = 0;
+    } else if (isMarkedPartial) {
+      liquidPaid = rawPaid > 0 ? Math.min(grossAmount, rawPaid) : 0;
+    } else if (isMarkedPaid) {
       liquidPaid = grossAmount;
-    } else if (rawPaid < 0) {
-      // No paid field found: check status or full cash mode
-      liquidPaid = (isMarkedPaid || isCash || isBank || isWallet) ? grossAmount : 0;
     } else {
       liquidPaid = 0;
     }
@@ -324,32 +326,28 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
 
   const directPaidLogs = custPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-  // Upfront POS payments on sales that do not have a separate payment log
+  // Upfront POS payments on sales that do not have a separate payment log in paymentLogs
   let unloggedUpfrontCash = 0;
-  custSales.forEach(s => {
-    const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
-    const sAppliedCredit = Number(s.appliedCredit || 0);
-    const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
-
-    let sUpfront = 0;
-    if (s.cashReceived !== undefined) {
-      sUpfront = Number(s.cashReceived);
-    } else if (sAppliedCredit > 0) {
-      const grossPaid = isMarkedPaid ? sTotal : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
-      sUpfront = Math.max(0, grossPaid - sAppliedCredit);
-    } else {
-      sUpfront = isMarkedPaid ? sTotal : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
-    }
-
-    const sMatchingLog = custPayments.find(p =>
-      (p.saleId && String(p.saleId) === String(s.id)) ||
-      (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
-    );
-
-    if (!sMatchingLog && sUpfront > 0) {
-      unloggedUpfrontCash += sUpfront;
-    }
-  });
+  if (custPayments.length === 0) {
+    // If no payment logs exist at all for this customer, use sale upfront amounts
+    custSales.forEach(s => {
+      const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
+      const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
+      const sPaid = isMarkedPaid ? sTotal : Number(s.cashReceived !== undefined ? s.cashReceived : (s.paidAmount || 0));
+      unloggedUpfrontCash += Math.min(sTotal, sPaid);
+    });
+  } else {
+    // If payment logs exist, only add explicit POS cash on sales that are NOT linked to any payment log
+    custSales.forEach(s => {
+      const hasMatchingLog = custPayments.some(p =>
+        (p.saleId && String(p.saleId) === String(s.id)) ||
+        (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+      );
+      if (!hasMatchingLog && s.cashReceived !== undefined && Number(s.cashReceived) > 0) {
+        unloggedUpfrontCash += Number(s.cashReceived);
+      }
+    });
+  }
 
   const totalActualPaymentsReceived = directPaidLogs + unloggedUpfrontCash;
 
@@ -939,30 +937,24 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   const directPaidLogs = supPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
   let unloggedUpfrontCash = 0;
-  supPurchases.forEach(p => {
-    const pTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
-    const pAppliedAdvance = Number(p.appliedAdvance || p.appliedCredit || 0);
-    const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
-
-    let pUpfront = 0;
-    if (p.cashPaid !== undefined) {
-      pUpfront = Number(p.cashPaid);
-    } else if (pAppliedAdvance > 0) {
-      const grossPaid = isMarkedPaid ? pTotal : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
-      pUpfront = Math.max(0, grossPaid - pAppliedAdvance);
-    } else {
-      pUpfront = isMarkedPaid ? pTotal : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
-    }
-
-    const pMatchingLog = supPayments.find(pl =>
-      (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
-      (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
-    );
-
-    if (!pMatchingLog && pUpfront > 0) {
-      unloggedUpfrontCash += pUpfront;
-    }
-  });
+  if (supPayments.length === 0) {
+    supPurchases.forEach(p => {
+      const pTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
+      const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
+      const pPaid = isMarkedPaid ? pTotal : Number(p.cashPaid !== undefined ? p.cashPaid : (p.paidAmount || 0));
+      unloggedUpfrontCash += Math.min(pTotal, pPaid);
+    });
+  } else {
+    supPurchases.forEach(p => {
+      const hasMatchingLog = supPayments.some(pl =>
+        (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+        (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+      );
+      if (!hasMatchingLog && p.cashPaid !== undefined && Number(p.cashPaid) > 0) {
+        unloggedUpfrontCash += Number(p.cashPaid);
+      }
+    });
+  }
 
   const totalActualPaymentsPaid = directPaidLogs + unloggedUpfrontCash;
 
@@ -1201,23 +1193,19 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         notes: s.saleNote || s.note || ''
       });
 
-      // Upfront payment on sale if not recorded in paymentLogs
-      const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
-      const sAppliedCredit = Number(s.appliedCredit || 0);
-      let sUpfrontCash = 0;
-      if (s.cashReceived !== undefined) {
-        sUpfrontCash = Number(s.cashReceived);
-      } else if (sAppliedCredit > 0) {
-        const grossPaid = isMarkedPaid ? sGross : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
-        sUpfrontCash = Math.max(0, grossPaid - sAppliedCredit);
-      } else {
-        sUpfrontCash = isMarkedPaid ? sGross : Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
-      }
-
+      // Upfront payment on sale ONLY if no payment logs exist or specifically unlogged POS cash
       const hasSpecificLog = partyPayments.some(pl =>
         (pl.saleId && String(pl.saleId) === String(s.id)) ||
         (s.invoiceNo && pl.ref && pl.ref.includes(s.invoiceNo))
       );
+
+      let sUpfrontCash = 0;
+      if (partyPayments.length === 0) {
+        const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
+        sUpfrontCash = isMarkedPaid ? sGross : Number(s.cashReceived !== undefined ? s.cashReceived : (s.paidAmount || 0));
+      } else if (!hasSpecificLog && s.cashReceived !== undefined && Number(s.cashReceived) > 0) {
+        sUpfrontCash = Number(s.cashReceived);
+      }
 
       if (sUpfrontCash > 0 && !hasSpecificLog) {
         entries.push({
@@ -1333,22 +1321,19 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         notes: p.note || ''
       });
 
-      const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
-      const pAppliedAdvance = Number(p.appliedAdvance || p.appliedCredit || 0);
-      let pUpfrontCash = 0;
-      if (p.cashPaid !== undefined) {
-        pUpfrontCash = Number(p.cashPaid);
-      } else if (pAppliedAdvance > 0) {
-        const grossPaid = isMarkedPaid ? pGross : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
-        pUpfrontCash = Math.max(0, grossPaid - pAppliedAdvance);
-      } else {
-        pUpfrontCash = isMarkedPaid ? pGross : Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
-      }
-
+      // Upfront payment on purchase ONLY if no payment logs exist or specifically unlogged POS cash
       const hasSpecificLog = partyPayments.some(pl =>
         (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
         (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
       );
+
+      let pUpfrontCash = 0;
+      if (partyPayments.length === 0) {
+        const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
+        pUpfrontCash = isMarkedPaid ? pGross : Number(p.cashPaid !== undefined ? p.cashPaid : (p.paidAmount || 0));
+      } else if (!hasSpecificLog && p.cashPaid !== undefined && Number(p.cashPaid) > 0) {
+        pUpfrontCash = Number(p.cashPaid);
+      }
 
       if (pUpfrontCash > 0 && !hasSpecificLog) {
         entries.push({
