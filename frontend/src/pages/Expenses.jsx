@@ -373,6 +373,7 @@ export const Expenses = () => {
                   <option value="Bank Transfer">Bank Transfer</option>
                   <option value="Online">Online / Wallet</option>
                   <option value="Cheque">Cheque</option>
+                  <option value="Unpaid">Unpaid / Accrued (Payable)</option>
                 </select>
               </div>
 
@@ -563,7 +564,15 @@ export const Expenses = () => {
                       <td className="py-3 px-3 max-w-[200px] truncate text-slate-600 dark:text-slate-300">
                         {exp.desc}
                       </td>
-                      <td className="py-3 px-3 font-medium text-slate-500">{exp.mode}</td>
+                      <td className="py-3 px-3 font-medium text-slate-500">
+                        {String(exp.mode || '').toLowerCase().includes('unpaid') ? (
+                          <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider">
+                            Unpaid / Due
+                          </span>
+                        ) : (
+                          exp.mode || 'Cash'
+                        )}
+                      </td>
                       <td className="py-3 px-3 text-right font-mono font-black text-rose-600 dark:text-rose-400">
                         Rs. {Number(exp.amount).toLocaleString()}
                       </td>

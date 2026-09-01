@@ -999,23 +999,29 @@ export const Reports = () => {
       }
     });
 
-    // 6. Expenses Outflows
+    // 6. Expenses Outflows (ONLY paid expenses deduct cash/bank)
     (expenses || []).forEach(e => {
-      const amt = Number(e.amount || 0);
-      if (amt > 0) {
-        const chan = getChannel(e.mode || e.paymentMode || e.paymentMethod);
-        if (chan === 'wallet') wallet -= amt;
-        else if (chan === 'bank') bank -= amt;
-        else cash -= amt;
+      const mode = String(e.mode || e.paymentMode || e.paymentMethod || '').toLowerCase();
+      const status = String(e.status || e.paymentStatus || '').toLowerCase();
+      const isUnpaid = status === 'unpaid' || status === 'pending' || status === 'due' || mode.includes('unpaid') || mode.includes('pending') || mode.includes('payable') || mode.includes('due') || mode === 'ledger' || mode === 'credit';
 
-        txList.push({
-          date: e.date || 'Today',
-          source: `Expense: ${e.category || 'Shop'} (${e.desc || ''})`,
-          party: e.payee || 'Expense Payee',
-          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
-          type: 'Outflow',
-          amount: amt
-        });
+      if (!isUnpaid) {
+        const amt = Number(e.amount || 0);
+        if (amt > 0) {
+          const chan = getChannel(e.mode || e.paymentMode || e.paymentMethod);
+          if (chan === 'wallet') wallet -= amt;
+          else if (chan === 'bank') bank -= amt;
+          else cash -= amt;
+
+          txList.push({
+            date: e.date || 'Today',
+            source: `Expense: ${e.category || 'Shop'} (${e.desc || ''})`,
+            party: e.payee || 'Expense Payee',
+            channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+            type: 'Outflow',
+            amount: amt
+          });
+        }
       }
     });
 
@@ -1055,8 +1061,17 @@ export const Reports = () => {
     };
   }, [sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns]);
 
+  // Outstanding / Unpaid Operating Expenses Liability
+  const totalOutstandingExpenses = useMemo(() => {
+    return (expenses || []).filter(e => {
+      const mode = String(e.mode || e.paymentMode || e.paymentMethod || '').toLowerCase();
+      const status = String(e.status || e.paymentStatus || '').toLowerCase();
+      return status === 'unpaid' || status === 'pending' || status === 'due' || mode.includes('unpaid') || mode.includes('pending') || mode.includes('payable') || mode.includes('due') || mode === 'ledger' || mode === 'credit';
+    }).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  }, [expenses]);
+
   const totalAssets = useMemo(() => totalCustomerReceivables + totalStockValuation, [totalCustomerReceivables, totalStockValuation]);
-  const totalLiabilities = useMemo(() => totalSupplierPayables, [totalSupplierPayables]);
+  const totalLiabilities = useMemo(() => totalSupplierPayables + totalOutstandingExpenses, [totalSupplierPayables, totalOutstandingExpenses]);
   const totalEquity = useMemo(() => totalAssets - totalLiabilities, [totalAssets, totalLiabilities]);
 
   // Granular Balance Sheet Breakdown Objects
@@ -1088,22 +1103,20 @@ export const Reports = () => {
   const bsLiabilitiesBreakdown = useMemo(() => {
     return {
       supplierPayables: totalSupplierPayables,
-      loansFinancing: 0,
-      outstandingExpenses: 0,
-      taxPayables: 0,
-      total: totalSupplierPayables
+      outstandingExpenses: totalOutstandingExpenses,
+      total: totalLiabilities
     };
-  }, [totalSupplierPayables]);
+  }, [totalSupplierPayables, totalOutstandingExpenses, totalLiabilities]);
 
   const bsEquityBreakdown = useMemo(() => {
     const retained = Math.max(0, netOperatingProfit);
-    const capital = Math.max(0, totalAssets - totalSupplierPayables - retained);
+    const capital = Math.max(0, totalAssets - totalLiabilities - retained);
     return {
       ownersCapital: capital,
       retainedProfit: retained,
       total: totalEquity
     };
-  }, [totalAssets, totalSupplierPayables, netOperatingProfit, totalEquity]);
+  }, [totalAssets, totalLiabilities, netOperatingProfit, totalEquity]);
 
   // Helper for universal date parsing in Journal
   const parseJournalDate = (dateVal, createdVal) => {
@@ -1807,7 +1820,7 @@ export const Reports = () => {
       csvContent += makeSectionHeader('2. LIABILITIES (WHAT THE BUSINESS OWES)', COLS);
       csvContent += makeRow(['Liability Classification', 'Category / Subhead', 'Line Item / Description', 'Settlement Terms', 'Outstanding (Rs.)', 'Subtotal (Rs.)'], COLS);
       csvContent += makeRow(['Current Liabilities', 'Payables', 'Supplier Khata Payables', 'Outstanding Mandi Suppliers', num(totalSupplierPayables), ''], COLS);
-      csvContent += makeRow(['Current Liabilities', 'Accrued Expenses', 'Outstanding Shop Dues & Rent', 'Operating Liabilities', '0', ''], COLS);
+      csvContent += makeRow(['Current Liabilities', 'Accrued Expenses', 'Outstanding Operating Expenses', 'Unpaid Operating Liabilities', num(totalOutstandingExpenses), ''], COLS);
       csvContent += makeRow(['TOTAL LIABILITIES', '', '', '', '', num(totalLiabilities)], COLS);
 
       // Section 3: EQUITY & CAPITAL
@@ -3849,7 +3862,7 @@ export const Reports = () => {
               </div>
 
               <div className="space-y-3 text-xs">
-                {/* 1. Supplier dues deducted & Current Liabilities */}
+                {/* 1. Current Liabilities */}
                 <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
                   }`}>
                   <div
@@ -3865,7 +3878,7 @@ export const Reports = () => {
                       <span className="text-slate-900 dark:text-white">Current Liabilities</span>
                     </div>
                     <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
-                      Rs. {totalSupplierPayables.toLocaleString()}
+                      Rs. {totalLiabilities.toLocaleString()}
                     </span>
                   </div>
 
@@ -3876,12 +3889,8 @@ export const Reports = () => {
                         <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Loans & Financing:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
-                      </div>
-                      <div className="flex justify-between">
                         <span>Outstanding Operating Expenses:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. 0</span>
+                        <span className={`font-mono font-bold ${totalOutstandingExpenses > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-slate-200'}`}>Rs. {totalOutstandingExpenses.toLocaleString()}</span>
                       </div>
                     </div>
                   )}
