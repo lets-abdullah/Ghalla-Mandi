@@ -60,7 +60,7 @@ export const LowStockWidget = () => {
                     </div>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-500 text-[10px] font-bold border border-rose-500/30">
+                <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
                   {t('minStockLabel')}: {Number(item.minStock ?? item.minstock ?? 10).toLocaleString()} {item.unit || item.baseUnit || t('kg')}
                 </span>
               </div>

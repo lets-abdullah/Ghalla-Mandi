@@ -607,17 +607,17 @@ export const Inventory = () => {
                         </span>
                       </td>
 
-                      {/* Movement Type Badge */}
+                      {/* Movement Type (Plain Text) */}
                       <td className="py-2.5 px-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide border ${
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-black tracking-wide ${
                           isStockIn
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-rose-600 dark:text-rose-400'
                         }`}>
                           {isStockIn ? (
-                            <ArrowDownLeft className="w-3 h-3 stroke-[2.5]" />
+                            <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
                           ) : (
-                            <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
+                            <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
                           )}
                           <span>{tx.movementLabel}</span>
                         </span>

@@ -428,8 +428,8 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                 <h3 className="font-black text-sm text-slate-900 dark:text-white leading-tight">
                   Sale Invoice & Receipt
                 </h3>
-                <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono font-bold text-[10px]">
-                  {cleanReceiptNo}
+                <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  • {cleanReceiptNo}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-bold leading-tight">

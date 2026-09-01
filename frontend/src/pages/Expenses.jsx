@@ -566,7 +566,7 @@ export const Expenses = () => {
                       </td>
                       <td className="py-3 px-3 font-medium text-slate-500">
                         {String(exp.mode || '').toLowerCase().includes('unpaid') ? (
-                          <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider">
+                          <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase">
                             Unpaid / Due
                           </span>
                         ) : (

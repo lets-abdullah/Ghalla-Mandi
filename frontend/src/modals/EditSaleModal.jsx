@@ -172,8 +172,8 @@ export const EditSaleModal = ({ isOpen, onClose, sale }) => {
             <div>
               <h2 className="text-base font-black tracking-tight flex items-center gap-2">
                 <span>Edit Sale Invoice</span>
-                <span className="text-xs font-mono text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded-lg">
-                  {sale.invoiceNo}
+                <span className="text-xs font-mono font-bold text-brand-600 dark:text-brand-400">
+                  • {sale.invoiceNo}
                 </span>
               </h2>
               <p className="text-xs text-slate-400 font-medium">

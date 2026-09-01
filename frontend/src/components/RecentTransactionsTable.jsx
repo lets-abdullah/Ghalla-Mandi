@@ -95,10 +95,10 @@ export const RecentTransactionsTable = ({ onViewInvoice }) => {
                   theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
                 }`}>
                   <td className="py-3 px-2">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold ${
-                      tx.rawType === 'Sale' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' : 'bg-brand-500/10 text-brand-500 border border-brand-500/30'
+                    <span className={`inline-flex items-center gap-1 text-xs font-bold ${
+                      tx.rawType === 'Sale' ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand-600 dark:text-brand-400'
                     }`}>
-                      {tx.rawType === 'Sale' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownLeft className="w-3 h-3" />}
+                      {tx.rawType === 'Sale' ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownLeft className="w-3.5 h-3.5" />}
                       {tx.type}
                     </span>
                   </td>
@@ -112,10 +112,10 @@ export const RecentTransactionsTable = ({ onViewInvoice }) => {
                   <td className="py-3 px-2 text-slate-400">{tx.date}</td>
                   <td className="py-3 px-2 text-right font-extrabold">Rs. {tx.amount}</td>
                   <td className="py-3 px-2 text-center">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                      tx.rawStatus === 'Paid' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' :
-                      tx.rawStatus === 'Partial' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30' :
-                      'bg-rose-500/10 text-rose-500 border border-rose-500/30'
+                    <span className={`text-xs font-bold uppercase ${
+                      tx.rawStatus === 'Paid' ? 'text-emerald-600 dark:text-emerald-400' :
+                      tx.rawStatus === 'Partial' ? 'text-amber-600 dark:text-amber-400' :
+                      'text-rose-600 dark:text-rose-400'
                     }`}>
                       {tx.status}
                     </span>

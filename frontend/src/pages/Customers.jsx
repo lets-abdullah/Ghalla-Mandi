@@ -576,14 +576,12 @@ export const Customers = () => {
                   </div>
                   <div>
                     <h3 className="text-base font-extrabold">{viewingCustomer.name}</h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${isWalkin
-                        ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                        : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
-                        }`}>
-                        {isWalkin ? 'Walk-in Customer' : 'Regular Customer'}
-                      </span>
-                    </div>
+                    <span className={`text-xs font-bold ${isWalkin
+                      ? 'text-slate-500 dark:text-slate-400'
+                      : 'text-brand-600 dark:text-brand-400'
+                      }`}>
+                      • {isWalkin ? 'Walk-in Customer' : 'Regular Customer'}
+                    </span>
                   </div>
                 </div>
 

@@ -540,11 +540,11 @@ export const Khata = () => {
 
                       {/* Status */}
                       <td className="py-3 px-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${item.advanceCredit > 0
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                        <span className={`text-xs font-bold ${item.advanceCredit > 0
+                          ? 'text-emerald-600 dark:text-emerald-400'
                           : item.receivableDue > 0
-                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-slate-500'
                           }`}>
                           {item.advanceCredit > 0 ? 'Advance' : item.receivableDue > 0 ? 'Due' : 'Clear'}
                         </span>

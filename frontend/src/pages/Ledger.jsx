@@ -880,9 +880,9 @@ export const Ledger = () => {
 
                           {/* 5. Condition Status */}
                           <td className="py-3.5 px-4 text-center">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${isZero ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700' :
-                              isNeg ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
-                                'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                            <span className={`text-xs font-bold ${isZero ? 'text-slate-500' :
+                              isNeg ? 'text-emerald-600 dark:text-emerald-400' :
+                                'text-amber-600 dark:text-amber-400'
                               }`}>
                               {isPos ? (isSupplier ? 'Payable' : 'Receivable') : isNeg ? (isSupplier ? 'Overpaid' : 'Customer Credit') : 'Settled'}
                             </span>
@@ -930,11 +930,11 @@ export const Ledger = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg sm:text-xl font-black tracking-tight">{activeCustomer?.name}</h2>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${activeCustomer?.isWalkin
-                      ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 border-slate-300'
-                      : 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border-brand-500/20'
+                    <span className={`text-xs font-black uppercase tracking-wider ${activeCustomer?.isWalkin
+                      ? 'text-slate-500 dark:text-slate-400'
+                      : 'text-brand-600 dark:text-brand-400'
                       }`}>
-                      {activeCustomer?.customerType}
+                      • {activeCustomer?.customerType}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-slate-400 font-semibold mt-0.5">
@@ -1156,14 +1156,12 @@ export const Ledger = () => {
                           {/* 6. Running Balance */}
                           <td className="py-3.5 px-4 text-right font-mono font-black text-xs">
                             {isBalNeg ? (
-                              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
-                                <span>Credit:</span>
-                                <span>Rs. {Math.abs(entry.runningBalance).toLocaleString()}</span>
+                              <span className="text-emerald-600 dark:text-emerald-400">
+                                Credit: Rs. {Math.abs(entry.runningBalance).toLocaleString()}
                               </span>
                             ) : isBalPos ? (
-                              <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                                <span>{isSupplier ? 'Payable:' : 'Due:'}</span>
-                                <span>Rs. {entry.runningBalance.toLocaleString()}</span>
+                              <span className="text-amber-600 dark:text-amber-400">
+                                {isSupplier ? 'Payable:' : 'Due:'} Rs. {entry.runningBalance.toLocaleString()}
                               </span>
                             ) : (
                               <span className="text-slate-400">

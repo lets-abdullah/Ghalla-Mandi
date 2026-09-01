@@ -1070,7 +1070,7 @@ export const Reports = () => {
     }).reduce((sum, e) => sum + Number(e.amount || 0), 0);
   }, [expenses]);
 
-  const totalAssets = useMemo(() => totalCustomerReceivables + totalStockValuation, [totalCustomerReceivables, totalStockValuation]);
+  const totalAssets = useMemo(() => totalLiquidFunds + totalCustomerReceivables + totalStockValuation, [totalLiquidFunds, totalCustomerReceivables, totalStockValuation]);
   const totalLiabilities = useMemo(() => totalSupplierPayables + totalOutstandingExpenses, [totalSupplierPayables, totalOutstandingExpenses]);
   const totalEquity = useMemo(() => totalAssets - totalLiabilities, [totalAssets, totalLiabilities]);
 
@@ -1311,7 +1311,19 @@ export const Reports = () => {
 
     let running = 0;
     journal.forEach(item => {
-      running += item.amount;
+      let profitImpact = 0;
+      if (item.type === 'Sale') {
+        profitImpact = Number(item.grossProfit !== undefined ? item.grossProfit : (item.amount - (item.cogs || 0)));
+      } else if (item.type.includes('Sale Return')) {
+        profitImpact = Number(item.grossProfit !== undefined ? item.grossProfit : (item.amount - (item.cogs || 0)));
+      } else if (item.type === 'Expense') {
+        profitImpact = -Math.abs(item.amount);
+      } else {
+        // Purchases and Purchase Returns are inventory balance-sheet movements; unsold stock remains in warehouse inventory
+        profitImpact = 0;
+      }
+      running += profitImpact;
+      item.profitImpact = profitImpact;
       item.runningPnL = running;
     });
 
@@ -2524,11 +2536,11 @@ export const Reports = () => {
                               {s.dueAmt > 0 ? `Rs. ${s.dueAmt.toLocaleString()}` : <span className="text-emerald-500 font-bold text-[10px]">Cleared</span>}
                             </td>
                             <td className="py-3 px-3 text-center">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${s.dueAmt <= 0
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                              <span className={`text-xs font-bold uppercase ${s.dueAmt <= 0
+                                ? 'text-emerald-600 dark:text-emerald-400'
                                 : s.paidAmt > 0
-                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                  ? 'text-amber-600 dark:text-amber-400'
+                                  : 'text-rose-600 dark:text-rose-400'
                                 }`}>
                                 {s.dueAmt <= 0 ? 'Paid' : s.paidAmt > 0 ? 'Partial' : 'Khata'}
                               </span>
@@ -2599,10 +2611,8 @@ export const Reports = () => {
                           <td className="py-3 px-3 font-extrabold text-slate-900 dark:text-white">
                             {item.name}
                           </td>
-                          <td className="py-3 px-3 text-slate-500">
-                            <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-900 font-bold text-[10px] border border-slate-200 dark:border-slate-700">
-                              {(item.suppliers || []).join(', ')}
-                            </span>
+                          <td className="py-3 px-3 text-slate-600 dark:text-slate-300 font-medium">
+                            {(item.suppliers || []).join(', ')}
                           </td>
                           <td className="py-3 px-3 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
                             {item.totalQty} {item.unit}
@@ -3213,7 +3223,7 @@ export const Reports = () => {
                 <span className={`text-[11px] font-bold uppercase tracking-wider ${plNetProfit >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600'}`}>
                   Net Profit / Loss
                 </span>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono ${plNetProfit >= 0 ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                <span className={`text-xs font-black font-mono ${plNetProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                   }`}>
                   {plNetProfit >= 0 ? 'Net Profit' : 'Net Loss'}
                 </span>
@@ -3287,21 +3297,30 @@ export const Reports = () => {
                 className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-emerald-500 h-[36px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
-                <option value="All">All Types</option>
-                <option value="Sale">Sale (Income)</option>
-                <option value="Purchase">Purchase (Expense)</option>
-                <option value="Expense">Shop Expense</option>
-                <option value="Return">Returns</option>
+                <option value="All">All Movements</option>
+                <option value="Sales">Sales (Inflow)</option>
+                <option value="Purchases">Purchases (Procurement)</option>
+                <option value="Expenses">Expenses</option>
+                <option value="Sale Returns">Sale Returns</option>
+                <option value="Purchase Returns">Purchase Returns</option>
               </select>
             </div>
 
-            {/* 5. Subtle Reset Button */}
-            {hasActivePlFilters && (
+            {/* 5. Clear Filters Button */}
+            {(plSearch || plDateFilter !== 'All' || plTypeFilter !== 'All' || plPaymentFilter !== 'All' || plPartyFilter !== 'All' || plProductFilter !== 'All' || plCategoryFilter !== 'All') && (
               <button
                 type="button"
-                onClick={handleResetPlFilters}
-                className="px-3 py-1.5 rounded-xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs font-bold flex items-center gap-1 cursor-pointer transition h-[36px] shrink-0"
-                title="Reset Filters"
+                onClick={() => {
+                  setPlSearch('');
+                  setPlDateFilter('All');
+                  setPlTypeFilter('All');
+                  setPlPaymentFilter('All');
+                  setPlPartyFilter('All');
+                  setPlProductFilter('All');
+                  setPlCategoryFilter('All');
+                  setPlPage(1);
+                }}
+                className="px-2.5 py-1.5 text-xs font-bold text-rose-500 hover:bg-rose-500/10 rounded-xl transition cursor-pointer flex items-center gap-1 border border-rose-500/20 shrink-0 h-[36px]"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Reset</span>
@@ -3309,27 +3328,28 @@ export const Reports = () => {
             )}
           </div>
 
-          {/* Custom Date Pickers */}
+          {/* Custom Date Range Selector (When 'Custom' is selected) */}
           {plDateFilter === 'Custom' && (
-            <div className={`no-print p-2.5 rounded-2xl border card-shadow flex flex-wrap items-center gap-3 text-xs ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-              <span className="font-bold text-slate-400">Custom Date Range:</span>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-500">From:</span>
+            <div className={`no-print p-3 rounded-2xl border flex flex-wrap items-center gap-3 text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'
+              }`}>
+              <span className="font-bold text-slate-400">Date Range:</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400 font-medium text-[11px]">From:</span>
                 <input
                   type="date"
                   value={plStartDate}
                   onChange={(e) => { setPlStartDate(e.target.value); setPlPage(1); }}
-                  className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                     }`}
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-500">To:</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400 font-medium text-[11px]">To:</span>
                 <input
                   type="date"
                   value={plEndDate}
                   onChange={(e) => { setPlEndDate(e.target.value); setPlPage(1); }}
-                  className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                     }`}
                 />
               </div>
@@ -3371,29 +3391,35 @@ export const Reports = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider sticky top-0 ${theme === 'dark' ? 'bg-slate-900/90 border-slate-700 text-slate-400' : 'bg-slate-50/90 border-slate-200 text-slate-500'
+                    <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                       }`}>
-                      <th className="py-3 px-3.5">Reference & Date</th>
-                      <th className="py-3 px-3">Item & Party</th>
+                      <th className="py-3 px-4">Date / Ref</th>
+                      <th className="py-3 px-3">Item / Particulars</th>
                       <th className="py-3 px-3 text-center">Type</th>
                       <th className="py-3 px-3 text-center">Qty</th>
-                      <th className="py-3 px-4 text-right">Inflow / Outflow</th>
+                      <th className="py-3 px-4 text-right font-black">Amount</th>
                     </tr>
                   </thead>
-                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                  <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+                    }`}>
                     {paginatedPlJournal.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-12 text-center text-slate-400">
-                          No transactions match the selected filters.
+                          <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
+                          <span>No transaction records match the current filter criteria.</span>
                         </td>
                       </tr>
                     ) : (
                       paginatedPlJournal.map((tx) => {
-                        const isIncome = tx.amount >= 0 || tx.type === 'Sale';
+                        const isIncome = tx.isIncome;
                         return (
-                          <tr key={tx.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
-                            <td className="py-3 px-3.5 whitespace-nowrap">
-                              <div className={`font-mono font-bold text-xs ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          <tr
+                            key={tx.id}
+                            className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50/80'
+                              }`}
+                          >
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <div className="font-mono font-bold text-slate-900 dark:text-white">
                                 {tx.ref}
                               </div>
                               <div className="text-[10px] text-slate-400 font-mono">
@@ -3407,9 +3433,9 @@ export const Reports = () => {
                             </td>
 
                             <td className="py-3 px-3 text-center whitespace-nowrap">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase border ${isIncome
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                              <span className={`text-xs font-black uppercase ${isIncome
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-rose-600 dark:text-rose-400'
                                 }`}>
                                 {tx.type}
                               </span>
@@ -3431,27 +3457,26 @@ export const Reports = () => {
                 </table>
               </div>
 
-              {/* Pagination Controls */}
+              {/* Statement Footer Pagination */}
               {totalPlPages > 1 && (
-                <div className="p-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs">
+                <div className={`p-3 border-t flex items-center justify-between text-xs ${theme === 'dark' ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-slate-50'
+                  }`}>
                   <button
-                    onClick={() => setPlPage(p => Math.max(1, p - 1))}
+                    onClick={() => setPlPage(prev => Math.max(1, prev - 1))}
                     disabled={plPage === 1}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 rounded-xl border text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
                   >
-                    Previous Page
+                    Previous
                   </button>
-
-                  <div className="font-bold text-slate-500">
+                  <span className="font-bold font-mono text-slate-500">
                     Page {plPage} of {totalPlPages}
-                  </div>
-
+                  </span>
                   <button
-                    onClick={() => setPlPage(p => Math.min(totalPlPages, p + 1))}
+                    onClick={() => setPlPage(prev => Math.min(totalPlPages, prev + 1))}
                     disabled={plPage === totalPlPages}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 rounded-xl border text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
                   >
-                    Next Page
+                    Next
                   </button>
                 </div>
               )}
@@ -3459,62 +3484,72 @@ export const Reports = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 2: PRODUCT-WISE PROFIT & LOSS */}
+          {/* TAB 2: PRODUCT-WISE PROFITABILITY BREAKDOWN */}
           {/* ========================================================================= */}
           {plActiveSubTab === 'productWise' && (
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            <div className={`border rounded-2xl card-shadow overflow-hidden ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
-              <div className="flex items-center justify-between">
+              <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
                 <div>
-                  <h3 className="text-sm font-black tracking-tight flex items-center gap-2">
-                    <Wheat className="w-4 h-4 text-emerald-500" />
-                    <span>Commodity Profit & Loss Analysis</span>
+                  <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-emerald-500" />
+                    <span>Product Margin & Profit Contribution</span>
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
-                    Gross margins and net profitability per traded commodity
-                  </p>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Itemized profit margins comparing sale rates against unit procurement costs
+                  </span>
                 </div>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                  {productWisePnLData.length} Commodities
-                </span>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                       }`}>
-                      <th className="py-3 px-3">Product Name</th>
-                      <th className="py-3 px-3 text-center">Units Sold</th>
-                      <th className="py-3 px-3 text-right">Sales Revenue</th>
-                      <th className="py-3 px-3 text-right">Purchase Cost (COGS)</th>
-                      <th className="py-3 px-3 text-right font-black text-brand-500">Gross Profit</th>
-                      <th className="py-3 px-3 text-right">Gross Margin %</th>
+                      <th className="py-3 px-4">Commodity / Item</th>
+                      <th className="py-3 px-3">Category</th>
+                      <th className="py-3 px-3 text-right">Units Sold</th>
+                      <th className="py-3 px-4 text-right">Revenue</th>
+                      <th className="py-3 px-4 text-right">COGS Cost</th>
+                      <th className="py-3 px-4 text-right font-black">Gross Margin</th>
                     </tr>
                   </thead>
-                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                  <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+                    }`}>
                     {productWisePnLData.length === 0 ? (
-                      <tr><td colSpan={6} className="py-8 text-center text-slate-400 font-medium">No commodity transactions found.</td></tr>
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-slate-400">
+                          <Package className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
+                          <span>No products recorded in database.</span>
+                        </td>
+                      </tr>
                     ) : (
-                      productWisePnLData.map((p, idx) => (
-                        <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
-                          <td className="py-3 px-3 font-extrabold text-slate-900 dark:text-white">
-                            {p.name}
+                      productWisePnLData.map((item, idx) => (
+                        <tr
+                          key={idx}
+                          className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50/80'
+                            }`}
+                        >
+                          <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">
+                            {item.name}
                           </td>
-                          <td className="py-3 px-3 text-center font-mono font-bold text-slate-600 dark:text-slate-300">
-                            {p.unitsSold || 0} {p.unit || 'Units'}
+                          <td className="py-3 px-3 text-slate-400">
+                            {item.category}
                           </td>
-                          <td className="py-3 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Rs. {Number(p.salesRevenue || 0).toLocaleString()}
+                          <td className="py-3 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-200">
+                            {item.unitsSold.toLocaleString()} {item.unit}
                           </td>
-                          <td className="py-3 px-3 text-right font-mono text-blue-600 dark:text-blue-400">
-                            Rs. {Number(p.cogs || 0).toLocaleString()}
+                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            Rs. {item.salesRevenue.toLocaleString()}
                           </td>
-                          <td className="py-3 px-3 text-right font-mono font-black text-brand-500">
-                            Rs. {Number(p.grossProfit || 0).toLocaleString()}
+                          <td className="py-3 px-4 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
+                            Rs. {item.cogs.toLocaleString()}
                           </td>
-                          <td className="py-3 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            {p.margin || '0.0'}%
+                          <td className="py-3 px-4 text-right font-mono font-black text-xs">
+                            <span className={item.grossProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                              Rs. {item.grossProfit.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-slate-400 ml-1 font-sans">({item.margin}%)</span>
                           </td>
                         </tr>
                       ))
@@ -3526,62 +3561,57 @@ export const Reports = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 3: CATEGORY & EXPENSES BREAKDOWN */}
+          {/* TAB 3: CATEGORY-WISE EXPENSE AUDIT BREAKDOWN */}
           {/* ========================================================================= */}
           {plActiveSubTab === 'categoryWise' && (
-            <div className={`border rounded-2xl p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            <div className={`border rounded-2xl card-shadow overflow-hidden ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
-              <div className="flex items-center justify-between">
+              <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
                 <div>
-                  <h3 className="text-sm font-black tracking-tight flex items-center gap-2">
-                    <Building className="w-4 h-4 text-blue-500" />
-                    <span>Category & Expense Structure</span>
+                  <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                    <TrendingDown className="w-4 h-4 text-rose-500" />
+                    <span>Operating Expense Outflows by Category</span>
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
-                    Net contributions and cost distribution grouped by business category
-                  </p>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Breakdown of business operations expenses
+                  </span>
                 </div>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                  {categoryWisePnLData.length} Categories
-                </span>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                       }`}>
-                      <th className="py-3 px-3">Category</th>
-                      <th className="py-3 px-3 text-right">Sales Revenue</th>
-                      <th className="py-3 px-3 text-right">Purchase Costs</th>
-                      <th className="py-3 px-3 text-right">Operating Expenses</th>
-                      <th className="py-3 px-3 text-right font-black text-brand-500">Net Profit</th>
-                      <th className="py-3 px-3 text-right">Margin %</th>
+                      <th className="py-3 px-4">Expense Category</th>
+                      <th className="py-3 px-3 text-right">Vouchers</th>
+                      <th className="py-3 px-4 text-right font-black">Total Spend (Rs.)</th>
                     </tr>
                   </thead>
-                  <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                    {categoryWisePnLData.length === 0 ? (
-                      <tr><td colSpan={6} className="py-8 text-center text-slate-400 font-medium">No category breakdown data.</td></tr>
+                  <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+                    }`}>
+                    {categoryWiseExpenseData.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="py-12 text-center text-slate-400">
+                          <TrendingDown className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
+                          <span>No operating expenses recorded for this period.</span>
+                        </td>
+                      </tr>
                     ) : (
-                      categoryWisePnLData.map((c, idx) => (
-                        <tr key={idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>
-                          <td className="py-3 px-3 font-extrabold text-slate-900 dark:text-white">
-                            {c.category}
+                      categoryWiseExpenseData.map((item, idx) => (
+                        <tr
+                          key={idx}
+                          className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50/80'
+                            }`}
+                        >
+                          <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">
+                            {item.category}
                           </td>
-                          <td className="py-3 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            Rs. {Number(c.sales || 0).toLocaleString()}
+                          <td className="py-3 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-200">
+                            {item.count}
                           </td>
-                          <td className="py-3 px-3 text-right font-mono text-blue-600 dark:text-blue-400">
-                            Rs. {Number(c.purchases || 0).toLocaleString()}
-                          </td>
-                          <td className="py-3 px-3 text-right font-mono text-rose-500">
-                            Rs. {Number(c.expenses || 0).toLocaleString()}
-                          </td>
-                          <td className="py-3 px-3 text-right font-mono font-black text-brand-500">
-                            Rs. {Number(c.netProfit || 0).toLocaleString()}
-                          </td>
-                          <td className="py-3 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            {c.margin || '0.0'}%
+                          <td className="py-3 px-4 text-right font-mono font-black text-rose-600 dark:text-rose-400">
+                            Rs. {item.total.toLocaleString()}
                           </td>
                         </tr>
                       ))
@@ -3595,74 +3625,51 @@ export const Reports = () => {
       )}
 
       {/* ------------------------------------------------------------------------- */}
-      {/* 5. BALANCE SHEET STATEMENT (PROFESSIONAL BANKING & FINANCIAL DASHBOARD) */}
+      {/* 5. BALANCE SHEET STATEMENT (FINANCIAL POSITION & NET WORTH) */}
       {/* ------------------------------------------------------------------------- */}
       {reportType === 'BalanceSheet' && (
-        <div className="space-y-6">
-          {/* Top Filter Bar (Screen Only) */}
-          <div className={`no-print p-4 rounded-2xl border card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        <div className="space-y-5">
+          {/* Top Control Toolbar (Screen Only) */}
+          <div className={`no-print p-3 rounded-2xl border card-shadow flex flex-wrap items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Building className="w-4 h-4 text-indigo-500" />
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                    Balance Sheet Statement
-                  </span>
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                    As of {bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}
-                  </span>
-                </div>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Statement:</span>
+              <span className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400">As of All Time</span>
+            </div>
 
-              {/* Single Clean Date Filter Dropdown & Controls */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-                  <select
-                    value={bsDateFilter}
-                    onChange={(e) => setBsDateFilter(e.target.value)}
-                    className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  >
-                    <option value="Today">Today ({new Date().toLocaleDateString('en-GB')})</option>
-                    <option value="Yesterday">Yesterday</option>
-                    <option value="This Week">Weekly (This Week)</option>
-                    <option value="This Month">Monthly (This Month)</option>
-                    <option value="All Time">All Time</option>
-                    <option value="Custom">Custom Date Range</option>
-                  </select>
-                </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={bsDateFilter}
+                onChange={(e) => setBsDateFilter(e.target.value)}
+                className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+              >
+                <option value="All Time">All Time</option>
+                <option value="Today">Today</option>
+                <option value="Yesterday">Yesterday</option>
+                <option value="This Week">This Week</option>
+                <option value="This Month">This Month</option>
+                <option value="Custom">Custom Date</option>
+              </select>
 
-                {bsDateFilter === 'Custom' && (
-                  <input
-                    type="date"
-                    value={bsCustomDate}
-                    onChange={(e) => setBsCustomDate(e.target.value)}
-                    className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-                )}
+              {bsDateFilter === 'Custom' && (
+                <input
+                  type="date"
+                  value={bsCustomDate}
+                  onChange={(e) => setBsCustomDate(e.target.value)}
+                  className={`border rounded-xl px-2 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              )}
 
-                <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
-                  <span className="text-[11px] text-slate-400 font-medium">Last updated: <strong className="text-slate-600 dark:text-slate-300">{bsLastUpdated}</strong></span>
-                  <button
-                    onClick={handleRefreshBalanceSheet}
-                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-500 transition cursor-pointer"
-                    title="Refresh Balance Sheet"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  </button>
-                  {bsDateFilter !== 'All Time' && (
-                    <button
-                      onClick={handleResetBsFilters}
-                      className="text-[11px] font-bold text-rose-500 hover:underline cursor-pointer ml-1"
-                    >
-                      Reset
-                    </button>
-                  )}
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={handleRefreshBalanceSheet}
+                className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition cursor-pointer"
+                title="Refresh Statement Data"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
@@ -3675,7 +3682,7 @@ export const Reports = () => {
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                   Total Assets
                 </span>
-                <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                   <ArrowUpRight className="w-3.5 h-3.5" />
                   <span>Gross Wealth</span>
                 </span>
@@ -3692,8 +3699,8 @@ export const Reports = () => {
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                   Total Liabilities
                 </span>
-                <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                  <span>Liabilities</span>
+                <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                  Liabilities
                 </span>
               </div>
               <div className="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
@@ -3708,8 +3715,8 @@ export const Reports = () => {
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                   Net Profit
                 </span>
-                <span className="flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                  <span>Profit</span>
+                <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                  Profit
                 </span>
               </div>
               <div className="text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
@@ -3724,7 +3731,7 @@ export const Reports = () => {
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                   Net Worth
                 </span>
-                <span className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono">
+                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 font-mono">
                   Assets − Liabilities
                 </span>
               </div>
@@ -3733,7 +3740,7 @@ export const Reports = () => {
               </div>
             </div>
           </div>
-
+          
           {/* ========================================================================= */}
           {/* PRINT-ONLY HEADER (Balance Sheet) */}
           {/* ========================================================================= */}
@@ -3766,7 +3773,49 @@ export const Reports = () => {
               </div>
 
               <div className="space-y-3 text-xs">
-                {/* 1. Customer Receivables */}
+                {/* 1. Cash & Bank Balances (Liquid Funds) */}
+                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                  }`}>
+                  <div
+                    onClick={() => toggleBsSection('cashBank')}
+                    className="flex items-center justify-between cursor-pointer font-bold"
+                  >
+                    <div className="flex items-center gap-2">
+                      {bsExpandedSections.cashBank ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                      )}
+                      <span className="text-slate-900 dark:text-white">Cash & Bank Balances</span>
+                    </div>
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      Rs. {totalLiquidFunds.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {bsExpandedSections.cashBank && (
+                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <div className="flex justify-between">
+                        <span>Cash in Hand (Counter Drawer):</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {cashInHand.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Bank Accounts:</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {bankBalance.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Mobile Wallets (JazzCash / EasyPaisa):</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {walletBalance.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-900 dark:text-white">
+                        <span className="font-bold">Total Liquid Cash & Bank:</span>
+                        <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidFunds.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Customer Receivables */}
                 <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
                   }`}>
                   <div
@@ -4056,9 +4105,9 @@ export const Reports = () => {
                       <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
                         <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">{c.name}</td>
                         <td className="py-2.5 px-2">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${c.type.includes('Walk-in')
-                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                            : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                          <span className={`text-xs font-bold ${c.type.includes('Walk-in')
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-blue-600 dark:text-blue-400'
                             }`}>
                             {c.type}
                           </span>
@@ -4133,7 +4182,7 @@ export const Reports = () => {
                         <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
                           <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Shop Cash Counter Drawer</td>
                           <td className="py-2.5 px-2">
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                               Physical Cash
                             </span>
                           </td>
@@ -4143,7 +4192,7 @@ export const Reports = () => {
                         <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
                           <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Bank Accounts & Online Transfers</td>
                           <td className="py-2.5 px-2">
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                               Bank / Card
                             </span>
                           </td>
@@ -4153,7 +4202,7 @@ export const Reports = () => {
                         <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/40">
                           <td className="py-2.5 px-2.5 font-bold text-slate-900 dark:text-white">Mobile Digital Wallets</td>
                           <td className="py-2.5 px-2">
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                            <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
                               Mobile Wallet
                             </span>
                           </td>

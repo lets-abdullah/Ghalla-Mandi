@@ -411,8 +411,8 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                 <h3 className="font-black text-sm text-slate-900 dark:text-white leading-tight">
                   Purchase Bill & Voucher
                 </h3>
-                <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-400 font-mono font-bold text-[10px]">
-                  {cleanReceiptNo}
+                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
+                  • {cleanReceiptNo}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-bold leading-tight">

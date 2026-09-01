@@ -848,7 +848,7 @@ export const Suppliers = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${bal > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'}`}>
+                        <span className={`text-xs font-bold ${bal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                           {bal > 0 ? 'Payable' : 'Settled'}
                         </span>
                       </td>
@@ -1527,15 +1527,15 @@ export const Suppliers = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-lg sm:text-xl font-black tracking-tight">{fullSup.name}</h3>
                       {fullSup.businessName && (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                          {fullSup.businessName}
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                          • {fullSup.businessName}
                         </span>
                       )}
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${isSettled
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                      <span className={`text-xs font-black uppercase tracking-wider flex items-center gap-1 ${isSettled
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-amber-600 dark:text-amber-400'
                         }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${isSettled ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
+                        <span>•</span>
                         <span>{isSettled ? 'Settled' : 'Payable Due'}</span>
                       </span>
                     </div>
@@ -1673,8 +1673,8 @@ export const Suppliers = () => {
                     }`}
                 >
                   <span>All History</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${viewingTab === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                    {allTransactions.length}
+                  <span className="text-[11px] font-bold opacity-80">
+                    ({allTransactions.length})
                   </span>
                 </button>
                 <button
@@ -1686,8 +1686,8 @@ export const Suppliers = () => {
                     }`}
                 >
                   <span>Purchases</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${viewingTab === 'purchases' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                    {supPurchases.length}
+                  <span className="text-[11px] font-bold opacity-80">
+                    ({supPurchases.length})
                   </span>
                 </button>
                 <button
@@ -1699,8 +1699,8 @@ export const Suppliers = () => {
                     }`}
                 >
                   <span>Payments</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${viewingTab === 'payments' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                    {supPayments.length}
+                  <span className="text-[11px] font-bold opacity-80">
+                    ({supPayments.length})
                   </span>
                 </button>
                 <button
@@ -1767,11 +1767,11 @@ export const Suppliers = () => {
                                 {tx.type === 'Payment' ? `Rs. ${tx.amount.toLocaleString()}` : (tx.paid > 0 ? `Rs. ${tx.paid.toLocaleString()}` : '—')}
                               </td>
                               <td className="py-3 px-4 text-center">
-                                <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${tx.status === 'Paid' || tx.status === 'Settled'
-                                  ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/30 dark:text-emerald-400'
+                                <span className={`text-xs font-bold uppercase ${tx.status === 'Paid' || tx.status === 'Settled'
+                                  ? 'text-emerald-600 dark:text-emerald-400'
                                   : tx.status === 'Partial'
-                                    ? 'text-blue-600 bg-blue-500/10 border-blue-500/30 dark:text-blue-400'
-                                    : 'text-amber-600 bg-amber-500/10 border-amber-500/30 dark:text-amber-400'
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : 'text-amber-600 dark:text-amber-400'
                                   }`}>
                                   {tx.status}
                                 </span>

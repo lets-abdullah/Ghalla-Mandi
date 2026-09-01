@@ -738,16 +738,16 @@ export const CreateOrder = () => {
                           <span className="font-extrabold text-xs tracking-tight text-slate-800 dark:text-white">
                             {categoryName}
                           </span>
-                          <span className="text-[10px] font-bold text-slate-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-                            {prods.length} {prods.length === 1 ? 'product' : 'products'}
+                          <span className="text-[11px] font-semibold text-slate-400">
+                            ({prods.length})
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
                         {inCartCount > 0 && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            {inCartCount} in Cart
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            • {inCartCount} in Cart
                           </span>
                         )}
                         <span className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
@@ -1139,7 +1139,7 @@ export const CreateOrder = () => {
                   <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200 dark:border-slate-700">
                     <span className="text-slate-400 font-bold">Previous Khata Position:</span>
                     {availableAdvanceCredit > 0 ? (
-                      <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono text-xs">
                         Credit: Rs. {availableAdvanceCredit.toLocaleString()}
                       </span>
                     ) : partyReceivableDue > 0 ? (

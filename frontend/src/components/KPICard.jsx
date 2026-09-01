@@ -88,7 +88,7 @@ export const KPICard = ({
           </span>
         )}
         {subtext && (
-          <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] truncate max-w-full ${activeStyle.badge}`} title={subtext}>
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate max-w-full" title={subtext}>
             {subtext}
           </span>
         )}
