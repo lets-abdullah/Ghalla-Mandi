@@ -318,7 +318,7 @@ export const Customers = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <ShoppingBag className="w-4 h-4 text-blue-600" />
-            <span>Total Sales Volume</span>
+            <span>Total Sales</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
             Rs. {totalOverallSales.toLocaleString()}
@@ -326,7 +326,7 @@ export const Customers = () => {
           <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Total customer billing</div>
         </div>
 
-        {/* 2. Total Received */}
+        {/* 2. Cash Received */}
         <div
           onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('Paid'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
@@ -335,7 +335,7 @@ export const Customers = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-600" />
-            <span>Total Received</span>
+            <span>Cash Received</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalOverallReceived.toLocaleString()}
@@ -369,7 +369,7 @@ export const Customers = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Building2 className="w-4 h-4 text-amber-600" />
-            <span>Total Receivables</span>
+            <span>Customer Receivables</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalReceivables.toLocaleString()}
@@ -450,106 +450,106 @@ export const Customers = () => {
       {/* COMPACT TABLE VIEW */}
       <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
-              <thead>
-                <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                  }`}>
-                  <th className="py-3 px-4">Customer</th>
-                  <th className="py-3 px-3">Type</th>
-                  <th className="py-3 px-3">Phone</th>
-                  <th className="py-3 px-4 text-right">Balance</th>
-                  <th className="py-3 px-4 text-center no-print">Action</th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+            <thead>
+              <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                {filteredCustomers.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
-                      No customers found matching your filter criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredCustomers.map(cust => {
-                    const bal = Number(cust.balance || 0);
-                    const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
+                <th className="py-3 px-4">Customer</th>
+                <th className="py-3 px-3">Type</th>
+                <th className="py-3 px-3">Phone</th>
+                <th className="py-3 px-4 text-right">Balance</th>
+                <th className="py-3 px-4 text-center no-print">Action</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+              }`}>
+              {filteredCustomers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
+                    No customers found matching your filter criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredCustomers.map(cust => {
+                  const bal = Number(cust.balance || 0);
+                  const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
 
-                    return (
-                      <tr
-                        key={cust.id}
-                        className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
-                      >
-                        {/* 1. Customer Name + City */}
-                        <td className="py-3 px-4">
-                          <div className="font-extrabold text-slate-900 dark:text-white">
-                            {cust.name}
+                  return (
+                    <tr
+                      key={cust.id}
+                      className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                    >
+                      {/* 1. Customer Name + City */}
+                      <td className="py-3 px-4">
+                        <div className="font-extrabold text-slate-900 dark:text-white">
+                          {cust.name}
+                        </div>
+                        {(cust.city || cust.businessName || cust.shopName) && (
+                          <div className="text-[10px] text-slate-400 font-medium">
+                            📍 {cust.city || 'Local Mandi'} {cust.businessName || cust.shopName ? `• ${cust.businessName || cust.shopName}` : ''}
                           </div>
-                          {(cust.city || cust.businessName || cust.shopName) && (
-                            <div className="text-[10px] text-slate-400 font-medium">
-                              📍 {cust.city || 'Local Mandi'} {cust.businessName || cust.shopName ? `• ${cust.businessName || cust.shopName}` : ''}
-                            </div>
-                          )}
-                        </td>
+                        )}
+                      </td>
 
-                        {/* 2. Customer Type */}
-                        <td className="py-3 px-3">
-                          <span className="font-semibold text-xs text-slate-600 dark:text-slate-300">
-                            {isWalkin ? 'Walk-in' : 'Regular'}
+                      {/* 2. Customer Type */}
+                      <td className="py-3 px-3">
+                        <span className="font-semibold text-xs text-slate-600 dark:text-slate-300">
+                          {isWalkin ? 'Walk-in' : 'Regular'}
+                        </span>
+                      </td>
+
+                      {/* 3. Phone */}
+                      <td className="py-3 px-3 font-mono text-slate-600 dark:text-slate-300">
+                        {cust.phone && cust.phone !== 'N/A' ? cust.phone : '-'}
+                      </td>
+
+                      {/* 4. Balance */}
+                      <td className="py-3 px-4 text-right font-mono font-black text-xs">
+                        {cust.advanceCredit > 0 ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
+                            Credit: Rs. {cust.advanceCredit.toLocaleString()}
                           </span>
-                        </td>
+                        ) : bal > 0 ? (
+                          <span className="text-amber-500 font-black">
+                            Rs. {bal.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-bold">Rs. 0</span>
+                        )}
+                      </td>
 
-                        {/* 3. Phone */}
-                        <td className="py-3 px-3 font-mono text-slate-600 dark:text-slate-300">
-                          {cust.phone && cust.phone !== 'N/A' ? cust.phone : '-'}
-                        </td>
+                      {/* 5. Actions (Screen Only) */}
+                      <td className="py-3 px-4 text-center no-print">
+                        <div className="flex items-center justify-center gap-1.5">
 
-                        {/* 4. Balance */}
-                        <td className="py-3 px-4 text-right font-mono font-black text-xs">
-                          {cust.advanceCredit > 0 ? (
-                            <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
-                              Credit: Rs. {cust.advanceCredit.toLocaleString()}
-                            </span>
-                          ) : bal > 0 ? (
-                            <span className="text-amber-500 font-black">
-                              Rs. {bal.toLocaleString()}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 font-bold">Rs. 0</span>
-                          )}
-                        </td>
+                          {/* Edit Customer */}
+                          <button
+                            onClick={() => setEditingCustomer(cust)}
+                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer"
+                            title="Edit Customer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
 
-                        {/* 5. Actions (Screen Only) */}
-                        <td className="py-3 px-4 text-center no-print">
-                          <div className="flex items-center justify-center gap-1.5">
-
-                            {/* Edit Customer */}
-                            <button
-                              onClick={() => setEditingCustomer(cust)}
-                              className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer"
-                              title="Edit Customer"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Delete Customer */}
-                            <button
-                              onClick={() => handleDeleteCustomer(cust.id, cust.name)}
-                              className="p-1.5 rounded-xl border border-rose-500/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 transition cursor-pointer"
-                              title="Delete Customer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                          {/* Delete Customer */}
+                          <button
+                            onClick={() => handleDeleteCustomer(cust.id, cust.name)}
+                            className="p-1.5 rounded-xl border border-rose-500/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 transition cursor-pointer"
+                            title="Delete Customer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
 
       {/* Print Footer */}
       <PrintFooter note="Official Business Record • Ghalla Mandi Customer Directory & Balances" />

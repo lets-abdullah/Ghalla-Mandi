@@ -677,7 +677,7 @@ export const Suppliers = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-rose-600" />
-            <span>Total Payable Balance</span>
+            <span>Supplier Payables</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
             Rs. {totalPayablesAmount.toLocaleString()}
@@ -783,117 +783,117 @@ export const Suppliers = () => {
         stats={[
           { label: 'Total Suppliers', value: totalSuppliersCount },
           { label: 'Suppliers with Dues', value: (suppliers || []).filter(s => (Number(s.balance) || 0) > 0).length },
-          { label: 'Remaining to Pay', value: `Rs. ${totalPayablesAmount.toLocaleString()}` }
+          { label: 'Supplier Payables', value: `Rs. ${totalPayablesAmount.toLocaleString()}` }
         ]}
       />
 
       {/* Table View */}
       <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
-              <thead>
-                <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                  }`}>
-                  <th className="py-3 px-4">Supplier Firm</th>
-                  <th className="py-3 px-4">Contact</th>
-                  <th className="py-3 px-4">Supplied Products</th>
-                  <th className="py-3 px-4 text-right">Balance Due</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-center no-print">Actions</th>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+            <thead>
+              <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                }`}>
+                <th className="py-3 px-4">Supplier Firm</th>
+                <th className="py-3 px-4">Contact</th>
+                <th className="py-3 px-4">Supplied Products</th>
+                <th className="py-3 px-4 text-right">Balance Due</th>
+                <th className="py-3 px-4 text-center">Status</th>
+                <th className="py-3 px-4 text-center no-print">Actions</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+              {filteredSuppliers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
+                    No suppliers found.
+                  </td>
                 </tr>
-              </thead>
-              <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                {filteredSuppliers.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
-                      No suppliers found.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredSuppliers.map(s => {
-                    const bal = Number(s.balance) || 0;
-                    const suppliedProds = s.suppliedProducts || [];
-                    const isAct = (s.status || 'Active') === 'Active';
+              ) : (
+                filteredSuppliers.map(s => {
+                  const bal = Number(s.balance) || 0;
+                  const suppliedProds = s.suppliedProducts || [];
+                  const isAct = (s.status || 'Active') === 'Active';
 
-                    return (
-                      <tr key={s.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}>
-                        <td className="py-3 px-4">
-                          <div className="font-extrabold text-slate-900 dark:text-white">{s.name}</div>
-                          {s.businessName && <div className="text-[11px] text-slate-400">{s.businessName}</div>}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-mono font-bold">{s.phone}</div>
-                          <div className="text-[11px] text-slate-400">{s.city || 'Mandi'}</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-xs leading-relaxed">
-                            {suppliedProds.length === 0 ? (
-                              <span className="text-slate-400 italic">General</span>
-                            ) : (
-                              suppliedProds.slice(0, 3).map((prod, idx) => (
-                                <span key={idx}>
-                                  {prod}{idx < Math.min(suppliedProds.length, 3) - 1 ? ', ' : ''}
-                                </span>
-                              ))
-                            )}
-                            {suppliedProds.length > 3 && (
-                              <span className="text-[10px] text-slate-400 font-bold ml-1">+{suppliedProds.length - 3} more</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-right font-black font-mono">
-                          <span className={bal > 0 ? 'text-rose-500' : 'text-emerald-500'}>
-                            Rs. {bal.toLocaleString()}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${bal > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'}`}>
-                            {bal > 0 ? 'Payable' : 'Settled'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center no-print">
-                          <div className="flex items-center justify-center gap-1.5">
-                            {/* Pay Supplier Action */}
-                            {bal > 0 ? (
-                              <button
-                                onClick={() => handleOpenPayModal(s)}
-                                className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
-                                title="Pay Supplier / Settle Liability"
-                              >
-                                <CreditCard className="w-3.5 h-3.5" />
-                                <span>Pay Supplier</span>
-                              </button>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                                <Check className="w-3 h-3" /> Settled
+                  return (
+                    <tr key={s.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}>
+                      <td className="py-3 px-4">
+                        <div className="font-extrabold text-slate-900 dark:text-white">{s.name}</div>
+                        {s.businessName && <div className="text-[11px] text-slate-400">{s.businessName}</div>}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-mono font-bold">{s.phone}</div>
+                        <div className="text-[11px] text-slate-400">{s.city || 'Mandi'}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-xs leading-relaxed">
+                          {suppliedProds.length === 0 ? (
+                            <span className="text-slate-400 italic">General</span>
+                          ) : (
+                            suppliedProds.slice(0, 3).map((prod, idx) => (
+                              <span key={idx}>
+                                {prod}{idx < Math.min(suppliedProds.length, 3) - 1 ? ', ' : ''}
                               </span>
-                            )}
+                            ))
+                          )}
+                          {suppliedProds.length > 3 && (
+                            <span className="text-[10px] text-slate-400 font-bold ml-1">+{suppliedProds.length - 3} more</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right font-black font-mono">
+                        <span className={bal > 0 ? 'text-rose-500' : 'text-emerald-500'}>
+                          Rs. {bal.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${bal > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'}`}>
+                          {bal > 0 ? 'Payable' : 'Settled'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center no-print">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Pay Supplier Action */}
+                          {bal > 0 ? (
+                            <button
+                              onClick={() => handleOpenPayModal(s)}
+                              className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
+                              title="Pay Supplier / Settle Liability"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              <span>Pay Supplier</span>
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                              <Check className="w-3 h-3" /> Settled
+                            </span>
+                          )}
 
-                            <button
-                              onClick={() => setEditingSupplier({ ...s })}
-                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition cursor-pointer"
-                              title="Edit Supplier"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(s.id, s.name)}
-                              className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 transition cursor-pointer"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                          <button
+                            onClick={() => setEditingSupplier({ ...s })}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition cursor-pointer"
+                            title="Edit Supplier"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(s.id, s.name)}
+                            className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-500 transition cursor-pointer"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
 
       {/* Print Footer */}
       <PrintFooter note="Official Business Record • Ghalla Mandi Supplier Directory" />
@@ -1516,7 +1516,7 @@ export const Suppliers = () => {
           >
             <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-7 space-y-5 border my-auto max-h-[90vh] overflow-y-auto shadow-2xl transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700/80 text-white' : 'bg-white border-slate-200/80 text-slate-900'
               }`}>
-              
+
               {/* Top Header Card */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3.5">
@@ -1531,11 +1531,10 @@ export const Suppliers = () => {
                           {fullSup.businessName}
                         </span>
                       )}
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${
-                        isSettled
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                          : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${isSettled
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                        }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${isSettled ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
                         <span>{isSettled ? 'Settled' : 'Payable Due'}</span>
                       </span>
@@ -1583,9 +1582,8 @@ export const Suppliers = () => {
                       setViewingSupplier(null);
                       navigate(`/ledger?type=Supplier&partyId=${fullSup.id}`);
                     }}
-                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2.5 rounded-2xl border transition cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2.5 rounded-2xl border transition cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
                     title="View in Master Ledger"
                   >
                     <BookOpen className="w-4 h-4 text-brand-500" />
@@ -1604,11 +1602,10 @@ export const Suppliers = () => {
               {/* 3 Premium Metric KPI Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 {/* 1. Total Purchases */}
-                <div className={`p-4 rounded-2xl border transition-all ${
-                  theme === 'dark'
-                    ? 'bg-slate-800/80 border-slate-700/80'
-                    : 'bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/30 border-blue-100/90'
-                }`}>
+                <div className={`p-4 rounded-2xl border transition-all ${theme === 'dark'
+                  ? 'bg-slate-800/80 border-slate-700/80'
+                  : 'bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/30 border-blue-100/90'
+                  }`}>
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                     <span className="text-[10px] font-black uppercase tracking-wider">Total Purchases</span>
                     <div className="w-7 h-7 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -1623,14 +1620,13 @@ export const Suppliers = () => {
                   </div>
                 </div>
 
-                {/* 2. Total Paid Out */}
-                <div className={`p-4 rounded-2xl border transition-all ${
-                  theme === 'dark'
-                    ? 'bg-slate-800/80 border-slate-700/80'
-                    : 'bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/30 border-emerald-100/90'
-                }`}>
+                {/* 2. Total Paid out Out */}
+                <div className={`p-4 rounded-2xl border transition-all ${theme === 'dark'
+                  ? 'bg-slate-800/80 border-slate-700/80'
+                  : 'bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/30 border-emerald-100/90'
+                  }`}>
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Total Paid Out</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider">Total Paid out Out</span>
                     <div className="w-7 h-7 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                     </div>
@@ -1644,22 +1640,19 @@ export const Suppliers = () => {
                 </div>
 
                 {/* 3. Balance Due */}
-                <div className={`p-4 rounded-2xl border transition-all ${
-                  balanceDueVal > 0
-                    ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-gradient-to-br from-rose-50/80 via-white to-amber-50/30 border-rose-200'
-                    : theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 border-slate-200'
-                }`}>
+                <div className={`p-4 rounded-2xl border transition-all ${balanceDueVal > 0
+                  ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-gradient-to-br from-rose-50/80 via-white to-amber-50/30 border-rose-200'
+                  : theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 border-slate-200'
+                  }`}>
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                     <span className="text-[10px] font-black uppercase tracking-wider">Remaining Balance</span>
-                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${
-                      balanceDueVal > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                    }`}>
+                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${balanceDueVal > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      }`}>
                       {balanceDueVal > 0 ? <AlertCircle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
                     </div>
                   </div>
-                  <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${
-                    balanceDueVal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
-                  }`}>
+                  <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${balanceDueVal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                    }`}>
                     Rs. {balanceDueVal.toLocaleString()}
                   </div>
                   <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
@@ -1669,17 +1662,15 @@ export const Suppliers = () => {
               </div>
 
               {/* Modern Segmented Tabs */}
-              <div className={`p-1.5 rounded-2xl border flex flex-wrap items-center gap-1.5 ${
-                theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-100/90 border-slate-200/80'
-              }`}>
+              <div className={`p-1.5 rounded-2xl border flex flex-wrap items-center gap-1.5 ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-100/90 border-slate-200/80'
+                }`}>
                 <button
                   type="button"
                   onClick={() => setViewingTab('all')}
-                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                    viewingTab === 'all'
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
+                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${viewingTab === 'all'
+                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
                 >
                   <span>All History</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${viewingTab === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
@@ -1689,11 +1680,10 @@ export const Suppliers = () => {
                 <button
                   type="button"
                   onClick={() => setViewingTab('purchases')}
-                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                    viewingTab === 'purchases'
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
+                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${viewingTab === 'purchases'
+                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
                 >
                   <span>Purchases</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${viewingTab === 'purchases' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
@@ -1703,11 +1693,10 @@ export const Suppliers = () => {
                 <button
                   type="button"
                   onClick={() => setViewingTab('payments')}
-                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                    viewingTab === 'payments'
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
+                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${viewingTab === 'payments'
+                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
                 >
                   <span>Payments</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${viewingTab === 'payments' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
@@ -1717,11 +1706,10 @@ export const Suppliers = () => {
                 <button
                   type="button"
                   onClick={() => setViewingTab('info')}
-                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                    viewingTab === 'info'
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
+                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${viewingTab === 'info'
+                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
                 >
                   <Building2 className="w-3.5 h-3.5" />
                   <span>Profile & Bank</span>
@@ -1758,13 +1746,12 @@ export const Suppliers = () => {
                             <tr key={tx.id || idx} className={`transition ${theme === 'dark' ? 'hover:bg-slate-800/50' : 'hover:bg-slate-50/80'}`}>
                               <td className="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono text-[11px]">{tx.date || '—'}</td>
                               <td className="py-3 px-4">
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border ${
-                                  tx.type === 'Purchase'
-                                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
-                                    : tx.type === 'Payment'
-                                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                                }`}>
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border ${tx.type === 'Purchase'
+                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                                  : tx.type === 'Payment'
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                  }`}>
                                   {tx.type === 'Purchase' ? <ShoppingCart className="w-3 h-3" /> : tx.type === 'Payment' ? <CreditCard className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
                                   <span>{tx.billNo}</span>
                                 </span>
@@ -1780,13 +1767,12 @@ export const Suppliers = () => {
                                 {tx.type === 'Payment' ? `Rs. ${tx.amount.toLocaleString()}` : (tx.paid > 0 ? `Rs. ${tx.paid.toLocaleString()}` : '—')}
                               </td>
                               <td className="py-3 px-4 text-center">
-                                <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${
-                                  tx.status === 'Paid' || tx.status === 'Settled'
-                                    ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/30 dark:text-emerald-400'
-                                    : tx.status === 'Partial'
-                                      ? 'text-blue-600 bg-blue-500/10 border-blue-500/30 dark:text-blue-400'
-                                      : 'text-amber-600 bg-amber-500/10 border-amber-500/30 dark:text-amber-400'
-                                }`}>
+                                <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${tx.status === 'Paid' || tx.status === 'Settled'
+                                  ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/30 dark:text-emerald-400'
+                                  : tx.status === 'Partial'
+                                    ? 'text-blue-600 bg-blue-500/10 border-blue-500/30 dark:text-blue-400'
+                                    : 'text-amber-600 bg-amber-500/10 border-amber-500/30 dark:text-amber-400'
+                                  }`}>
                                   {tx.status}
                                 </span>
                               </td>
@@ -1803,9 +1789,8 @@ export const Suppliers = () => {
               {viewingTab === 'info' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Left Column: Business & Mandi Details */}
-                  <div className={`p-5 rounded-2xl space-y-3.5 border ${
-                    theme === 'dark' ? 'bg-slate-800/60 border-slate-700/80' : 'bg-slate-50/70 border-slate-200'
-                  }`}>
+                  <div className={`p-5 rounded-2xl space-y-3.5 border ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700/80' : 'bg-slate-50/70 border-slate-200'
+                    }`}>
                     <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-700 text-xs font-black uppercase tracking-wider text-slate-400">
                       <UserCheck className="w-4 h-4 text-brand-500" />
                       <span>Business & Contact Profile</span>
@@ -1862,9 +1847,8 @@ export const Suppliers = () => {
                   </div>
 
                   {/* Right Column: Verified Bank & Settlement Details */}
-                  <div className={`p-5 rounded-2xl space-y-3.5 border ${
-                    theme === 'dark' ? 'bg-slate-800/60 border-slate-700/80' : 'bg-slate-50/70 border-slate-200'
-                  }`}>
+                  <div className={`p-5 rounded-2xl space-y-3.5 border ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700/80' : 'bg-slate-50/70 border-slate-200'
+                    }`}>
                     <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-700 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                       <Landmark className="w-4 h-4" />
                       <span>Bank & Settlement Accounts</span>

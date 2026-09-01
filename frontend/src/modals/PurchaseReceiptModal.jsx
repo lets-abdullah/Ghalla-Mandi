@@ -313,13 +313,13 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                 <span style="font-family: monospace; font-weight: 800; color: #059669;">Rs. ${paidNum.toLocaleString()}</span>
               </div>
               <div style="display: flex; justify-content: space-between; padding: 2px 0;">
-                <span style="color: #475569;">Remaining to Pay:</span>
+                <span style="color: #475569;">Supplier Payables:</span>
                 <span style="font-family: monospace; font-weight: 900; color: ${dueRemaining > 0 ? '#b45309' : '#0f172a'};">Rs. ${dueRemaining.toLocaleString()}</span>
               </div>
             </div>
 
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #047857; text-align: center; padding: 4px; border-radius: 4px; font-size: 10px; font-weight: 900; margin-top: 6px;">
-              ${dueRemaining === 0 ? '✓ SETTLED (PAID)' : `REMAINING TO PAY: Rs. ${dueRemaining.toLocaleString()}`}
+              ${dueRemaining === 0 ? '✓ SETTLED (PAID)' : `Supplier Payables: Rs. ${dueRemaining.toLocaleString()}`}
             </div>
 
             <div class="dashed-sep"></div>
@@ -547,7 +547,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                     Paid: Rs. {paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <div className={`font-mono font-black text-xs ${dueRemaining > 0 ? 'text-amber-600' : 'text-slate-500'}`}>
-                    {dueRemaining > 0 ? `Remaining to Pay: Rs. ${dueRemaining.toLocaleString()}` : 'Payment Status: Settled'}
+                    {dueRemaining > 0 ? `Supplier Payables: Rs. ${dueRemaining.toLocaleString()}` : 'Payment Status: Settled'}
                   </div>
                 </div>
               </div>
@@ -633,7 +633,7 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-600 px-1">
-                    <span>Remaining to Pay:</span>
+                    <span>Supplier Payables:</span>
                     <span className={`font-mono font-black ${dueRemaining > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
                       Rs. {dueRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
@@ -775,14 +775,14 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                   <span className="font-mono text-emerald-700 font-black">Rs. {paidNum.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10.5px] font-bold text-slate-600 px-0.5">
-                  <span>Remaining to Pay:</span>
+                  <span>Supplier Payables:</span>
                   <span className={`font-mono font-black ${dueRemaining > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
                     Rs. {dueRemaining.toLocaleString()}
                   </span>
                 </div>
                 <div className="bg-[#f0fdf4] border border-emerald-200 text-emerald-800 rounded-md py-1 px-2 flex items-center justify-center gap-1 text-center font-black text-[10px] tracking-wide mt-1">
                   <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                  <span>{dueRemaining === 0 ? '✓ SETTLED (PAID)' : `REMAINING TO PAY: Rs. ${dueRemaining.toLocaleString()}`}</span>
+                  <span>{dueRemaining === 0 ? '✓ SETTLED (PAID)' : `Supplier Payables: Rs. ${dueRemaining.toLocaleString()}`}</span>
                 </div>
               </div>
 

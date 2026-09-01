@@ -659,7 +659,7 @@ export const Ledger = () => {
         <div className="space-y-4">
           {/* 4 Financial Condition KPI Cards (Screen Only) */}
           <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {/* 1. Total Receivable / Payable */}
+            {/* 1. Customer Receivables / Payable */}
             <div
               onClick={() => setStatusFilter(statusFilter === (isSupplier ? 'Payable' : 'Receivable') ? 'All' : (isSupplier ? 'Payable' : 'Receivable'))}
               className={`p-4 rounded-2xl border transition cursor-pointer card-hover card-shadow ${statusFilter === (isSupplier ? 'Payable' : 'Receivable')
@@ -668,7 +668,7 @@ export const Ledger = () => {
                 } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : (isSupplier ? 'bg-gradient-to-b from-rose-50/60 to-white border-rose-200/80' : 'bg-gradient-to-b from-emerald-50/60 to-white border-emerald-200/80')}`}
             >
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>{isSupplier ? 'Remaining to Pay' : 'Total Receivable'}</span>
+                <span>{isSupplier ? 'Supplier Payables' : 'Customer Receivables'}</span>
                 <span className={`w-2.5 h-2.5 rounded-full ${isSupplier ? 'bg-rose-500 shadow-xs shadow-rose-500/50' : 'bg-emerald-500 shadow-xs shadow-emerald-500/50'}`}></span>
               </div>
               <div className={`text-xl sm:text-2xl font-mono font-black mt-1.5 ${isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
@@ -690,13 +690,13 @@ export const Ledger = () => {
               </div>
             </div>
 
-            {/* 3. Total Received / Paid */}
+            {/* 3. Cash Received / Paid */}
             <div
               className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
                 }`}
             >
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>{isSupplier ? 'Total Paid' : 'Total Received'}</span>
+                <span>{isSupplier ? 'Total Paid out' : 'Cash Received'}</span>
                 <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
               </div>
               <div className="text-xl sm:text-2xl font-mono font-black mt-1.5 text-indigo-600 dark:text-indigo-400">
@@ -799,9 +799,9 @@ export const Ledger = () => {
             title={isSupplier ? "Supplier Ledger Statement Summary" : "Customer Ledger Statement Summary"}
             filterSummary={`Condition: ${statusFilter}`}
             stats={[
-              { label: isSupplier ? 'Remaining to Pay' : 'Total Receivable', value: `Rs. ${(isSupplier ? totalPayable : totalReceivable).toLocaleString()}` },
+              { label: isSupplier ? 'Supplier Payables' : 'Customer Receivables', value: `Rs. ${(isSupplier ? totalPayable : totalReceivable).toLocaleString()}` },
               { label: isSupplier ? 'Total Purchases' : 'Total Sales', value: `Rs. ${totalDebitSum.toLocaleString()}` },
-              { label: isSupplier ? 'Total Paid' : 'Total Received', value: `Rs. ${totalCreditSum.toLocaleString()}` }
+              { label: isSupplier ? 'Total Paid out' : 'Cash Received', value: `Rs. ${totalCreditSum.toLocaleString()}` }
             ]}
           />
 
@@ -815,8 +815,8 @@ export const Ledger = () => {
                     }`}>
                     <th className="py-3.5 px-4">{isSupplier ? 'Supplier Firm' : 'Customer Entity'}</th>
                     <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Purchases' : 'Total Sales'}</th>
-                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Paid' : 'Total Received'}</th>
-                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Remaining to Pay' : 'Remaining Balance'}</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Paid out' : 'Cash Received'}</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Supplier Payables' : 'Remaining Balance'}</th>
                     <th className="py-3.5 px-4 text-center">Status</th>
                     <th className="py-3.5 px-4 text-center no-print">Action</th>
                   </tr>
@@ -880,11 +880,10 @@ export const Ledger = () => {
 
                           {/* 5. Condition Status */}
                           <td className="py-3.5 px-4 text-center">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                              isZero ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700' :
-                                isNeg ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
-                                  'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                            }`}>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${isZero ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700' :
+                              isNeg ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
+                                'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                              }`}>
                               {isPos ? (isSupplier ? 'Payable' : 'Receivable') : isNeg ? (isSupplier ? 'Overpaid' : 'Customer Credit') : 'Settled'}
                             </span>
                           </td>
@@ -976,11 +975,11 @@ export const Ledger = () => {
                 </div>
               </div>
 
-              {/* Total Paid / Received */}
+              {/* Total Paid out / Received */}
               <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
                 }`}>
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  {isSupplier ? 'Total Paid' : 'Total Received'}
+                  {isSupplier ? 'Total Paid out' : 'Cash Received'}
                 </div>
                 <div className="text-lg font-mono font-black text-emerald-600 dark:text-emerald-400 mt-1">
                   Rs. {(activeCustomer?.totalCredit || 0).toLocaleString()}
@@ -995,7 +994,7 @@ export const Ledger = () => {
                 : theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
                 }`}>
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  {isSupplier ? 'Remaining to Pay' : 'Account Balance'}
+                  {isSupplier ? 'Supplier Payables' : 'Account Balance'}
                 </div>
                 <div className={`text-lg font-mono font-black mt-1 ${(activeCustomer?.balance || 0) < 0
                   ? 'text-emerald-600 dark:text-emerald-400'
@@ -1090,8 +1089,8 @@ export const Ledger = () => {
             filterSummary={`Period: ${dateFilterType} | Type: ${txTypeFilter}`}
             stats={[
               { label: isSupplier ? 'Total Purchases' : 'Total Sales', value: `Rs. ${(activeCustomer?.totalDebit || 0).toLocaleString()}` },
-              { label: isSupplier ? 'Total Paid' : 'Total Received', value: `Rs. ${(activeCustomer?.totalCredit || 0).toLocaleString()}` },
-              { label: isSupplier ? 'Remaining to Pay' : 'Remaining Balance', value: `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}` }
+              { label: isSupplier ? 'Total Paid out' : 'Cash Received', value: `Rs. ${(activeCustomer?.totalCredit || 0).toLocaleString()}` },
+              { label: isSupplier ? 'Supplier Payables' : 'Remaining Balance', value: `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}` }
             ]}
           />
 

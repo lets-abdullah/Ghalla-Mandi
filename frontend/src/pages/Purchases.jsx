@@ -661,7 +661,7 @@ export const Purchases = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-600" />
-            <span>{t('totalPaidOut') || 'Total Paid Out'}</span>
+            <span>{t('totalPaidOut') || 'Total Paid out Out'}</span>
           </div>
 
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
@@ -676,7 +676,7 @@ export const Purchases = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Clock className="w-4 h-4 text-rose-600" />
-            <span>{t('outstandingPayables') || 'Remaining to Pay'}</span>
+            <span>{t('outstandingPayables') || 'Supplier Payables'}</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
             Rs. {totalOutstandingPayable.toLocaleString()}
@@ -827,8 +827,8 @@ export const Purchases = () => {
         stats={[
           { label: 'Total Purchases', value: filteredPurchases.length },
           { label: 'Net Purchases Volume', value: `Rs. ${totalNetPurchases.toLocaleString()}` },
-          { label: 'Total Paid Out', value: `Rs. ${totalPaidOut.toLocaleString()}` },
-          { label: 'Remaining to Pay', value: `Rs. ${totalOutstandingPayable.toLocaleString()}` }
+          { label: 'Total Paid out Out', value: `Rs. ${totalPaidOut.toLocaleString()}` },
+          { label: 'Supplier Payables', value: `Rs. ${totalOutstandingPayable.toLocaleString()}` }
         ]}
       />
 

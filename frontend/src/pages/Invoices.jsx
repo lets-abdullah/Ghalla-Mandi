@@ -369,7 +369,7 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             {isPurchases ? <ShoppingCart className="w-4 h-4 text-emerald-600" /> : <Receipt className="w-4 h-4 text-brand-600" />}
-            <span>{isPurchases ? 'Total Purchase Billing' : 'Total Sales Invoiced'}</span>
+            <span>{isPurchases ? 'Total Purchases' : 'Total Sales'}</span>
           </div>
           <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${isPurchases ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand-600 dark:text-brand-400'}`}>
             Rs. {totalBilledVolume.toLocaleString()}
@@ -385,7 +385,7 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-600" />
-            <span>{isPurchases ? 'Total Paid to Vendors' : 'Total Cash Received'}</span>
+            <span>{isPurchases ? 'Total Paid out out' : 'Cash Received'}</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalSettledAmount.toLocaleString()}
@@ -539,8 +539,8 @@ export const Invoices = () => {
         title={isPurchases ? "Purchase Invoices Register" : "Sales Invoices Register"}
         filterSummary={`Party: ${selectedPartyId === 'All' ? 'All Parties' : 'Filtered Party'} | Period: ${dateFilterType} | Status: ${statusFilter}`}
         stats={[
-          { label: isPurchases ? 'Total Purchase Billing' : 'Total Sales Invoiced', value: `Rs. ${totalBilledVolume.toLocaleString()}` },
-          { label: isPurchases ? 'Total Paid to Vendors' : 'Total Cash Received', value: `Rs. ${totalSettledAmount.toLocaleString()}` },
+          { label: isPurchases ? 'Total Purchases' : 'Total Sales', value: `Rs. ${totalBilledVolume.toLocaleString()}` },
+          { label: isPurchases ? 'Total Paid out out' : 'Cash Received', value: `Rs. ${totalSettledAmount.toLocaleString()}` },
           { label: isPurchases ? 'Supplier Payables' : 'Customer Receivables', value: `Rs. ${totalOutstandingDue.toLocaleString()}` }
         ]}
       />

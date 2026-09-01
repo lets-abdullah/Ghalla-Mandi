@@ -3135,11 +3135,11 @@ export const Reports = () => {
         <div className="space-y-5">
           {/* Top 3-Stage Visual Flow Cards (Screen Only) */}
           <div className="no-print grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            {/* Stage 1: Money In (Sales) */}
+            {/* Stage 1: Sales Revenue */}
             <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400"> Money In (Sales)</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400"> Sales Revenue</span>
                 <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-sm">
                   +
                 </div>

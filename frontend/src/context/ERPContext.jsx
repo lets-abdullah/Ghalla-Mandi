@@ -7,7 +7,7 @@ const ERPContext = createContext();
 export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) => {
   if (!sale) return { total: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
   const total = Number(sale.amount !== undefined ? sale.amount : (sale.grandTotal !== undefined ? sale.grandTotal : (sale.grandtotal !== undefined ? sale.grandtotal : 0)));
-  
+
   // Specific payment logs for this sale invoice
   const directPaid = (paymentLogs || []).filter(pl =>
     (pl.type === 'Customer' || pl.partyType === 'Customer') &&
@@ -33,7 +33,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) 
 export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymentLogs = []) => {
   if (!purchase) return { total: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
   const total = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : (purchase.grandtotal !== undefined ? purchase.grandtotal : 0)));
-  
+
   // Specific payment logs for this purchase
   const directPaid = (paymentLogs || []).filter(pl =>
     (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
@@ -93,7 +93,7 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     }
   });
 
-  // Calculate actual total paid:
+  // Calculate actual Total Paid out:
   // 1. For each sale, paid amount is full sale amount if marked Paid, or recorded paidAmount, or direct payment log for that sale
   let salesPaidSum = 0;
   custSales.forEach(s => {

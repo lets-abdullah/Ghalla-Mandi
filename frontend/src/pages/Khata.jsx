@@ -315,7 +315,7 @@ export const Khata = () => {
 
       {/* Summary KPI Cards Row (Screen Only) */}
       <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Total Sales Volume */}
+        {/* Total Sales */}
         <div
           onClick={() => { setBalanceStatusFilter('All'); setCustomerTypeFilter('All'); }}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
@@ -340,14 +340,14 @@ export const Khata = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Total Received</span>
+            <span>Cash Received</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalCollected.toLocaleString()}
           </div>
         </div>
 
-        {/* Total Outstanding */}
+        {/* Customer Receivables */}
         <div
           onClick={() => setBalanceStatusFilter('Outstanding')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
@@ -356,7 +356,7 @@ export const Khata = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-600" />
-            <span>Total Outstanding</span>
+            <span>Customer Receivables</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalOutstanding.toLocaleString()}
@@ -454,9 +454,9 @@ export const Khata = () => {
         filterSummary={`Type: ${customerTypeFilter} | Status: ${balanceStatusFilter}`}
         stats={[
           { label: 'Total Accounts', value: filteredKhata.length },
-          { label: 'Total Sales Volume', value: `Rs. ${totalVolume.toLocaleString()}` },
-          { label: 'Total Received', value: `Rs. ${totalCollected.toLocaleString()}` },
-          { label: 'Total Outstanding Due', value: `Rs. ${totalOutstanding.toLocaleString()}` }
+          { label: 'Total Sales', value: `Rs. ${totalVolume.toLocaleString()}` },
+          { label: 'Cash Received', value: `Rs. ${totalCollected.toLocaleString()}` },
+          { label: 'Customer Receivables Due', value: `Rs. ${totalOutstanding.toLocaleString()}` }
         ]}
       />
 
@@ -518,7 +518,7 @@ export const Khata = () => {
                         Rs. {item.totalSale.toLocaleString()}
                       </td>
 
-                      {/* Total Paid */}
+                      {/* Total Paid out */}
                       <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         Rs. {item.totalPaid.toLocaleString()}
                       </td>

@@ -366,7 +366,7 @@ export const Sales = () => {
 
       {/* KPI Cards Row (Real-time Filter-Aware - Screen Only) */}
       <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* 1. Total Sales Volume */}
+        {/* 1. Total Sales */}
         <div
           onClick={() => setStatusFilter('All')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
@@ -414,7 +414,7 @@ export const Sales = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-600" />
-            <span>{t('amountToReceive') || 'Current Amount to Receive'}</span>
+            <span>{t('amountToReceive') || 'Customer Receivables'}</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalFilteredOutstandingDue.toLocaleString()}
@@ -560,7 +560,7 @@ export const Sales = () => {
         filterSummary={`Period: ${dateFilterType} | Customer: ${customerTypeFilter} | Status: ${statusFilter}`}
         stats={[
           { label: 'Total Invoices', value: filteredSales.length },
-          { label: 'Total Sales Volume', value: `Rs. ${totalFilteredSalesVolume.toLocaleString()}` },
+          { label: 'Total Sales', value: `Rs. ${totalFilteredSalesVolume.toLocaleString()}` },
           { label: 'Cash Received', value: `Rs. ${totalFilteredCashReceived.toLocaleString()}` },
           { label: 'Pending Due (Khata)', value: `Rs. ${totalFilteredOutstandingDue.toLocaleString()}` }
         ]}
