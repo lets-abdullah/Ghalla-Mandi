@@ -536,7 +536,9 @@ export const Expenses = () => {
                   <th className="py-3 px-3">Voucher #</th>
                   <th className="py-3 px-3">Category</th>
                   <th className="py-3 px-3">Description / Remarks</th>
-                  <th className="py-3 px-3">Mode</th>
+                  <th className="py-3 px-3">Paid From</th>
+                  <th className="py-3 px-3 text-center">Status</th>
+                  <th className="py-3 px-3 text-center">Account Impact</th>
                   <th className="py-3 px-3 text-right font-black">Amount (Rs.)</th>
                   <th className="py-3 px-3 text-center no-print">Action</th>
                 </tr>
@@ -545,47 +547,56 @@ export const Expenses = () => {
                 }`}>
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <td colSpan={9} className="py-12 text-center text-slate-400">
                       <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
                       <span>No expense records found. Record your first expense on the left panel.</span>
                     </td>
                   </tr>
                 ) : (
-                  paginatedExpenses.map((exp) => (
-                    <tr key={exp.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'
-                      }`}>
-                      <td className="py-3 px-3 text-slate-500 font-medium">{exp.date}</td>
-                      <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">{exp.ref}</td>
-                      <td className="py-3 px-3">
-                        <span className="font-bold text-rose-600 dark:text-rose-400">{exp.category}</span>
-                      </td>
-                      <td className="py-3 px-3 max-w-[200px] truncate text-slate-600 dark:text-slate-300">
-                        {exp.desc}
-                      </td>
-                      <td className="py-3 px-3 font-medium text-slate-500">
-                        {String(exp.mode || '').toLowerCase().includes('unpaid') ? (
-                          <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase">
-                            Unpaid / Due
+                  paginatedExpenses.map((exp) => {
+                    const mode = exp.mode || 'Cash';
+                    const isBank = mode.toLowerCase().includes('bank');
+                    const isCard = mode.toLowerCase().includes('card');
+                    const accountLabel = isCard ? 'Card' : isBank ? 'Bank' : 'Cash';
+
+                    return (
+                      <tr key={exp.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'
+                        }`}>
+                        <td className="py-3 px-3 text-slate-500 font-medium">{exp.date}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">{exp.ref}</td>
+                        <td className="py-3 px-3">
+                          <span className="font-bold text-rose-600 dark:text-rose-400">{exp.category}</span>
+                        </td>
+                        <td className="py-3 px-3 max-w-[200px] truncate text-slate-600 dark:text-slate-300">
+                          {exp.desc}
+                        </td>
+                        <td className="py-3 px-3 font-semibold text-slate-700 dark:text-slate-300">
+                          {mode}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            Paid
                           </span>
-                        ) : (
-                          exp.mode || 'Cash'
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-right font-mono font-black text-rose-600 dark:text-rose-400">
-                        Rs. {Number(exp.amount).toLocaleString()}
-                      </td>
-                      <td className="py-3 px-3 text-center no-print">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteExpense(exp.id)}
-                          className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
-                          title="Delete Voucher"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono font-bold text-[11px] text-rose-600 dark:text-rose-400">
+                          - Rs. {Number(exp.amount).toLocaleString()} ({accountLabel})
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono font-black text-rose-600 dark:text-rose-400">
+                          Rs. {Number(exp.amount).toLocaleString()}
+                        </td>
+                        <td className="py-3 px-3 text-center no-print">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteExpense(exp.id)}
+                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                            title="Delete Voucher"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

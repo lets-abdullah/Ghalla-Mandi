@@ -888,11 +888,33 @@ export const Reports = () => {
     bankBalance,
     cardBalance,
     totalLiquidFunds,
-    liquidTransactionsList
+    liquidTransactionsList,
+    cashInflows,
+    cashExpenses,
+    cashOutflows,
+    bankInflows,
+    bankExpenses,
+    bankOutflows,
+    cardInflows,
+    cardExpenses,
+    cardOutflows
   } = useMemo(() => {
     let cash = 0;
     let bank = 0;
     let card = 0;
+
+    let cInflow = 0;
+    let cExp = 0;
+    let cOut = 0;
+
+    let bInflow = 0;
+    let bExp = 0;
+    let bOut = 0;
+
+    let kInflow = 0;
+    let kExp = 0;
+    let kOut = 0;
+
     const txList = [];
 
     // 1. Customer Payment Inflows from paymentLogs (strictly excluding Opening Balance and Credit Notes)
@@ -909,6 +931,10 @@ export const Reports = () => {
         cash += res.cashAmount;
         bank += res.bankAmount;
         card += res.cardAmount;
+
+        cInflow += res.cashAmount;
+        bInflow += res.bankAmount;
+        kInflow += res.cardAmount;
 
         txList.push({
           date: p.date || 'Today',
@@ -935,6 +961,10 @@ export const Reports = () => {
           bank += res.bankAmount;
           card += res.cardAmount;
 
+          cInflow += res.cashAmount;
+          bInflow += res.bankAmount;
+          kInflow += res.cardAmount;
+
           txList.push({
             date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : 'Today'),
             source: `Sale Counter Receipt (#${s.invoiceNo || s.id || 'N/A'})`,
@@ -950,11 +980,14 @@ export const Reports = () => {
     // 3. Purchase Returns Inflow (ONLY actual Cash / Bank refunds received from supplier)
     (purchaseReturns || []).forEach(r => {
       const res = resolveTransactionPayment(r, 'PurchaseReturn');
-      // Crucial: Supplier Khata (Debit Note) NEVER touches physical Cash/Bank
       if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
         cash += res.cashAmount;
         bank += res.bankAmount;
         card += res.cardAmount;
+
+        cInflow += res.cashAmount;
+        bInflow += res.bankAmount;
+        kInflow += res.cardAmount;
 
         txList.push({
           date: r.date || 'Today',
@@ -982,6 +1015,10 @@ export const Reports = () => {
         bank -= res.bankAmount;
         card -= res.cardAmount;
 
+        cOut += res.cashAmount;
+        bOut += res.bankAmount;
+        kOut += res.cardAmount;
+
         txList.push({
           date: p.date || 'Today',
           source: `Supplier Payment Settlement (${p.ref || 'Voucher'})`,
@@ -1007,6 +1044,10 @@ export const Reports = () => {
           bank -= res.bankAmount;
           card -= res.cardAmount;
 
+          cOut += res.cashAmount;
+          bOut += res.bankAmount;
+          kOut += res.cardAmount;
+
           txList.push({
             date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Today'),
             source: `Purchase Direct Voucher (#${p.purchaseNo || p.id || 'N/A'})`,
@@ -1019,13 +1060,17 @@ export const Reports = () => {
       }
     });
 
-    // 6. Expenses Outflows (ONLY paid expenses deduct cash/bank/card)
+    // 6. Expenses Outflows (Paid expenses deduct cash/bank/card directly)
     (expenses || []).forEach(e => {
       const res = resolveTransactionPayment(e, 'Expense');
       if (res.isLiquid && res.totalLiquid > 0) {
         cash -= res.cashAmount;
         bank -= res.bankAmount;
         card -= res.cardAmount;
+
+        cExp += res.cashAmount;
+        bExp += res.bankAmount;
+        kExp += res.cardAmount;
 
         txList.push({
           date: e.date || 'Today',
@@ -1038,14 +1083,17 @@ export const Reports = () => {
       }
     });
 
-    // 7. Sale Returns Outflows (ONLY actual Cash / Bank / Card refunds given to customers)
+    // 7. Sale Returns Outflows (Cash / Bank / Card refunds given to customers)
     (saleReturns || []).forEach(r => {
       const res = resolveTransactionPayment(r, 'SaleReturn');
-      // Crucial: Customer Khata (Credit Note) NEVER touches physical Cash/Bank
       if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
         cash -= res.cashAmount;
         bank -= res.bankAmount;
         card -= res.cardAmount;
+
+        cOut += res.cashAmount;
+        bOut += res.bankAmount;
+        kOut += res.cardAmount;
 
         txList.push({
           date: r.date || 'Today',
@@ -1063,14 +1111,18 @@ export const Reports = () => {
       bankBalance: Math.max(0, bank),
       cardBalance: Math.max(0, card),
       totalLiquidFunds: Math.max(0, cash) + Math.max(0, bank) + Math.max(0, card),
-      liquidTransactionsList: txList
+      liquidTransactionsList: txList,
+      cashInflows: cInflow,
+      cashExpenses: cExp,
+      cashOutflows: cOut,
+      bankInflows: bInflow,
+      bankExpenses: bExp,
+      bankOutflows: bOut,
+      cardInflows: kInflow,
+      cardExpenses: kExp,
+      cardOutflows: kOut
     };
   }, [sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns]);
-
-  // Outstanding Operating Expenses Liability
-  const totalOutstandingExpenses = useMemo(() => {
-    return (expenses || []).reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  }, [expenses]);
 
   const totalSupplierAdvances = useMemo(() => {
     return (suppliers || []).reduce((sum, s) => {
@@ -1092,7 +1144,8 @@ export const Reports = () => {
   }, [suppliers]);
 
   const totalAssets = useMemo(() => totalLiquidFunds + totalCustomerReceivables + totalStockValuation + totalSupplierAdvances, [totalLiquidFunds, totalCustomerReceivables, totalStockValuation, totalSupplierAdvances]);
-  const totalLiabilities = useMemo(() => totalSupplierPayables + totalOutstandingExpenses + totalCustomerAdvances, [totalSupplierPayables, totalOutstandingExpenses, totalCustomerAdvances]);
+  // Total Liabilities strictly includes genuine debts (Supplier Payables + Customer Advances) - NO paid expenses
+  const totalLiabilities = useMemo(() => totalSupplierPayables + totalCustomerAdvances, [totalSupplierPayables, totalCustomerAdvances]);
 
   // Canonical Net Worth (Equity) Equation: Net Worth = Total Assets - Total Liabilities
   const totalEquity = useMemo(() => totalAssets - totalLiabilities, [totalAssets, totalLiabilities]);
@@ -1136,10 +1189,10 @@ export const Reports = () => {
   const bsLiabilitiesBreakdown = useMemo(() => {
     return {
       supplierPayables: totalSupplierPayables,
-      outstandingExpenses: totalOutstandingExpenses,
+      customerAdvances: totalCustomerAdvances,
       total: totalLiabilities
     };
-  }, [totalSupplierPayables, totalOutstandingExpenses, totalLiabilities]);
+  }, [totalSupplierPayables, totalCustomerAdvances, totalLiabilities]);
 
   // Development-Safe Accounting Integrity & Reconciliation Check
   useEffect(() => {
@@ -1894,7 +1947,9 @@ export const Reports = () => {
       csvContent += makeSectionHeader('2. LIABILITIES (WHAT THE BUSINESS OWES)', COLS);
       csvContent += makeRow(['Liability Classification', 'Category / Subhead', 'Line Item / Description', 'Settlement Terms', 'Outstanding (Rs.)', 'Subtotal (Rs.)'], COLS);
       csvContent += makeRow(['Current Liabilities', 'Payables', 'Supplier Khata Payables', 'Outstanding Mandi Suppliers', num(totalSupplierPayables), ''], COLS);
-      csvContent += makeRow(['Current Liabilities', 'Accrued Expenses', 'Outstanding Operating Expenses', 'Unpaid Operating Liabilities', num(totalOutstandingExpenses), ''], COLS);
+      if (totalCustomerAdvances > 0) {
+        csvContent += makeRow(['Current Liabilities', 'Advances', 'Customer Advance Credits', 'Customer Advance Balance', num(totalCustomerAdvances), ''], COLS);
+      }
       csvContent += makeRow(['TOTAL LIABILITIES', '', '', '', '', num(totalLiabilities)], COLS);
 
       // Section 3: EQUITY & CAPITAL
@@ -3848,20 +3903,80 @@ export const Reports = () => {
                   </div>
 
                   {bsExpandedSections.cashBank && (
-                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between">
-                        <span>Cash in Hand:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {cashInHand.toLocaleString()}</span>
+                    <div className="pl-5 pr-1 space-y-2 pt-2 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                      {/* Cash in Hand Calculation */}
+                      <div className="space-y-1 pb-1 border-b border-slate-200/40 dark:border-slate-700/40">
+                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                          <span>• Cash in Hand:</span>
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {cashInHand.toLocaleString()}</span>
+                        </div>
+                        <div className="pl-3 space-y-0.5 text-[10px] text-slate-400">
+                          <div className="flex justify-between">
+                            <span>Cash Inflows (Sales & Receipts):</span>
+                            <span className="font-mono">+ Rs. {cashInflows.toLocaleString()}</span>
+                          </div>
+                          {cashExpenses > 0 && (
+                            <div className="flex justify-between text-rose-500/90">
+                              <span>Less: Paid Expenses (Cash):</span>
+                              <span className="font-mono">- Rs. {cashExpenses.toLocaleString()}</span>
+                            </div>
+                          )}
+                          {cashOutflows > 0 && (
+                            <div className="flex justify-between text-rose-500/90">
+                              <span>Less: Supplier Payments / Refunds (Cash):</span>
+                              <span className="font-mono">- Rs. {cashOutflows.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Bank Accounts:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {bankBalance.toLocaleString()}</span>
+
+                      {/* Bank Accounts Calculation */}
+                      <div className="space-y-1 pb-1 border-b border-slate-200/40 dark:border-slate-700/40">
+                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                          <span>• Bank Accounts:</span>
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {bankBalance.toLocaleString()}</span>
+                        </div>
+                        <div className="pl-3 space-y-0.5 text-[10px] text-slate-400">
+                          <div className="flex justify-between">
+                            <span>Bank Inflows (Khata & Receipts):</span>
+                            <span className="font-mono">+ Rs. {bankInflows.toLocaleString()}</span>
+                          </div>
+                          {bankExpenses > 0 && (
+                            <div className="flex justify-between text-rose-500/90">
+                              <span>Less: Paid Expenses (Bank):</span>
+                              <span className="font-mono">- Rs. {bankExpenses.toLocaleString()}</span>
+                            </div>
+                          )}
+                          {bankOutflows > 0 && (
+                            <div className="flex justify-between text-rose-500/90">
+                              <span>Less: Supplier Payments / Outflows (Bank):</span>
+                              <span className="font-mono">- Rs. {bankOutflows.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Card Payment Account:</span>
-                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {cardBalance.toLocaleString()}</span>
+
+                      {/* Card Payment Account Calculation */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                          <span>• Card Payment Account:</span>
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {cardBalance.toLocaleString()}</span>
+                        </div>
+                        <div className="pl-3 space-y-0.5 text-[10px] text-slate-400">
+                          <div className="flex justify-between">
+                            <span>Card Inflows:</span>
+                            <span className="font-mono">+ Rs. {cardInflows.toLocaleString()}</span>
+                          </div>
+                          {cardExpenses > 0 && (
+                            <div className="flex justify-between text-rose-500/90">
+                              <span>Less: Paid Expenses (Card):</span>
+                              <span className="font-mono">- Rs. {cardExpenses.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-900 dark:text-white">
+
+                      <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1.5 text-slate-900 dark:text-white">
                         <span className="font-bold">Total Liquid Cash & Bank:</span>
                         <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidFunds.toLocaleString()}</span>
                       </div>
@@ -3991,9 +4106,15 @@ export const Reports = () => {
                         <span>Supplier Khata Payables:</span>
                         <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Outstanding Operating Expenses:</span>
-                        <span className={`font-mono font-bold ${totalOutstandingExpenses > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-slate-200'}`}>Rs. {totalOutstandingExpenses.toLocaleString()}</span>
+                      {totalCustomerAdvances > 0 && (
+                        <div className="flex justify-between">
+                          <span>Customer Advance Credits (Liability):</span>
+                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalCustomerAdvances.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
+                        <span>Total Current Liabilities:</span>
+                        <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {totalLiabilities.toLocaleString()}</span>
                       </div>
                     </div>
                   )}
