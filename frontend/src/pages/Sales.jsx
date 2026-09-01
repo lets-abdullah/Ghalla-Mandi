@@ -794,12 +794,28 @@ export const Sales = () => {
                   type="number"
                   required
                   min="1"
+                  max={Math.max(0, Number(paymentModalSale?.amount || 0) - Number(paymentModalSale?.paidAmount || 0))}
                   step="any"
                   autoFocus
                   onWheel={(e) => e.target.blur()}
                   onFocus={(e) => e.target.select()}
                   value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const maxDue = Math.max(0, Number(paymentModalSale?.amount || 0) - Number(paymentModalSale?.paidAmount || 0));
+                    if (val === '') {
+                      setPaymentAmount('');
+                      return;
+                    }
+                    const num = Number(val);
+                    if (num > maxDue) {
+                      setPaymentAmount(maxDue.toString());
+                    } else if (num < 0) {
+                      setPaymentAmount('0');
+                    } else {
+                      setPaymentAmount(val);
+                    }
+                  }}
                   placeholder={t('enterPaymentAmount')}
                   className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}

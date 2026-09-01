@@ -623,9 +623,25 @@ export const Khata = () => {
                   type="number"
                   required
                   min="1"
+                  max={Math.max(0, Number(paymentModalCust?.balance || 0))}
                   autoFocus
                   value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const maxDue = Math.max(0, Number(paymentModalCust?.balance || 0));
+                    if (val === '') {
+                      setPaymentAmount('');
+                      return;
+                    }
+                    const num = Number(val);
+                    if (num > maxDue) {
+                      setPaymentAmount(maxDue.toString());
+                    } else if (num < 0) {
+                      setPaymentAmount('0');
+                    } else {
+                      setPaymentAmount(val);
+                    }
+                  }}
                   placeholder="Enter amount"
                   className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
@@ -748,11 +764,11 @@ export const Khata = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-xs font-bold text-slate-400">Payment Amount (PKR) *</label>
-                      {Number(editForm.receiveAmount || 0) >= Number(editingKhataCust.initialDue || 0) ? (
+                      {Number(editForm.receiveAmount || 0) === Number(editingKhataCust.initialDue || 0) && Number(editingKhataCust.initialDue || 0) > 0 ? (
                         <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Settling</span>
-                      ) : (
+                      ) : Number(editForm.receiveAmount || 0) > 0 ? (
                         <span className="text-[10px] font-bold text-amber-500">Partial Settlement</span>
-                      )}
+                      ) : null}
                     </div>
                     <div className="relative">
                       <input
@@ -761,7 +777,22 @@ export const Khata = () => {
                         min="1"
                         max={Number(editingKhataCust.initialDue || 0)}
                         value={editForm.receiveAmount}
-                        onChange={(e) => setEditForm({ ...editForm, receiveAmount: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const maxDue = Math.max(0, Number(editingKhataCust?.initialDue || 0));
+                          if (val === '') {
+                            setEditForm(prev => ({ ...prev, receiveAmount: '' }));
+                            return;
+                          }
+                          const num = Number(val);
+                          if (num > maxDue) {
+                            setEditForm(prev => ({ ...prev, receiveAmount: maxDue.toString() }));
+                          } else if (num < 0) {
+                            setEditForm(prev => ({ ...prev, receiveAmount: '0' }));
+                          } else {
+                            setEditForm(prev => ({ ...prev, receiveAmount: val }));
+                          }
+                        }}
                         placeholder={`e.g. ${Number(editingKhataCust.initialDue || 0)}`}
                         autoFocus
                         className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(editForm.receiveAmount || 0) >= Number(editingKhataCust.initialDue || 0) && Number(editingKhataCust.initialDue || 0) > 0

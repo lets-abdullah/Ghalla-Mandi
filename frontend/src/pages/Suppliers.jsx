@@ -1947,11 +1947,11 @@ export const Suppliers = () => {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-400">Payment Amount (PKR) *</label>
-                  {Number(payAmount || 0) >= Number(payingSupplier.balance || 0) && Number(payingSupplier.balance || 0) > 0 ? (
+                  {Number(payAmount || 0) === Number(payingSupplier.balance || 0) && Number(payingSupplier.balance || 0) > 0 ? (
                     <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Settling</span>
-                  ) : (
+                  ) : Number(payAmount || 0) > 0 ? (
                     <span className="text-[10px] font-bold text-amber-500">Partial Settlement</span>
-                  )}
+                  ) : null}
                 </div>
                 <div className="relative">
                   <input
@@ -1960,7 +1960,22 @@ export const Suppliers = () => {
                     min="1"
                     max={Number(payingSupplier.balance || 0) > 0 ? Number(payingSupplier.balance) : undefined}
                     value={payAmount}
-                    onChange={(e) => setPayAmount(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const maxPayable = Math.max(0, Number(payingSupplier?.balance || 0));
+                      if (val === '') {
+                        setPayAmount('');
+                        return;
+                      }
+                      const num = Number(val);
+                      if (num > maxPayable) {
+                        setPayAmount(maxPayable.toString());
+                      } else if (num < 0) {
+                        setPayAmount('0');
+                      } else {
+                        setPayAmount(val);
+                      }
+                    }}
                     placeholder={`e.g. ${Number(payingSupplier.balance || 0)}`}
                     autoFocus
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(payAmount || 0) >= Number(payingSupplier.balance || 0) && Number(payingSupplier.balance || 0) > 0
