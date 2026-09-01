@@ -1096,20 +1096,19 @@ export const Ledger = () => {
                 <thead>
                   <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                     }`}>
-                    <th className="py-3.5 px-4">Date</th>
-                    <th className="py-3.5 px-4">Voucher / Ref #</th>
-                    <th className="py-3.5 px-4">Description</th>
-                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Purchases' : 'Sales'}</th>
-                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Payments / Returns' : 'Payments / Returns'}</th>
-                    <th className="py-3.5 px-4 text-center">Payment Method / Account</th>
-                    <th className="py-3.5 px-4 text-right font-black">{isSupplier ? 'Remaining Balance' : 'Running Balance'}</th>
-                    <th className="py-3.5 px-4 text-center">Status</th>
+                    <th className="py-3 px-3.5">Date</th>
+                    <th className="py-3 px-3.5">Voucher / Ref #</th>
+                    <th className="py-3 px-3.5">Description</th>
+                    <th className="py-3 px-3.5 text-right">{isSupplier ? 'Purchases' : 'Sales'}</th>
+                    <th className="py-3 px-3.5 text-right">{isSupplier ? 'Payments / Returns' : 'Payments / Returns'}</th>
+                    <th className="py-3 px-3.5 text-center">Payment Method</th>
+                    <th className="py-3 px-3.5 text-right font-black">{isSupplier ? 'Remaining Balance' : 'Running Balance'}</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                   {singleCustomerLedger.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-12 text-center text-slate-400 text-xs">
+                      <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
                         No transactions recorded for this customer yet.
                       </td>
                     </tr>
@@ -1124,40 +1123,40 @@ export const Ledger = () => {
                           className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
                         >
                           {/* 1. Date */}
-                          <td className="py-3.5 px-4 font-mono text-slate-500 dark:text-slate-400">
+                          <td className="py-3.5 px-3.5 font-mono text-slate-500 dark:text-slate-400">
                             {entry.date}
                           </td>
 
                           {/* 2. Voucher # */}
-                          <td className="py-3.5 px-4 font-mono font-bold text-blue-600 dark:text-blue-400">
+                          <td className="py-3.5 px-3.5 font-mono font-bold text-blue-600 dark:text-blue-400">
                             {entry.ref}
                           </td>
 
                           {/* 3. Description */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3.5 px-3.5">
                             <span className="font-semibold text-slate-900 dark:text-white">{entry.desc}</span>
                             {entry.notes && <span className="text-[10px] text-slate-400 block">{entry.notes}</span>}
                           </td>
 
                           {/* 4. Sales / Purchases */}
-                          <td className="py-3.5 px-4 text-right font-mono font-black text-blue-600 dark:text-blue-400">
+                          <td className="py-3.5 px-3.5 text-right font-mono font-black text-blue-600 dark:text-blue-400">
                             {entry.sales > 0 ? `Rs. ${entry.sales.toLocaleString()}` : (entry.debit > 0 ? `Rs. ${entry.debit.toLocaleString()}` : '—')}
                           </td>
 
                           {/* 5. Payments / Returns */}
-                          <td className="py-3.5 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
+                          <td className="py-3.5 px-3.5 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
                             {entry.payment > 0 ? `Rs. ${entry.payment.toLocaleString()}` : (entry.credit > 0 ? `Rs. ${entry.credit.toLocaleString()}` : '—')}
                           </td>
 
-                          {/* 6. Payment Method / Account */}
-                          <td className="py-3.5 px-4 text-center">
+                          {/* 6. Payment Method */}
+                          <td className="py-3.5 px-3.5 text-center">
                             <span className="inline-block px-2.5 py-1 rounded-xl text-[11px] font-bold bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
                               {entry.paymentMethod || 'Cash'}
                             </span>
                           </td>
 
                           {/* 7. Running Balance */}
-                          <td className="py-3.5 px-4 text-right font-mono font-black text-xs">
+                          <td className="py-3.5 px-3.5 text-right font-mono font-black text-xs">
                             {isBalNeg ? (
                               <span className="text-emerald-600 dark:text-emerald-400">
                                 Credit: Rs. {Math.abs(entry.runningBalance).toLocaleString()}
@@ -1167,25 +1166,10 @@ export const Ledger = () => {
                                 {isSupplier ? 'Payable:' : 'Due:'} Rs. {entry.runningBalance.toLocaleString()}
                               </span>
                             ) : (
-                              <span className="text-slate-400">
+                              <span className="text-emerald-600 dark:text-emerald-400">
                                 Rs. 0 (Settled)
                               </span>
                             )}
-                          </td>
-
-                          {/* 8. Status (Plain Colored Text - No oval pill/block) */}
-                          <td className="py-3.5 px-4 text-center">
-                            <span className={`text-[11px] font-black uppercase tracking-wider ${
-                              entry.runningBalance === 0 || entry.status === 'Settled'
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : entry.runningBalance > 0
-                                  ? 'text-amber-600 dark:text-amber-400'
-                                  : 'text-blue-600 dark:text-blue-400'
-                            }`}>
-                              {entry.runningBalance === 0 || entry.status === 'Settled'
-                                ? 'Settled'
-                                : (isSupplier ? 'Payable' : 'Due')}
-                            </span>
                           </td>
                         </tr>
                       );
