@@ -8,7 +8,7 @@ import { PrintFooter } from '../components/PrintFooter';
 import { ProductHistory } from './ProductHistory';
 
 export const Products = () => {
-  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, purchases = [], sales = [], saleReturns = [], purchaseReturns = [], stockMovements = [] } = useERP();
+  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, purchases = [], sales = [], saleReturns = [], purchaseReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
@@ -303,7 +303,7 @@ export const Products = () => {
                 </tr>
               ) : (
                 filtered.map(product => {
-                  const val = computeProductValuation(product, purchases, sales, saleReturns, purchaseReturns, stockMovements);
+                  const val = computeProductValuation(product, purchases, sales, saleReturns, purchaseReturns);
                   const isLowStock = val.qty <= (product.minStock || 1000);
                   const sellingRate = Number(product.sellingPrice ?? product.sellingprice ?? val.sellingRate ?? 0);
                   const unit = product.unit || product.baseUnit || t('kg');

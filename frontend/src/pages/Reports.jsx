@@ -26,7 +26,8 @@ export const Reports = () => {
     paymentLogs = [],
     saleReturns = [],
     purchaseReturns = [],
-    expenses = []
+    expenses = [],
+    stockMovements = []
   } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
@@ -930,23 +931,30 @@ export const Reports = () => {
       }
     });
 
-    // 3. Purchase Returns Inflow (Refunds received)
+    // 3. Purchase Returns Inflow (ONLY actual Cash / Bank refunds received from supplier)
     (purchaseReturns || []).forEach(r => {
-      const refAmt = Number(r.refundAmount || 0);
-      if (refAmt > 0) {
-        const chan = getChannel(r.refundMode);
-        if (chan === 'wallet') wallet += refAmt;
-        else if (chan === 'bank') bank += refAmt;
-        else cash += refAmt;
+      const mode = String(r.refundMode || r.refundmode || '').trim().toLowerCase();
+      const isCashRefund = mode === 'cash' || mode === 'bank' || mode === 'wallet' || mode === 'online';
+      const isLedgerDebitNote = mode === 'ledger' || mode === 'khata' || mode === 'debit note';
 
-        txList.push({
-          date: r.date || 'Today',
-          source: `Purchase Return Refund (#${r.returnNo || r.id || 'N/A'})`,
-          party: r.supplierName || 'Supplier',
-          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
-          type: 'Inflow',
-          amount: refAmt
-        });
+      // Crucial: Supplier Khata (Debit Note) NEVER touches physical Cash/Bank
+      if (isCashRefund && !isLedgerDebitNote) {
+        const refAmt = Number(r.refundAmount || 0);
+        if (refAmt > 0) {
+          const chan = getChannel(r.refundMode);
+          if (chan === 'wallet') wallet += refAmt;
+          else if (chan === 'bank') bank += refAmt;
+          else cash += refAmt;
+
+          txList.push({
+            date: r.date || 'Today',
+            source: `Purchase Return Cash Refund (#${r.returnNo || r.id || 'N/A'})`,
+            party: r.supplierName || 'Supplier',
+            channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+            type: 'Inflow',
+            amount: refAmt
+          });
+        }
       }
     });
 
@@ -1011,23 +1019,30 @@ export const Reports = () => {
       }
     });
 
-    // 7. Sale Returns Outflows (Refunds given to customers)
+    // 7. Sale Returns Outflows (ONLY actual Cash / Bank refunds given to customers)
     (saleReturns || []).forEach(r => {
-      const refAmt = Number(r.refundAmount || 0);
-      if (refAmt > 0) {
-        const chan = getChannel(r.refundMode);
-        if (chan === 'wallet') wallet -= refAmt;
-        else if (chan === 'bank') bank -= refAmt;
-        else cash -= refAmt;
+      const mode = String(r.refundMode || r.refundmode || '').trim().toLowerCase();
+      const isCashRefund = mode === 'cash' || mode === 'bank' || mode === 'wallet' || mode === 'online';
+      const isLedgerCreditNote = mode === 'ledger' || mode === 'khata' || mode === 'credit note';
 
-        txList.push({
-          date: r.date || 'Today',
-          source: `Sale Return Refund (${r.refundMode || 'Cash'})`,
-          party: r.customerName || 'Customer',
-          channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
-          type: 'Outflow',
-          amount: refAmt
-        });
+      // Crucial: Customer Khata (Credit Note) NEVER touches physical Cash/Bank
+      if (isCashRefund && !isLedgerCreditNote) {
+        const refAmt = Number(r.refundAmount || 0);
+        if (refAmt > 0) {
+          const chan = getChannel(r.refundMode);
+          if (chan === 'wallet') wallet -= refAmt;
+          else if (chan === 'bank') bank -= refAmt;
+          else cash -= refAmt;
+
+          txList.push({
+            date: r.date || 'Today',
+            source: `Sale Return Cash Refund (${r.refundMode || 'Cash'})`,
+            party: r.customerName || 'Customer',
+            channel: chan === 'wallet' ? 'Mobile Wallet' : chan === 'bank' ? 'Bank Account' : 'Cash Drawer',
+            type: 'Outflow',
+            amount: refAmt
+          });
+        }
       }
     });
 
@@ -1242,7 +1257,7 @@ export const Reports = () => {
         ref: r.returnNo ? (String(r.returnNo).startsWith('SR-') ? r.returnNo : `SR-${r.returnNo}`) : (r.ref || `SR-${r.id || 'RET'}`),
         product: it.name || 'Returned Commodity',
         category: 'Sale Return',
-        type: 'Sale Return',
+        type: (r.refundMode || '').toLowerCase() === 'cash' ? 'Sale Return (Cash Refund)' : 'Sale Return (Credit Note)',
         isIncome: false,
         qty: it.qty ? `${it.qty} ${it.unit || 'KG'}` : '—',
         rawQty: Number(it.qty || 0),
@@ -1250,7 +1265,7 @@ export const Reports = () => {
         cogs: returnCogs,
         grossProfit: -(refAmt - returnCogs),
         party: r.customerName || 'Customer Party',
-        mode: r.refundMode || 'Ledger'
+        mode: (r.refundMode || '').toLowerCase() === 'cash' ? 'Cash' : 'Ledger'
       });
     });
 
@@ -1259,6 +1274,7 @@ export const Reports = () => {
       const rDateObj = parseJournalDate(r.date, r.created_at);
       const it = (r.items || [])[0] || {};
       const refAmt = Number(r.refundAmount || 0);
+      const isCash = (r.refundMode || '').toLowerCase() === 'cash';
 
       journal.push({
         id: `pr-${r.id || r.returnNo || Math.random()}`,
@@ -1267,13 +1283,13 @@ export const Reports = () => {
         ref: r.returnNo ? (String(r.returnNo).startsWith('PR-') ? r.returnNo : `PR-${r.returnNo}`) : (r.ref || `PR-${r.id || 'RET'}`),
         product: it.name || 'Returned Commodity',
         category: 'Purchase Return',
-        type: 'Purchase Return',
+        type: isCash ? 'Purchase Return (Cash Refund)' : 'Purchase Return (Debit Note)',
         isIncome: true,
         qty: it.qty ? `${it.qty} ${it.unit || 'KG'}` : '—',
         rawQty: Number(it.qty || 0),
         amount: refAmt,
         party: r.supplierName || 'Supplier Firm',
-        mode: r.refundMode || 'Ledger'
+        mode: isCash ? 'Cash' : 'Ledger'
       });
     });
 
@@ -3833,7 +3849,7 @@ export const Reports = () => {
               </div>
 
               <div className="space-y-3 text-xs">
-                {/* 1. Supplier Payables & Current Liabilities */}
+                {/* 1. Supplier dues deducted & Current Liabilities */}
                 <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
                   }`}>
                   <div
@@ -3944,7 +3960,7 @@ export const Reports = () => {
                   <span>
                     {bsActiveDrilldownModal === 'stock' && 'Stock Valuation Breakdown'}
                     {bsActiveDrilldownModal === 'customers' && 'Customer Khata Receivables Ledger'}
-                    {bsActiveDrilldownModal === 'suppliers' && 'Supplier Payables Ledger'}
+                    {bsActiveDrilldownModal === 'suppliers' && 'Supplier dues deducted Ledger'}
                     {bsActiveDrilldownModal === 'cashBank' && 'Liquid Cash & Bank Accounts'}
                   </span>
                 </h3>
@@ -4055,7 +4071,7 @@ export const Reports = () => {
                 </table>
               )}
 
-              {/* 3. Supplier Payables Details */}
+              {/* 3. Supplier dues deducted Details */}
               {bsActiveDrilldownModal === 'suppliers' && (
                 <table className="w-full text-left border-collapse">
                   <thead>

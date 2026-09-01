@@ -668,7 +668,7 @@ export const Ledger = () => {
                 } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : (isSupplier ? 'bg-gradient-to-b from-rose-50/60 to-white border-rose-200/80' : 'bg-gradient-to-b from-emerald-50/60 to-white border-emerald-200/80')}`}
             >
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                <span>{isSupplier ? 'Supplier Payables' : 'Customer Receivables'}</span>
+                <span>{isSupplier ? 'Supplier dues deducted' : 'Customer Receivables'}</span>
                 <span className={`w-2.5 h-2.5 rounded-full ${isSupplier ? 'bg-rose-500 shadow-xs shadow-rose-500/50' : 'bg-emerald-500 shadow-xs shadow-emerald-500/50'}`}></span>
               </div>
               <div className={`text-xl sm:text-2xl font-mono font-black mt-1.5 ${isSupplier ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
@@ -799,7 +799,7 @@ export const Ledger = () => {
             title={isSupplier ? "Supplier Ledger Statement Summary" : "Customer Ledger Statement Summary"}
             filterSummary={`Condition: ${statusFilter}`}
             stats={[
-              { label: isSupplier ? 'Supplier Payables' : 'Customer Receivables', value: `Rs. ${(isSupplier ? totalPayable : totalReceivable).toLocaleString()}` },
+              { label: isSupplier ? 'Supplier dues deducted' : 'Customer Receivables', value: `Rs. ${(isSupplier ? totalPayable : totalReceivable).toLocaleString()}` },
               { label: isSupplier ? 'Total Purchases' : 'Total Sales', value: `Rs. ${totalDebitSum.toLocaleString()}` },
               { label: isSupplier ? 'Total Paid out' : 'Cash Received', value: `Rs. ${totalCreditSum.toLocaleString()}` }
             ]}
@@ -816,7 +816,7 @@ export const Ledger = () => {
                     <th className="py-3.5 px-4">{isSupplier ? 'Supplier Firm' : 'Customer Entity'}</th>
                     <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Purchases' : 'Total Sales'}</th>
                     <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Paid out' : 'Cash Received'}</th>
-                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Supplier Payables' : 'Remaining Balance'}</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Supplier dues deducted' : 'Remaining Balance'}</th>
                     <th className="py-3.5 px-4 text-center">Status</th>
                     <th className="py-3.5 px-4 text-center no-print">Action</th>
                   </tr>
@@ -994,7 +994,7 @@ export const Ledger = () => {
                 : theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
                 }`}>
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  {isSupplier ? 'Supplier Payables' : 'Account Balance'}
+                  {isSupplier ? 'Supplier dues deducted' : 'Account Balance'}
                 </div>
                 <div className={`text-lg font-mono font-black mt-1 ${(activeCustomer?.balance || 0) < 0
                   ? 'text-emerald-600 dark:text-emerald-400'
@@ -1090,7 +1090,7 @@ export const Ledger = () => {
             stats={[
               { label: isSupplier ? 'Total Purchases' : 'Total Sales', value: `Rs. ${(activeCustomer?.totalDebit || 0).toLocaleString()}` },
               { label: isSupplier ? 'Total Paid out' : 'Cash Received', value: `Rs. ${(activeCustomer?.totalCredit || 0).toLocaleString()}` },
-              { label: isSupplier ? 'Supplier Payables' : 'Remaining Balance', value: `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}` }
+              { label: isSupplier ? 'Supplier dues deducted' : 'Remaining Balance', value: `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}` }
             ]}
           />
 

@@ -50,7 +50,7 @@ const safeNum = (val, fallback = 0) => {
 };
 
 export const ProductHistory = ({ product, onBack }) => {
-  const { purchases = [], sales = [], saleReturns = [], purchaseReturns = [], stockMovements = [] } = useERP();
+  const { purchases = [], sales = [], saleReturns = [], purchaseReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
@@ -69,8 +69,8 @@ export const ProductHistory = ({ product, onBack }) => {
 
   // Compute live current inventory valuation
   const valuation = useMemo(() => {
-    return computeProductValuation(product, purchases, sales, saleReturns, purchaseReturns, stockMovements);
-  }, [product, purchases, sales, saleReturns, purchaseReturns, stockMovements]);
+    return computeProductValuation(product, purchases, sales, saleReturns, purchaseReturns);
+  }, [product, purchases, sales, saleReturns, purchaseReturns]);
 
   const unit = product?.unit || product?.baseUnit || t('kg');
   const sellingRate = safeNum(product?.sellingPrice ?? product?.sellingprice ?? valuation.sellingRate ?? 0, 0);

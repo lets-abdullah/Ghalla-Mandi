@@ -260,7 +260,7 @@ const safeNum = (val, fallback = 0) => {
   return isNaN(n) || !isFinite(n) ? fallback : n;
 };
 
-export const computeProductValuation = (product, purchases = [], sales = [], saleReturns = [], purchaseReturns = [], stockMovements = []) => {
+export const computeProductValuation = (product, purchases = [], sales = [], saleReturns = [], purchaseReturns = []) => {
   if (!product) {
     return {
       qty: 0,
@@ -292,7 +292,12 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
   const initialRate = safeNum(product.purchasePrice ?? product.purchase_price ?? product.rate ?? 0, 0);
   const sellingRate = safeNum(product.sellingPrice ?? product.selling_price ?? 0, 0);
 
-  // Collect all transactions in chronological order
+  // Collect only authentic business transactions in chronological order:
+  // 1. Opening Stock on product creation
+  // 2. Stock In on Purchase
+  // 3. Stock Out on POS Sale
+  // 4. Stock In on Sale Return
+  // 5. Stock Out on Purchase Return
   const events = [];
 
   if (initialQty > 0) {
@@ -307,7 +312,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     });
   }
 
-  // Purchases (IN)
+  // Purchases (Stock IN)
   (purchases || []).forEach(p => {
     const pDate = new Date(p.created_at || p.createdAt || p.date || 0).getTime() || 0;
     const pDateStr = p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'N/A');
@@ -330,7 +335,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     });
   });
 
-  // Purchase Returns (OUT to vendor)
+  // Purchase Returns (Stock OUT to supplier)
   (purchaseReturns || []).forEach(pr => {
     const prDate = new Date(pr.created_at || pr.createdAt || pr.date || 0).getTime() || 0;
     const prDateStr = pr.date || (pr.created_at ? new Date(pr.created_at).toLocaleDateString('en-GB') : 'N/A');
@@ -353,7 +358,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     });
   });
 
-  // Sales (OUT to customer)
+  // Sales (Stock OUT to customer)
   (sales || []).forEach(s => {
     const sDate = new Date(s.created_at || s.createdAt || s.date || 0).getTime() || 0;
     const sDateStr = s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : 'N/A');
@@ -376,7 +381,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     });
   });
 
-  // Sale Returns (IN back from customer)
+  // Sale Returns (Stock IN back from customer)
   (saleReturns || []).forEach(sr => {
     const srDate = new Date(sr.created_at || sr.createdAt || sr.date || 0).getTime() || 0;
     const srDateStr = sr.date || (sr.created_at ? new Date(sr.created_at).toLocaleDateString('en-GB') : 'N/A');
@@ -397,32 +402,6 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
         }
       }
     });
-  });
-
-  // Manual Adjustments from stockMovements
-  (stockMovements || []).forEach((m, idx) => {
-    const mDate = new Date(m.created_at || m.createdAt || m.date || 0).getTime() || 0;
-    const mDateStr = m.date || (m.created_at ? new Date(m.created_at).toLocaleDateString('en-GB') : 'N/A');
-    if (isMatch(m) || isMatch({ name: m.product || m.productName })) {
-      const typeUpper = (m.type || '').toUpperCase();
-      const refUpper = (m.ref || '').toUpperCase();
-      const isAlreadyTracked = refUpper.includes('PURCHASE') || refUpper.includes('SALE') || refUpper.includes('RETURN') || refUpper.includes('INV-') || refUpper.includes('PUR-');
-      if (!isAlreadyTracked) {
-        const itQty = safeQty(m.qty);
-        if (itQty > 0) {
-          const isStockIn = typeUpper.includes('IN') || (typeof m.qty === 'number' && m.qty > 0);
-          events.push({
-            id: `adj-${m.id || idx}`,
-            date: mDate,
-            dateStr: mDateStr,
-            type: isStockIn ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT',
-            ref: m.ref || 'Adjustment',
-            qty: itQty,
-            rate: safeNum(m.rate ?? initialRate, initialRate)
-          });
-        }
-      }
-    }
   });
 
   // Sort chronologically
@@ -956,6 +935,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     // Add Returns
     partyReturns.forEach((r, idx) => {
       const ts = parseNormalizedTimestamp(r.date, r.created_at);
+      const isCashRefund = String(r.refundMode || '').toLowerCase() === 'cash';
       entries.push({
         id: `ret-${r.id || idx}`,
         timestamp: ts,
@@ -967,10 +947,12 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         partyName: party.name,
         ref: r.returnNo || `RET-${r.id || idx}`,
         txType: 'Returns',
-        desc: `Sale Return: ${r.reason || 'Produce return credit'}`,
+        desc: isCashRefund
+          ? `Sale Return (Cash Refund Paid)`
+          : `Sale Return (Credit Note / Khata Adjustment)`,
         debit: 0,
         credit: Number(r.refundAmount || 0),
-        notes: r.reason || ''
+        notes: r.reason || (isCashRefund ? 'Cash Refund' : 'Khata Credit Note')
       });
     });
 
@@ -1082,6 +1064,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     // Add Purchase Returns
     partyReturns.forEach((r, idx) => {
       const ts = parseNormalizedTimestamp(r.date, r.created_at);
+      const isCashRefund = String(r.refundMode || '').toLowerCase() === 'cash';
       entries.push({
         id: `pret-${r.id || idx}`,
         timestamp: ts,
@@ -1093,10 +1076,12 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         partyName: party.name,
         ref: r.returnNo || `PR-${r.id || idx}`,
         txType: 'Returns',
-        desc: `Purchase Return (${r.refundMode || 'Ledger'})`,
+        desc: isCashRefund
+          ? `Purchase Return (Cash Refund Received)`
+          : `Purchase Return (Debit Note / Khata Adjustment)`,
         debit: 0,
         credit: Number(r.refundAmount || 0),
-        notes: r.reason || ''
+        notes: r.reason || (isCashRefund ? 'Cash Refund' : 'Khata Debit Note')
       });
     });
 

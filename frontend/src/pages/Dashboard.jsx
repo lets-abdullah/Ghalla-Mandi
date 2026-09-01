@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 export const Dashboard = () => {
   const { t } = useLocale();
   const { user } = useAuth();
-  const { sales = [], purchases = [], customers = [], suppliers = [], products = [], saleReturns = [], purchaseReturns = [], paymentLogs = [] } = useERP();
+  const { sales = [], purchases = [], customers = [], suppliers = [], products = [], saleReturns = [], purchaseReturns = [], paymentLogs = [], stockMovements = [] } = useERP();
   const navigate = useNavigate();
   const [activeInvoice, setActiveInvoice] = useState(null);
 
@@ -96,7 +96,7 @@ export const Dashboard = () => {
   const regDueCount = (registeredList || []).filter(c => c.receivableDue > 0).length;
   const totalDueAccountsCount = (allCustomers || []).filter(c => c.receivableDue > 0).length;
 
-  // Combined Live Supplier Payables using Centralized Engine
+  // Combined Live Supplier dues deducted using Centralized Engine
   const { totalPayables, allSuppliers } = useMemo(() => {
     return computeAllSuppliersFinancials(suppliers, purchases, paymentLogs, purchaseReturns);
   }, [suppliers, purchases, paymentLogs, purchaseReturns]);
@@ -171,9 +171,9 @@ export const Dashboard = () => {
           onClick={() => navigate('/khata')}
         />
 
-        {/* 5. Supplier Payables */}
+        {/* 5. Supplier dues deducted */}
         <KPICard
-          title="Supplier Dues"
+          title="Supplier dues deducted"
           amount={`Rs. ${totalPayables.toLocaleString()}`}
           subtext={
             totalPayables > 0

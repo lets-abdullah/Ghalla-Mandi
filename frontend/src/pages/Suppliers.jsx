@@ -677,7 +677,7 @@ export const Suppliers = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-rose-600" />
-            <span>Supplier Payables</span>
+            <span>Supplier dues deducted</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
             Rs. {totalPayablesAmount.toLocaleString()}
@@ -783,7 +783,7 @@ export const Suppliers = () => {
         stats={[
           { label: 'Total Suppliers', value: totalSuppliersCount },
           { label: 'Suppliers with Dues', value: (suppliers || []).filter(s => (Number(s.balance) || 0) > 0).length },
-          { label: 'Supplier Payables', value: `Rs. ${totalPayablesAmount.toLocaleString()}` }
+          { label: 'Supplier dues deducted', value: `Rs. ${totalPayablesAmount.toLocaleString()}` }
         ]}
       />
 

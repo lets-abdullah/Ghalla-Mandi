@@ -676,7 +676,7 @@ export const Purchases = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Clock className="w-4 h-4 text-rose-600" />
-            <span>{t('outstandingPayables') || 'Supplier Payables'}</span>
+            <span>{t('outstandingPayables') || 'Supplier dues deducted'}</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
             Rs. {totalOutstandingPayable.toLocaleString()}
@@ -828,7 +828,7 @@ export const Purchases = () => {
           { label: 'Total Purchases', value: filteredPurchases.length },
           { label: 'Net Purchases Volume', value: `Rs. ${totalNetPurchases.toLocaleString()}` },
           { label: 'Total Paid out Out', value: `Rs. ${totalPaidOut.toLocaleString()}` },
-          { label: 'Supplier Payables', value: `Rs. ${totalOutstandingPayable.toLocaleString()}` }
+          { label: 'Supplier dues deducted', value: `Rs. ${totalOutstandingPayable.toLocaleString()}` }
         ]}
       />
 

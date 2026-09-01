@@ -1,26 +1,24 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Warehouse,
-  ArrowUpRight,
-  ArrowDownLeft,
-  RefreshCw,
-  X,
-  Package,
-  AlertTriangle,
-  DollarSign,
-  Search,
-  Calendar,
-  Filter,
-  SlidersHorizontal,
-  FileText,
-  Printer,
-  ChevronRight,
   TrendingUp,
   TrendingDown,
+  AlertTriangle,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Filter,
+  Calendar,
+  Search,
+  Printer,
   RotateCcw,
-  CheckCircle2,
-  Info
+  Package,
+  FileText,
+  Clock,
+  Layers,
+  Sparkles,
+  ShoppingBag,
+  ShoppingCart
 } from 'lucide-react';
 import { useERP, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -31,12 +29,10 @@ import { PrintFooter } from '../components/PrintFooter';
 export const Inventory = () => {
   const {
     products = [],
-    stockMovements = [],
     sales = [],
     purchases = [],
     saleReturns = [],
-    purchaseReturns = [],
-    adjustStock
+    purchaseReturns = []
   } = useERP();
 
   const { theme } = useTheme();
@@ -48,35 +44,8 @@ export const Inventory = () => {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('All');
-  const [movementTypeFilter, setMovementTypeFilter] = useState('All'); // 'All' | 'IN' | 'OUT' | 'RETURN'
-  const [sourceFilter, setSourceFilter] = useState('All');
+  const [movementTypeFilter, setMovementTypeFilter] = useState('All'); // 'All' | 'IN' | 'OUT' | 'PURCHASE' | 'SALE' | 'RETURN'
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Adjustment Form State
-  const [adjForm, setAdjForm] = useState({
-    productId: products[0]?.id || '',
-    qtyKg: 1,
-    type: 'IN',
-    reason: 'Manual Warehouse Count Audit'
-  });
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setShowAdjModal(false);
-        setSelectedMovementDetail(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Sync selected product when products load
-  useEffect(() => {
-    if (products.length > 0 && !adjForm.productId) {
-      setAdjForm(prev => ({ ...prev, productId: products[0].id }));
-    }
-  }, [products]);
 
   // Safe quantity helper
   const safeQty = (val) => {
@@ -92,7 +61,7 @@ export const Inventory = () => {
     return isNaN(n) || !isFinite(n) ? 0 : n;
   };
 
-  // Unified Chronological Inventory Movement Ledger
+  // Unified Chronological Inventory Movement Ledger (Purchases, Sales, Returns & Opening Stock only)
   const allTransactions = useMemo(() => {
     const list = [];
 
@@ -107,8 +76,8 @@ export const Inventory = () => {
           productId: p.id,
           productName: p.name,
           direction: 'IN',
+          movementCategory: 'OPENING',
           movementLabel: 'Opening Stock',
-          sourceCategory: 'Opening Stock',
           referenceNo: 'OPENING-STOCK',
           qtyNum: initialQty,
           unit: p.unit || p.baseUnit || 'KG',
@@ -118,7 +87,7 @@ export const Inventory = () => {
       }
     });
 
-    // 2. Purchases (Stock In)
+    // 2. Stock In on Purchase
     (purchases || []).forEach(p => {
       const items = Array.isArray(p.items) && p.items.length > 0 ? p.items : (Array.isArray(p.cart) ? p.cart : [{ name: p.productName || 'Procured Commodity', qty: p.qty || 1, unit: p.unit || 'KG' }]);
       items.forEach((it, i) => {
@@ -126,14 +95,14 @@ export const Inventory = () => {
         if (itQty > 0) {
           list.push({
             id: `pur-${p.id || p.purchaseNo}-${i}`,
-            dateStr: p.date || new Date().toLocaleDateString('en-GB'),
+            dateStr: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
             dateObj: p.created_at ? new Date(p.created_at) : new Date(p.date || 0),
             productId: it.productId || it.id,
             productName: it.name || p.productName || 'Commodity',
             direction: 'IN',
-            movementLabel: 'Purchase In',
-            sourceCategory: 'Purchases',
-            referenceNo: p.purchaseNo ? `Purchase #${p.purchaseNo}` : 'Purchase Bill',
+            movementCategory: 'PURCHASE',
+            movementLabel: 'Stock In (Purchase)',
+            referenceNo: p.purchaseNo ? `PUR-#${p.purchaseNo}` : 'Purchase Bill',
             qtyNum: itQty,
             unit: it.unit || it.unitName || p.unit || 'KG',
             signedQty: `+${itQty} ${it.unit || p.unit || 'KG'}`,
@@ -143,7 +112,7 @@ export const Inventory = () => {
       });
     });
 
-    // 3. Sales (Stock Out)
+    // 3. Stock Out on POS Sale
     (sales || []).forEach(s => {
       const items = Array.isArray(s.items) && s.items.length > 0 ? s.items : (Array.isArray(s.cart) ? s.cart : [{ name: typeof s.items === 'string' ? s.items : (s.productName || 'Commodity'), qty: s.qty || 1, unit: s.unit || 'KG' }]);
       items.forEach((it, i) => {
@@ -151,14 +120,14 @@ export const Inventory = () => {
         if (itQty > 0) {
           list.push({
             id: `sale-${s.id || s.invoiceNo}-${i}`,
-            dateStr: s.date || new Date().toLocaleDateString('en-GB'),
+            dateStr: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
             dateObj: s.created_at ? new Date(s.created_at) : new Date(s.date || 0),
             productId: it.productId || it.id,
             productName: it.name || 'Commodity Product',
             direction: 'OUT',
-            movementLabel: 'POS Sale Out',
-            sourceCategory: 'Sales',
-            referenceNo: s.invoiceNo ? `Sale #${s.invoiceNo}` : 'POS Checkout',
+            movementCategory: 'SALE',
+            movementLabel: 'Stock Out (POS Sale)',
+            referenceNo: s.invoiceNo ? `INV-#${s.invoiceNo}` : 'POS Checkout',
             qtyNum: itQty,
             unit: it.unit || it.unitName || s.unit || 'KG',
             signedQty: `-${itQty} ${it.unit || s.unit || 'KG'}`,
@@ -168,21 +137,21 @@ export const Inventory = () => {
       });
     });
 
-    // 4. Sale Returns (Stock In)
+    // 4. Stock In on Sale Return
     (saleReturns || []).forEach(r => {
       (r.items || [{ name: 'Returned Commodity', qty: r.qty || 1, unit: 'KG' }]).forEach((it, i) => {
         const itQty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 1);
         if (itQty > 0) {
           list.push({
             id: `sr-${r.id || r.returnNo}-${i}`,
-            dateStr: r.date || new Date().toLocaleDateString('en-GB'),
+            dateStr: r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
             dateObj: r.created_at ? new Date(r.created_at) : new Date(r.date || 0),
             productId: it.productId || it.id,
             productName: it.name || 'Returned Commodity',
             direction: 'IN',
-            movementLabel: 'Customer Return In',
-            sourceCategory: 'Sale Returns',
-            referenceNo: r.returnNo ? `Sale Return #${r.returnNo}` : 'Credit Note',
+            movementCategory: 'SALE_RETURN',
+            movementLabel: 'Stock In (Sale Return)',
+            referenceNo: r.returnNo ? `SR-#${r.returnNo}` : 'Credit Note',
             qtyNum: itQty,
             unit: it.unit || 'KG',
             signedQty: `+${itQty} ${it.unit || 'KG'}`,
@@ -192,21 +161,21 @@ export const Inventory = () => {
       });
     });
 
-    // 5. Purchase Returns (Stock Out)
+    // 5. Stock Out on Purchase Return
     (purchaseReturns || []).forEach(r => {
       (r.items || [{ name: 'Returned Commodity', qty: r.qty || 1, unit: 'KG' }]).forEach((it, i) => {
         const itQty = safeQty(it.qty ?? it.quantity ?? it.returnQty ?? 1);
         if (itQty > 0) {
           list.push({
             id: `pr-${r.id || r.returnNo}-${i}`,
-            dateStr: r.date || new Date().toLocaleDateString('en-GB'),
+            dateStr: r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
             dateObj: r.created_at ? new Date(r.created_at) : new Date(r.date || 0),
             productId: it.productId || it.id,
             productName: it.name || 'Returned Commodity',
             direction: 'OUT',
-            movementLabel: 'Supplier Return Out',
-            sourceCategory: 'Purchase Returns',
-            referenceNo: r.returnNo ? `Purchase Return #${r.returnNo}` : 'Debit Note',
+            movementCategory: 'PURCHASE_RETURN',
+            movementLabel: 'Stock Out (Purchase Return)',
+            referenceNo: r.returnNo ? `PR-#${r.returnNo}` : 'Debit Note',
             qtyNum: itQty,
             unit: it.unit || 'KG',
             signedQty: `-${itQty} ${it.unit || 'KG'}`,
@@ -214,34 +183,6 @@ export const Inventory = () => {
           });
         }
       });
-    });
-
-    // 6. Manual Adjustments from stockMovements
-    (stockMovements || []).forEach((m, idx) => {
-      const typeUpper = (m.type || '').toUpperCase();
-      const refUpper = (m.ref || '').toUpperCase();
-      const isAlreadyTracked = refUpper.includes('PURCHASE') || refUpper.includes('SALE') || refUpper.includes('RETURN') || refUpper.includes('INV-') || refUpper.includes('PUR-');
-      if (!isAlreadyTracked) {
-        const itQty = safeQty(m.qty);
-        if (itQty > 0) {
-          const isStockIn = typeUpper.includes('IN') || (typeof m.qty === 'number' && m.qty > 0);
-          list.push({
-            id: `adj-${m.id || idx}`,
-            dateStr: m.date || (m.created_at ? new Date(m.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')),
-            dateObj: m.created_at ? new Date(m.created_at) : new Date(),
-            productId: m.productId || m.product_id,
-            productName: m.product || m.productName || 'Adjusted Stock',
-            direction: isStockIn ? 'IN' : 'OUT',
-            movementLabel: isStockIn ? 'Stock Adjustment In' : 'Stock Adjustment Out',
-            sourceCategory: 'Stock Adjustments',
-            referenceNo: m.ref || 'Manual Adjustment',
-            qtyNum: itQty,
-            unit: m.unit || 'KG',
-            signedQty: `${isStockIn ? '+' : '-'}${itQty} ${m.unit || 'KG'}`,
-            raw: m
-          });
-        }
-      }
     });
 
     // Sort chronologically (oldest to newest) to compute running on-hand stock
@@ -264,7 +205,7 @@ export const Inventory = () => {
 
     // Return descending for display (latest on top)
     return withRunningStock.sort((a, b) => b.dateObj - a.dateObj);
-  }, [products, purchases, sales, saleReturns, purchaseReturns, stockMovements]);
+  }, [products, purchases, sales, saleReturns, purchaseReturns]);
 
   // Date Filtering Helper
   const matchesDate = (itemDate) => {
@@ -315,7 +256,6 @@ export const Inventory = () => {
         end.setHours(23, 59, 59, 999);
         return txDay <= end;
       }
-      return true;
     }
 
     return true;
@@ -336,27 +276,24 @@ export const Inventory = () => {
       if (movementTypeFilter !== 'All') {
         if (movementTypeFilter === 'IN' && item.direction !== 'IN') return false;
         if (movementTypeFilter === 'OUT' && item.direction !== 'OUT') return false;
-        if (movementTypeFilter === 'RETURN' && !item.sourceCategory.includes('Return')) return false;
+        if (movementTypeFilter === 'PURCHASE' && item.movementCategory !== 'PURCHASE') return false;
+        if (movementTypeFilter === 'SALE' && item.movementCategory !== 'SALE') return false;
+        if (movementTypeFilter === 'RETURN' && !item.movementCategory.includes('RETURN')) return false;
       }
 
-      // 4. Reference / Source Filter
-      if (sourceFilter !== 'All' && item.sourceCategory !== sourceFilter) {
-        return false;
-      }
-
-      // 5. Search Query
+      // 4. Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const pMatch = (item.productName || '').toLowerCase().includes(q);
         const rMatch = (item.referenceNo || '').toLowerCase().includes(q);
-        const sMatch = (item.sourceCategory || '').toLowerCase().includes(q);
+        const mMatch = (item.movementLabel || '').toLowerCase().includes(q);
         const dMatch = (item.dateStr || '').toLowerCase().includes(q);
-        if (!pMatch && !rMatch && !sMatch && !dMatch) return false;
+        if (!pMatch && !rMatch && !mMatch && !dMatch) return false;
       }
 
       return true;
     });
-  }, [allTransactions, dateFilter, customStartDate, customEndDate, selectedProduct, movementTypeFilter, sourceFilter, searchQuery]);
+  }, [allTransactions, dateFilter, customStartDate, customEndDate, selectedProduct, movementTypeFilter, searchQuery]);
 
   // Overall KPI Metrics
   const totalStockQty = useMemo(() => {
@@ -386,7 +323,7 @@ export const Inventory = () => {
       .reduce((sum, t) => sum + (t.qtyNum || 0), 0);
   }, [filteredTransactions]);
 
-  const hasActiveFilters = dateFilter !== 'All' || selectedProduct !== 'All' || movementTypeFilter !== 'All' || sourceFilter !== 'All' || searchQuery.trim() !== '';
+  const hasActiveFilters = dateFilter !== 'All' || selectedProduct !== 'All' || movementTypeFilter !== 'All' || searchQuery.trim() !== '';
 
   const handleResetFilters = () => {
     setDateFilter('All');
@@ -394,43 +331,7 @@ export const Inventory = () => {
     setCustomEndDate('');
     setSelectedProduct('All');
     setMovementTypeFilter('All');
-    setSourceFilter('All');
     setSearchQuery('');
-  };
-
-  // Handle Adjustment Submit
-  const handleAdjSubmit = async (e) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-
-    const prod = products.find(p => p.id === (adjForm.productId || products[0]?.id));
-    if (!prod) return;
-
-    const qtyVal = Math.max(1, Math.floor(Number(adjForm.qtyKg) || 1));
-    const currentStock = Number(prod.stockQty ?? prod.stockqty ?? 0);
-
-    if (adjForm.type === 'OUT' && currentStock < qtyVal) {
-      alert(`Cannot deduct ${qtyVal} ${prod.unit || 'KG'}. Current stock is only ${currentStock} ${prod.unit || 'KG'}.`);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const finalQty = adjForm.type === 'IN' ? qtyVal : -qtyVal;
-      await adjustStock(prod.id, finalQty, adjForm.type, adjForm.reason);
-      setShowAdjModal(false);
-      setAdjForm({
-        productId: products[0]?.id || '',
-        qtyKg: 1,
-        type: 'IN',
-        reason: 'Manual Warehouse Count Audit'
-      });
-    } catch (err) {
-      console.error(err);
-      alert(err.message || 'Failed to adjust stock');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   return (
@@ -443,7 +344,7 @@ export const Inventory = () => {
             <span>Stock & Inventory Ledger</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Complete record of stock arrivals, sales, and warehouse movements
+            Log of purchases in, POS sales out, and verified return movements
           </p>
         </div>
 
@@ -452,7 +353,9 @@ export const Inventory = () => {
           <button
             type="button"
             onClick={() => window.print()}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
+              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
           >
             <Printer className="w-4 h-4" />
             <span>Print List</span>
@@ -462,8 +365,9 @@ export const Inventory = () => {
 
       {/* KPI Summary Bar (Screen Only) */}
       <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-          }`}>
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
+          theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+        }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Warehouse className="w-4 h-4 text-brand-500" />
             <span>On-Hand Stock</span>
@@ -473,8 +377,9 @@ export const Inventory = () => {
           </div>
         </div>
 
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-          }`}>
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
+          theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+        }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-600" />
             <span>Total Stock In</span>
@@ -484,8 +389,9 @@ export const Inventory = () => {
           </div>
         </div>
 
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
-          }`}>
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
+          theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+        }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <TrendingDown className="w-4 h-4 text-rose-600" />
             <span>Total Stock Out</span>
@@ -497,8 +403,9 @@ export const Inventory = () => {
 
         <div
           onClick={() => navigate('/products')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
-            }`}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${
+            theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+          }`}
           title="View products catalog"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
@@ -512,8 +419,9 @@ export const Inventory = () => {
       </div>
 
       {/* Single Clean Filter Bar (Screen Only) */}
-      <div className={`no-print p-3.5 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-        }`}>
+      <div className={`no-print p-3.5 rounded-2xl border card-shadow space-y-3 ${
+        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+      }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-2.5">
           {/* 1. Date Filter */}
           <div className="flex-1 min-w-[120px]">
@@ -523,8 +431,9 @@ export const Inventory = () => {
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
             >
               <option value="All">All Dates</option>
               <option value="Today">Today</option>
@@ -543,8 +452,9 @@ export const Inventory = () => {
             <select
               value={selectedProduct}
               onChange={(e) => setSelectedProduct(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
             >
               <option value="All">All Products</option>
               {products.map(p => (
@@ -561,17 +471,20 @@ export const Inventory = () => {
             <select
               value={movementTypeFilter}
               onChange={(e) => setMovementTypeFilter(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
+                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
             >
               <option value="All">All Movements</option>
-              <option value="IN">Stock In (+)</option>
-              <option value="OUT">Stock Out (-)</option>
-              <option value="RETURN">Returns</option>
+              <option value="IN">All Stock In (+)</option>
+              <option value="OUT">All Stock Out (-)</option>
+              <option value="PURCHASE">Purchases In</option>
+              <option value="SALE">POS Sales Out</option>
+              <option value="RETURN">All Returns (Sale/Purchase)</option>
             </select>
           </div>
 
-          {/* 5. Search Bar */}
+          {/* 4. Search Bar */}
           <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
               Search
@@ -579,11 +492,12 @@ export const Inventory = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Product, reference, note..."
+                placeholder="Product, reference, invoice..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full border rounded-xl pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                className={`w-full border rounded-xl pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
               />
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             </div>
@@ -603,7 +517,7 @@ export const Inventory = () => {
           )}
         </div>
 
-        {/* Custom Date Pickers (Shown only when dateFilter is 'Custom') */}
+        {/* Custom Date Pickers */}
         {dateFilter === 'Custom' && (
           <div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/60">
             <div className="flex items-center gap-2">
@@ -612,8 +526,9 @@ export const Inventory = () => {
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -622,20 +537,19 @@ export const Inventory = () => {
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
               />
             </div>
           </div>
         )}
       </div>
 
-      {/* ========================================================================= */}
-      {/* PRINT-ONLY HEADER */}
-      {/* ========================================================================= */}
+      {/* Print-Only Header */}
       <PrintHeader
         title="Stock Valuation & Inventory Statement"
-        filterSummary={`Period: ${dateFilter} | Movement: ${movementTypeFilter} | Source: ${sourceFilter}`}
+        filterSummary={`Period: ${dateFilter} | Movement: ${movementTypeFilter}`}
         stats={[
           { label: 'On-Hand Stock', value: `${totalStockQty.toLocaleString()} Units` },
           { label: 'Low Stock Alerts', value: `${lowStockCount} Items` },
@@ -645,23 +559,26 @@ export const Inventory = () => {
       />
 
       {/* Compact Bank-Statement Inventory Table */}
-      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-        }`}>
+      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${
+        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+      }`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-full">
             <thead>
-              <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50/80 border-slate-200 text-slate-500'
-                }`}>
+              <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
+                theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50/80 border-slate-200 text-slate-500'
+              }`}>
                 <th className="py-2.5 px-4 w-32">Date</th>
                 <th className="py-2.5 px-4">Product</th>
-                <th className="py-2.5 px-4 w-36">Movement</th>
+                <th className="py-2.5 px-4 w-44">Movement Type</th>
                 <th className="py-2.5 px-4">Reference</th>
                 <th className="py-2.5 px-4 text-right w-32">Quantity</th>
                 <th className="py-2.5 px-4 text-right w-32">On-Hand Stock</th>
               </tr>
             </thead>
-            <tbody className={`divide-y text-xs font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
-              }`}>
+            <tbody className={`divide-y text-xs font-semibold ${
+              theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+            }`}>
               {filteredTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400 space-y-2">
@@ -672,7 +589,6 @@ export const Inventory = () => {
               ) : (
                 filteredTransactions.map((tx) => {
                   const isStockIn = tx.direction === 'IN';
-                  const isAdjustment = tx.direction === 'ADJUST';
 
                   return (
                     <tr
@@ -693,15 +609,12 @@ export const Inventory = () => {
 
                       {/* Movement Type Badge */}
                       <td className="py-2.5 px-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide border ${isAdjustment
-                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                          : isStockIn
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide border ${
+                          isStockIn
                             ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                             : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-                          }`}>
-                          {isAdjustment ? (
-                            <RefreshCw className="w-3 h-3" />
-                          ) : isStockIn ? (
+                        }`}>
+                          {isStockIn ? (
                             <ArrowDownLeft className="w-3 h-3 stroke-[2.5]" />
                           ) : (
                             <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
@@ -716,12 +629,11 @@ export const Inventory = () => {
                       </td>
 
                       {/* Signed Quantity */}
-                      <td className={`py-2.5 px-4 text-right font-black font-mono text-sm whitespace-nowrap ${isAdjustment
-                        ? 'text-amber-600 dark:text-amber-400'
-                        : isStockIn
+                      <td className={`py-2.5 px-4 text-right font-black font-mono text-sm whitespace-nowrap ${
+                        isStockIn
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : 'text-rose-600 dark:text-rose-400'
-                        }`}>
+                      }`}>
                         {tx.signedQty}
                       </td>
 
