@@ -8,14 +8,14 @@ import {
   Receipt, AlertCircle, FileText, ChevronDown, ChevronUp, Filter, Building2,
   Landmark, Layers, FolderOpen, Sparkles
 } from 'lucide-react';
-import { useERP, computeCustomerKhataBalance } from '../context/ERPContext';
+import { useERP, computeCustomerKhataBalance, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useSidebar } from '../context/SidebarContext';
 import { ReceiptModal } from '../modals/ReceiptModal';
 
 export const CreateOrder = () => {
-  const { products = [], categories = [], customers = [], addCustomer, createSale, sales = [], paymentLogs = [], saleReturns = [] } = useERP();
+  const { products = [], categories = [], customers = [], addCustomer, createSale, sales = [], paymentLogs = [], saleReturns = [], purchases = [], purchaseReturns = [], stockMovements = [] } = useERP();
   const { theme } = useTheme();
   const { t, locale } = useLocale();
   const isRTL = locale === 'ur';
@@ -336,12 +336,31 @@ export const CreateOrder = () => {
   // Khata Mode is active if Payment Mode is Credit or Customer Type is Regular Party with selected Khata customer
   const isKhataActive = paymentMode === 'Credit' || (customerType === 'Regular Party' && Boolean(selectedParty));
 
+  // Live Dynamic Stock Evaluation for all products in POS to ensure 100% sync with Inventory & Products pages
+  const syncedProducts = useMemo(() => {
+    return (products || []).map(p => {
+      const val = computeProductValuation(p, purchases, sales, saleReturns, purchaseReturns, stockMovements);
+      const sellingPrice = Number(p.sellingPrice ?? p.sellingprice ?? val.sellingRate ?? 0);
+      const purchasePrice = Number(p.purchasePrice ?? p.purchaseprice ?? val.purchaseRate ?? 0);
+      return {
+        ...p,
+        stockQty: val.qty,
+        stockqty: val.qty,
+        sellingPrice,
+        sellingprice: sellingPrice,
+        purchasePrice,
+        purchaseprice: purchasePrice,
+        activeBatches: val.activeBatches || []
+      };
+    });
+  }, [products, purchases, sales, saleReturns, purchaseReturns, stockMovements]);
+
   // Reset cart item prices to catalog default when switching back to Cash / Non-Khata mode
   useEffect(() => {
     if (!isKhataActive) {
       setShowRateModal(null);
       setCart(prev => prev.map(item => {
-        const prod = (products || []).find(p => p.id === item.productId);
+        const prod = (syncedProducts || []).find(p => p.id === item.productId);
         const catalogBasePrice = Number(prod?.sellingPrice || item.basePrice || 0);
         let adjustedPrice = catalogBasePrice;
         if (item.unit === 'Mann' || item.unit === 'Mann (40 KG)') {
@@ -365,12 +384,12 @@ export const CreateOrder = () => {
         return item;
       }));
     }
-  }, [isKhataActive, products]);
+  }, [isKhataActive, syncedProducts]);
 
   // Dynamic Unique Categories directly from Products Catalog (no duplicates, no mutations)
   const availableCategories = useMemo(() => {
     const catSet = new Set();
-    (products || []).forEach(p => {
+    (syncedProducts || []).forEach(p => {
       if (p && p.category && typeof p.category === 'string' && p.category.trim()) {
         catSet.add(p.category.trim());
       }
@@ -382,29 +401,29 @@ export const CreateOrder = () => {
       });
     }
     return Array.from(catSet).sort((a, b) => a.localeCompare(b));
-  }, [products, categories]);
+  }, [syncedProducts, categories]);
 
   // Product Count per Category
   const categoryCounts = useMemo(() => {
     const counts = {};
-    (products || []).forEach(p => {
+    (syncedProducts || []).forEach(p => {
       const cat = p?.category && typeof p.category === 'string' && p.category.trim() ? p.category.trim() : 'Uncategorized';
       counts[cat] = (counts[cat] || 0) + 1;
     });
     return counts;
-  }, [products]);
+  }, [syncedProducts]);
 
   // Immediate filtering of products by search and category
   const filteredProducts = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
-    return (products || []).filter(p => {
+    return (syncedProducts || []).filter(p => {
       const pName = (p.name || '').toLowerCase();
       const pCat = (p.category || '').toLowerCase();
       const matchesSearch = !term || pName.includes(term) || pCat.includes(term);
       const matchesCat = selectedCategory === 'All' || (p.category && p.category.trim() === selectedCategory.trim());
       return matchesSearch && matchesCat;
     });
-  }, [products, searchTerm, selectedCategory]);
+  }, [syncedProducts, searchTerm, selectedCategory]);
 
   // Group filtered products by Category
   const groupedProducts = useMemo(() => {
@@ -652,7 +671,7 @@ export const CreateOrder = () => {
                   className={`w-full border rounded-2xl py-2.5 pl-3 pr-8 text-xs font-bold outline-none transition cursor-pointer appearance-none ${selectedCategory !== 'All' ? 'border-brand-500 text-brand-600 dark:text-brand-400 font-extrabold' : ''
                     } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
                 >
-                  <option value="All">All Categories ({products.length})</option>
+                  <option value="All">All Categories ({syncedProducts.length})</option>
                   {availableCategories.map(cat => (
                     <option key={cat} value={cat}>
                       {cat} ({categoryCounts[cat] || 0})
