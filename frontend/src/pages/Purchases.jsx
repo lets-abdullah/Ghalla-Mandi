@@ -32,8 +32,12 @@ import { PurchaseReturnModal } from '../modals/PurchaseReturnModal';
 import { EditPurchaseModal } from '../modals/EditPurchaseModal';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
+import { useToast } from '../components/Toast';
+import { StatusBadge } from '../components/StatusBadge';
+import { EmptyState } from '../components/EmptyState';
 
 export const Purchases = () => {
+  const toast = useToast();
   const {
     suppliers = [],
     products = [],
@@ -53,6 +57,7 @@ export const Purchases = () => {
   const { t } = useLocale();
   const navigate = useNavigate();
 
+  const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All'); // 'All' | 'Paid' | 'Partial' | 'Due' | 'Returns'
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('All');
   const [selectedProductFilter, setSelectedProductFilter] = useState('All');
@@ -563,6 +568,17 @@ export const Purchases = () => {
   };
 
   const filteredPurchases = purchases.filter(p => {
+    // 0. Search Filter (Bill #, Supplier Name, Commodity Item)
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase().trim();
+      const numMatch = (p.purchaseNo || p.billNo || `pur-${p.id}`).toLowerCase().includes(q);
+      const supMatch = (p.supplier || p.supplierName || '').toLowerCase().includes(q);
+      const cart = Array.isArray(p.cart) && p.cart.length > 0 ? p.cart : (Array.isArray(p.items) ? p.items : []);
+      const itemMatch = cart.some(it => (it.name || it.productName || '').toLowerCase().includes(q)) ||
+        (p.productName && p.productName.toLowerCase().includes(q));
+      if (!numMatch && !supMatch && !itemMatch) return false;
+    }
+
     // 1. Supplier Filter
     if (selectedSupplierFilter !== 'All') {
       const supMatch = (p.supplierId === selectedSupplierFilter) ||
@@ -594,19 +610,16 @@ export const Purchases = () => {
     // 4. Date Filter
     if (!matchPurchaseDate(p.date || p.createdAt)) return false;
 
-    // 5. Payment / Status Filter
-    const paid = Number(p.paidAmount ?? p.paidamount ?? 0);
-    const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
-    const retAmt = Number(p.returnAmount ?? 0);
-    const isReturned = (p.status === 'Returned') || p.isReturned || (retAmt > 0) || (purchaseReturns || []).some(r => r.purchaseId === p.id || r.purchaseNo === p.purchaseNo);
-    const status = paid >= total && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
+    // 5. Payment / Status Filter using Canonical Financial Engine
+    const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+    const { status, isReturned } = fin;
 
     if (filterType === 'Returns' || filterType === 'Returned') {
       if (!isReturned) return false;
     } else {
       if (filterType === 'Paid' && status !== 'Paid') return false;
       if (filterType === 'Partial' && status !== 'Partial') return false;
-      if (filterType === 'Due' && status !== 'Due') return false;
+      if (filterType === 'Due' && status !== 'Due' && status !== 'Pending') return false;
     }
 
     return true;
@@ -617,6 +630,7 @@ export const Purchases = () => {
   });
 
   const isAnyFilterActive = (
+    searchTerm.trim() !== '' ||
     selectedSupplierFilter !== 'All' ||
     selectedProductFilter !== 'All' ||
     dateFilterType !== 'All' ||
@@ -626,6 +640,7 @@ export const Purchases = () => {
   );
 
   const resetAllFilters = () => {
+    setSearchTerm('');
     setSelectedSupplierFilter('All');
     setSelectedProductFilter('All');
     setDateFilterType('All');
@@ -718,10 +733,38 @@ export const Purchases = () => {
         </div>
       </div>
 
-      {/* Unified Filter Toolbar: [Supplier] [Product] [Date] [Status] (Screen Only) */}
+      {/* Unified Filter Toolbar: [Search] [Supplier] [Product] [Date] [Status] (Screen Only) */}
       <div className={`no-print p-3.5 sm:p-4 rounded-3xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3">
+          {/* 0. Search Purchases */}
+          <div className="flex-[2] min-w-[180px]">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Search className="w-3.5 h-3.5 text-brand-500" />
+              <span>Search Purchases</span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search bill #, supplier, product..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full border rounded-xl pl-9 pr-8 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                  }`}
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* 1. Supplier */}
           <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
@@ -860,7 +903,7 @@ export const Purchases = () => {
             <thead>
               <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                <th className="py-3 px-4">Purchase #</th>
+                <th className="py-3 px-4">Bill #</th>
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4">Supplier</th>
                 <th className="py-3 px-4">Items</th>
@@ -873,8 +916,22 @@ export const Purchases = () => {
               }`}>
               {filteredPurchases.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
-                    {t('noPurchasesFound') || 'No purchases found matching your selected criteria.'}
+                  <td colSpan={7} className="py-8 text-center">
+                    <EmptyState
+                      icon={ShoppingCart}
+                      title="No purchases found"
+                      description="No purchases match your current search and filter criteria."
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => setShowModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-white bg-brand-600 hover:bg-brand-700 transition"
+                        >
+                          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                          <span>Record Purchase</span>
+                        </button>
+                      }
+                    />
                   </td>
                 </tr>
               ) : (
@@ -932,39 +989,52 @@ export const Purchases = () => {
                         <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
                           Rs. {total.toLocaleString()}
                         </div>
+                        {due > 0 && (
+                          <div className="text-[10px] font-bold text-rose-500 font-mono">
+                            Due: Rs. {due.toLocaleString()}
+                          </div>
+                        )}
                       </td>
 
                       {/* 6. Status */}
                       <td className="py-3.5 px-4 text-center">
-                        <div className="flex flex-col items-center gap-0.5">
-                          {isFullyReturned ? (
-                            <span className="font-extrabold text-xs whitespace-nowrap text-purple-600 dark:text-purple-400">
-                              Fully Returned
+                        <div className="flex flex-col items-center gap-1">
+                          <StatusBadge status={isFullyReturned ? 'Returned' : status} />
+                          {isPartiallyReturned && (
+                            <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400">
+                              (Part Return)
                             </span>
-                          ) : (
-                            <>
-                              <span className={`font-extrabold text-xs whitespace-nowrap ${status === 'Paid'
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : status === 'Partial'
-                                  ? 'text-amber-600 dark:text-amber-400'
-                                  : 'text-rose-600 dark:text-rose-400'
-                                }`}>
-                                {status === 'Paid' ? 'Paid' : status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
-                              </span>
-
-                              {isPartiallyReturned && (
-                                <span className="font-bold text-[11px] whitespace-nowrap text-orange-600 dark:text-orange-400">
-                                  (Partially Returned)
-                                </span>
-                              )}
-                            </>
                           )}
                         </div>
                       </td>
 
-                      {/* 7. Actions: Receipt | Edit | Return Purchase (Screen Only) */}
+                      {/* 7. Actions: Receipt | Pay | Edit | Return Purchase (Screen Only) */}
                       <td className="py-3.5 px-4 text-center no-print">
-                        <div className="flex items-center justify-center gap-1.5">
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          {/* View Bill Receipt */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedReceipt(p)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer text-xs font-bold active:scale-98"
+                            title="View / Print Purchase Bill"
+                          >
+                            <Receipt className="w-3.5 h-3.5 text-slate-500" />
+                            <span className="hidden sm:inline">Bill</span>
+                          </button>
+
+                          {/* Quick Pay if Due exists */}
+                          {due > 0 && !isFullyReturned && (
+                            <button
+                              type="button"
+                              onClick={() => setPayModalPurchase(p)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
+                              title={`Pay supplier for this purchase (Due: Rs. ${due.toLocaleString()})`}
+                            >
+                              <DollarSign className="w-3.5 h-3.5" />
+                              <span>Pay</span>
+                            </button>
+                          )}
+
                           {/* Edit Action (Locked if stock has been returned) */}
                           {(p.returnStatus || Number(p.returnAmount || 0) > 0 || isReturned || isFullyReturned || isPartiallyReturned) ? (
                             <span
@@ -976,6 +1046,7 @@ export const Purchases = () => {
                             </span>
                           ) : (
                             <button
+                              type="button"
                               onClick={() => setEditingPurchase(p)}
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
                               title="Edit Purchase / Modify Items"
@@ -996,15 +1067,16 @@ export const Purchases = () => {
                             </span>
                           ) : (
                             <button
+                              type="button"
                               onClick={() => {
                                 setSelectedReturnPurchase(p);
                                 setShowReturnModal(true);
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
-                              title="Return Purchase (Partial or Full)"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
+                              title="Return Inward Stock to Supplier"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
-                              <span>Return Purchase</span>
+                              <span>Return</span>
                             </button>
                           )}
                         </div>
@@ -1249,7 +1321,7 @@ export const Purchases = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div>
                       <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Supplier / Contact Name <span className="text-rose-500">*</span>
+                        Supplier Name <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1332,22 +1404,6 @@ export const Purchases = () => {
                     <span>Financial & Bank Account Info</span>
                   </div>
 
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                      Opening Balance (PKR)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="0"
-                      value={newSupplierForm.openingBalance}
-                      onChange={(e) => setNewSupplierForm({ ...newSupplierForm, openingBalance: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
                       <label className="text-[11px] font-bold text-slate-400 block mb-1">
@@ -1394,7 +1450,7 @@ export const Purchases = () => {
 
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                      Notes / Instructions
+                      Notes
                     </label>
                     <input
                       type="text"

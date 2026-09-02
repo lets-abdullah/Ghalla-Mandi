@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LogOut, Store, Wheat, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LogOut, Store, Wheat, Menu, PanelLeftClose, PanelLeftOpen, Plus, Calendar } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { NotificationCenter } from './NotificationCenter';
 
 export const Header = () => {
@@ -13,9 +13,38 @@ export const Header = () => {
   const { theme } = useTheme();
   const { isCollapsed, isMobile, toggleSidebar, toggleMobileMenu } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef(null);
+
+  // Dynamic Page Title
+  const getPageTitle = () => {
+    const path = location.pathname;
+    if (path === '/dashboard') return t('dashboard');
+    if (path === '/create-order') return 'New Sale (POS)';
+    if (path === '/sales') return t('sales');
+    if (path === '/sale-returns') return 'Sale Returns';
+    if (path === '/purchases') return t('purchases');
+    if (path === '/purchase-returns') return 'Purchase Returns';
+    if (path === '/customers') return t('customers');
+    if (path === '/suppliers' || path === '/suppliers/new') return t('suppliers');
+    if (path === '/khata') return 'Khata (Dues)';
+    if (path === '/ledger') return t('ledger');
+    if (path === '/inventory') return t('inventory');
+    if (path === '/products') return t('products');
+    if (path === '/expenses') return t('expenses') || 'Expenses';
+    if (path === '/reports') return t('reports');
+    if (path === '/settings') return t('settings');
+    if (path === '/invoices') return 'Invoices';
+    return t('appName');
+  };
+
+  const todayFormatted = new Intl.DateTimeFormat('en-PK', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
+  }).format(new Date());
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -44,7 +73,7 @@ export const Header = () => {
     <header className={`h-14 md:h-16 shrink-0 border-b px-3 md:px-6 flex items-center justify-between sticky top-0 z-20 shadow-2xs transition-colors ${
       theme === 'dark' ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
     }`}>
-      {/* Left: Sidebar Toggle & App Brand */}
+      {/* Left: Sidebar Toggle & Dynamic Page Title */}
       <div className="flex items-center gap-2 md:gap-3">
         {/* Mobile: Hamburger to open mobile drawer */}
         {isMobile ? (
@@ -73,18 +102,37 @@ export const Header = () => {
           </button>
         )}
 
-        <Link to="/dashboard" className="flex items-center gap-2 cursor-pointer group" title={t('dashboard')}>
-          <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0 group-hover:scale-105 transition-all">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
             <Wheat className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[2.5]" />
           </div>
-          <h1 className="text-sm sm:text-base md:text-lg font-black tracking-tight group-hover:text-emerald-600 transition-colors">
-            {t('dashboard')}
+          <h1 className="text-sm sm:text-base md:text-lg font-black tracking-tight text-slate-900 dark:text-white">
+            {getPageTitle()}
           </h1>
-        </Link>
+        </div>
       </div>
 
       {/* Right Controls */}
       <div className="ml-auto flex items-center gap-1.5 sm:gap-2 md:gap-3">
+        {/* Date badge */}
+        <div className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-bold ${
+          theme === 'dark' ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'
+        }`}>
+          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+          <span>{todayFormatted}</span>
+        </div>
+
+        {/* Quick New Sale button (hidden if already on create-order) */}
+        {location.pathname !== '/create-order' && (
+          <Link
+            to="/create-order"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md shadow-emerald-600/20 transition cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            <span className="hidden sm:inline">New Sale</span>
+          </Link>
+        )}
+
         {/* Notification Center */}
         <NotificationCenter />
 

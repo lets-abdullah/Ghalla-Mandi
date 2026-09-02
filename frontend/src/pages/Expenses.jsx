@@ -10,6 +10,8 @@ import { useLocale } from '../context/LocaleContext';
 import { useERP } from '../context/ERPContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
+import { useToast } from '../components/Toast';
+import { EmptyState } from '../components/EmptyState';
 
 export const EXPENSE_CATEGORIES = [
   'Salary',
@@ -25,6 +27,7 @@ export const EXPENSE_CATEGORIES = [
 ];
 
 export const Expenses = () => {
+  const toast = useToast();
   const { theme } = useTheme();
   const { t } = useLocale();
   const { expenses = [], addExpense, deleteExpense } = useERP();
@@ -56,7 +59,7 @@ export const Expenses = () => {
     e.preventDefault();
     const amt = Number(form.amount);
     if (!amt || amt <= 0) {
-      alert('Please enter a valid expense amount.');
+      toast.warning('Please enter a valid expense amount.');
       return;
     }
 
@@ -88,10 +91,9 @@ export const Expenses = () => {
         desc: ''
       });
 
-      setSuccessMessage(`Expense of Rs. ${amt.toLocaleString()} recorded successfully!`);
-      setTimeout(() => setSuccessMessage(null), 4000);
+      toast.success(`Expense of Rs. ${amt.toLocaleString()} recorded successfully!`);
     } catch (err) {
-      alert(err.message || 'Failed to record expense');
+      toast.error(err.message || 'Failed to record expense');
     } finally {
       setIsSubmitting(false);
     }
@@ -103,9 +105,10 @@ export const Expenses = () => {
       try {
         if (deleteExpense) {
           await deleteExpense(id);
+          toast.success('Expense record deleted.');
         }
       } catch (err) {
-        alert(err.message || 'Failed to delete expense');
+        toast.error(err.message || 'Failed to delete expense');
       }
     }
   };
@@ -547,9 +550,12 @@ export const Expenses = () => {
                 }`}>
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-slate-400">
-                      <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-40" />
-                      <span>No expense records found. Record your first expense on the left panel.</span>
+                    <td colSpan={9} className="py-8 text-center">
+                      <EmptyState
+                        icon={Receipt}
+                        title="No expense records found"
+                        description="No expenses match your active category or date filters. Record a new expense using the form on the left."
+                      />
                     </td>
                   </tr>
                 ) : (

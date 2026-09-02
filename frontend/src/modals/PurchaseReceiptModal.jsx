@@ -212,15 +212,15 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                       </tr>
                     ` : ''}
                     <tr style="background: #064e3b; color: #ffffff;">
-                      <td style="padding: 6px 8px; font-weight: 900; font-size: 13px;">Total Purchase Cost:</td>
+                      <td style="padding: 6px 8px; font-weight: 900; font-size: 13px;">Total Amount:</td>
                       <td style="padding: 6px 8px; text-align: right; font-family: monospace; font-weight: 900; font-size: 14px;">Rs. ${grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                     <tr>
-                      <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Amount Paid to Supplier:</td>
+                      <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Total Paid:</td>
                       <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 800; color: #059669;">Rs. ${paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                     <tr>
-                      <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Balance to Pay:</td>
+                      <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Remaining Due:</td>
                       <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 800; color: ${dueRemaining > 0 ? '#b45309' : '#0f172a'};">Rs. ${dueRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                   </table>
@@ -621,19 +621,19 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                     </div>
                   )}
                   <div className="bg-[#064e3b] text-white p-2.5 rounded-lg flex justify-between items-center shadow-xs">
-                    <span className="text-xs font-black uppercase tracking-wider">Total Purchase Cost</span>
+                    <span className="text-xs font-black uppercase tracking-wider">Total Amount</span>
                     <span className="font-mono text-base font-black">
                       Rs. {grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-600 px-1 pt-0.5">
-                    <span>Paid to Supplier:</span>
+                    <span>Total Paid:</span>
                     <span className="font-mono text-emerald-700 font-black">
                       Rs. {paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-600 px-1">
-                    <span>Supplier dues deducted:</span>
+                    <span>Remaining Due:</span>
                     <span className={`font-mono font-black ${dueRemaining > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
                       Rs. {dueRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>

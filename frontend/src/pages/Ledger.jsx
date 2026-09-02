@@ -33,8 +33,13 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
+import { useToast } from '../components/Toast';
+import { StatusBadge } from '../components/StatusBadge';
+import { EmptyState } from '../components/EmptyState';
+import { SupplierLedgerTimeline } from '../components/SupplierLedgerTimeline';
 
 export const Ledger = () => {
+  const toast = useToast();
   const {
     customers = [],
     suppliers = [],
@@ -72,6 +77,7 @@ export const Ledger = () => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [txTypeFilter, setTxTypeFilter] = useState('All'); // 'All' | 'Sales' | 'Payments' | 'Returns'
   const [txSearchQuery, setTxSearchQuery] = useState('');
+  const [statementViewMode, setStatementViewMode] = useState('timeline'); // 'timeline' (default easy view) | 'table'
 
   // Modals state
   const [viewingEntry, setViewingEntry] = useState(null);
@@ -738,6 +744,36 @@ export const Ledger = () => {
         <div className="flex items-center gap-2.5">
           {selectedPartyId !== 'All' ? (
             <>
+              {/* View Mode Toggle: Timeline Flow vs Classic Table */}
+              <div className={`flex items-center p-1 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
+                <button
+                  type="button"
+                  onClick={() => setStatementViewMode('timeline')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    statementViewMode === 'timeline'
+                      ? 'bg-brand-500 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="View clean step-by-step transaction flow and outcome explanation"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Timeline Flow</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatementViewMode('table')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    statementViewMode === 'table'
+                      ? 'bg-brand-500 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="View traditional chronological accounting table"
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span>Classic Table</span>
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={handleBackToCustomers}
@@ -755,7 +791,7 @@ export const Ledger = () => {
                   }`}
               >
                 <Printer className="w-4 h-4" />
-                <span>Print Ledger</span>
+                <span>Print Statement</span>
               </button>
             </>
           ) : (
@@ -927,8 +963,12 @@ export const Ledger = () => {
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                   {filteredCustomerEntities.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
-                        No customer entities found matching your criteria.
+                      <td colSpan={6} className="py-8 text-center">
+                        <EmptyState
+                          icon={Users}
+                          title={isSupplier ? 'No suppliers found' : 'No customers found'}
+                          description="No matching party records found for current search/filter."
+                        />
                       </td>
                     </tr>
                   ) : (
@@ -1014,9 +1054,18 @@ export const Ledger = () => {
         /* VIEW B: SINGLE CUSTOMER COMPLETE CHRONOLOGICAL LEDGER STATEMENT */
         /* ========================================================================= */
         <div className="space-y-4">
-          {/* Customer Financial Condition Summary Header */}
-          <div className={`p-5 rounded-3xl border card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-            }`}>
+          {statementViewMode === 'timeline' ? (
+            <SupplierLedgerTimeline
+              supplier={activeCustomer}
+              entries={singleCustomerLedger}
+              theme={theme}
+              isSupplier={isSupplier}
+            />
+          ) : (
+            <>
+              {/* Customer Financial Condition Summary Header */}
+              <div className={`p-5 rounded-3xl border card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                }`}>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-700">
               <div className="flex items-center gap-3.5">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-xs border ${activeCustomer?.isWalkin
@@ -1212,8 +1261,12 @@ export const Ledger = () => {
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                   {singleCustomerLedger.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
-                        No transactions recorded for this customer yet.
+                      <td colSpan={7} className="py-8 text-center">
+                        <EmptyState
+                          icon={BookOpen}
+                          title="No transactions recorded"
+                          description="No entries found for this party matching the selected date range."
+                        />
                       </td>
                     </tr>
                   ) : (
@@ -1254,22 +1307,9 @@ export const Ledger = () => {
                               )}
                             </div>
                             {entry.returnAmount > 0 ? (
-                              <div className="text-[11px] font-mono mt-1 space-y-0.5 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/60 p-2 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
-                                <div className="flex items-center gap-2 flex-wrap font-bold">
-                                  <span className="text-slate-400">Orig {entry.txType === 'Purchases' ? 'Bill' : 'Sale'}:</span>
-                                  <span>Rs. {entry.originalGross?.toLocaleString()}</span>
-                                  <span className="text-slate-300 dark:text-slate-600">•</span>
-                                  <span className="text-purple-600 dark:text-purple-400">Return: -Rs. {entry.returnAmount?.toLocaleString()}</span>
-                                  <span className="text-slate-300 dark:text-slate-600">•</span>
-                                  <span className="text-emerald-600 dark:text-emerald-400 font-black">Net {entry.txType === 'Purchases' ? 'Bill' : 'Sale'}: Rs. {entry.netTotal?.toLocaleString()}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-[10.5px] text-slate-500 dark:text-slate-400 flex-wrap">
-                                  <span>Effective Paid: <b className="text-emerald-600 dark:text-emerald-400">Rs. {entry.paidAmount?.toLocaleString()}</b></span>
-                                  <span>•</span>
-                                  <span>Due: <b className={entry.dueAmount > 0 ? "text-amber-600 dark:text-amber-400" : "text-slate-500"}>Rs. {entry.dueAmount?.toLocaleString()}</b></span>
-                                  <span>•</span>
-                                  <span className="font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-wider">[{entry.invoiceStatus || entry.status}]</span>
-                                </div>
+                              <div className="text-[11px] font-mono mt-0.5 text-purple-600 dark:text-purple-400 font-bold flex items-center gap-1.5 flex-wrap">
+                                <span>• Adjusted with Return: -Rs. {entry.returnAmount?.toLocaleString()}</span>
+                                <span className="text-slate-400 font-normal">(Net: Rs. {entry.netTotal?.toLocaleString()})</span>
                               </div>
                             ) : (
                               entry.notes && <span className="text-[10px] text-slate-400 block mt-0.5">{entry.notes}</span>
@@ -1330,6 +1370,8 @@ export const Ledger = () => {
               </table>
             </div>
           </div>
+            </>
+          )}
 
           {/* Print Footer for Statement View */}
           <PrintFooter note={`Official Account Statement • ${activeCustomer?.name || 'Party'} • Ghalla Mandi`} />
@@ -1384,26 +1426,26 @@ export const Ledger = () => {
                 <span className="font-medium text-right max-w-xs text-slate-900 dark:text-white">{viewingEntry.desc}</span>
               </div>
 
-              {/* Complete Return & Payment Lifecycle History Card */}
+              {/* Complete Return & Payment Lifecycle Breakdown */}
               {viewingEntry.returnAmount > 0 && (
                 <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 space-y-1.5 font-mono text-[11px] my-2">
                   <div className="font-bold text-purple-900 dark:text-purple-300 uppercase tracking-wider text-[10px] pb-1 border-b border-purple-200 dark:border-purple-800/40">
-                    Lifecycle Audit History
+                    Transaction Financial Summary
                   </div>
                   <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                    <span>Original Gross Amount:</span>
+                    <span>Original Amount:</span>
                     <span className="font-bold">Rs. {viewingEntry.originalGross?.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-purple-700 dark:text-purple-400 font-bold">
-                    <span>Returned Merchandise:</span>
+                    <span>Returned Amount:</span>
                     <span>- Rs. {viewingEntry.returnAmount?.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-emerald-700 dark:text-emerald-400 font-black border-t border-purple-200 dark:border-purple-800/40 pt-1">
-                    <span>Net Invoice Amount:</span>
+                    <span>Net Amount:</span>
                     <span>Rs. {viewingEntry.netTotal?.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                    <span>Effective Paid Amount:</span>
+                    <span>Paid:</span>
                     <span className="font-bold">Rs. {viewingEntry.paidAmount?.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between font-black text-amber-700 dark:text-amber-400">
@@ -1411,7 +1453,7 @@ export const Ledger = () => {
                     <span>Rs. {viewingEntry.dueAmount?.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-slate-500 pt-1 border-t border-purple-200 dark:border-purple-800/40">
-                    <span>Payment Status:</span>
+                    <span>Status:</span>
                     <span className="font-black text-brand-600">{viewingEntry.invoiceStatus || viewingEntry.status}</span>
                   </div>
                 </div>

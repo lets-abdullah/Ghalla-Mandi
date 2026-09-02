@@ -301,6 +301,26 @@ export const deleteLedgerEntry = async (req, res) => {
             const newStatus = (newPaid >= targetTotal && targetTotal > 0) ? 'Paid' : (newPaid > 0 ? 'Partial' : 'Pending');
             await Sale.findByIdAndUpdate(sale.id, { paidAmount: newPaid, status: newStatus }, { shop_id: req.shop_id });
           }
+        } else {
+          // Unwind general Khata payment from sales (LIFO - latest sales first)
+          let unwindRemaining = amt;
+          const allSales = await Sale.find({ shop_id: req.shop_id });
+          const custSales = allSales.filter(s => {
+            const matchesCust = (entry.partyId && s.customerId === entry.partyId) ||
+              (entry.partyName && s.partyName && s.partyName.trim().toLowerCase() === entry.partyName.trim().toLowerCase());
+            return matchesCust && Number(s.paidAmount || 0) > 0;
+          }).sort((a, b) => new Date(b.created_at || b.date || 0).getTime() - new Date(a.created_at || a.date || 0).getTime());
+
+          for (const s of custSales) {
+            if (unwindRemaining <= 0) break;
+            const currentPaid = Number(s.paidAmount || 0);
+            const deduct = Math.min(currentPaid, unwindRemaining);
+            const nextPaid = currentPaid - deduct;
+            const targetTotal = Number(s.netAmount !== undefined ? s.netAmount : Math.max(0, Number(s.amount || 0) - Number(s.returnAmount || 0)));
+            const nextStatus = (nextPaid >= targetTotal && targetTotal > 0) ? 'Paid' : (nextPaid > 0 ? 'Partial' : 'Pending');
+            await Sale.findByIdAndUpdate(s.id, { paidAmount: nextPaid, status: nextStatus }, { shop_id: req.shop_id });
+            unwindRemaining -= deduct;
+          }
         }
       } else if (entry.partyType === 'Supplier') {
         if (entry.partyId) {
@@ -317,6 +337,27 @@ export const deleteLedgerEntry = async (req, res) => {
             const targetTotal = Number(pur.netAmount !== undefined ? pur.netAmount : Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.returnAmount || 0)));
             const newStatus = (newPaid >= targetTotal && targetTotal > 0) ? 'Paid' : (newPaid > 0 ? 'Partial' : 'Pending');
             await Purchase.findByIdAndUpdate(pur.id, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
+          }
+        } else {
+          // Unwind general Supplier settlement from purchases (LIFO)
+          let unwindRemaining = amt;
+          const allPurchases = await Purchase.find({ shop_id: req.shop_id });
+          const supPurchases = allPurchases.filter(p => {
+            const matchesSup = (entry.partyId && p.supplierId === entry.partyId) ||
+              (entry.partyName && p.supplier && p.supplier.trim().toLowerCase() === entry.partyName.trim().toLowerCase()) ||
+              (entry.partyName && p.supplierName && p.supplierName.trim().toLowerCase() === entry.partyName.trim().toLowerCase());
+            return matchesSup && Number(p.paidAmount || 0) > 0;
+          }).sort((a, b) => new Date(b.created_at || b.date || 0).getTime() - new Date(a.created_at || a.date || 0).getTime());
+
+          for (const p of supPurchases) {
+            if (unwindRemaining <= 0) break;
+            const currentPaid = Number(p.paidAmount || 0);
+            const deduct = Math.min(currentPaid, unwindRemaining);
+            const nextPaid = currentPaid - deduct;
+            const targetTotal = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
+            const nextStatus = (nextPaid >= targetTotal && targetTotal > 0) ? 'Paid' : (nextPaid > 0 ? 'Partial' : 'Pending');
+            await Purchase.findByIdAndUpdate(p.id, { paidAmount: nextPaid, paymentStatus: nextStatus }, { shop_id: req.shop_id });
+            unwindRemaining -= deduct;
           }
         }
       }

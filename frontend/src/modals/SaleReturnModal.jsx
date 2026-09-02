@@ -9,8 +9,10 @@ import {
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
+import { useToast } from '../components/Toast';
 
 export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
+  const toast = useToast();
   const { sales = [], saleReturns = [], recordSaleReturn } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
@@ -136,7 +138,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
     if (isSubmitting || numReturnQty <= 0 || isFullyReturned) return;
 
     if (numReturnQty > remainingQty) {
-      alert(`Return quantity cannot exceed remaining returnable quantity (${remainingQty} ${itemUnit}).`);
+      toast.warning(`Return quantity cannot exceed remaining returnable quantity (${remainingQty} ${itemUnit}).`);
       return;
     }
 
@@ -161,6 +163,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
         date: new Date().toLocaleDateString('en-GB')
       });
 
+      toast.success(`Return of ${numReturnQty} ${itemUnit} recorded successfully.`);
       setCompletedReturn({
         ...returnRecord,
         remainingAfter: Math.max(0, remainingQty - numReturnQty),
@@ -169,7 +172,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
       });
     } catch (err) {
       console.error('Failed to process sale return:', err);
-      alert(err.message || 'Failed to process sale return.');
+      toast.error(err.message || 'Failed to process sale return.');
     } finally {
       setIsSubmitting(false);
     }
@@ -384,7 +387,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                       theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                   >
-                    <option value="Ledger">Customer Khata (Credit Note)</option>
+                    <option value="Ledger">Deduct from Customer Khata (Balance Adjustment)</option>
                     <option value="Cash">Cash Refund (Counter)</option>
                   </select>
                 </div>

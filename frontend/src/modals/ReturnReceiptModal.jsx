@@ -158,7 +158,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
               <span className={`inline-block px-3 py-1 rounded-md text-[11px] font-black uppercase tracking-wider ${
                 isSale ? 'bg-orange-100 text-orange-800' : 'bg-rose-100 text-rose-800'
               }`}>
-                {isSale ? 'SALE RETURN VOUCHER (CREDIT NOTE)' : 'PURCHASE RETURN VOUCHER (DEBIT NOTE)'}
+                {isSale ? 'SALE RETURN VOUCHER' : 'PURCHASE RETURN VOUCHER'}
               </span>
             </div>
           </div>

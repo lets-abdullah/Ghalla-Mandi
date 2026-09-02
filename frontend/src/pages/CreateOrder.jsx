@@ -13,8 +13,11 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useSidebar } from '../context/SidebarContext';
 import { ReceiptModal } from '../modals/ReceiptModal';
+import { AddCustomerModal } from '../modals/AddCustomerModal';
+import { useToast } from '../components/Toast';
 
 export const CreateOrder = () => {
+  const toast = useToast();
   const { products = [], categories = [], customers = [], addCustomer, createSale, sales = [], paymentLogs = [], saleReturns = [], purchases = [], purchaseReturns = [], stockMovements = [] } = useERP();
   const { theme } = useTheme();
   const { t, locale } = useLocale();
@@ -23,16 +26,11 @@ export const CreateOrder = () => {
 
   // View Mode: 'grid' | 'compact'
   const [viewMode, setViewMode] = useState('grid');
-
-  // Search & Category Filters for Products
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   // Cart State
-  // item: { id, productId, name, qty, unit, unitMultiplier, basePrice, price, discountPct, total, stockQty }
   const [cart, setCart] = useState([]);
-
-  // Order-Level Discount & Tax
   const [orderDiscountType, setOrderDiscountType] = useState('percentage'); // 'percentage' | 'flat'
   const [orderDiscountValue, setOrderDiscountValue] = useState(0);
   const [taxPercentage, setTaxPercentage] = useState(0); // 0% default
@@ -51,29 +49,10 @@ export const CreateOrder = () => {
 
   // Modals
   const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [showRateModal, setShowRateModal] = useState(null); // item to edit
   const [tempNewRate, setTempNewRate] = useState('');
-
-  // Quick Customer Creation Form
-  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
-  const [newCustomerForm, setNewCustomerForm] = useState({
-    name: '',
-    shopName: '',
-    phone: '',
-    whatsapp: '',
-    city: '',
-    address: '',
-    customerType: 'Regular Party',
-    openingBalance: 0,
-    creditLimit: '',
-    paymentTerms: 'Cash / Credit',
-    cnic: '',
-    bankName: '',
-    accountTitle: '',
-    accountNumber: '',
-    notes: ''
-  });
 
   // Receipt Modal State
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
@@ -120,7 +99,7 @@ export const CreateOrder = () => {
   // Add Product to Cart
   const addToCart = (product) => {
     if (product.stockQty <= 0) {
-      alert(t('stockAlertZero'));
+      toast.warning(t('stockAlertZero') || 'This product is out of stock.');
       return;
     }
 
@@ -129,7 +108,7 @@ export const CreateOrder = () => {
       if (existing) {
         const nextQty = existing.qty + 1;
         if (nextQty > product.stockQty) {
-          alert(t('saleStockExceeded', { qty: nextQty, unit: existing.unit || t('kg'), stock: product.stockQty }));
+          toast.warning(t('saleStockExceeded', { qty: nextQty, unit: existing.unit || t('kg'), stock: product.stockQty }));
           return prev;
         }
         return prev.map(item =>
@@ -419,68 +398,6 @@ export const CreateOrder = () => {
     (c.city && c.city.toLowerCase().includes(partySearch.toLowerCase()))
   );
 
-  // Handle Quick Add Customer
-  const handleCreateCustomerSubmit = async (e) => {
-    e.preventDefault();
-    if (!newCustomerForm.name.trim()) {
-      alert('Customer / Party name is required.');
-      return;
-    }
-
-    if (newCustomerForm.phone.trim() && newCustomerForm.phone.replace(/\D/g, '').length !== 11) {
-      alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
-      return;
-    }
-    if (newCustomerForm.whatsapp.trim() && newCustomerForm.whatsapp.replace(/\D/g, '').length !== 11) {
-      alert('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
-      return;
-    }
-
-    try {
-      const created = await addCustomer({
-        name: newCustomerForm.name.trim(),
-        shopName: newCustomerForm.shopName.trim(),
-        phone: newCustomerForm.phone.trim() || 'N/A',
-        whatsapp: newCustomerForm.whatsapp.trim(),
-        city: newCustomerForm.city.trim() || 'Local Mandi',
-        address: newCustomerForm.address.trim(),
-        customerType: newCustomerForm.customerType || 'Regular Party',
-        openingBalance: Number(newCustomerForm.openingBalance) || 0,
-        creditLimit: Number(newCustomerForm.creditLimit) || 0,
-        paymentTerms: newCustomerForm.paymentTerms || 'Cash / Credit',
-        cnic: newCustomerForm.cnic.trim(),
-        bankName: newCustomerForm.bankName.trim(),
-        accountTitle: newCustomerForm.accountTitle.trim(),
-        accountNumber: newCustomerForm.accountNumber.trim(),
-        notes: newCustomerForm.notes.trim()
-      });
-
-      setSelectedParty(created);
-      setCustomerType('Regular Party');
-      setShowNewCustomerForm(false);
-      setShowCustomerModal(false);
-      setNewCustomerForm({
-        name: '',
-        shopName: '',
-        phone: '',
-        whatsapp: '',
-        city: '',
-        address: '',
-        customerType: 'Regular Party',
-        openingBalance: 0,
-        creditLimit: '',
-        paymentTerms: 'Cash / Credit',
-        cnic: '',
-        bankName: '',
-        accountTitle: '',
-        accountNumber: '',
-        notes: ''
-      });
-    } catch (err) {
-      alert(err.message || 'Failed to create customer');
-    }
-  };
-
   // Submit and Place Order
   const handlePlaceOrder = async () => {
     if (cart.length === 0 || isPlacingOrder) {
@@ -578,9 +495,10 @@ export const CreateOrder = () => {
 
       setCompletedOrderData(orderPayload);
       setIsReceiptOpen(true);
+      toast.success(`Sale recorded successfully! Invoice ${orderPayload.invoiceNo || ''}`);
       clearCart(true);
     } catch (err) {
-      alert(err.message || 'Order creation failed.');
+      toast.error(err.message || 'Order creation failed.');
     } finally {
       setIsPlacingOrder(false);
     }
@@ -1383,389 +1301,120 @@ export const CreateOrder = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setShowCustomerModal(false); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl ${showNewCustomerForm ? 'max-w-2xl' : 'max-w-lg'} w-full p-4 sm:p-6 space-y-3.5 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+          <div className={`rounded-3xl max-w-lg w-full p-4 sm:p-6 space-y-3.5 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
+            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-base font-black flex items-center gap-2">
                 <User className="w-5 h-5 text-brand-500" />
-                <span>{showNewCustomerForm ? 'Add New Customer Profile' : t('selectCustomerModalTitle')}</span>
+                <span>{t('selectCustomerModalTitle')}</span>
               </h3>
               <button
+                type="button"
                 onClick={() => setShowCustomerModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {!showNewCustomerForm ? (
-              <div className="space-y-3">
-                {/* Search customer */}
-                <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={partySearch}
-                    onChange={(e) => setPartySearch(e.target.value)}
-                    placeholder={t('searchPartyPlaceholder')}
-                    className={`w-full border rounded-2xl pl-9 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-                </div>
+            <div className="space-y-3">
+              {/* Search customer */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={partySearch}
+                  onChange={(e) => setPartySearch(e.target.value)}
+                  placeholder={t('searchPartyPlaceholder')}
+                  className={`w-full border rounded-2xl pl-9 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
+                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                />
+              </div>
 
-                {/* Walk-in Option */}
-                <div
-                  onClick={() => {
-                    setCustomerType('Walk-in Customer');
-                    setSelectedParty(null);
-                    setShowCustomerModal(false);
-                  }}
-                  className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${customerType === 'Walk-in Customer' && !selectedParty
+              {/* Walk-in Option */}
+              <div
+                onClick={() => {
+                  setCustomerType('Walk-in Customer');
+                  setSelectedParty(null);
+                  setShowCustomerModal(false);
+                }}
+                className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${
+                  customerType === 'Walk-in Customer' && !selectedParty
                     ? 'border-brand-500 bg-brand-500/10 text-brand-500 font-black'
                     : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 border-slate-200 dark:border-slate-700'
-                    }`}
-                >
-                  <div>
-                    <div className="font-black text-xs">{t('walkInCustomer')}</div>
-                  </div>
-                  {customerType === 'Walk-in Customer' && !selectedParty && <Check className="w-4 h-4" />}
+                }`}
+              >
+                <div>
+                  <div className="font-black text-xs">{t('walkInCustomer')}</div>
                 </div>
+                {customerType === 'Walk-in Customer' && !selectedParty && <Check className="w-4 h-4" />}
+              </div>
 
-                {/* Customer List */}
-                <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                  {filteredCustomers.map(c => (
-                    <div
-                      key={c.id}
-                      onClick={() => {
-                        setSelectedParty(c);
-                        setCustomerType('Regular Party');
-                        setShowCustomerModal(false);
-                      }}
-                      className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${selectedParty?.id === c.id
+              {/* Customer List */}
+              <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                {filteredCustomers.map(c => (
+                  <div
+                    key={c.id}
+                    onClick={() => {
+                      setSelectedParty(c);
+                      setCustomerType('Regular Party');
+                      setShowCustomerModal(false);
+                    }}
+                    className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${
+                      selectedParty?.id === c.id
                         ? 'border-brand-500 bg-brand-500/10 text-brand-500 font-black'
                         : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 border-slate-200 dark:border-slate-700'
-                        }`}
-                    >
-                      <div>
-                        <div className="font-black text-xs">{c.name} {c.shopName ? `(${c.shopName})` : ''}</div>
-                        <div className="text-[10px] text-slate-400">{c.city || 'Mandi'} • {c.phone || 'No Phone'}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[10px] text-slate-400 uppercase font-bold">{t('balance')}</div>
-                        <div className="text-xs font-black text-amber-500">Rs. {Number(c.balance || 0).toLocaleString()}</div>
-                      </div>
+                    }`}
+                  >
+                    <div>
+                      <div className="font-black text-xs">{c.name} {c.shopName ? `(${c.shopName})` : ''}</div>
+                      <div className="text-[10px] text-slate-400">{c.city || 'Mandi'} • {c.phone || 'No Phone'}</div>
                     </div>
-                  ))}
-                </div>
-
-                <div className="pt-2 flex justify-between items-center border-t border-slate-100 dark:border-slate-700">
-                  <button
-                    onClick={() => setShowNewCustomerForm(true)}
-                    className="text-xs font-black text-brand-500 hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    <span>{t('addNewPartyQuick')}</span>
-                  </button>
-                  <button
-                    onClick={() => setShowCustomerModal(false)}
-                    className="px-4 py-2 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
-                  >
-                    {t('cancel')}
-                  </button>
-                </div>
+                    <div className="text-right">
+                      <div className="text-[10px] text-slate-400 uppercase font-bold">{t('balance')}</div>
+                      <div className="text-xs font-black text-amber-500">Rs. {Number(c.balance || 0).toLocaleString()}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ) : (
-              /* Comprehensive Add Customer & Khata Profile Form (English Only, Clean & No Scrollbar) */
-              <form onSubmit={handleCreateCustomerSubmit} className="space-y-3">
-                {/* 1. Basic & Business Identity */}
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                  <div className="text-[10px] font-black uppercase text-brand-600 dark:text-brand-400 flex items-center gap-1">
-                    <User className="w-3.5 h-3.5" />
-                    <span>Basic & Business Identity</span>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Customer Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Muhammad Aslam"
-                        value={newCustomerForm.name}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Shop
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Aslam & Sons Traders"
-                        value={newCustomerForm.shopName}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, shopName: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Customer Type
-                      </label>
-                      <select
-                        value={newCustomerForm.customerType}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, customerType: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      >
-                        <option value="Regular Party">Regular Party</option>
-                        <option value="Wholesale Buyer">Wholesale Buyer</option>
-                        <option value="Retailer">Retailer</option>
-                        <option value="Farmer / Producer">Farmer / Producer</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Contact & Location */}
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                  <div className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>Contact & Mandi Location</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Phone
-                      </label>
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={11}
-                        placeholder="03001234567"
-                        value={newCustomerForm.phone}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        WhatsApp
-                      </label>
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={11}
-                        placeholder="03001234567"
-                        value={newCustomerForm.whatsapp}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        City
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Sargodha"
-                        value={newCustomerForm.city}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, city: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Address
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Shop # 14, Block B"
-                        value={newCustomerForm.address}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, address: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Financial & Payment Terms */}
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                  <div className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5" />
-                    <span>Financial & Payment Terms</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Opening Balance (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        value={newCustomerForm.openingBalance || ''}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, openingBalance: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Khata Limit (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="e.g. 500000"
-                        value={newCustomerForm.creditLimit || ''}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, creditLimit: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Payment Terms
-                      </label>
-                      <select
-                        value={newCustomerForm.paymentTerms}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, paymentTerms: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      >
-                        <option value="Cash / Credit">Cash / Khata</option>
-                        <option value="Cash on Delivery">Cash on Delivery</option>
-                        <option value="7 Days">Weekly (7 Days)</option>
-                        <option value="15 Days">15 Days</option>
-                        <option value="30 Days">Monthly (30 Days)</option>
-                        <option value="Seasonal">Seasonal</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4. Bank Account Details */}
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                  <div className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    <Landmark className="w-3.5 h-3.5" />
-                    <span>Bank Account Details (Optional)</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Bank Name
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Meezan, HBL"
-                        value={newCustomerForm.bankName}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, bankName: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Account Title
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Title of Account"
-                        value={newCustomerForm.accountTitle}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, accountTitle: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Account #
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="PK36..."
-                        value={newCustomerForm.accountNumber}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, accountNumber: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 5. Identification & Notes */}
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        CNIC
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. 38403-1234567-1"
-                        value={newCustomerForm.cnic}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, cnic: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
-                        Notes
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Reference: Haji Akram Shop # 4"
-                        value={newCustomerForm.notes}
-                        onChange={(e) => setNewCustomerForm({ ...newCustomerForm, notes: e.target.value })}
-                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Submit & Cancel Buttons */}
-                <div className="flex gap-2.5 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowNewCustomerForm(false)}
-                    className="w-1/3 py-2.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 cursor-pointer"
-                  >
-                    {t('cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="w-2/3 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-black text-xs rounded-xl shadow-md shadow-brand-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Save Customer Profile</span>
-                  </button>
-                </div>
-              </form>
-            )}
+              <div className="pt-2 flex justify-between items-center border-t border-slate-100 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCustomerModal(false);
+                    setShowAddCustomerModal(true);
+                  }}
+                  className="text-xs font-black text-brand-500 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>{t('addNewPartyQuick')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomerModal(false)}
+                  className="px-4 py-2 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                >
+                  {t('cancel')}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      {/* REUSABLE ADD CUSTOMER MODAL */}
+      <AddCustomerModal
+        isOpen={showAddCustomerModal}
+        onClose={() => setShowAddCustomerModal(false)}
+        onSuccess={(createdCustomer) => {
+          setSelectedParty(createdCustomer);
+          setCustomerType('Regular Party');
+          setShowCustomerModal(false);
+        }}
+      />
 
       {/* ORDER DISCOUNT MODAL */}
       {showDiscountModal && (

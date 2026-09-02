@@ -5,6 +5,7 @@ import { LocaleProvider, useLocale } from './context/LocaleContext';
 import { ERPProvider } from './context/ERPContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SidebarProvider, useSidebar } from './context/SidebarContext';
+import { ToastProvider } from './components/Toast';
 
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -37,31 +38,34 @@ export const App = () => {
         <LocaleProvider>
           <ERPProvider>
             <SidebarProvider>
-              <Router>
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
-                  <Route path="/create-order" element={<MainLayout><CreateOrder /></MainLayout>} />
-                  <Route path="/products" element={<MainLayout><Products /></MainLayout>} />
-                  <Route path="/inventory" element={<MainLayout><Inventory /></MainLayout>} />
-                  <Route path="/sales/new" element={<MainLayout><Sales /></MainLayout>} />
-                  <Route path="/sales" element={<MainLayout><Sales /></MainLayout>} />
-                  <Route path="/sale-returns" element={<MainLayout><SaleReturns /></MainLayout>} />
-                  <Route path="/purchases" element={<MainLayout><Purchases /></MainLayout>} />
-                  <Route path="/purchase-returns" element={<MainLayout><PurchaseReturns /></MainLayout>} />
-                  <Route path="/suppliers/new" element={<MainLayout><AddSupplier /></MainLayout>} />
-                  <Route path="/suppliers" element={<MainLayout><Suppliers /></MainLayout>} />
-                  <Route path="/customers" element={<MainLayout><Customers /></MainLayout>} />
-                  <Route path="/invoices" element={<MainLayout><Invoices /></MainLayout>} />
-                  <Route path="/ledger" element={<MainLayout><Ledger /></MainLayout>} />
-                  <Route path="/khata" element={<MainLayout><Khata /></MainLayout>} />
-                  <Route path="/expenses" element={<MainLayout><Expenses /></MainLayout>} />
-                  <Route path="/reports" element={<MainLayout><Reports /></MainLayout>} />
-                  <Route path="/settings" element={<MainLayout><Settings /></MainLayout>} />
-                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                </Routes>
-              </Router>
+              <ToastProvider>
+                <Router>
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/dashboard" element={<MainLayout><Dashboard /></MainLayout>} />
+                    <Route path="/create-order" element={<MainLayout><CreateOrder /></MainLayout>} />
+                    <Route path="/products" element={<MainLayout><Products /></MainLayout>} />
+                    <Route path="/inventory" element={<MainLayout><Inventory /></MainLayout>} />
+                    <Route path="/sales/new" element={<MainLayout><Sales /></MainLayout>} />
+                    <Route path="/sales" element={<MainLayout><Sales /></MainLayout>} />
+                    <Route path="/sale-returns" element={<MainLayout><SaleReturns /></MainLayout>} />
+                    <Route path="/purchases" element={<MainLayout><Purchases /></MainLayout>} />
+                    <Route path="/purchase-returns" element={<MainLayout><PurchaseReturns /></MainLayout>} />
+                    <Route path="/suppliers/new" element={<MainLayout><AddSupplier /></MainLayout>} />
+                    <Route path="/suppliers" element={<MainLayout><Suppliers /></MainLayout>} />
+                    <Route path="/customers" element={<MainLayout><Customers /></MainLayout>} />
+                    {/* /invoices kept for backward compatibility — same as /sales or /purchases based on type param */}
+                    <Route path="/invoices" element={<MainLayout><Invoices /></MainLayout>} />
+                    <Route path="/ledger" element={<MainLayout><Ledger /></MainLayout>} />
+                    <Route path="/khata" element={<MainLayout><Khata /></MainLayout>} />
+                    <Route path="/expenses" element={<MainLayout><Expenses /></MainLayout>} />
+                    <Route path="/reports" element={<MainLayout><Reports /></MainLayout>} />
+                    <Route path="/settings" element={<MainLayout><Settings /></MainLayout>} />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                </Router>
+              </ToastProvider>
             </SidebarProvider>
           </ERPProvider>
         </LocaleProvider>

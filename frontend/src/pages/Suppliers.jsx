@@ -38,6 +38,9 @@ import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
+import { useToast } from '../components/Toast';
+import { StatusBadge } from '../components/StatusBadge';
+import { EmptyState } from '../components/EmptyState';
 
 // Standard Multi-Select Commodity Selector Component
 const SuppliedProductsCombobox = ({
@@ -232,6 +235,7 @@ const SuppliedProductsCombobox = ({
 };
 
 export const Suppliers = () => {
+  const toast = useToast();
   const { suppliers = [], products = [], categories = [], purchases = [], purchaseReturns = [], paymentLogs = [], addSupplier, updateSupplier, deleteSupplier, recordPayment, addProduct, addCategory } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
@@ -368,16 +372,16 @@ export const Suppliers = () => {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      alert('Supplier Name is required.');
+      toast.warning('Supplier Name is required.');
       return;
     }
 
     if (form.phone.trim() && form.phone.replace(/\D/g, '').length !== 11) {
-      alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
+      toast.warning('Phone number must be exactly 11 digits (e.g. 03001234567)');
       return;
     }
     if (form.whatsapp.trim() && form.whatsapp.replace(/\D/g, '').length !== 11) {
-      alert('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
+      toast.warning('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
       return;
     }
 
@@ -399,6 +403,7 @@ export const Suppliers = () => {
         notes: form.notes.trim()
       });
 
+      toast.success(`Supplier "${form.name.trim()}" added successfully!`);
       setShowAddModal(false);
       setForm({
         name: '',
@@ -416,7 +421,7 @@ export const Suppliers = () => {
         notes: ''
       });
     } catch (err) {
-      alert(err.message || 'Failed to create supplier');
+      toast.error(err.message || 'Failed to create supplier');
     } finally {
       setIsSubmitting(false);
     }
@@ -427,11 +432,11 @@ export const Suppliers = () => {
     if (!editingSupplier || !editingSupplier.name.trim()) return;
 
     if (editingSupplier.phone && editingSupplier.phone !== 'N/A' && editingSupplier.phone.replace(/\D/g, '').length !== 11) {
-      alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
+      toast.warning('Phone number must be exactly 11 digits (e.g. 03001234567)');
       return;
     }
     if (editingSupplier.whatsapp && editingSupplier.whatsapp.replace(/\D/g, '').length !== 11) {
-      alert('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
+      toast.warning('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
       return;
     }
 
@@ -453,9 +458,10 @@ export const Suppliers = () => {
         notes: editingSupplier.notes?.trim() || ''
       });
 
+      toast.success(`Supplier "${editingSupplier.name.trim()}" updated successfully!`);
       setEditingSupplier(null);
     } catch (err) {
-      alert(err.message || 'Failed to update supplier');
+      toast.error(err.message || 'Failed to update supplier');
     } finally {
       setIsSubmitting(false);
     }
@@ -814,8 +820,22 @@ export const Suppliers = () => {
             <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
               {filteredSuppliers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
-                    No suppliers found.
+                  <td colSpan={6} className="py-8 text-center">
+                    <EmptyState
+                      icon={UserCheck}
+                      title="No suppliers found"
+                      description="No supplier records match your current search and filter criteria."
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => setShowAddModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-white bg-brand-600 hover:bg-brand-700 transition"
+                        >
+                          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                          <span>Add Supplier</span>
+                        </button>
+                      }
+                    />
                   </td>
                 </tr>
               ) : (
@@ -856,9 +876,7 @@ export const Suppliers = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className={`text-xs font-bold ${bal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                          {bal > 0 ? 'Payable' : 'Settled'}
-                        </span>
+                        <StatusBadge status={bal > 0 ? 'Due' : 'Settled'} />
                       </td>
                       <td className="py-3 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
@@ -948,13 +966,13 @@ export const Suppliers = () => {
                 <div className="space-y-3">
                   <div className="text-[11px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
                     <Building2 className="w-3.5 h-3.5" />
-                    <span>Vendor & Contact Info</span>
+                    <span>Supplier & Contact Info</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div>
                       <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Supplier / Contact Name <span className="text-rose-500">*</span>
+                        Supplier Name <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -970,7 +988,7 @@ export const Suppliers = () => {
 
                     <div>
                       <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Business / Firm Name
+                        Business Name
                       </label>
                       <input
                         type="text"
@@ -1020,7 +1038,7 @@ export const Suppliers = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div>
                       <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        City / Mandi Location
+                        City
                       </label>
                       <input
                         type="text"
@@ -1034,7 +1052,7 @@ export const Suppliers = () => {
 
                     <div>
                       <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Email Address (Optional)
+                        Email Address
                       </label>
                       <input
                         type="email"
@@ -1069,39 +1087,6 @@ export const Suppliers = () => {
                     <span>Bank & Financial Details</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Opening Balance (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder="0"
-                        value={form.openingBalance}
-                        onChange={(e) => setForm({ ...form, openingBalance: Number(e.target.value) })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Account Status
-                      </label>
-                      <select
-                        value={form.status}
-                        onChange={(e) => setForm({ ...form, status: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      >
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                      </select>
-                    </div>
-                  </div>
-
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
                       <label className="text-[11px] font-bold text-slate-400 block mb-1">
@@ -1133,7 +1118,7 @@ export const Suppliers = () => {
 
                     <div>
                       <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Account # / IBAN
+                        Account #
                       </label>
                       <input
                         type="text"
@@ -1157,7 +1142,7 @@ export const Suppliers = () => {
 
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                      Notes / Terms (Optional)
+                      Notes
                     </label>
                     <input
                       type="text"
@@ -1462,18 +1447,18 @@ export const Suppliers = () => {
           ...supPurchases.map(p => {
             const pFin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
             return {
-            id: `pur-${p.id}`,
-            date: p.date || p.created_at || p.createdAt || '',
-            type: 'Purchase',
-            billNo: p.purchaseNo || p.billNumber || p.invoiceNo || `PUR-${p.id}`,
-            amount: pFin.grossTotal,
-            paid: pFin.paid,
-            status: pFin.status,
-            note: Array.isArray(p.cart || p.items) && (p.cart || p.items).length > 0
-              ? (p.cart || p.items).map(i => `${i.name || 'Produce'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
-              : (p.notes || p.note || 'Procurement Bill'),
-            items: p.items || p.cart || []
-          };
+              id: `pur-${p.id}`,
+              date: p.date || p.created_at || p.createdAt || '',
+              type: 'Purchase',
+              billNo: p.purchaseNo || p.billNumber || p.invoiceNo || `PUR-${p.id}`,
+              amount: pFin.grossTotal,
+              paid: pFin.paid,
+              status: pFin.status,
+              note: Array.isArray(p.cart || p.items) && (p.cart || p.items).length > 0
+                ? (p.cart || p.items).map(i => `${i.name || 'Produce'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
+                : (p.notes || p.note || 'Procurement Bill'),
+              items: p.items || p.cart || []
+            };
           }),
           ...supPayments.map(p => ({
             id: `pay-${p.id}`,

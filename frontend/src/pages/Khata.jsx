@@ -27,8 +27,12 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
+import { useToast } from '../components/Toast';
+import { StatusBadge } from '../components/StatusBadge';
+import { EmptyState } from '../components/EmptyState';
 
 export const Khata = () => {
+  const toast = useToast();
   const {
     customers = [],
     suppliers = [],
@@ -208,18 +212,18 @@ export const Khata = () => {
       : Math.max(0, Number(paymentModalParty.payableDue !== undefined ? paymentModalParty.payableDue : (paymentModalParty.balance || 0)));
 
     if (maxDue <= 0) {
-      alert('This account is already settled (Rs. 0 balance). No payment is required.');
+      toast.warning('This account is already settled (Rs. 0 balance).');
       return;
     }
 
     const amt = Number(paymentAmount) || 0;
     if (amt <= 0) {
-      alert('Please enter a valid payment amount.');
+      toast.warning('Please enter a valid payment amount.');
       return;
     }
 
     if (amt > maxDue) {
-      alert(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed the outstanding balance of Rs. ${maxDue.toLocaleString()}.`);
+      toast.error(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed outstanding balance of Rs. ${maxDue.toLocaleString()}.`);
       return;
     }
 
@@ -234,12 +238,13 @@ export const Khata = () => {
         date: paymentDate,
         note: paymentNote || (isCustomer ? 'Customer Khata Settlement' : 'Supplier Settlement Payment')
       });
+      toast.success(`Payment of Rs. ${amt.toLocaleString()} recorded for ${paymentModalParty.name}!`);
 
       setPaymentModalParty(null);
       setPaymentAmount('');
       setPaymentNote('');
     } catch (err) {
-      alert(err.message || 'Failed to record settlement payment');
+      toast.error(err.message || 'Failed to record settlement payment');
     } finally {
       setIsSubmitting(false);
     }
@@ -269,10 +274,30 @@ export const Khata = () => {
                 setSearchParams({ type: 'customer' });
                 resetAllFilters();
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-brand-500 text-white shadow-xs cursor-pointer"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                isCustomer
+                  ? 'bg-brand-500 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
             >
               <Users className="w-3.5 h-3.5" />
               <span>Customer Khata</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setKhataPartyType('Supplier');
+                setSearchParams({ type: 'supplier' });
+                resetAllFilters();
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                !isCustomer
+                  ? 'bg-brand-500 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Supplier Khata</span>
             </button>
           </div>
 
@@ -459,10 +484,16 @@ export const Khata = () => {
               }`}>
               {filteredKhata.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
-                    {balanceStatusFilter === 'Clear'
-                      ? 'No settled accounts found.'
-                      : '✓ All accounts are fully settled! No outstanding Khata dues remaining.'}
+                  <td colSpan={7} className="py-8 text-center">
+                    <EmptyState
+                      icon={CheckCircle2}
+                      title={balanceStatusFilter === 'Clear' ? 'No settled accounts found.' : 'All accounts settled!'}
+                      description={
+                        balanceStatusFilter === 'Clear'
+                          ? 'Accounts with zero balance will appear here once settled.'
+                          : 'No accounts have outstanding balances under current filter.'
+                      }
+                    />
                   </td>
                 </tr>
               ) : (
@@ -523,12 +554,7 @@ export const Khata = () => {
 
                       {/* Status */}
                       <td className="py-3 px-3 text-center">
-                        <span className={`text-xs font-bold ${currentDue > 0
-                          ? (isCustomer ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')
-                          : 'text-emerald-600 dark:text-emerald-400'
-                          }`}>
-                          {currentDue > 0 ? 'Due' : 'Settled'}
-                        </span>
+                        <StatusBadge status={currentDue > 0 ? (isCustomer ? 'Partial' : 'Due') : 'Settled'} />
                       </td>
 
                       {/* Actions */}

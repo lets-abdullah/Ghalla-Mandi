@@ -18,7 +18,13 @@ export default {
         mandi: {
           green: '#10b981',
           gold: '#f59e0b',
-        }
+        },
+        status: {
+          success: '#10b981',
+          warning: '#f59e0b',
+          danger: '#ef4444',
+          info: '#3b82f6',
+        },
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],

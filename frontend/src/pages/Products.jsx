@@ -6,8 +6,11 @@ import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 import { ProductHistory } from './ProductHistory';
+import { useToast } from '../components/Toast';
+import { EmptyState } from '../components/EmptyState';
 
 export const Products = () => {
+  const toast = useToast();
   const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, purchases = [], sales = [], saleReturns = [], purchaseReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
@@ -58,13 +61,13 @@ export const Products = () => {
     const catName = newCatData.name.trim();
 
     if (!catName) {
-      alert(t('categoryName') + ' ' + t('required'));
+      toast.warning((t('categoryName') || 'Category name') + ' ' + (t('required') || 'is required'));
       return;
     }
 
     const exists = categories.some(c => c.name.toLowerCase() === catName.toLowerCase());
     if (exists) {
-      alert(`Category "${catName}" already exists.`);
+      toast.warning(`Category "${catName}" already exists.`);
       return;
     }
 
@@ -82,10 +85,11 @@ export const Products = () => {
         setEditingProduct(prev => ({ ...prev, category: createdCat?.name || catName }));
       }
 
+      toast.success(`Category "${catName}" created!`);
       setNewCatData({ name: '', description: '' });
       setShowAddCategoryModal(false);
     } catch (err) {
-      alert(err.message || 'Failed to create category');
+      toast.error(err.message || 'Failed to create category');
     } finally {
       setIsSubmitting(false);
     }
@@ -94,19 +98,19 @@ export const Products = () => {
   const handleCreateProduct = async (e) => {
     e.preventDefault();
     if (!newProduct.name.trim()) {
-      alert(t('productName') + ' ' + t('required'));
+      toast.warning((t('productName') || 'Product name') + ' ' + (t('required') || 'is required'));
       return;
     }
     if (!newProduct.category) {
-      alert(t('selectCategory'));
+      toast.warning(t('selectCategory') || 'Please select a category');
       return;
     }
     if (Number(newProduct.purchasePrice) < 0) {
-      alert(t('purchasePrice') + ' ' + t('sellingRateNegativeAlert'));
+      toast.warning(t('purchasePrice') + ' ' + t('sellingRateNegativeAlert'));
       return;
     }
     if (Number(newProduct.sellingPrice) < 0) {
-      alert(t('sellingRateNegativeAlert'));
+      toast.warning(t('sellingRateNegativeAlert') || 'Selling price cannot be negative');
       return;
     }
 
@@ -119,6 +123,7 @@ export const Products = () => {
         stockQty: Math.max(0, Number(newProduct.stockQty) || 0),
         minStock: Math.max(0, Number(newProduct.minStock) || 0)
       });
+      toast.success(`Product "${newProduct.name.trim()}" created successfully!`);
       setShowAddModal(false);
       setNewProduct({
         name: '',
@@ -132,7 +137,7 @@ export const Products = () => {
         image: ''
       });
     } catch (err) {
-      alert(err.message || 'Failed to create product');
+      toast.error(err.message || 'Failed to create product');
     } finally {
       setIsSubmitting(false);
     }
@@ -141,11 +146,11 @@ export const Products = () => {
   const handleUpdateProductSubmit = async (e) => {
     e.preventDefault();
     if (!editingProduct || !editingProduct.name.trim()) {
-      alert(t('productName') + ' ' + t('required'));
+      toast.warning((t('productName') || 'Product name') + ' ' + (t('required') || 'is required'));
       return;
     }
     if (!editingProduct.category) {
-      alert(t('selectCategory'));
+      toast.warning(t('selectCategory') || 'Please select a category');
       return;
     }
 
@@ -162,9 +167,10 @@ export const Products = () => {
         minStock: Math.max(0, Number(editingProduct.minStock ?? editingProduct.minstock) || 0),
         image: editingProduct.image || ''
       });
+      toast.success(`Product "${editingProduct.name.trim()}" updated successfully!`);
       setEditingProduct(null);
     } catch (err) {
-      alert(err.message || 'Failed to update product');
+      toast.error(err.message || 'Failed to update product');
     } finally {
       setIsSubmitting(false);
     }
@@ -297,8 +303,22 @@ export const Products = () => {
               }`}>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
-                    {t('noProductsMatch')}
+                  <td colSpan={8} className="py-8 text-center">
+                    <EmptyState
+                      icon={Package}
+                      title={t('noProductsMatch') || 'No products found'}
+                      description="Try searching with a different commodity name or clear category filter."
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => setShowAddModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-white bg-brand-600 hover:bg-brand-700 transition"
+                        >
+                          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                          <span>Add Product</span>
+                        </button>
+                      }
+                    />
                   </td>
                 </tr>
               ) : (

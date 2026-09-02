@@ -106,7 +106,7 @@ export const PurchaseReturns = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-amber-600" />
-            <span>Supplier Dues Deducted</span>
+            <span>Khata Dues Adjusted</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalPayablesDeducted.toLocaleString()}
@@ -131,7 +131,7 @@ export const PurchaseReturns = () => {
             >
               <option value="All">All Return Modes</option>
               <option value="Cash">Cash Refunds</option>
-              <option value="Ledger">Supplier Dues Deducted (Debit Note)</option>
+              <option value="Ledger">Khata Adjustments</option>
             </select>
           </div>
 
@@ -151,13 +151,13 @@ export const PurchaseReturns = () => {
       {/* PRINT-ONLY HEADER */}
       {/* ========================================================================= */}
       <PrintHeader
-        title="Purchase Returns & Supplier Debit Notes Statement"
+        title="Purchase Returns & Adjustments Statement"
         filterSummary={`Return Mode: ${modeFilter}`}
         stats={[
           { label: 'Total Returns', value: filteredReturns.length },
           { label: 'Total Return Value', value: `Rs. ${totalReturnAmount.toLocaleString()}` },
           { label: 'Cash Refunds Received', value: `Rs. ${totalCashRefunds.toLocaleString()}` },
-          { label: 'Supplier Dues Deducted', value: `Rs. ${totalPayablesDeducted.toLocaleString()}` }
+          { label: 'Khata Dues Adjusted', value: `Rs. ${totalPayablesDeducted.toLocaleString()}` }
         ]}
       />
 
@@ -174,7 +174,7 @@ export const PurchaseReturns = () => {
                 <th className="py-3 px-4">Supplier</th>
                 <th className="py-3 px-4">Purchase Bill #</th>
                 <th className="py-3 px-4">Item</th>
-                <th className="py-3 px-4 text-center">Mode</th>
+                <th className="py-3 px-4 text-center">Refund Method</th>
                 <th className="py-3 px-4 text-right">Amount</th>
                 <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
@@ -197,8 +197,14 @@ export const PurchaseReturns = () => {
                     <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200">
                       {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Item'}
                     </td>
-                    <td className="py-3 px-4 text-center font-bold text-xs text-slate-700 dark:text-slate-300">
-                      {ret.refundMode === 'Cash' ? 'Cash' : 'Khata'}
+                    <td className="py-3 px-4 text-center font-bold text-xs">
+                      <span className={`px-2 py-0.5 rounded-md ${
+                        ret.refundMode === 'Cash'
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                      }`}>
+                        {ret.refundMode === 'Cash' ? 'Cash Refund' : 'Khata Adjustment'}
+                      </span>
                     </td>
                     <td className="py-3 px-4 text-right font-black font-mono text-rose-600 dark:text-rose-400">
                       Rs. {Number(ret.refundAmount || 0).toLocaleString()}

@@ -107,7 +107,7 @@ export const SaleReturns = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-amber-600" />
-            <span>Khata Dues Deducted</span>
+            <span>Khata Dues Adjusted</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalKhataAdjustments.toLocaleString()}
@@ -160,7 +160,7 @@ export const SaleReturns = () => {
           { label: 'Total Returns', value: filteredReturns.length },
           { label: 'Total Refund Value', value: `Rs. ${totalRefundAmount.toLocaleString()}` },
           { label: 'Cash Refunds Paid', value: `Rs. ${totalCashRefunds.toLocaleString()}` },
-          { label: 'Khata Balance Adjusted', value: `Rs. ${totalKhataAdjustments.toLocaleString()}` }
+          { label: 'Khata Dues Adjusted', value: `Rs. ${totalKhataAdjustments.toLocaleString()}` }
         ]}
       />
 
@@ -179,7 +179,7 @@ export const SaleReturns = () => {
                 <th className="py-3 px-4">Customer</th>
                 <th className="py-3 px-4">Invoice #</th>
                 <th className="py-3 px-4">Item</th>
-                <th className="py-3 px-4 text-center">Mode</th>
+                <th className="py-3 px-4 text-center">Refund Method</th>
                 <th className="py-3 px-4 text-right">Amount</th>
                 <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
@@ -202,8 +202,14 @@ export const SaleReturns = () => {
                     <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200">
                       {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Item'}
                     </td>
-                    <td className="py-3 px-4 text-center font-bold text-xs text-slate-700 dark:text-slate-300">
-                      {ret.refundMode === 'Cash' ? 'Cash' : 'Khata'}
+                    <td className="py-3 px-4 text-center font-bold text-xs">
+                      <span className={`px-2 py-0.5 rounded-md ${
+                        ret.refundMode === 'Cash'
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                      }`}>
+                        {ret.refundMode === 'Cash' ? 'Cash Refund' : 'Khata Adjustment'}
+                      </span>
                     </td>
                     <td className="py-3 px-4 text-right font-black font-mono text-orange-600 dark:text-orange-400">
                       Rs. {Number(ret.refundAmount || 0).toLocaleString()}

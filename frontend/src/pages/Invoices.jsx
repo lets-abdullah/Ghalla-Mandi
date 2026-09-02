@@ -40,6 +40,7 @@ export const Invoices = () => {
   const isPurchases = typeParam && typeParam.toLowerCase() === 'purchases';
 
   // Filters
+  const [searchTerm, setSearchTerm] = useState('');
   const [dateFilterType, setDateFilterType] = useState('All'); // 'All' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -213,6 +214,16 @@ export const Invoices = () => {
   // Filtered List
   const filteredInvoices = useMemo(() => {
     return rawList.filter(item => {
+      // 0. Search Filter (Invoice #, Party Name, Produce Item)
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase().trim();
+        const numMatch = (item.invoiceNo || `inv-${item.id}`).toLowerCase().includes(q);
+        const partyMatch = (item.partyName || '').toLowerCase().includes(q);
+        const cart = Array.isArray(item.cart) ? item.cart : [];
+        const itemMatch = cart.some(c => (c.name || c.productName || '').toLowerCase().includes(q));
+        if (!numMatch && !partyMatch && !itemMatch) return false;
+      }
+
       // 1. Party Filter
       if (selectedPartyId !== 'All') {
         const matchesParty = item.partyId === selectedPartyId || item.partyName.toLowerCase() === selectedPartyId.toLowerCase();
@@ -249,7 +260,7 @@ export const Invoices = () => {
       const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
       return timeB - timeA;
     });
-  }, [rawList, selectedPartyId, selectedProductFilter, dateFilterType, customStartDate, customEndDate, statusFilter]);
+  }, [rawList, searchTerm, selectedPartyId, selectedProductFilter, dateFilterType, customStartDate, customEndDate, statusFilter]);
 
   // Summary Metrics (Synchronized directly with displayed Invoices)
   const totalBilledVolume = useMemo(() => {
@@ -269,12 +280,14 @@ export const Invoices = () => {
   }, [filteredInvoices]);
 
   const isAnyFilterActive =
+    searchTerm.trim() !== '' ||
     dateFilterType !== 'All' ||
     selectedPartyId !== 'All' ||
     selectedProductFilter !== 'All' ||
     statusFilter !== 'All';
 
   const resetAllFilters = () => {
+    setSearchTerm('');
     setDateFilterType('All');
     setCustomStartDate('');
     setCustomEndDate('');
@@ -390,7 +403,7 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             {isPurchases ? <ShoppingCart className="w-4 h-4 text-emerald-600" /> : <Receipt className="w-4 h-4 text-brand-600" />}
-            <span>{isPurchases ? 'Total Invoiced' : 'Total Invoice Amount'}</span>
+            <span>Total Amount</span>
           </div>
           <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${isPurchases ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand-600 dark:text-brand-400'}`}>
             Rs. {totalBilledVolume.toLocaleString()}
@@ -409,7 +422,7 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-600" />
-            <span>{isPurchases ? 'Total Paid' : 'Total Invoice Paid'}</span>
+            <span>Total Paid</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalSettledAmount.toLocaleString()}
@@ -430,7 +443,7 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <RotateCcw className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            <span>{isPurchases ? 'Purchase Returns' : 'Sale Returns'}</span>
+            <span>Returns</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-purple-600 dark:text-purple-400">
             Rs. {totalReturnAmount.toLocaleString()}
@@ -449,7 +462,7 @@ export const Invoices = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-600" />
-            <span>{isPurchases ? 'Outstanding Balance' : 'Invoice Remaining'}</span>
+            <span>Remaining Due</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalOutstandingDue.toLocaleString()}
@@ -464,6 +477,35 @@ export const Invoices = () => {
       <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3">
+          {/* 0. Search Invoices */}
+          <div className="flex-[2] min-w-[180px]">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Search className="w-3.5 h-3.5 text-brand-500" />
+              <span>Search Invoices</span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search invoice #, party, produce..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full border rounded-xl pl-9 pr-8 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${
+                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                }`}
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* 1. Select Party */}
           <div className="flex-1 min-w-[150px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
@@ -605,9 +647,9 @@ export const Invoices = () => {
             <thead>
               <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                <th className="py-3.5 px-4">{isPurchases ? 'Voucher #' : 'Invoice #'}</th>
+                <th className="py-3.5 px-4">{isPurchases ? 'Bill #' : 'Invoice #'}</th>
                 <th className="py-3.5 px-4">Billing Date</th>
-                <th className="py-3.5 px-4">{isPurchases ? 'Supplier / Vendor' : 'Customer'}</th>
+                <th className="py-3.5 px-4">{isPurchases ? 'Supplier' : 'Customer'}</th>
                 <th className="py-3.5 px-4">Payment Mode</th>
                 <th className="py-3.5 px-4 text-right">Amount</th>
                 <th className="py-3.5 px-4 text-right">Paid</th>

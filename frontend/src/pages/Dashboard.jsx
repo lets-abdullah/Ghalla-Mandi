@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   ShoppingBag, ShoppingCart, DollarSign,
-  TrendingUp, Users, CreditCard
+  TrendingUp, Users, CreditCard, PlusCircle, Plus, BookOpen, Receipt, ArrowRight, Sparkles
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
@@ -117,6 +117,54 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Quick Actions Bar for Fast Daily Operations */}
+      <div className="flex items-center justify-between flex-wrap gap-2.5 pb-1">
+        <div>
+          <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-brand-500" />
+            <span>Daily Operations</span>
+          </h2>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => navigate('/create-order')}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md shadow-emerald-600/20 transition cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            <span>New Sale</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/purchases')}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-2xs transition cursor-pointer"
+          >
+            <ShoppingCart className="w-3.5 h-3.5 text-blue-500" />
+            <span>Purchases</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/khata')}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-2xs transition cursor-pointer"
+          >
+            <CreditCard className="w-3.5 h-3.5 text-amber-500" />
+            <span>Khata (Dues)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/expenses')}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-2xs transition cursor-pointer"
+          >
+            <DollarSign className="w-3.5 h-3.5 text-rose-500" />
+            <span>Expenses</span>
+          </button>
+        </div>
+      </div>
+
       {/* 5 Essential High-Impact KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5">
         {/* 1. Strictly Today's Sales */}
@@ -153,7 +201,7 @@ export const Dashboard = () => {
           amount={`Rs. ${totalInventoryValue.toLocaleString()}`}
           subtext={`${totalStockQty.toLocaleString()} units • ${products.length} commodities`}
           icon={TrendingUp}
-          color="amber"
+          color="slate"
           onClick={() => navigate('/reports?type=Stock')}
         />
 

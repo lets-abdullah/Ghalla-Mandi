@@ -33,8 +33,12 @@ import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
+import { useToast } from '../components/Toast';
+import { EmptyState } from '../components/EmptyState';
+import { AddCustomerModal } from '../modals/AddCustomerModal';
 
 export const Customers = () => {
+  const toast = useToast();
   const { customers = [], sales = [], saleReturns = [], paymentLogs = [], addCustomer, updateCustomer, deleteCustomer } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
@@ -44,6 +48,7 @@ export const Customers = () => {
   const [viewMode, setViewMode] = useState('table');
 
   // Filters State
+  const [searchTerm, setSearchTerm] = useState('');
   const [customerTypeFilter, setCustomerTypeFilter] = useState('All'); // 'All' | 'Regular Customer' | 'Walk-in Customer'
   const [balanceFilter, setBalanceFilter] = useState('All'); // 'All' | 'Due' | 'Paid'
 
@@ -51,27 +56,6 @@ export const Customers = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [viewingCustomer, setViewingCustomer] = useState(null);
-
-  // Form state for New Regular Customer with Bank Details
-  const [form, setForm] = useState({
-    name: '',
-    shopName: '',
-    phone: '',
-    whatsapp: '',
-    city: '',
-    address: '',
-    customerType: 'Regular Customer',
-    openingBalance: '',
-    creditLimit: '',
-    paymentTerms: 'Due on Receipt',
-    cnic: '',
-    bankName: '',
-    accountTitle: '',
-    accountNumber: '',
-    notes: ''
-  });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Escape key handler to close modals
   useEffect(() => {
@@ -122,6 +106,16 @@ export const Customers = () => {
     }
 
     return baseList.filter(c => {
+      // Search Term Filter
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase().trim();
+        const nameMatch = (c.name || '').toLowerCase().includes(q);
+        const phoneMatch = (c.phone || '').toLowerCase().includes(q);
+        const cityMatch = (c.city || '').toLowerCase().includes(q);
+        const bizMatch = (c.businessName || c.shopName || '').toLowerCase().includes(q);
+        if (!nameMatch && !phoneMatch && !cityMatch && !bizMatch) return false;
+      }
+
       // Balance Filter
       const bal = Number(c.balance || 0);
       if (balanceFilter === 'Due' && bal <= 0) return false;
@@ -129,75 +123,18 @@ export const Customers = () => {
 
       return true;
     }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-  }, [registeredCustomersList, walkinCustomersList, customerTypeFilter, balanceFilter]);
+  }, [registeredCustomersList, walkinCustomersList, customerTypeFilter, balanceFilter, searchTerm]);
 
   const isAnyFilterActive = (
+    searchTerm.trim() !== '' ||
     customerTypeFilter !== 'All' ||
     balanceFilter !== 'All'
   );
 
   const resetAllFilters = () => {
+    setSearchTerm('');
     setCustomerTypeFilter('All');
     setBalanceFilter('All');
-  };
-
-  // Create Customer Handler
-  const handleCreateSubmit = async (e) => {
-    e.preventDefault();
-    if (!(form.name || '').trim()) {
-      alert('Customer name is required');
-      return;
-    }
-
-    const cleanPhone = (form.phone || '').trim();
-    if (cleanPhone && cleanPhone.replace(/\D/g, '').length !== 11) {
-      alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
-      return;
-    }
-    const cleanWhatsapp = (form.whatsapp || '').trim();
-    if (cleanWhatsapp && cleanWhatsapp.replace(/\D/g, '').length !== 11) {
-      alert('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
-      return;
-    }
-
-    try {
-      await addCustomer({
-        name: (form.name || '').trim(),
-        shopName: (form.businessName || form.shopName || '').trim(),
-        businessName: (form.businessName || form.shopName || '').trim(),
-        phone: cleanPhone || 'N/A',
-        whatsapp: cleanWhatsapp,
-        email: (form.email || '').trim(),
-        city: (form.city || '').trim() || 'Local Mandi',
-        address: (form.address || '').trim(),
-        customerType: form.customerType || 'Regular Customer',
-        openingBalance: Number(form.openingBalance) || 0,
-        bankName: (form.bankName || '').trim(),
-        accountTitle: (form.accountTitle || '').trim(),
-        accountNumber: (form.accountNumber || '').trim(),
-        notes: (form.notes || '').trim()
-      });
-
-      setShowAddModal(false);
-      setForm({
-        name: '',
-        businessName: '',
-        phone: '',
-        whatsapp: '',
-        email: '',
-        city: '',
-        address: '',
-        customerType: 'Regular Customer',
-        openingBalance: 0,
-        bankName: '',
-        accountTitle: '',
-        accountNumber: '',
-        status: 'Active',
-        notes: ''
-      });
-    } catch (err) {
-      alert(err.message || 'Failed to create customer');
-    }
   };
 
   // Update Customer Handler
@@ -206,11 +143,11 @@ export const Customers = () => {
     if (!editingCustomer || !editingCustomer.name.trim()) return;
 
     if (editingCustomer.phone && editingCustomer.phone !== 'N/A' && editingCustomer.phone.replace(/\D/g, '').length !== 11) {
-      alert('Phone number must be exactly 11 digits (e.g. 03001234567)');
+      toast.warning('Phone number must be exactly 11 digits (e.g. 03001234567)');
       return;
     }
     if (editingCustomer.whatsapp && editingCustomer.whatsapp.replace(/\D/g, '').length !== 11) {
-      alert('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
+      toast.warning('WhatsApp number must be exactly 11 digits (e.g. 03001234567)');
       return;
     }
 
@@ -230,6 +167,7 @@ export const Customers = () => {
           bankName: editingCustomer.bankName ? editingCustomer.bankName.trim() : '',
           accountTitle: editingCustomer.accountTitle ? editingCustomer.accountTitle.trim() : '',
           accountNumber: (editingCustomer.accountNumber || editingCustomer.iban) ? (editingCustomer.accountNumber || editingCustomer.iban).trim() : '',
+          status: editingCustomer.status || 'Active',
           notes: editingCustomer.notes ? editingCustomer.notes.trim() : ''
         });
       } else {
@@ -244,9 +182,10 @@ export const Customers = () => {
         });
       }
 
+      toast.success(`Customer "${editingCustomer.name.trim()}" updated successfully!`);
       setEditingCustomer(null);
     } catch (err) {
-      alert(err.message || 'Failed to update customer');
+      toast.error(err.message || 'Failed to update customer');
     }
   };
 
@@ -254,8 +193,9 @@ export const Customers = () => {
     if (window.confirm(`Are you sure you want to delete customer "${name}"?`)) {
       try {
         await deleteCustomer(id);
+        toast.success(`Customer "${name}" deleted.`);
       } catch (err) {
-        alert(err.message || 'Failed to delete customer');
+        toast.error(err.message || 'Failed to delete customer');
       }
     }
   };
@@ -391,7 +331,35 @@ export const Customers = () => {
       <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
-          {/* 1. Customer Type */}
+          {/* 1. Search Customer */}
+          <div className="flex-[2] min-w-[200px]">
+            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
+              <Search className="w-3.5 h-3.5 text-brand-500" />
+              <span>Search Customer</span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by name, business, phone, city..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full border rounded-xl pl-9 pr-8 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                  }`}
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 2. Customer Type */}
           <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-brand-500" />
@@ -409,7 +377,7 @@ export const Customers = () => {
             </select>
           </div>
 
-          {/* 2. Balance Filter */}
+          {/* 3. Balance Filter */}
           <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <DollarSign className="w-3.5 h-3.5 text-amber-500" />
@@ -475,8 +443,22 @@ export const Customers = () => {
               }`}>
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
-                    No customers found matching your filter criteria.
+                  <td colSpan={6} className="py-8 text-center">
+                    <EmptyState
+                      icon={Users}
+                      title="No customers found"
+                      description="No customer records match your current search and filter criteria."
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => setShowAddModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-white bg-brand-600 hover:bg-brand-700 transition"
+                        >
+                          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                          <span>Add Customer</span>
+                        </button>
+                      }
+                    />
                   </td>
                 </tr>
               ) : (
@@ -672,274 +654,13 @@ export const Customers = () => {
       })()}
 
       {/* ========================================================================= */}
-      {/* 2. ADD REGULAR CUSTOMER MODAL (Compact 2-Column Grid - No Desktop Scroll) */}
+      {/* 2. ADD REGULAR CUSTOMER MODAL (Reusable Component) */}
       {/* ========================================================================= */}
-      {showAddModal && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAddModal(false); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className={`rounded-3xl max-w-4xl w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
-                  <User className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold">Add New Customer</h3>
-                  <p className="text-[10px] text-slate-400 font-bold">Register customer account, credit info & bank details</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAddModal(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <AddCustomerModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+      />
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                {/* LEFT COLUMN: Customer & Contact Info */}
-                <div className="space-y-3">
-                  <div className="text-[11px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
-                    <User className="w-3.5 h-3.5" />
-                    <span>Customer & Contact Details</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Customer Name <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        autoFocus
-                        placeholder="Full Customer Name"
-                        value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Business / Firm Name
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Company or Shop Name"
-                        value={form.businessName}
-                        onChange={(e) => setForm({ ...form, businessName: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Phone Number
-                      </label>
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={11}
-                        placeholder="03001234567"
-                        value={form.phone}
-                        onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        WhatsApp Number
-                      </label>
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={11}
-                        placeholder="03001234567"
-                        value={form.whatsapp}
-                        onChange={(e) => setForm({ ...form, whatsapp: e.target.value.replace(/\D/g, '').slice(0, 11) })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        City / Mandi
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Faisalabad, Okara"
-                        value={form.city}
-                        onChange={(e) => setForm({ ...form, city: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Email Address (Optional)
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="customer@example.com"
-                        value={form.email}
-                        onChange={(e) => setForm({ ...form, email: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                      Full Address
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Shop # / Street / Market address"
-                      value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* RIGHT COLUMN: Financial, Bank & Account Details */}
-                <div className="space-y-3">
-                  <div className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-700/60 pb-1">
-                    <Landmark className="w-3.5 h-3.5" />
-                    <span>Financial & Bank Account Info</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Customer Type
-                      </label>
-                      <select
-                        value={form.customerType}
-                        onChange={(e) => setForm({ ...form, customerType: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      >
-                        <option value="Regular Customer">Regular Customer</option>
-                        <option value="Walk-in Customer">Walk-in Customer</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Opening Balance (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder="0"
-                        value={form.openingBalance}
-                        onChange={(e) => setForm({ ...form, openingBalance: Number(e.target.value) })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Bank Name
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Meezan, HBL"
-                        value={form.bankName}
-                        onChange={(e) => setForm({ ...form, bankName: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Account Title
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Title of Account"
-                        value={form.accountTitle}
-                        onChange={(e) => setForm({ ...form, accountTitle: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Account # / IBAN
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="PK36MEZN..."
-                        value={form.accountNumber}
-                        onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                      Notes / Instructions
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Special Mandi terms, credit terms, notes..."
-                      value={form.notes}
-                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
-                >
-                  Save Customer
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* ========================================================================= */}
       {/* 3. EDIT CUSTOMER MODAL (Compact 2-Column Grid - No Desktop Scroll) */}

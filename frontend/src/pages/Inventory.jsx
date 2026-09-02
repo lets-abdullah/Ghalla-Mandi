@@ -25,6 +25,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
+import { EmptyState } from '../components/EmptyState';
 
 export const Inventory = () => {
   const {
@@ -446,9 +447,12 @@ export const Inventory = () => {
               }`}>
               {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400 space-y-2">
-                    <FileText className="w-8 h-8 mx-auto stroke-[1.5] text-slate-300 dark:text-slate-600" />
-                    <p className="text-xs font-bold">No inventory movements match your filter criteria.</p>
+                  <td colSpan={6} className="py-8 text-center">
+                    <EmptyState
+                      icon={Warehouse}
+                      title="No inventory movements found"
+                      description="No stock in/out movements match your active date or product filters."
+                    />
                   </td>
                 </tr>
               ) : (

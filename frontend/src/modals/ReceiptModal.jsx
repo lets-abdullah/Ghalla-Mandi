@@ -230,18 +230,18 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                       </tr>
                     ` : ''}
                     <tr style="background: #064e3b; color: #ffffff;">
-                      <td style="padding: 6px 8px; font-weight: 900; font-size: 13px;">${returnAmountNum > 0 ? 'Net Payable Total' : 'Grand Total'}:</td>
+                      <td style="padding: 6px 8px; font-weight: 900; font-size: 13px;">${returnAmountNum > 0 ? 'Net Invoice Total' : 'Total Amount'}:</td>
                       <td style="padding: 6px 8px; text-align: right; font-family: monospace; font-weight: 900; font-size: 14px;">Rs. ${grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                     ${appliedCreditNum > 0 ? `
                       <tr style="background: #ecfdf5; color: #065f46;">
-                        <td style="padding: 4px 8px; font-weight: 700;">Applied Advance Credit:</td>
+                        <td style="padding: 4px 8px; font-weight: 700;">Advance Payment Applied:</td>
                         <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 800;">- Rs. ${appliedCreditNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       </tr>
                     ` : ''}
                     ${cashReceivedNum > 0 || appliedCreditNum > 0 ? `
                       <tr>
-                        <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Cash / Additional Paid:</td>
+                        <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Payment Received:</td>
                         <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 700; color: #059669;">Rs. ${cashReceivedNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       </tr>
                     ` : ''}
@@ -678,27 +678,27 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                     </div>
                   )}
                   <div className="bg-[#064e3b] text-white p-2.5 rounded-lg flex justify-between items-center shadow-xs">
-                    <span className="text-xs font-black uppercase tracking-wider">{returnAmountNum > 0 ? 'Net Payable Total' : 'Grand Total'}</span>
+                    <span className="text-xs font-black uppercase tracking-wider">{returnAmountNum > 0 ? 'Net Invoice Total' : 'Total Amount'}</span>
                     <span className="font-mono text-base font-black">
                       Rs. {grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                   {appliedCreditNum > 0 && (
                     <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded text-[11px] font-bold">
-                      <span>Applied Advance Credit:</span>
+                      <span>Advance Payment Applied:</span>
                       <span className="font-mono font-black">
                         - Rs. {appliedCreditNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   )}
                   <div className="flex justify-between items-center text-slate-600 px-1 pt-0.5">
-                    <span>Total Paid out / Settled:</span>
+                    <span>Total Paid:</span>
                     <span className="font-mono text-emerald-700 font-black">
                       Rs. {paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-600 px-1">
-                    <span>Balance Due:</span>
+                    <span>Remaining Due:</span>
                     <span className={`font-mono font-black ${dueRemaining > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
                       Rs. {dueRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>

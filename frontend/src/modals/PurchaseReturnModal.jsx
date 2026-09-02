@@ -9,8 +9,10 @@ import {
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
+import { useToast } from '../components/Toast';
 
 export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, selectedPurchase = null }) => {
+  const toast = useToast();
   const { purchases = [], purchaseReturns = [], recordPurchaseReturn } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
@@ -133,7 +135,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
     if (isSubmitting || numReturnQty <= 0 || isFullyReturned) return;
 
     if (numReturnQty > remainingQty) {
-      alert(`Return quantity cannot exceed remaining returnable quantity (${remainingQty} ${itemUnit}).`);
+      toast.warning(`Return quantity cannot exceed remaining returnable quantity (${remainingQty} ${itemUnit}).`);
       return;
     }
 
@@ -161,6 +163,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
         date: new Date().toLocaleDateString('en-GB')
       });
 
+      toast.success(`Purchase return of ${numReturnQty} ${itemUnit} recorded successfully.`);
       setCompletedReturn({
         ...returnRecord,
         remainingAfter: Math.max(0, remainingQty - numReturnQty),
@@ -170,7 +173,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
       });
     } catch (err) {
       console.error('Failed to process purchase return:', err);
-      alert(err.message || 'Failed to process purchase return.');
+      toast.error(err.message || 'Failed to process purchase return.');
     } finally {
       setIsSubmitting(false);
     }
@@ -215,7 +218,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
             <div>
               <h4 className="text-base font-black text-slate-900 dark:text-white">Purchase Return Recorded</h4>
               <p className="text-xs text-slate-400 mt-0.5">
-                Debit Note <span className="font-mono font-bold text-amber-500">#{completedReturn.returnNo}</span> has been processed.
+                Purchase Return <span className="font-mono font-bold text-brand-500">#{completedReturn.returnNo}</span> has been processed.
               </p>
             </div>
 
@@ -240,8 +243,8 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">{completedReturn.remainingAfter} {completedReturn.unit}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
-                <span className="font-bold text-slate-700 dark:text-slate-300">Debit / Credit Adjustment:</span>
-                <span className="font-black text-sm font-mono text-amber-500">Rs. {refundAmount.toLocaleString()}</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">Return Adjustment:</span>
+                <span className="font-black text-sm font-mono text-purple-600 dark:text-purple-400">Rs. {refundAmount.toLocaleString()}</span>
               </div>
             </div>
 
@@ -252,7 +255,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                <span>Print Debit Note</span>
+                <span>Print Return Voucher</span>
               </button>
               <button
                 type="button"
@@ -385,7 +388,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                       theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                   >
-                    <option value="Ledger">Supplier Khata (Debit Note)</option>
+                    <option value="Ledger">Deduct from Supplier Khata (Balance Adjustment)</option>
                     <option value="Cash">Cash Return (Refund)</option>
                   </select>
                 </div>
