@@ -595,7 +595,18 @@ export const Sales = () => {
                 </tr>
               ) : (
                 filteredSales.map(s => {
-                  const { total, paid, returnAmount: retAmt, due, status, isReturned } = computeSaleFinancials(s, saleReturns, paymentLogs);
+                  const {
+                    total,
+                    grossTotal,
+                    netTotal,
+                    paid,
+                    returnAmount: retAmt,
+                    due,
+                    status,
+                    isReturned,
+                    isFullyReturned,
+                    isPartiallyReturned
+                  } = computeSaleFinancials(s, saleReturns, paymentLogs);
                   const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') ||
                     (s.partyName || '').toLowerCase().includes('walk-in');
 
@@ -650,23 +661,27 @@ export const Sales = () => {
                       {/* 6. Status */}
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex flex-col items-center gap-0.5">
-                          <span className={`font-extrabold text-xs whitespace-nowrap ${status === 'Paid'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : status === 'Partial'
-                              ? 'text-amber-600 dark:text-amber-400'
-                              : 'text-rose-600 dark:text-rose-400'
-                            }`}>
-                            {status === 'Paid' ? 'Paid' : status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
-                          </span>
-
-                          {/* Return Status if partially or fully returned */}
-                          {(s.returnStatus || s.returnAmount > 0) && (
-                            <span className={`font-bold text-[11px] whitespace-nowrap ${s.returnStatus === 'Fully Returned'
-                              ? 'text-purple-600 dark:text-purple-400'
-                              : 'text-orange-600 dark:text-orange-400'
-                              }`}>
-                              ({s.returnStatus || 'Partially Returned'})
+                          {isFullyReturned ? (
+                            <span className="font-extrabold text-xs whitespace-nowrap text-purple-600 dark:text-purple-400">
+                              Fully Returned
                             </span>
+                          ) : (
+                            <>
+                              <span className={`font-extrabold text-xs whitespace-nowrap ${status === 'Paid'
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : status === 'Partial'
+                                  ? 'text-amber-600 dark:text-amber-400'
+                                  : 'text-rose-600 dark:text-rose-400'
+                                }`}>
+                                {status === 'Paid' ? 'Paid' : status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
+                              </span>
+
+                              {isPartiallyReturned && (
+                                <span className="font-bold text-[11px] whitespace-nowrap text-orange-600 dark:text-orange-400">
+                                  (Partially Returned)
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>
@@ -675,7 +690,7 @@ export const Sales = () => {
                       <td className="py-3.5 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
                           {/* Edit Action (Locked if goods have been returned) */}
-                          {(s.returnStatus || Number(s.returnAmount || 0) > 0 || isReturned) ? (
+                          {(s.returnStatus || Number(s.returnAmount || 0) > 0 || isReturned || isFullyReturned || isPartiallyReturned) ? (
                             <span
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold cursor-not-allowed select-none opacity-60"
                               title="Sale cannot be edited because returned goods exist in Sale Returns"
@@ -695,7 +710,7 @@ export const Sales = () => {
                           )}
 
                           {/* Return Sale Action */}
-                          {(s.returnStatus === 'Fully Returned' || (Number(s.returnAmount || 0) >= (total - 1) && total > 0)) ? (
+                          {isFullyReturned ? (
                             <span
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
                               title="This sale is fully returned"

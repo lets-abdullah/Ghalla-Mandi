@@ -277,24 +277,6 @@ export const Inventory = () => {
           </div>
         </div>
 
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-          }`}>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
-            +{totalInflow.toLocaleString()} <span className="text-xs font-bold text-slate-400">Units</span>
-          </div>
-        </div>
-
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
-          }`}>
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <TrendingDown className="w-4 h-4 text-rose-600" />
-            <span>Total Stock Out</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
-            -{totalOutflow.toLocaleString()} <span className="text-xs font-bold text-slate-400">Units</span>
-          </div>
-        </div>
-
         <div
           onClick={() => navigate('/products')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
@@ -493,8 +475,8 @@ export const Inventory = () => {
                       {/* Movement Type (Plain Text) */}
                       <td className="py-2.5 px-4 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1.5 text-xs font-black tracking-wide ${isStockIn
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-rose-600 dark:text-rose-400'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-rose-600 dark:text-rose-400'
                           }`}>
                           {isStockIn ? (
                             <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -512,8 +494,8 @@ export const Inventory = () => {
 
                       {/* Signed Quantity */}
                       <td className={`py-2.5 px-4 text-right font-black font-mono text-sm whitespace-nowrap ${isStockIn
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-rose-600 dark:text-rose-400'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-rose-600 dark:text-rose-400'
                         }`}>
                         {tx.signedQty}
                       </td>

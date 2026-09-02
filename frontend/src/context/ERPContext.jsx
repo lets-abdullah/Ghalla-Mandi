@@ -210,15 +210,17 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) 
   const netPaidTowardsInvoice = Math.max(0, rawGrossPaid - cashRefundAmount);
   const paid = Math.min(netDueableTotal, netPaidTowardsInvoice);
 
-  const isReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus && sale.returnStatus !== 'None') || (returnAmount >= total && total > 0);
+  const isFullyReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus === 'Fully Returned') || (returnAmount >= (total - 0.5) && total > 0);
+  const isPartiallyReturned = !isFullyReturned && returnAmount > 0;
+  const isReturned = isFullyReturned;
   const due = Math.max(0, netDueableTotal - paid);
-  const status = isReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
+  const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
 
-  return { total, grossTotal: total, netTotal: netDueableTotal, paid, returnAmount, due, status, isReturned };
+  return { total, grossTotal: total, netTotal: netDueableTotal, paid, returnAmount, due, status, isReturned, isFullyReturned, isPartiallyReturned };
 };
 
 export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymentLogs = []) => {
-  if (!purchase) return { total: 0, grossTotal: 0, netTotal: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
+  if (!purchase) return { total: 0, grossTotal: 0, netTotal: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false, isFullyReturned: false, isPartiallyReturned: false };
   const total = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : (purchase.grandtotal !== undefined ? purchase.grandtotal : 0)));
 
   const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
@@ -244,11 +246,13 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const netPaidTowardsPurchase = Math.max(0, rawGrossPaid - cashRefundAmount);
   const paid = Math.min(netDueableTotal, netPaidTowardsPurchase);
 
-  const isReturned = (purchase.status === 'Returned') || (purchase.paymentStatus === 'Returned') || purchase.isReturned || (purchase.returnStatus && purchase.returnStatus !== 'None') || (returnAmount >= total && total > 0);
+  const isFullyReturned = (purchase.status === 'Returned') || (purchase.paymentStatus === 'Returned') || purchase.isReturned || (purchase.returnStatus === 'Fully Returned') || (returnAmount >= (total - 0.5) && total > 0);
+  const isPartiallyReturned = !isFullyReturned && returnAmount > 0;
+  const isReturned = isFullyReturned;
   const due = Math.max(0, netDueableTotal - paid);
-  const status = isReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
+  const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
 
-  return { total, grossTotal: total, netTotal: netDueableTotal, paid, returnAmount, due, status, isReturned };
+  return { total, grossTotal: total, netTotal: netDueableTotal, paid, returnAmount, due, status, isReturned, isFullyReturned, isPartiallyReturned };
 };
 
 export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = [], saleReturns = []) => {

@@ -879,21 +879,18 @@ export const Purchases = () => {
                 </tr>
               ) : (
                 filteredPurchases.map(p => {
-                  const directPaid = (paymentLogs || []).filter(pl =>
-                    (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
-                    (
-                      (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
-                      (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
-                    )
-                  ).reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-                  const upfrontPaid = Number(p.paidAmount ?? p.paidamount ?? 0);
-                  const total = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0);
-                  const retAmt = Number(p.returnAmount ?? 0);
-                  const netTotal = Math.max(0, total - retAmt);
-                  const paid = Math.min(netTotal, directPaid > 0 ? directPaid : (p.paymentStatus === 'Paid' ? netTotal : upfrontPaid));
-                  const due = Math.max(0, netTotal - paid);
-                  const status = (due === 0 && total > 0) || p.paymentStatus === 'Paid' ? 'Paid' : paid > 0 ? 'Partial' : 'Due';
-                  const isReturned = (p.status === 'Returned') || (p.paymentStatus === 'Returned') || p.isReturned || (retAmt > 0) || Boolean(p.returnStatus && p.returnStatus !== 'None') || (purchaseReturns || []).some(r => r.purchaseId === p.id || r.purchaseNo === p.purchaseNo);
+                  const {
+                    total,
+                    grossTotal,
+                    netTotal,
+                    paid,
+                    returnAmount: retAmt,
+                    due,
+                    status,
+                    isReturned,
+                    isFullyReturned,
+                    isPartiallyReturned
+                  } = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
 
                   return (
                     <tr key={p.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
@@ -911,7 +908,7 @@ export const Purchases = () => {
                       {/* 3. Supplier */}
                       <td className="py-3.5 px-4">
                         <div className="font-extrabold text-xs text-slate-900 dark:text-white">
-                          {p.supplier || p.supplierName || p.suppliername}
+                          {p.supplier || p.supplierName || 'General Supplier'}
                         </div>
                       </td>
 
@@ -940,22 +937,27 @@ export const Purchases = () => {
                       {/* 6. Status */}
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex flex-col items-center gap-0.5">
-                          <span className={`font-extrabold text-xs whitespace-nowrap ${status === 'Paid'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : status === 'Partial'
-                              ? 'text-amber-600 dark:text-amber-400'
-                              : 'text-rose-600 dark:text-rose-400'
-                            }`}>
-                            {status === 'Paid' ? 'Paid' : status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
-                          </span>
-
-                          {(p.returnStatus || (p.returnAmount > 0)) && (
-                            <span className={`font-bold text-[11px] whitespace-nowrap ${p.returnStatus === 'Fully Returned'
-                              ? 'text-purple-600 dark:text-purple-400'
-                              : 'text-orange-600 dark:text-orange-400'
-                              }`}>
-                              ({p.returnStatus || 'Partially Returned'})
+                          {isFullyReturned ? (
+                            <span className="font-extrabold text-xs whitespace-nowrap text-purple-600 dark:text-purple-400">
+                              Fully Returned
                             </span>
+                          ) : (
+                            <>
+                              <span className={`font-extrabold text-xs whitespace-nowrap ${status === 'Paid'
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : status === 'Partial'
+                                  ? 'text-amber-600 dark:text-amber-400'
+                                  : 'text-rose-600 dark:text-rose-400'
+                                }`}>
+                                {status === 'Paid' ? 'Paid' : status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
+                              </span>
+
+                              {isPartiallyReturned && (
+                                <span className="font-bold text-[11px] whitespace-nowrap text-orange-600 dark:text-orange-400">
+                                  (Partially Returned)
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>
@@ -964,7 +966,7 @@ export const Purchases = () => {
                       <td className="py-3.5 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
                           {/* Edit Action (Locked if stock has been returned) */}
-                          {(p.returnStatus || Number(p.returnAmount || 0) > 0 || isReturned) ? (
+                          {(p.returnStatus || Number(p.returnAmount || 0) > 0 || isReturned || isFullyReturned || isPartiallyReturned) ? (
                             <span
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold cursor-not-allowed select-none opacity-60"
                               title="Purchase cannot be edited because returned goods exist in Purchase Returns"
@@ -984,7 +986,7 @@ export const Purchases = () => {
                           )}
 
                           {/* Return Purchase Action */}
-                          {(p.returnStatus === 'Fully Returned' || (Number(p.returnAmount || 0) >= (total - 1) && total > 0)) ? (
+                          {isFullyReturned ? (
                             <span
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
                               title="This purchase is fully returned"
