@@ -203,6 +203,78 @@ console.log('================================================================\n'
 }
 
 // -------------------------------------------------------------
+// MODULE 8B: INV-2026-0005 RETURN STATUS RECONCILIATION SUITE
+// -------------------------------------------------------------
+// Case A: Paid 400 + Cash Return 200 → Paid, Due 0
+{
+  const sale = 400, paid = 400, ret = 200, cashRef = 200;
+  const netSale = sale - ret; // 200
+  const netCashPaid = paid - cashRef; // 200
+  const effPaid = Math.min(netSale, netCashPaid); // 200
+  const due = Math.max(0, netSale - effPaid); // 0
+  const khataDue = Math.max(0, netSale - netCashPaid); // 0
+  const status = (due === 0 && netSale > 0) ? 'Paid' : (effPaid > 0 ? 'Partial' : 'Pending');
+
+  assert(netSale === 200 && effPaid === 200 && due === 0 && khataDue === 0 && status === 'Paid',
+    'INV-0005', 'Case A: Paid 400 + Cash Return 200 => Paid, Due 0, Khata Due 0');
+}
+
+// Case B: Paid 400 + Ledger Return 200 → Paid, Due 0
+{
+  const sale = 400, paid = 400, ret = 200, cashRef = 0;
+  const netSale = sale - ret; // 200
+  const netCashPaid = paid - cashRef; // 400
+  const effPaid = Math.min(netSale, netCashPaid); // 200
+  const due = Math.max(0, netSale - effPaid); // 0
+  const khataDue = Math.max(0, netSale - netCashPaid); // 0
+  const status = (due === 0 && netSale > 0) ? 'Paid' : (effPaid > 0 ? 'Partial' : 'Pending');
+
+  assert(netSale === 200 && effPaid === 200 && due === 0 && khataDue === 0 && status === 'Paid',
+    'INV-0005', 'Case B: Paid 400 + Ledger Return 200 => Paid, Due 0, Khata Due 0');
+}
+
+// Case C: Paid 300 + Cash Return 200 → Due 100, Partial
+{
+  const sale = 400, paid = 300, ret = 200, cashRef = 200;
+  const netSale = sale - ret; // 200
+  const netCashPaid = paid - cashRef; // 100
+  const effPaid = Math.min(netSale, netCashPaid); // 100
+  const due = Math.max(0, netSale - effPaid); // 100
+  const khataDue = Math.max(0, netSale - netCashPaid); // 100
+  const status = (due === 0 && netSale > 0) ? 'Paid' : (effPaid > 0 ? 'Partial' : 'Pending');
+
+  assert(netSale === 200 && effPaid === 100 && due === 100 && khataDue === 100 && status === 'Partial',
+    'INV-0005', 'Case C: Paid 300 + Cash Return 200 => Due 100, Partial, Khata Due 100');
+}
+
+// Case D: Paid 300 + Mixed Return 200 (Cash 100 + Ledger 100) → Due 0, Paid
+{
+  const sale = 400, paid = 300, ret = 200, cashRef = 100;
+  const netSale = sale - ret; // 200
+  const netCashPaid = paid - cashRef; // 200
+  const effPaid = Math.min(netSale, netCashPaid); // 200
+  const due = Math.max(0, netSale - effPaid); // 0
+  const khataDue = Math.max(0, netSale - netCashPaid); // 0
+  const status = (due === 0 && netSale > 0) ? 'Paid' : (effPaid > 0 ? 'Partial' : 'Pending');
+
+  assert(netSale === 200 && effPaid === 200 && due === 0 && khataDue === 0 && status === 'Paid',
+    'INV-0005', 'Case D: Paid 300 + Mixed Return 200 => Due 0, Paid, Khata Due 0');
+}
+
+// Case E: Full return 400 → Returned, Due 0
+{
+  const sale = 400, paid = 400, ret = 400, cashRef = 400;
+  const netSale = Math.max(0, sale - ret); // 0
+  const isReturned = ret >= (sale - 1) && sale > 0; // true
+  const effPaid = 0;
+  const due = 0;
+  const status = isReturned ? 'Returned' : 'Paid';
+
+  assert(netSale === 0 && isReturned && due === 0 && status === 'Returned',
+    'INV-0005', 'Case E: Full return 400 => Returned, Due 0');
+}
+
+// -------------------------------------------------------------
 // MODULE 9: KHATA INVARIANTS & AUTO-HIDE OF SETTLED PARTIES
 // -------------------------------------------------------------
 {

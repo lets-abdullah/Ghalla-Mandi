@@ -1538,10 +1538,13 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
 const normalizePurchase = (p) => {
   if (!p) return null;
   const grandTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
+  const returnAmount = Number(p.returnAmount !== undefined ? p.returnAmount : (p.returnamount !== undefined ? p.returnamount : 0));
+  const netAmount = Number(p.netAmount !== undefined ? p.netAmount : (p.netamount !== undefined ? p.netamount : Math.max(0, grandTotal - returnAmount)));
   const paidAmount = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
   const supplierName = p.supplier || p.supplierName || p.suppliername || 'Supplier';
   const purchaseNo = p.purchaseNo || p.purchaseno || '';
-  const status = (p.status === 'Returned' || p.paymentStatus === 'Returned') ? 'Returned' : ((paidAmount >= grandTotal && grandTotal > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+  const isReturned = (p.status === 'Returned' || p.paymentStatus === 'Returned') || (returnAmount >= grandTotal && grandTotal > 0);
+  const status = isReturned ? 'Returned' : (p.paymentStatus || p.status || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending'));
   const date = p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
   const items = Array.isArray(p.items) ? p.items : (Array.isArray(p.cart) ? p.cart : []);
   const paymentMode = p.paymentMode || p.paymentmode || p.paymentMethod || p.paymentmethod || (paidAmount > 0 ? 'Cash' : 'Supplier Khata');
@@ -1557,6 +1560,10 @@ const normalizePurchase = (p) => {
     amount: grandTotal,
     grandTotal,
     grandtotal: grandTotal,
+    returnAmount,
+    returnamount: returnAmount,
+    netAmount,
+    netamount: netAmount,
     paidAmount,
     paidamount: paidAmount,
     paymentMode,
@@ -1573,11 +1580,13 @@ const normalizePurchase = (p) => {
 const normalizeSale = (s) => {
   if (!s) return null;
   const amount = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.grandtotal !== undefined ? s.grandtotal : 0)));
+  const returnAmount = Number(s.returnAmount !== undefined ? s.returnAmount : (s.returnamount !== undefined ? s.returnamount : 0));
+  const netAmount = Number(s.netAmount !== undefined ? s.netAmount : (s.netamount !== undefined ? s.netamount : Math.max(0, amount - returnAmount)));
   const paidAmount = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount !== undefined ? s.paidamount : 0));
   const partyName = s.partyName || s.partyname || s.customerName || s.customername || 'Walk-in Customer';
   const invoiceNo = s.invoiceNo || s.invoiceno || '';
-  const isReturned = (s.status === 'Returned') || (s.returnStatus && s.returnStatus !== 'None');
-  const status = isReturned ? 'Returned' : ((paidAmount >= amount && amount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+  const isReturned = (s.status === 'Returned') || (s.returnStatus && s.returnStatus !== 'None') || (returnAmount >= amount && amount > 0);
+  const status = isReturned ? 'Returned' : (s.status || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending'));
   const date = s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
   const profit = Number(s.profit !== undefined ? s.profit : 0);
   const cart = Array.isArray(s.cart) ? s.cart : (Array.isArray(s.items) ? s.items : []);
@@ -1592,6 +1601,10 @@ const normalizeSale = (s) => {
     customerName: partyName,
     amount,
     grandTotal: amount,
+    returnAmount,
+    returnamount: returnAmount,
+    netAmount,
+    netamount: netAmount,
     paidAmount,
     paidamount: paidAmount,
     paymentMode,

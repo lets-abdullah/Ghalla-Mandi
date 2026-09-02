@@ -87,27 +87,28 @@ export const createSaleReturn = async (req, res) => {
       }
 
       // 3. Update matching sale invoice if linked
-      if (saleId) {
-        const sale = await Sale.findOne({ id: saleId, shop_id: req.shop_id });
-        if (sale) {
-          const saleReturns = await SaleReturn.find({ shop_id: req.shop_id });
-          const relatedReturns = saleReturns.filter(r => String(r.saleId) === String(saleId) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
-          const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-          const cashRefundAmt = relatedReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-          const origAmt = Number(sale.amount || 0);
-          const netAmt = Math.max(0, origAmt - totalReturnAmt);
-          const grossPaid = Number(sale.paidAmount || 0);
-          const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
-          const effectivePaid = Math.min(netAmt, netCashPaid);
-          const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
-          const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
+      const targetSale = saleId
+        ? await Sale.findOne({ id: saleId, shop_id: req.shop_id })
+        : (invoiceNo ? await Sale.findOne({ invoiceNo, shop_id: req.shop_id }) : null);
 
-          await Sale.findByIdAndUpdate(sale.id, {
-            returnAmount: totalReturnAmt,
-            netAmount: netAmt,
-            status: newStatus
-          }, { shop_id: req.shop_id });
-        }
+      if (targetSale) {
+        const saleReturns = await SaleReturn.find({ shop_id: req.shop_id });
+        const relatedReturns = saleReturns.filter(r => (r.saleId && String(r.saleId) === String(targetSale.id)) || (r.invoiceNo && r.invoiceNo === targetSale.invoiceNo));
+        const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+        const cashRefundAmt = relatedReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+        const origAmt = Number(targetSale.amount || 0);
+        const netAmt = Math.max(0, origAmt - totalReturnAmt);
+        const grossPaid = Number(targetSale.paidAmount || 0);
+        const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
+        const effectivePaid = Math.min(netAmt, netCashPaid);
+        const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
+        const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
+
+        await Sale.findByIdAndUpdate(targetSale.id, {
+          returnAmount: totalReturnAmt,
+          netAmount: netAmt,
+          status: newStatus
+        }, { shop_id: req.shop_id });
       }
 
       return createdReturn;
@@ -285,27 +286,28 @@ export const createPurchaseReturn = async (req, res) => {
       }
 
       // 3. Update matching purchase invoice if linked
-      if (purchaseId) {
-        const purchase = await Purchase.findOne({ id: purchaseId, shop_id: req.shop_id });
-        if (purchase) {
-          const pReturns = await PurchaseReturn.find({ shop_id: req.shop_id });
-          const relatedReturns = pReturns.filter(r => String(r.purchaseId) === String(purchaseId) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
-          const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-          const cashRefundAmt = relatedReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-          const origAmt = Number(purchase.grandTotal || purchase.amount || 0);
-          const netAmt = Math.max(0, origAmt - totalReturnAmt);
-          const grossPaid = Number(purchase.paidAmount || 0);
-          const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
-          const effectivePaid = Math.min(netAmt, netCashPaid);
-          const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
-          const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
+      const targetPurchase = purchaseId
+        ? await Purchase.findOne({ id: purchaseId, shop_id: req.shop_id })
+        : (purchaseNo ? await Purchase.findOne({ purchaseNo, shop_id: req.shop_id }) : null);
 
-          await Purchase.findByIdAndUpdate(purchase.id, {
-            returnAmount: totalReturnAmt,
-            netAmount: netAmt,
-            paymentStatus: newStatus
-          }, { shop_id: req.shop_id });
-        }
+      if (targetPurchase) {
+        const pReturns = await PurchaseReturn.find({ shop_id: req.shop_id });
+        const relatedReturns = pReturns.filter(r => (r.purchaseId && String(r.purchaseId) === String(targetPurchase.id)) || (r.purchaseNo && r.purchaseNo === targetPurchase.purchaseNo));
+        const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+        const cashRefundAmt = relatedReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+        const origAmt = Number(targetPurchase.grandTotal || targetPurchase.amount || 0);
+        const netAmt = Math.max(0, origAmt - totalReturnAmt);
+        const grossPaid = Number(targetPurchase.paidAmount || 0);
+        const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
+        const effectivePaid = Math.min(netAmt, netCashPaid);
+        const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
+        const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
+
+        await Purchase.findByIdAndUpdate(targetPurchase.id, {
+          returnAmount: totalReturnAmt,
+          netAmount: netAmt,
+          paymentStatus: newStatus
+        }, { shop_id: req.shop_id });
       }
 
       return createdReturn;

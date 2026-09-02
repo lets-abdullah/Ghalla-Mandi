@@ -154,7 +154,7 @@ export const Invoices = () => {
   const rawList = useMemo(() => {
     if (isPurchases) {
       return purchases.map(p => {
-        const { total, paid, due, status } = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
+        const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
 
         return {
           id: p.id,
@@ -165,10 +165,14 @@ export const Invoices = () => {
           partyId: p.supplierId,
           supplierCity: p.supplierCity,
           supplierPhone: p.supplierPhone,
-          amount: total,
-          paidAmount: paid,
-          dueAmount: due,
-          status: status,
+          amount: fin.total,
+          grossAmount: fin.grossTotal,
+          returnAmount: fin.returnAmount,
+          netAmount: fin.netTotal,
+          paidAmount: fin.paid,
+          dueAmount: fin.due,
+          status: fin.status,
+          isReturned: fin.isReturned,
           paymentMode: p.paymentMethod || p.paymentMode || 'Supplier Khata',
           cart: p.cart || p.items || [],
           type: 'Purchase',
@@ -177,7 +181,7 @@ export const Invoices = () => {
       });
     } else {
       return sales.map(s => {
-        const { total, paid, due, status } = computeSaleFinancials(s, saleReturns, paymentLogs);
+        const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
 
         return {
           id: s.id,
@@ -189,10 +193,14 @@ export const Invoices = () => {
           customerType: s.customerType || 'Regular Party',
           customerCity: s.customerCity,
           customerPhone: s.customerPhone,
-          amount: total,
-          paidAmount: paid,
-          dueAmount: due,
-          status: status,
+          amount: fin.total,
+          grossAmount: fin.grossTotal,
+          returnAmount: fin.returnAmount,
+          netAmount: fin.netTotal,
+          paidAmount: fin.paid,
+          dueAmount: fin.due,
+          status: fin.status,
+          isReturned: fin.isReturned,
           paymentMode: s.paymentMode || s.paymentMethod || 'Cash',
           cart: s.cart || s.items || [],
           type: 'Sale',
@@ -290,11 +298,14 @@ export const Invoices = () => {
           unit: 'KG',
           price: Number(inv.amount || 0)
         }],
-        subtotal: Number(inv.amount || 0),
+        subtotal: Number(inv.grossAmount || inv.amount || 0),
         discount: 0,
         tax: 0,
-        grandTotal: Number(inv.amount || 0),
+        returnAmount: Number(inv.returnAmount || 0),
+        netAmount: Number(inv.netAmount !== undefined ? inv.netAmount : inv.amount),
+        grandTotal: Number(inv.netAmount !== undefined ? inv.netAmount : inv.amount),
         paidAmount: Number(inv.paidAmount || 0),
+        dueAmount: Number(inv.dueAmount || 0),
         paymentMethod: inv.paymentMode || 'Cash',
         saleNote: inv.note || 'Official Sales Invoice'
       });
@@ -318,8 +329,13 @@ export const Invoices = () => {
           price: Number(inv.amount || 0),
           total: Number(inv.amount || 0)
         }],
-        totalAmount: Number(inv.amount || 0),
+        subtotal: Number(inv.grossAmount || inv.amount || 0),
+        returnAmount: Number(inv.returnAmount || 0),
+        netAmount: Number(inv.netAmount !== undefined ? inv.netAmount : inv.amount),
+        totalAmount: Number(inv.netAmount !== undefined ? inv.netAmount : inv.amount),
+        grandTotal: Number(inv.netAmount !== undefined ? inv.netAmount : inv.amount),
         paidAmount: Number(inv.paidAmount || 0),
+        dueAmount: Number(inv.dueAmount || 0),
         paymentMode: inv.paymentMode || 'Supplier Khata',
         note: inv.note || 'Official Purchase Voucher'
       });
@@ -613,11 +629,16 @@ export const Invoices = () => {
                         </span>
                       </td>
 
-                      {/* 5. Amount (Total Invoice Amount) */}
+                      {/* 5. Amount (Net Invoice Amount with Return Breakdown if applicable) */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
-                          Rs. {total.toLocaleString()}
+                          Rs. {netTotal.toLocaleString()}
                         </div>
+                        {retAmt > 0 && (
+                          <div className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">
+                            Orig: Rs. {total.toLocaleString()} | Ret: Rs. {retAmt.toLocaleString()}
+                          </div>
+                        )}
                       </td>
 
                       {/* 6. Paid (Paid so far) */}
@@ -627,23 +648,26 @@ export const Invoices = () => {
                         </div>
                       </td>
 
-                      {/* 7. Status (Paid / Partially Paid / Unpaid) — computed from actual paid+paymentLogs */}
-                      {(() => {
-                        const retAmt = Number(inv.returnAmount || 0);
-                        const computedStatus = paid >= (total - retAmt) && total > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
-                        return (
-                          <td className="py-3.5 px-4 text-center">
-                            <span className={`font-extrabold text-xs whitespace-nowrap ${computedStatus === 'Paid'
-                              ? 'text-emerald-600 dark:text-emerald-400'
-                              : computedStatus === 'Partial'
+                      {/* 7. Status (Paid / Partially Paid / Unpaid / Returned) — Single Source of Truth from inv.status */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={`font-extrabold text-xs whitespace-nowrap ${inv.status === 'Paid'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : inv.status === 'Returned'
+                              ? 'text-purple-600 dark:text-purple-400'
+                              : inv.status === 'Partial'
                                 ? 'text-amber-600 dark:text-amber-400'
                                 : 'text-rose-600 dark:text-rose-400'
-                              }`}>
-                              {computedStatus === 'Paid' ? 'Paid' : computedStatus === 'Partial' ? 'Partially Paid' : 'Unpaid'}
+                            }`}>
+                            {inv.status === 'Paid' ? 'Paid' : inv.status === 'Returned' ? 'Returned' : inv.status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
+                          </span>
+                          {retAmt > 0 && inv.status !== 'Returned' && (
+                            <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400">
+                              (Partially Returned)
                             </span>
-                          </td>
-                        );
-                      })()}
+                          )}
+                        </div>
+                      </td>
 
                       {/* 8. Actions: View / Print A4 (Screen Only) */}
                       <td className="py-3.5 px-4 text-center no-print">

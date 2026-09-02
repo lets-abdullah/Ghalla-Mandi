@@ -56,6 +56,8 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
     subtotal = 0,
     discount = 0,
     tax = 0,
+    returnAmount = 0,
+    netAmount = 0,
     grandTotal = 0,
     appliedCredit = 0,
     cashReceived = 0,
@@ -68,12 +70,16 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
     ? String(orderId)
     : `SAL-${String(orderId).replace(/[^0-9A-Za-z]/g, '') || '000456'}`;
 
-  const grandTotalNum = Number(grandTotal || subtotal || 0);
+  const returnAmountNum = Number(returnAmount || orderData.returnAmount || 0);
+  const discountNum = Number(discount || 0);
+  const initialSubtotal = Number(subtotal || 0);
+  const rawGrossTotal = Number(orderData.grossAmount || (initialSubtotal > 0 ? initialSubtotal : (Number(grandTotal || 0) + returnAmountNum)));
+  const calculatedSubtotal = initialSubtotal > 0 ? initialSubtotal : rawGrossTotal;
+  const netDueableTotal = Math.max(0, (Number(netAmount) > 0 ? Number(netAmount) : (rawGrossTotal - returnAmountNum - discountNum)));
+  const grandTotalNum = netDueableTotal;
   const appliedCreditNum = Number(appliedCredit || 0);
   const cashReceivedNum = Number(cashReceived || 0);
   const paidNum = Number(paidAmount !== undefined ? paidAmount : grandTotalNum);
-  const discountNum = Number(discount || 0);
-  const calculatedSubtotal = Number(subtotal) > 0 ? Number(subtotal) : (grandTotalNum + discountNum);
   const dueRemaining = Math.max(0, grandTotalNum - paidNum);
   const displayCustomer = !customerName || customerName === 'walkInCustomer' ? 'Walk-in Customer' : customerName;
   const shopTitle = (shop?.name || 'GHALLA MANDI').toUpperCase();
@@ -217,8 +223,14 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                         <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 700; color: #059669;">- Rs. ${discountNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       </tr>
                     ` : ''}
+                    ${returnAmountNum > 0 ? `
+                      <tr>
+                        <td style="padding: 4px 8px; color: #7e22ce; font-weight: 700;">Returned Merchandise:</td>
+                        <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 700; color: #7e22ce;">- Rs. ${returnAmountNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      </tr>
+                    ` : ''}
                     <tr style="background: #064e3b; color: #ffffff;">
-                      <td style="padding: 6px 8px; font-weight: 900; font-size: 13px;">Grand Total:</td>
+                      <td style="padding: 6px 8px; font-weight: 900; font-size: 13px;">${returnAmountNum > 0 ? 'Net Payable Total' : 'Grand Total'}:</td>
                       <td style="padding: 6px 8px; text-align: right; font-family: monospace; font-weight: 900; font-size: 14px;">Rs. ${grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                     ${appliedCreditNum > 0 ? `
@@ -321,8 +333,14 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                   <span style="font-family: monospace; font-weight: 700;">- Rs. ${discountNum.toLocaleString()}</span>
                 </div>
               ` : ''}
+              ${returnAmountNum > 0 ? `
+                <div style="display: flex; justify-content: space-between; padding: 1px 0; color: #7e22ce;">
+                  <span>Returned:</span>
+                  <span style="font-family: monospace; font-weight: 700;">- Rs. ${returnAmountNum.toLocaleString()}</span>
+                </div>
+              ` : ''}
               <div style="background: #064e3b; color: #ffffff; padding: 4px 6px; border-radius: 2px; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-weight: 900;">
-                <span>GRAND TOTAL</span>
+                <span>${returnAmountNum > 0 ? 'NET TOTAL' : 'GRAND TOTAL'}</span>
                 <span style="font-family: monospace; font-size: 12px;">Rs. ${grandTotalNum.toLocaleString()}</span>
               </div>
               <div style="display: flex; justify-content: space-between; padding: 2px 0; margin-top: 3px;">
@@ -651,8 +669,16 @@ export const ReceiptModal = ({ isOpen, onClose, orderData }) => {
                       </span>
                     </div>
                   )}
+                  {returnAmountNum > 0 && (
+                    <div className="flex justify-between items-center text-purple-700 px-1 font-bold">
+                      <span>Returned Merchandise:</span>
+                      <span className="font-mono">
+                        - Rs. {returnAmountNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
                   <div className="bg-[#064e3b] text-white p-2.5 rounded-lg flex justify-between items-center shadow-xs">
-                    <span className="text-xs font-black uppercase tracking-wider">Grand Total</span>
+                    <span className="text-xs font-black uppercase tracking-wider">{returnAmountNum > 0 ? 'Net Payable Total' : 'Grand Total'}</span>
                     <span className="font-mono text-base font-black">
                       Rs. {grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
