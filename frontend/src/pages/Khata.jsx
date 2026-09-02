@@ -66,6 +66,7 @@ export const Khata = () => {
   const [paymentModalParty, setPaymentModalParty] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState('Cash');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentNote, setPaymentNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -194,7 +195,8 @@ export const Khata = () => {
     setPaymentModalParty(item);
     setPaymentAmount(due > 0 ? due.toString() : '');
     setPaymentMode('Cash');
-    setPaymentNote(`Khata clearance for ${item.name}`);
+    setPaymentDate(new Date().toISOString().split('T')[0]);
+    setPaymentNote(`Settlement payment from ${item.name}`);
   };
 
   const handleRecordSettlement = async (e) => {
@@ -229,6 +231,7 @@ export const Khata = () => {
         partyType: isCustomer ? 'Customer' : 'Supplier',
         amount: amt,
         paymentMode: paymentMode,
+        date: paymentDate,
         note: paymentNote || (isCustomer ? 'Customer Khata Settlement' : 'Supplier Settlement Payment')
       });
 
@@ -577,133 +580,185 @@ export const Khata = () => {
       {/* Print Footer */}
       <PrintFooter note={`Official Business Record • Ghalla Mandi ${isCustomer ? 'Customer' : 'Supplier'} Khata Register`} />
 
-      {/* Settlement Payment Modal */}
-      {paymentModalParty && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setPaymentModalParty(null); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-base font-extrabold flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-emerald-600" />
-                <span>{isCustomer ? 'Receive Customer Khata Payment' : 'Pay Supplier Khata Balance'}</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setPaymentModalParty(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {/* Settlement Payment Modal (Redesigned like Pay Supplier Form) */}
+      {paymentModalParty && (() => {
+        const maxDue = Math.max(0, isCustomer
+          ? Number(paymentModalParty.receivableDue !== undefined ? paymentModalParty.receivableDue : (paymentModalParty.balance || 0))
+          : Number(paymentModalParty.payableDue !== undefined ? paymentModalParty.payableDue : (paymentModalParty.balance || 0)));
 
-            {/* Khata Summary Box */}
-            <div className={`rounded-2xl p-3.5 space-y-2 border text-xs font-semibold ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+        return (
+          <div
+            onClick={(e) => { if (e.target === e.currentTarget) setPaymentModalParty(null); }}
+            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          >
+            <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
-              <div className="flex justify-between items-center text-slate-400">
-                <span>{isCustomer ? 'Customer:' : 'Supplier:'}</span>
-                <span className="font-extrabold text-slate-900 dark:text-white">{paymentModalParty.name}</span>
-              </div>
-              <div className={`flex justify-between items-center ${isCustomer ? 'text-amber-600' : 'text-rose-600'} font-extrabold pt-1 border-t border-slate-200 dark:border-slate-700`}>
-                <span>Outstanding Due:</span>
-                <span className="text-sm font-black">
-                  Rs. {(isCustomer
-                    ? Number(paymentModalParty.receivableDue !== undefined ? paymentModalParty.receivableDue : (paymentModalParty.balance || 0))
-                    : Number(paymentModalParty.payableDue !== undefined ? paymentModalParty.payableDue : (paymentModalParty.balance || 0))
-                  ).toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <form onSubmit={handleRecordSettlement} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Payment Amount (Rs.) *</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  max={Math.max(0, isCustomer
-                    ? Number(paymentModalParty.receivableDue !== undefined ? paymentModalParty.receivableDue : (paymentModalParty.balance || 0))
-                    : Number(paymentModalParty.payableDue !== undefined ? paymentModalParty.payableDue : (paymentModalParty.balance || 0))
-                  )}
-                  autoFocus
-                  value={paymentAmount}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const maxDue = isCustomer
-                      ? Math.max(0, Number(paymentModalParty.receivableDue !== undefined ? paymentModalParty.receivableDue : (paymentModalParty.balance || 0)))
-                      : Math.max(0, Number(paymentModalParty.payableDue !== undefined ? paymentModalParty.payableDue : (paymentModalParty.balance || 0)));
-                    if (val === '') {
-                      setPaymentAmount('');
-                      return;
-                    }
-                    const num = Number(val);
-                    if (num > maxDue) {
-                      setPaymentAmount(maxDue.toString());
-                    } else if (num < 0) {
-                      setPaymentAmount('0');
-                    } else {
-                      setPaymentAmount(val);
-                    }
-                  }}
-                  placeholder="Enter payment amount"
-                  className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold">
+                      {isCustomer ? 'Receive Customer Khata Payment' : 'Pay Supplier'}
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-bold">
+                      {isCustomer ? 'Settle customer outstanding credit receivable' : 'Settle supplier payable liability'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPaymentModalParty(null)}
+                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Party Info Badge */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 space-y-1">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-extrabold text-slate-900 dark:text-white">{paymentModalParty.name}</span>
+                  <span className="text-[10px] font-bold text-slate-400">{paymentModalParty.city || paymentModalParty.customerType || 'Local Mandi'}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                  <span className="text-slate-500 font-semibold">{isCustomer ? 'Outstanding Due:' : 'Outstanding Payable:'}</span>
+                  <span className="font-mono font-black text-rose-600 dark:text-rose-400">
+                    Rs. {maxDue.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <form onSubmit={handleRecordSettlement} className="space-y-3.5">
+                {/* Payment Amount */}
                 <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Payment Mode</label>
-                  <select
-                    value={paymentMode}
-                    onChange={(e) => setPaymentMode(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  >
-                    <option value="Cash">Cash in Hand</option>
-                    <option value="Bank">Bank Transfer</option>
-                    <option value="Cheque">Cheque</option>
-                  </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-400">Payment Amount (PKR) *</label>
+                    {Number(paymentAmount || 0) === maxDue && maxDue > 0 ? (
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Settling</span>
+                    ) : Number(paymentAmount || 0) > 0 ? (
+                      <span className="text-[10px] font-bold text-amber-500">Partial Settlement</span>
+                    ) : null}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max={maxDue > 0 ? maxDue : undefined}
+                      value={paymentAmount}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setPaymentAmount('');
+                          return;
+                        }
+                        const num = Number(val);
+                        if (num > maxDue) {
+                          setPaymentAmount(maxDue.toString());
+                        } else if (num < 0) {
+                          setPaymentAmount('0');
+                        } else {
+                          setPaymentAmount(val);
+                        }
+                      }}
+                      placeholder={`e.g. ${maxDue}`}
+                      autoFocus
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(paymentAmount || 0) >= maxDue && maxDue > 0
+                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
+                        : 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                        }`}
+                    />
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] font-semibold">
+                    <span className="text-slate-400">
+                      {Number(paymentAmount || 0) > 0
+                        ? `Remaining ${isCustomer ? 'Due' : 'Payable'} after payment: Rs. ${Math.max(0, maxDue - Number(paymentAmount || 0)).toLocaleString()}`
+                        : `Enter amount to reduce ${isCustomer ? 'customer outstanding receivable' : 'supplier liability'}.`}
+                    </span>
+                    {maxDue > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentAmount(maxDue.toString())}
+                        className="text-brand-500 hover:underline font-bold cursor-pointer"
+                      >
+                        {isCustomer ? 'Receive Full' : 'Pay Full'} (Rs. {maxDue.toLocaleString()})
+                      </button>
+                    )}
+                  </div>
                 </div>
 
+                {/* Payment Account / Mode */}
                 <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">Note</label>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Payment Account / Mode *</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Cash', 'Bank', 'Card'].map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setPaymentMode(mode)}
+                        className={`py-2 px-3 rounded-xl text-xs font-black transition border cursor-pointer ${paymentMode === mode
+                          ? 'bg-brand-500 text-white border-brand-600 shadow-xs'
+                          : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
+                          }`}
+                      >
+                        {mode === 'Bank' ? 'Bank Transfer' : mode === 'Cash' ? 'Cash in Hand' : 'Card'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Payment Date */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Payment Date</label>
+                  <input
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  />
+                </div>
+
+                {/* Note / Reference */}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1">Note / Reference (Optional)</label>
                   <input
                     type="text"
                     value={paymentNote}
                     onChange={(e) => setPaymentNote(e.target.value)}
-                    placeholder="e.g. Khata clearance"
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    placeholder="e.g. Cleared via cheque #, counter cash..."
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
                 </div>
-              </div>
 
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentModalParty(null)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-1/2 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Saving...' : 'Confirm Settlement'}</span>
-                </button>
-              </div>
-            </form>
+                {/* Footer Actions */}
+                <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/80">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentModalParty(null)}
+                    className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{isSubmitting ? 'Recording...' : 'Confirm Payment'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
