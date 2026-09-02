@@ -1176,7 +1176,16 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     // Process Sales Invoices
     partySales.forEach((s, idx) => {
       const ts = parseNormalizedTimestamp(s.date, s.created_at);
-      const sGross = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
+      const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
+      const sGross = fin.grossTotal;
+      const sNet = fin.netTotal;
+      const sReturn = fin.returnAmount;
+      const sPaid = fin.paid;
+      const sDue = fin.due;
+      const sStatus = fin.status;
+      const isPartiallyReturned = sReturn > 0 && sStatus !== 'Returned';
+      const isFullyReturned = sStatus === 'Returned' || (sReturn >= sGross && sGross > 0);
+
       const sItems = Array.isArray(s.cart) && s.cart.length > 0
         ? s.cart.map(i => `${i.name || 'Commodity'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
         : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
@@ -1196,6 +1205,14 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         methodDisplay = 'Cash';
       }
 
+      const descText = sReturn > 0
+        ? `Invoice #${s.invoiceNo || s.id}: ${sItems}`
+        : `Invoice: ${sItems}`;
+
+      const historyNote = sReturn > 0
+        ? `Original Sale: Rs. ${sGross.toLocaleString()} • Returned: Rs. ${sReturn.toLocaleString()} • Net Sale: Rs. ${sNet.toLocaleString()} | Paid: Rs. ${sPaid.toLocaleString()}, Due: Rs. ${sDue.toLocaleString()} (${sStatus})`
+        : (s.saleNote || s.note || '');
+
       if (isCreditOnly) {
         // Credit / Khata Invoice: Creates pure debit receivable, subsequent Khata payments step down balance
         entries.push({
@@ -1209,15 +1226,23 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
           partyName: party.name,
           ref: s.invoiceNo || `INV-${s.id || idx}`,
           txType: 'Sales',
-          desc: `Invoice: ${sItems}`,
-          sales: sGross,
+          desc: descText,
+          sales: sNet,
+          originalGross: sGross,
+          netTotal: sNet,
+          returnAmount: sReturn,
+          paidAmount: sPaid,
+          dueAmount: sDue,
+          invoiceStatus: sStatus,
+          isPartiallyReturned,
+          isFullyReturned,
           payment: 0,
           debit: sGross,
           credit: 0,
           paymentMethod: 'Credit / Khata',
           paymentAccount: 'Credit / Khata',
-          status: 'Due',
-          notes: s.saleNote || s.note || ''
+          status: sStatus,
+          notes: historyNote
         });
       } else {
         // Direct counter sale without Khata credit
@@ -1232,15 +1257,23 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
           partyName: party.name,
           ref: s.invoiceNo || `INV-${s.id || idx}`,
           txType: 'Sales',
-          desc: `Invoice: ${sItems}`,
-          sales: sGross,
-          payment: sGross,
+          desc: descText,
+          sales: sNet,
+          originalGross: sGross,
+          netTotal: sNet,
+          returnAmount: sReturn,
+          paidAmount: sPaid,
+          dueAmount: sDue,
+          invoiceStatus: sStatus,
+          isPartiallyReturned,
+          isFullyReturned,
+          payment: sNet,
           debit: 0,
           credit: 0,
           paymentMethod: methodDisplay,
           paymentAccount: methodDisplay,
-          status: 'Settled',
-          notes: s.saleNote || s.note || ''
+          status: sStatus,
+          notes: historyNote
         });
       }
     });
@@ -1250,6 +1283,22 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       const ts = parseNormalizedTimestamp(r.date, r.created_at);
       const isCashRefund = String(r.refundMode || '').toLowerCase() === 'cash';
       const refAmt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.amount || 0));
+
+      const matchingSale = partySales.find(s => (r.saleId && String(s.id) === String(r.saleId)) || (r.invoiceNo && s.invoiceNo && r.invoiceNo === s.invoiceNo));
+      const origSaleGross = matchingSale ? Number(matchingSale.amount || matchingSale.grandTotal || 0) : 0;
+      const netAfterReturn = origSaleGross > 0 ? Math.max(0, origSaleGross - refAmt) : 0;
+
+      const descText = matchingSale
+        ? `Sale Return #${r.returnNo || 'RET'} against Invoice ${matchingSale.invoiceNo}: ${r.reason || 'Goods Return'}`
+        : `Sale Return: ${r.reason || 'Produce Return'}`;
+
+      const historyNote = isCashRefund
+        ? (origSaleGross > 0
+            ? `Direct counter cash refund of Rs. ${refAmt.toLocaleString()} given to customer. Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted to Net Rs. ${netAfterReturn.toLocaleString()}.`
+            : `Direct counter cash refund of Rs. ${refAmt.toLocaleString()} given to customer.`)
+        : (origSaleGross > 0
+            ? `Khata Credit Note adjusted. Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted to Net Rs. ${netAfterReturn.toLocaleString()}.`
+            : `Credit note of Rs. ${refAmt.toLocaleString()} adjusted against Khata.`);
 
       entries.push({
         id: `ret-${r.id || idx}`,
@@ -1261,16 +1310,21 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         partyId,
         partyName: party.name,
         ref: r.returnNo || `RET-${r.id || idx}`,
+        matchingInvoiceNo: matchingSale?.invoiceNo || r.invoiceNo || '',
+        originalGross: origSaleGross,
+        returnAmount: refAmt,
+        netTotal: netAfterReturn,
+        refundMode: isCashRefund ? 'Cash' : 'Ledger',
         txType: 'Returns',
-        desc: `Sale Return: ${r.reason || 'Produce Return'}`,
+        desc: descText,
         sales: 0,
         payment: refAmt,
         debit: 0,
-        credit: refAmt,
-        paymentMethod: isCashRefund ? 'Cash (Refund)' : 'Khata Credit Note',
+        credit: isCashRefund ? 0 : refAmt,
+        paymentMethod: isCashRefund ? 'Cash (Direct Refund)' : 'Khata Credit Note',
         paymentAccount: isCashRefund ? 'Cash in Hand' : 'Customer Khata',
         status: 'Settled',
-        notes: r.reason || ''
+        notes: historyNote
       });
     });
 
@@ -1326,8 +1380,6 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       const pMode = String(p.mode || '').trim().toLowerCase();
       if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
 
-      if (p.ref && String(p.ref).startsWith('PAY-PUR-')) return false;
-
       const pPartyId = p.partyId ? String(p.partyId) : null;
       const pPartyName = (p.partyName || '').trim().toLowerCase();
       return (partyId && pPartyId && pPartyId === partyId) || (partyName && pPartyName === partyName);
@@ -1342,10 +1394,19 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     // Process Purchases (Debit)
     partyPurchases.forEach((p, idx) => {
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
-      const pGross = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
-      const pItems = Array.isArray(p.cart || p.items)
-        ? (p.cart || p.items).map(i => `${i.name || 'Commodity'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
-        : 'Produce Procurement Bill';
+      const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
+      const pGross = fin.grossTotal;
+      const pNet = fin.netTotal;
+      const pReturn = fin.returnAmount;
+      const pPaid = fin.paid;
+      const pDue = fin.due;
+      const pStatus = fin.status;
+      const isPartiallyReturned = pReturn > 0 && pStatus !== 'Returned';
+      const isFullyReturned = pStatus === 'Returned' || (pReturn >= pGross && pGross > 0);
+
+      const pItems = Array.isArray(p.items) && p.items.length > 0
+        ? p.items.map(i => `${i.name || 'Produce'} (${i.qty || i.enteredQty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
+        : (typeof p.cart === 'string' ? p.cart : 'Commodity Procurement');
 
       const rawMode = String(p.paymentMethod || p.paymentMode || 'Cash').trim();
       const modeLower = rawMode.toLowerCase();
@@ -1362,6 +1423,14 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         methodDisplay = 'Cash';
       }
 
+      const descText = pReturn > 0
+        ? `Purchase #${p.purchaseNo || p.id}: ${pItems}`
+        : `Bill: ${pItems}`;
+
+      const historyNote = pReturn > 0
+        ? `Original Bill: Rs. ${pGross.toLocaleString()} • Returned: Rs. ${pReturn.toLocaleString()} • Net Bill: Rs. ${pNet.toLocaleString()} | Paid: Rs. ${pPaid.toLocaleString()}, Due: Rs. ${pDue.toLocaleString()} (${pStatus})`
+        : (p.note || '');
+
       if (isCreditOnly) {
         entries.push({
           id: `pur-${p.id || idx}`,
@@ -1374,15 +1443,23 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
           partyName: party.name,
           ref: p.purchaseNo || `PUR-${p.id || idx}`,
           txType: 'Purchases',
-          desc: `Bill: ${pItems}`,
-          sales: pGross,
+          desc: descText,
+          sales: pNet,
+          originalGross: pGross,
+          netTotal: pNet,
+          returnAmount: pReturn,
+          paidAmount: pPaid,
+          dueAmount: pDue,
+          invoiceStatus: pStatus,
+          isPartiallyReturned,
+          isFullyReturned,
           payment: 0,
           debit: pGross,
           credit: 0,
           paymentMethod: 'Credit / Khata',
           paymentAccount: 'Credit / Khata',
-          status: 'Due',
-          notes: p.note || ''
+          status: pStatus,
+          notes: historyNote
         });
       } else {
         entries.push({
@@ -1396,15 +1473,23 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
           partyName: party.name,
           ref: p.purchaseNo || `PUR-${p.id || idx}`,
           txType: 'Purchases',
-          desc: `Bill: ${pItems}`,
-          sales: pGross,
-          payment: pGross,
+          desc: descText,
+          sales: pNet,
+          originalGross: pGross,
+          netTotal: pNet,
+          returnAmount: pReturn,
+          paidAmount: pPaid,
+          dueAmount: pDue,
+          invoiceStatus: pStatus,
+          isPartiallyReturned,
+          isFullyReturned,
+          payment: pNet,
           debit: 0,
           credit: 0,
           paymentMethod: methodDisplay,
           paymentAccount: methodDisplay,
-          status: 'Settled',
-          notes: p.note || ''
+          status: pStatus,
+          notes: historyNote
         });
       }
     });
@@ -1414,6 +1499,22 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       const ts = parseNormalizedTimestamp(r.date, r.created_at);
       const isCashRefund = String(r.refundMode || '').toLowerCase() === 'cash';
       const refAmt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.amount || 0));
+
+      const matchingPurchase = partyPurchases.find(p => (r.purchaseId && String(p.id) === String(r.purchaseId)) || (r.purchaseNo && p.purchaseNo && r.purchaseNo === p.purchaseNo));
+      const origPurchaseGross = matchingPurchase ? Number(matchingPurchase.amount || matchingPurchase.grandTotal || 0) : 0;
+      const netAfterReturn = origPurchaseGross > 0 ? Math.max(0, origPurchaseGross - refAmt) : 0;
+
+      const descText = matchingPurchase
+        ? `Purchase Return #${r.returnNo || 'PR'} against Bill ${matchingPurchase.purchaseNo}: ${r.reason || 'Goods Return'}`
+        : `Purchase Return: ${r.reason || 'Commodity Return'}`;
+
+      const historyNote = isCashRefund
+        ? (origPurchaseGross > 0
+            ? `Direct counter refund of Rs. ${refAmt.toLocaleString()} received from vendor. Original Bill was Rs. ${origPurchaseGross.toLocaleString()} → Net Bill now Rs. ${netAfterReturn.toLocaleString()}.`
+            : `Direct counter cash refund of Rs. ${refAmt.toLocaleString()} received from vendor.`)
+        : (origPurchaseGross > 0
+            ? `Khata Debit Note adjusted. Original Bill was Rs. ${origPurchaseGross.toLocaleString()} → Net Bill now Rs. ${netAfterReturn.toLocaleString()}.`
+            : `Debit note of Rs. ${refAmt.toLocaleString()} adjusted against Khata.`);
 
       entries.push({
         id: `pret-${r.id || idx}`,
@@ -1425,16 +1526,21 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         partyId,
         partyName: party.name,
         ref: r.returnNo || `PR-${r.id || idx}`,
+        matchingInvoiceNo: matchingPurchase?.purchaseNo || r.purchaseNo || '',
+        originalGross: origPurchaseGross,
+        returnAmount: refAmt,
+        netTotal: netAfterReturn,
+        refundMode: isCashRefund ? 'Cash' : 'Ledger',
         txType: 'Returns',
-        desc: `Purchase Return: ${r.reason || 'Commodity Return'}`,
+        desc: descText,
         sales: 0,
         payment: refAmt,
         debit: 0,
-        credit: refAmt,
-        paymentMethod: isCashRefund ? 'Cash (Refund)' : 'Khata Debit Note',
+        credit: isCashRefund ? 0 : refAmt,
+        paymentMethod: isCashRefund ? 'Cash (Direct Refund)' : 'Khata Debit Note',
         paymentAccount: isCashRefund ? 'Cash in Hand' : 'Supplier Khata',
         status: 'Settled',
-        notes: r.reason || ''
+        notes: historyNote
       });
     });
 

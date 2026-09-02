@@ -255,9 +255,8 @@ export const Inventory = () => {
           <button
             type="button"
             onClick={() => window.print()}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
           >
             <Printer className="w-4 h-4" />
             <span>Print List</span>
@@ -267,9 +266,8 @@ export const Inventory = () => {
 
       {/* KPI Summary Bar (Screen Only) */}
       <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
-          theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-        }`}>
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-blue-500/30 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+          }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Warehouse className="w-4 h-4 text-brand-500" />
             <span>On-Hand Stock</span>
@@ -279,21 +277,15 @@ export const Inventory = () => {
           </div>
         </div>
 
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
-          theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-        }`}>
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-emerald-600" />
-            <span>Total Stock In</span>
-          </div>
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
+          }`}>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             +{totalInflow.toLocaleString()} <span className="text-xs font-bold text-slate-400">Units</span>
           </div>
         </div>
 
-        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${
-          theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
-        }`}>
+        <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'
+          }`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <TrendingDown className="w-4 h-4 text-rose-600" />
             <span>Total Stock Out</span>
@@ -305,9 +297,8 @@ export const Inventory = () => {
 
         <div
           onClick={() => navigate('/products')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${
-            theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
-          }`}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
+            }`}
           title="View products catalog"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
@@ -321,9 +312,8 @@ export const Inventory = () => {
       </div>
 
       {/* Single Clean Filter Bar (Screen Only) */}
-      <div className={`no-print p-3.5 rounded-2xl border card-shadow space-y-3 ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-      }`}>
+      <div className={`no-print p-3.5 rounded-2xl border card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        }`}>
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-2.5">
           {/* 1. Date Filter */}
           <div className="flex-1 min-w-[120px]">
@@ -333,9 +323,8 @@ export const Inventory = () => {
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Dates</option>
               <option value="Today">Today</option>
@@ -354,9 +343,8 @@ export const Inventory = () => {
             <select
               value={selectedProduct}
               onChange={(e) => setSelectedProduct(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Products</option>
               {products.map(p => (
@@ -373,9 +361,8 @@ export const Inventory = () => {
             <select
               value={movementTypeFilter}
               onChange={(e) => setMovementTypeFilter(e.target.value)}
-              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl px-2.5 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             >
               <option value="All">All Movements</option>
               <option value="IN">All Stock In (+)</option>
@@ -397,9 +384,8 @@ export const Inventory = () => {
                 placeholder="Product, reference, invoice..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full border rounded-xl pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             </div>
@@ -428,9 +414,8 @@ export const Inventory = () => {
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -439,9 +424,8 @@ export const Inventory = () => {
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               />
             </div>
           </div>
@@ -461,15 +445,13 @@ export const Inventory = () => {
       />
 
       {/* Compact Bank-Statement Inventory Table */}
-      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-      }`}>
+      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        }`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-full">
             <thead>
-              <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${
-                theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50/80 border-slate-200 text-slate-500'
-              }`}>
+              <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50/80 border-slate-200 text-slate-500'
+                }`}>
                 <th className="py-2.5 px-4 w-32">Date</th>
                 <th className="py-2.5 px-4">Product</th>
                 <th className="py-2.5 px-4 w-44">Movement Type</th>
@@ -478,9 +460,8 @@ export const Inventory = () => {
                 <th className="py-2.5 px-4 text-right w-32">On-Hand Stock</th>
               </tr>
             </thead>
-            <tbody className={`divide-y text-xs font-semibold ${
-              theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
-            }`}>
+            <tbody className={`divide-y text-xs font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
+              }`}>
               {filteredTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400 space-y-2">
@@ -511,11 +492,10 @@ export const Inventory = () => {
 
                       {/* Movement Type (Plain Text) */}
                       <td className="py-2.5 px-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-black tracking-wide ${
-                          isStockIn
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-black tracking-wide ${isStockIn
                             ? 'text-emerald-600 dark:text-emerald-400'
                             : 'text-rose-600 dark:text-rose-400'
-                        }`}>
+                          }`}>
                           {isStockIn ? (
                             <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
                           ) : (
@@ -531,11 +511,10 @@ export const Inventory = () => {
                       </td>
 
                       {/* Signed Quantity */}
-                      <td className={`py-2.5 px-4 text-right font-black font-mono text-sm whitespace-nowrap ${
-                        isStockIn
+                      <td className={`py-2.5 px-4 text-right font-black font-mono text-sm whitespace-nowrap ${isStockIn
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : 'text-rose-600 dark:text-rose-400'
-                      }`}>
+                        }`}>
                         {tx.signedQty}
                       </td>
 

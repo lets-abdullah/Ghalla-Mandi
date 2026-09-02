@@ -28,7 +28,7 @@ import {
   MapPin,
   FileText
 } from 'lucide-react';
-import { useERP, computeLedgerStatement, computeAllCustomersFinancials, computeAllSuppliersFinancials } from '../context/ERPContext';
+import { useERP, computeLedgerStatement, computeAllCustomersFinancials, computeAllSuppliersFinancials, computeSaleFinancials, computePurchaseFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
@@ -198,9 +198,27 @@ export const Ledger = () => {
         const partyId = custObj ? String(custObj.id) : (s.customerId ? String(s.customerId) : `walkin-${rawParty}`);
         const partyName = custObj?.name || rawParty;
 
+        const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
+        const sGross = fin.grossTotal;
+        const sNet = fin.netTotal;
+        const sReturn = fin.returnAmount;
+        const sPaid = fin.paid;
+        const sDue = fin.due;
+        const sStatus = fin.status;
+        const isPartiallyReturned = sReturn > 0 && sStatus !== 'Returned';
+        const isFullyReturned = sStatus === 'Returned' || (sReturn >= sGross && sGross > 0);
+
         const itemsSummary = Array.isArray(s.cart) && s.cart.length > 0
           ? s.cart.map(i => `${i.name} (${i.qty} ${i.unitName || i.unit || 'KG'})`).join(', ')
           : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
+
+        const descText = sReturn > 0
+          ? `Invoice #${s.invoiceNo || s.id}: ${itemsSummary}`
+          : `Invoice: ${itemsSummary}`;
+
+        const historyNote = sReturn > 0
+          ? `Original Sale: Rs. ${sGross.toLocaleString()} • Returned: Rs. ${sReturn.toLocaleString()} • Net Sale: Rs. ${sNet.toLocaleString()} | Paid: Rs. ${sPaid.toLocaleString()}, Due: Rs. ${sDue.toLocaleString()} (${sStatus})`
+          : (s.note || '');
 
         // Sale Invoice Entry (Debit)
         entries.push({
@@ -212,10 +230,19 @@ export const Ledger = () => {
           customerType: custType,
           ref: s.invoiceNo || 'SALE',
           txType: 'Sales',
-          desc: `Invoice: ${itemsSummary}`,
+          desc: descText,
+          sales: sNet,
+          originalGross: sGross,
+          netTotal: sNet,
+          returnAmount: sReturn,
+          paidAmount: sPaid,
+          dueAmount: sDue,
+          invoiceStatus: sStatus,
+          isPartiallyReturned,
+          isFullyReturned,
           debit: Number(s.amount ?? s.grandTotal ?? 0),
           credit: 0,
-          notes: s.note || ''
+          notes: historyNote
         });
 
         // Upfront cash paid on POS counter (only if unlogged in paymentLogs)
@@ -293,6 +320,23 @@ export const Ledger = () => {
         const partyId = custObj ? String(custObj.id) : (r.customerId ? String(r.customerId) : `walkin-${rawParty}`);
         const partyName = custObj?.name || rawParty;
         const isCashRefund = String(r.refundMode || '').trim().toLowerCase() === 'cash';
+        const refAmt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.amount || 0));
+
+        const matchingSale = (sales || []).find(s => (r.saleId && String(s.id) === String(r.saleId)) || (r.invoiceNo && s.invoiceNo && r.invoiceNo === s.invoiceNo));
+        const origSaleGross = matchingSale ? Number(matchingSale.amount || matchingSale.grandTotal || 0) : 0;
+        const netAfterReturn = origSaleGross > 0 ? Math.max(0, origSaleGross - refAmt) : 0;
+
+        const descText = matchingSale
+          ? `Sale Return #${r.returnNo || 'RET'} against Invoice ${matchingSale.invoiceNo}: ${r.reason || 'Goods Return'}`
+          : (isCashRefund ? `Cash Return Refund (Direct Counter Cash - No Khata Credit Note)` : `Return Credit Note: ${r.reason || 'Sale Return'}`);
+
+        const historyNote = isCashRefund
+          ? (origSaleGross > 0
+              ? `Direct counter cash refund of Rs. ${refAmt.toLocaleString()} given to customer. Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted to Net Rs. ${netAfterReturn.toLocaleString()}.`
+              : `Cash refund of Rs. ${refAmt.toLocaleString()} issued directly at counter.`)
+          : (origSaleGross > 0
+              ? `Khata Credit Note adjusted. Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted to Net Rs. ${netAfterReturn.toLocaleString()}.`
+              : `Credit note of Rs. ${refAmt.toLocaleString()} adjusted against Khata.`);
 
         entries.push({
           id: `ret-${r.id}`,
@@ -302,13 +346,22 @@ export const Ledger = () => {
           partyName,
           customerType: custType,
           ref: r.returnNo || `RET-${r.id}`,
+          matchingInvoiceNo: matchingSale?.invoiceNo || r.invoiceNo || '',
+          originalGross: origSaleGross,
+          returnAmount: refAmt,
+          netTotal: netAfterReturn,
+          refundMode: isCashRefund ? 'Cash' : 'Ledger',
           txType: 'Returns',
-          desc: isCashRefund ? `Cash Return Refund (Direct Counter Cash - No Khata Credit Note)` : `Return Credit Note: ${r.reason || 'Sale Return'}`,
+          desc: descText,
+          sales: 0,
+          payment: refAmt,
           debit: 0,
-          credit: isCashRefund ? 0 : Number(r.refundAmount || 0),
+          credit: isCashRefund ? 0 : refAmt,
+          paymentMethod: isCashRefund ? 'Cash (Direct Refund)' : 'Khata Credit Note',
+          paymentAccount: isCashRefund ? 'Cash in Hand' : 'Customer Khata',
           items: r.items || [],
           productNames: '',
-          notes: isCashRefund ? `Cash refund of Rs. ${Number(r.refundAmount || 0).toLocaleString()} issued directly at counter.` : (r.reason || '')
+          notes: historyNote
         });
       });
     } else {
@@ -341,6 +394,24 @@ export const Ledger = () => {
         const partyId = p.supplierId ? String(p.supplierId) : (supObj?.id ? String(supObj.id) : null);
         const pItems = p.cart || p.items || [];
 
+        const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
+        const pGross = fin.grossTotal;
+        const pNet = fin.netTotal;
+        const pReturn = fin.returnAmount;
+        const pPaid = fin.paid;
+        const pDue = fin.due;
+        const pStatus = fin.status;
+        const isPartiallyReturned = pReturn > 0 && pStatus !== 'Returned';
+        const isFullyReturned = pStatus === 'Returned' || (pReturn >= pGross && pGross > 0);
+
+        const descText = pReturn > 0
+          ? `Purchase #${p.purchaseNo || p.id}: Inward stock procurement`
+          : `Purchase: Inward stock procurement`;
+
+        const historyNote = pReturn > 0
+          ? `Original Bill: Rs. ${pGross.toLocaleString()} • Returned: Rs. ${pReturn.toLocaleString()} • Net Bill: Rs. ${pNet.toLocaleString()} | Paid: Rs. ${pPaid.toLocaleString()}, Due: Rs. ${pDue.toLocaleString()} (${pStatus})`
+          : '';
+
         entries.push({
           id: `pur-${p.id}`,
           rawDate: p.date,
@@ -350,12 +421,21 @@ export const Ledger = () => {
           customerType: 'Supplier',
           ref: p.purchaseNo || `PUR-${p.id}`,
           txType: 'Purchases',
-          desc: `Purchase: Inward stock procurement`,
+          desc: descText,
+          sales: pNet,
+          originalGross: pGross,
+          netTotal: pNet,
+          returnAmount: pReturn,
+          paidAmount: pPaid,
+          dueAmount: pDue,
+          invoiceStatus: pStatus,
+          isPartiallyReturned,
+          isFullyReturned,
           debit: Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? 0),
           credit: 0,
           items: pItems,
           productNames: '',
-          notes: ''
+          notes: historyNote
         });
 
         // Upfront cash paid on Purchase (only if unlogged in paymentLogs)
@@ -420,6 +500,23 @@ export const Ledger = () => {
       (purchaseReturns || []).forEach(r => {
         const supObj = suppliers.find(s => String(s.id) === String(r.supplierId) || s.name === r.supplierName);
         const isCashRefund = String(r.refundMode || '').trim().toLowerCase() === 'cash';
+        const refAmt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.amount || 0));
+
+        const matchingPurchase = (purchases || []).find(p => (r.purchaseId && String(p.id) === String(r.purchaseId)) || (r.purchaseNo && p.purchaseNo && r.purchaseNo === p.purchaseNo));
+        const origPurchaseGross = matchingPurchase ? Number(matchingPurchase.amount || matchingPurchase.grandTotal || 0) : 0;
+        const netAfterReturn = origPurchaseGross > 0 ? Math.max(0, origPurchaseGross - refAmt) : 0;
+
+        const descText = matchingPurchase
+          ? `Purchase Return #${r.returnNo || 'PR'} against Bill ${matchingPurchase.purchaseNo}: ${r.reason || 'Goods Return'}`
+          : (isCashRefund ? `Cash Purchase Return Refund (Received from Supplier - No Khata Debit Note)` : `Purchase Return Debit Note (${r.reason || 'Return'})`);
+
+        const historyNote = isCashRefund
+          ? (origPurchaseGross > 0
+              ? `Direct counter refund of Rs. ${refAmt.toLocaleString()} received from vendor. Original Bill was Rs. ${origPurchaseGross.toLocaleString()} → Net Bill now Rs. ${netAfterReturn.toLocaleString()}.`
+              : `Cash refund of Rs. ${refAmt.toLocaleString()} received directly from supplier.`)
+          : (origPurchaseGross > 0
+              ? `Khata Debit Note adjusted. Original Bill was Rs. ${origPurchaseGross.toLocaleString()} → Net Bill now Rs. ${netAfterReturn.toLocaleString()}.`
+              : `Debit note of Rs. ${refAmt.toLocaleString()} adjusted against Khata.`);
 
         entries.push({
           id: `pret-${r.id}`,
@@ -429,13 +526,22 @@ export const Ledger = () => {
           partyName: r.supplierName || supObj?.name || 'Supplier',
           customerType: 'Supplier',
           ref: r.returnNo || `PR-${r.id}`,
+          matchingInvoiceNo: matchingPurchase?.purchaseNo || r.purchaseNo || '',
+          originalGross: origPurchaseGross,
+          returnAmount: refAmt,
+          netTotal: netAfterReturn,
+          refundMode: isCashRefund ? 'Cash' : 'Ledger',
           txType: 'Returns',
-          desc: isCashRefund ? `Cash Purchase Return Refund (Received from Supplier - No Khata Debit Note)` : `Purchase Return Debit Note (${r.reason || 'Return'})`,
+          desc: descText,
+          sales: 0,
+          payment: refAmt,
           debit: 0,
-          credit: isCashRefund ? 0 : Number(r.refundAmount || 0),
+          credit: isCashRefund ? 0 : refAmt,
+          paymentMethod: isCashRefund ? 'Cash (Direct Refund)' : 'Khata Debit Note',
+          paymentAccount: isCashRefund ? 'Cash in Hand' : 'Supplier Khata',
           items: r.items || [],
           productNames: '',
-          notes: isCashRefund ? `Cash refund of Rs. ${Number(r.refundAmount || 0).toLocaleString()} received directly from supplier.` : (r.reason || '')
+          notes: historyNote
         });
       });
     }
@@ -1118,7 +1224,9 @@ export const Ledger = () => {
                       return (
                         <tr
                           key={entry.id}
-                          className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                          onClick={() => setViewingEntry(entry)}
+                          className={`transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                          title="Click to view complete voucher & lifecycle details"
                         >
                           {/* 1. Date */}
                           <td className="py-3.5 px-3.5 font-mono text-slate-500 dark:text-slate-400">
@@ -1130,15 +1238,60 @@ export const Ledger = () => {
                             {entry.ref}
                           </td>
 
-                          {/* 3. Description */}
+                          {/* 3. Description & Full Lifecycle History */}
                           <td className="py-3.5 px-3.5">
-                            <span className="font-semibold text-slate-900 dark:text-white">{entry.desc}</span>
-                            {entry.notes && <span className="text-[10px] text-slate-400 block">{entry.notes}</span>}
+                            <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                              <span>{entry.desc}</span>
+                              {entry.isPartiallyReturned && (
+                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 uppercase tracking-wider">
+                                  Partially Returned
+                                </span>
+                              )}
+                              {entry.isFullyReturned && (
+                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 uppercase tracking-wider">
+                                  Returned
+                                </span>
+                              )}
+                            </div>
+                            {entry.returnAmount > 0 ? (
+                              <div className="text-[11px] font-mono mt-1 space-y-0.5 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/60 p-2 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+                                <div className="flex items-center gap-2 flex-wrap font-bold">
+                                  <span className="text-slate-400">Orig {entry.txType === 'Purchases' ? 'Bill' : 'Sale'}:</span>
+                                  <span>Rs. {entry.originalGross?.toLocaleString()}</span>
+                                  <span className="text-slate-300 dark:text-slate-600">•</span>
+                                  <span className="text-purple-600 dark:text-purple-400">Return: -Rs. {entry.returnAmount?.toLocaleString()}</span>
+                                  <span className="text-slate-300 dark:text-slate-600">•</span>
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-black">Net {entry.txType === 'Purchases' ? 'Bill' : 'Sale'}: Rs. {entry.netTotal?.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10.5px] text-slate-500 dark:text-slate-400 flex-wrap">
+                                  <span>Effective Paid: <b className="text-emerald-600 dark:text-emerald-400">Rs. {entry.paidAmount?.toLocaleString()}</b></span>
+                                  <span>•</span>
+                                  <span>Due: <b className={entry.dueAmount > 0 ? "text-amber-600 dark:text-amber-400" : "text-slate-500"}>Rs. {entry.dueAmount?.toLocaleString()}</b></span>
+                                  <span>•</span>
+                                  <span className="font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-wider">[{entry.invoiceStatus || entry.status}]</span>
+                                </div>
+                              </div>
+                            ) : (
+                              entry.notes && <span className="text-[10px] text-slate-400 block mt-0.5">{entry.notes}</span>
+                            )}
                           </td>
 
                           {/* 4. Sales / Purchases */}
                           <td className="py-3.5 px-3.5 text-right font-mono font-black text-blue-600 dark:text-blue-400">
-                            {entry.sales > 0 ? `Rs. ${entry.sales.toLocaleString()}` : (entry.debit > 0 ? `Rs. ${entry.debit.toLocaleString()}` : '—')}
+                            {entry.returnAmount > 0 ? (
+                              <div>
+                                <div>Rs. {entry.netTotal?.toLocaleString()}</div>
+                                <div className="text-[10px] text-slate-400 font-normal line-through">
+                                  Orig: Rs. {entry.originalGross?.toLocaleString()}
+                                </div>
+                              </div>
+                            ) : entry.sales > 0 ? (
+                              `Rs. ${entry.sales.toLocaleString()}`
+                            ) : entry.debit > 0 ? (
+                              `Rs. ${entry.debit.toLocaleString()}`
+                            ) : (
+                              '—'
+                            )}
                           </td>
 
                           {/* 5. Payments / Returns */}
@@ -1230,6 +1383,39 @@ export const Ledger = () => {
                 <span>Description:</span>
                 <span className="font-medium text-right max-w-xs text-slate-900 dark:text-white">{viewingEntry.desc}</span>
               </div>
+
+              {/* Complete Return & Payment Lifecycle History Card */}
+              {viewingEntry.returnAmount > 0 && (
+                <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 space-y-1.5 font-mono text-[11px] my-2">
+                  <div className="font-bold text-purple-900 dark:text-purple-300 uppercase tracking-wider text-[10px] pb-1 border-b border-purple-200 dark:border-purple-800/40">
+                    Lifecycle Audit History
+                  </div>
+                  <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                    <span>Original Gross Amount:</span>
+                    <span className="font-bold">Rs. {viewingEntry.originalGross?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-purple-700 dark:text-purple-400 font-bold">
+                    <span>Returned Merchandise:</span>
+                    <span>- Rs. {viewingEntry.returnAmount?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-700 dark:text-emerald-400 font-black border-t border-purple-200 dark:border-purple-800/40 pt-1">
+                    <span>Net Invoice Amount:</span>
+                    <span>Rs. {viewingEntry.netTotal?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                    <span>Effective Paid Amount:</span>
+                    <span className="font-bold">Rs. {viewingEntry.paidAmount?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between font-black text-amber-700 dark:text-amber-400">
+                    <span>Remaining Due:</span>
+                    <span>Rs. {viewingEntry.dueAmount?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-500 pt-1 border-t border-purple-200 dark:border-purple-800/40">
+                    <span>Payment Status:</span>
+                    <span className="font-black text-brand-600">{viewingEntry.invoiceStatus || viewingEntry.status}</span>
+                  </div>
+                </div>
+              )}
 
               {viewingEntry.debit > 0 && (
                 <div className="flex justify-between items-center text-blue-600 font-black pt-1 border-t border-slate-200 dark:border-slate-700">
