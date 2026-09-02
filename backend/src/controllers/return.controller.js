@@ -102,7 +102,6 @@ export const createSaleReturn = async (req, res) => {
           await Sale.findByIdAndUpdate(sale.id, {
             returnAmount: totalReturnAmt,
             netAmount: netAmt,
-            paidAmount: effectivePaid,
             status: newStatus
           }, { shop_id: req.shop_id });
         }
@@ -296,7 +295,6 @@ export const createPurchaseReturn = async (req, res) => {
           await Purchase.findByIdAndUpdate(purchase.id, {
             returnAmount: totalReturnAmt,
             netAmount: netAmt,
-            paidAmount: effectivePaid,
             paymentStatus: newStatus
           }, { shop_id: req.shop_id });
         }

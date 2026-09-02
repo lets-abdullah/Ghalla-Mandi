@@ -8,9 +8,27 @@ export const defaultMandiUnits = [
   { unitName: 'Unit', aliases: ['unit', 'units'], factorKg: 1 }
 ];
 
+export const prohibitedPackagingUnits = [
+  'mann', 'maund', 'mon', 'bori', 'bag', 'bora', 'pack', 'packet', 'carton', 'box', 'dozen', 'ton', 'tonne', 'quintal'
+];
+
+export const isValidOperationalUnit = (unitName) => {
+  if (!unitName || typeof unitName !== 'string') return false;
+  const clean = unitName.trim().toLowerCase();
+  if (prohibitedPackagingUnits.some(p => clean === p || clean.startsWith(p))) {
+    return false;
+  }
+  return defaultMandiUnits.some(def => def.unitName.toLowerCase() === clean || def.aliases.some(a => a === clean));
+};
+
 export const getUnitFactor = (unitName = 'KG', customUnitConversions = []) => {
   if (!unitName || typeof unitName !== 'string') return 1;
   const clean = unitName.trim().toLowerCase();
+
+  // Explicitly reject prohibited packaging units
+  if (prohibitedPackagingUnits.some(p => clean === p || clean.startsWith(p))) {
+    throw new Error(`Invalid unit "${unitName}". Grouped/packaging units (Mann, Bori, Bag, Pack, Ton, Carton, Dozen, Quintal) are strictly prohibited.`);
+  }
 
   // Check custom conversions first
   for (const cu of customUnitConversions) {
@@ -40,4 +58,5 @@ export const convertFromKg = (qtyKg, targetUnitName, customUnitConversions = [])
   const factor = getUnitFactor(targetUnitName, customUnitConversions);
   return factor > 0 ? kgNum / factor : kgNum;
 };
+
 

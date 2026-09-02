@@ -3,7 +3,8 @@ import { Product } from '../models/product.model.js';
 import { Supplier } from '../models/supplier.model.js';
 import { Ledger } from '../models/ledger.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
-import { convertToKg } from '../services/unitConversion.service.js';
+import { convertToKg, isValidOperationalUnit } from '../services/unitConversion.service.js';
+import { withTransaction, run } from '../services/db.service.js';
 
 // Anti-duplicate rapid submission cache
 const recentPurchases = new Map();
@@ -24,6 +25,17 @@ export const createPurchase = async (req, res) => {
       return res.status(400).json({ success: false, message: 'At least one purchase item is required' });
     }
 
+    // Validate operational units across all items
+    for (const item of items) {
+      const u = item.unit || item.unitName || item.enteredUnit;
+      if (u && !isValidOperationalUnit(u)) {
+        return res.status(400).json({
+          success: false,
+          message: `Unit "${u}" is invalid. Grouped/packaging units (Mann, Bori, Bag, Pack, Ton, Carton, Dozen, Quintal) are strictly prohibited.`
+        });
+      }
+    }
+
     // Deduplication key based on shop, supplier, items length and first item
     const dedupKey = `${req.shop_id}:${supplierId || supplierName || ''}:${items.length}:${items[0]?.productId}:${items[0]?.enteredQty || items[0]?.qty}:${paidAmount}`;
     const existing = recentPurchases.get(dedupKey);
@@ -31,117 +43,121 @@ export const createPurchase = async (req, res) => {
       return res.status(200).json({ success: true, purchase: existing.purchase, deduplicated: true });
     }
 
-    let totalGrand = 0;
-    const processedItems = [];
+    const result = await withTransaction(async (tx) => {
+      let totalGrand = 0;
+      const processedItems = [];
 
-    for (const item of items) {
-      const product = await Product.findById(item.productId, req.shop_id);
-      if (!product) {
-        return res.status(404).json({ success: false, message: `Product not found: ${item.productName}` });
+      for (const item of items) {
+        const product = await Product.findById(item.productId, req.shop_id);
+        if (!product) {
+          throw new Error(`Product not found: ${item.productName}`);
+        }
+
+        const qty = Number(item.enteredQty || item.qty) || 1;
+        const rate = Number(item.ratePerEnteredUnit || item.rate) || 0;
+        const itemTotal = qty * rate;
+        totalGrand += itemTotal;
+
+        const itemUnit = item.unit || item.unitName || item.enteredUnit || product.unit || product.baseUnit || 'KG';
+        const qtyInKg = convertToKg(qty, itemUnit);
+        const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
+        const baseQtyAdded = qtyInKg / baseProductFactor;
+
+        // Update product stock and moving weighted average purchase price
+        const currentStock = Math.max(0, Number(product.stockQty) || 0);
+        const currentPrice = Number(product.purchasePrice) || 0;
+        const newStock = currentStock + baseQtyAdded;
+        let newAvgCost = currentPrice;
+        if (newStock > 0 && rate > 0) {
+          newAvgCost = Math.round(((currentStock * currentPrice) + (baseQtyAdded * rate)) / newStock * 100) / 100;
+        }
+
+        await Product.findByIdAndUpdate(product.id, {
+          stockQty: newStock,
+          purchasePrice: newAvgCost
+        }, { shop_id: req.shop_id });
+
+        // Audit Log
+        await AuditLog.create({
+          shop_id: req.shop_id,
+          product: product.name,
+          type: 'IN (Purchase)',
+          qty: `${qty} ${itemUnit}`,
+          ref: `Purchase Bill`,
+          date: new Date().toLocaleDateString('en-GB')
+        });
+
+        processedItems.push({
+          productId: product.id,
+          name: product.name,
+          productName: product.name,
+          unit: itemUnit,
+          unitName: itemUnit,
+          enteredUnit: itemUnit,
+          qty: qty,
+          enteredQty: qty,
+          rate: rate,
+          ratePerEnteredUnit: rate,
+          price: rate,
+          total: itemTotal,
+          totalAmount: itemTotal
+        });
       }
 
-      const qty = Number(item.enteredQty || item.qty) || 1;
-      const rate = Number(item.ratePerEnteredUnit || item.rate) || 0;
-      const itemTotal = qty * rate;
-      totalGrand += itemTotal;
+      const paid = Number(paidAmount) || 0;
+      const paymentStatus = paid >= totalGrand ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
 
-      const itemUnit = item.unit || item.unitName || item.enteredUnit || product.unit || product.baseUnit || 'KG';
-      const qtyInKg = convertToKg(qty, itemUnit);
-      const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
-      const baseQtyAdded = qtyInKg / baseProductFactor;
+      const count = await Purchase.countDocuments({ shop_id: req.shop_id });
+      const purchaseNo = `PUR-2026-${String(count + 1).padStart(4, '0')}`;
+      const dateStr = new Date().toLocaleDateString('en-GB');
 
-      // Update product stock and moving weighted average purchase price
-      const currentStock = Math.max(0, Number(product.stockQty) || 0);
-      const currentPrice = Number(product.purchasePrice) || 0;
-      const newStock = currentStock + baseQtyAdded;
-      let newAvgCost = currentPrice;
-      if (newStock > 0 && rate > 0) {
-        newAvgCost = Math.round(((currentStock * currentPrice) + (baseQtyAdded * rate)) / newStock * 100) / 100;
-      }
+      let activeSupplierName = supplierName || 'Supplier';
+      let targetSupId = supplierId || null;
 
-      await Product.findByIdAndUpdate(product.id, {
-        stockQty: newStock,
-        purchasePrice: newAvgCost
-      }, { shop_id: req.shop_id });
-
-      // Audit Log
-      await AuditLog.create({
+      const purchase = await Purchase.create({
         shop_id: req.shop_id,
-        product: product.name,
-        type: 'IN (Purchase)',
-        qty: `${qty} ${itemUnit}`,
-        ref: `Purchase Bill`,
-        date: new Date().toLocaleDateString('en-GB')
+        purchaseNo,
+        supplierName: activeSupplierName,
+        supplierId: targetSupId,
+        grandTotal: totalGrand,
+        paidAmount: paid,
+        returnAmount: 0,
+        netAmount: totalGrand,
+        paymentStatus,
+        paymentMode: req.body.paymentMode || req.body.paymentMethod || (paid >= totalGrand ? 'Cash' : paid > 0 ? 'Cash / Supplier Khata' : 'Supplier Khata'),
+        notes,
+        items: processedItems
       });
 
-      processedItems.push({
-        productId: product.id,
-        name: product.name,
-        productName: product.name,
-        unit: itemUnit,
-        unitName: itemUnit,
-        enteredUnit: itemUnit,
-        qty: qty,
-        enteredQty: qty,
-        rate: rate,
-        ratePerEnteredUnit: rate,
-        price: rate,
-        total: itemTotal,
-        totalAmount: itemTotal
-      });
-    }
+      if (targetSupId) {
+        const sup = await Supplier.findById(targetSupId, req.shop_id);
+        if (sup) {
+          activeSupplierName = sup.name;
+          const unpaid = Math.max(0, totalGrand - paid);
+          await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance || 0) + unpaid }, { shop_id: req.shop_id });
 
-    const paid = Number(paidAmount) || 0;
-    const paymentStatus = paid >= totalGrand ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
-
-    const count = await Purchase.countDocuments({ shop_id: req.shop_id });
-    const purchaseNo = `PUR-2026-${String(count + 1).padStart(4, '0')}`;
-    const dateStr = new Date().toLocaleDateString('en-GB');
-
-    let activeSupplierName = supplierName || 'Supplier';
-    let targetSupId = supplierId || null;
-
-    const purchase = await Purchase.create({
-      shop_id: req.shop_id,
-      purchaseNo,
-      supplierName: activeSupplierName,
-      supplierId: targetSupId,
-      grandTotal: totalGrand,
-      paidAmount: paid,
-      returnAmount: 0,
-      netAmount: totalGrand,
-      paymentStatus,
-      paymentMode: req.body.paymentMode || req.body.paymentMethod || (paid >= totalGrand ? 'Cash' : paid > 0 ? 'Cash / Supplier Khata' : 'Supplier Khata'),
-      notes,
-      items: processedItems
-    });
-
-    if (targetSupId) {
-      const sup = await Supplier.findById(targetSupId, req.shop_id);
-      if (sup) {
-        activeSupplierName = sup.name;
-        const unpaid = Math.max(0, totalGrand - paid);
-        await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance || 0) + unpaid }, { shop_id: req.shop_id });
-
-        if (paid > 0) {
-          await Ledger.create({
-            shop_id: req.shop_id,
-            partyId: sup.id,
-            partyType: 'Supplier',
-            partyName: sup.name,
-            amount: paid,
-            mode: req.body.paymentMode || req.body.paymentMethod || 'Cash',
-            date: dateStr,
-            ref: `PAY-${purchaseNo.split('-').pop()}`,
-            note: `Payment made on Purchase (${purchaseNo})`,
-            purchaseId: purchase.id
-          });
+          if (paid > 0) {
+            await Ledger.create({
+              shop_id: req.shop_id,
+              partyId: sup.id,
+              partyType: 'Supplier',
+              partyName: sup.name,
+              amount: paid,
+              mode: req.body.paymentMode || req.body.paymentMethod || 'Cash',
+              date: dateStr,
+              ref: `PAY-${purchaseNo.split('-').pop()}`,
+              note: `Payment made on Purchase (${purchaseNo})`,
+              purchaseId: purchase.id
+            });
+          }
         }
       }
-    }
 
-    recentPurchases.set(dedupKey, { timestamp: Date.now(), purchase });
-    return res.status(201).json({ success: true, purchase });
+      return purchase;
+    });
+
+    recentPurchases.set(dedupKey, { timestamp: Date.now(), purchase: result });
+    return res.status(201).json({ success: true, purchase: result });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -177,147 +193,163 @@ export const updatePurchase = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Purchase not found' });
     }
 
-    // 1. Revert previous stock from existing purchase items
-    const oldItems = Array.isArray(existingPurchase.items) ? existingPurchase.items : [];
-    for (const oldItem of oldItems) {
-      if (oldItem.productId) {
-        const prod = await Product.findById(oldItem.productId, req.shop_id);
-        if (prod) {
-          const itemUnit = oldItem.unit || oldItem.unitName || prod.unit || 'KG';
-          const qtyInKg = convertToKg(Number(oldItem.qty || oldItem.enteredQty || 1), itemUnit);
-          const baseProductFactor = convertToKg(1, prod.unit || 'KG') || 1;
-          const revertedBaseQty = qtyInKg / baseProductFactor;
-          const adjustedStock = Math.max(0, Number(prod.stockQty) - revertedBaseQty);
-          await Product.findByIdAndUpdate(prod.id, { stockQty: adjustedStock }, { shop_id: req.shop_id });
+    if (items && Array.isArray(items)) {
+      for (const item of items) {
+        const u = item.unit || item.unitName || item.enteredUnit;
+        if (u && !isValidOperationalUnit(u)) {
+          return res.status(400).json({
+            success: false,
+            message: `Unit "${u}" is invalid. Grouped/packaging units are strictly prohibited.`
+          });
         }
       }
     }
 
-    // 2. Process updated items & add new stock
-    let totalGrand = 0;
-    const processedItems = [];
+    const updatedPurchase = await withTransaction(async (tx) => {
+      // 1. Revert previous stock from existing purchase items
+      const oldItems = Array.isArray(existingPurchase.items) ? existingPurchase.items : [];
+      for (const oldItem of oldItems) {
+        if (oldItem.productId) {
+          const prod = await Product.findById(oldItem.productId, req.shop_id);
+          if (prod) {
+            const itemUnit = oldItem.unit || oldItem.unitName || prod.unit || 'KG';
+            const qtyInKg = convertToKg(Number(oldItem.qty || oldItem.enteredQty || 1), itemUnit);
+            const baseProductFactor = convertToKg(1, prod.unit || 'KG') || 1;
+            const revertedBaseQty = qtyInKg / baseProductFactor;
+            const adjustedStock = Math.max(0, Number(prod.stockQty) - revertedBaseQty);
+            await Product.findByIdAndUpdate(prod.id, { stockQty: adjustedStock }, { shop_id: req.shop_id });
+          }
+        }
+      }
 
-    const rawItems = items || existingPurchase.items || [];
-    for (const item of rawItems) {
-      const product = await Product.findById(item.productId, req.shop_id);
-      const qty = Number(item.enteredQty || item.qty) || 1;
-      const rate = Number(item.ratePerEnteredUnit || item.rate || item.price) || 0;
-      const itemTotal = qty * rate;
-      totalGrand += itemTotal;
+      // 2. Process updated items & add new stock
+      let totalGrand = 0;
+      const processedItems = [];
 
-      const itemUnit = item.unit || item.unitName || item.enteredUnit || product?.unit || 'KG';
+      const rawItems = items || existingPurchase.items || [];
+      for (const item of rawItems) {
+        const product = await Product.findById(item.productId, req.shop_id);
+        const qty = Number(item.enteredQty || item.qty) || 1;
+        const rate = Number(item.ratePerEnteredUnit || item.rate || item.price) || 0;
+        const itemTotal = qty * rate;
+        totalGrand += itemTotal;
 
-      if (product) {
-        const qtyInKg = convertToKg(qty, itemUnit);
-        const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
-        const addedBaseQty = qtyInKg / baseProductFactor;
-        const currentStock = Math.max(0, Number(product.stockQty) || 0);
-        const currentPrice = Number(product.purchasePrice) || 0;
-        const newStock = currentStock + addedBaseQty;
-        let newAvgCost = currentPrice;
-        if (newStock > 0 && rate > 0) {
-          newAvgCost = Math.round(((currentStock * currentPrice) + (addedBaseQty * rate)) / newStock * 100) / 100;
+        const itemUnit = item.unit || item.unitName || item.enteredUnit || product?.unit || 'KG';
+
+        if (product) {
+          const qtyInKg = convertToKg(qty, itemUnit);
+          const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
+          const addedBaseQty = qtyInKg / baseProductFactor;
+          const currentStock = Math.max(0, Number(product.stockQty) || 0);
+          const currentPrice = Number(product.purchasePrice) || 0;
+          const newStock = currentStock + addedBaseQty;
+          let newAvgCost = currentPrice;
+          if (newStock > 0 && rate > 0) {
+            newAvgCost = Math.round(((currentStock * currentPrice) + (addedBaseQty * rate)) / newStock * 100) / 100;
+          }
+
+          await Product.findByIdAndUpdate(product.id, {
+            stockQty: newStock,
+            purchasePrice: newAvgCost
+          }, { shop_id: req.shop_id });
+
+          await AuditLog.create({
+            shop_id: req.shop_id,
+            product: product.name,
+            type: 'IN (Purchase Updated)',
+            qty: `${qty} ${itemUnit}`,
+            ref: `Purchase #${existingPurchase.purchaseNo}`,
+            date: new Date().toLocaleDateString('en-GB')
+          });
         }
 
-        await Product.findByIdAndUpdate(product.id, {
-          stockQty: newStock,
-          purchasePrice: newAvgCost
-        }, { shop_id: req.shop_id });
-
-        await AuditLog.create({
-          shop_id: req.shop_id,
-          product: product.name,
-          type: 'IN (Purchase Updated)',
-          qty: `${qty} ${itemUnit}`,
-          ref: `Purchase #${existingPurchase.purchaseNo}`,
-          date: new Date().toLocaleDateString('en-GB')
+        processedItems.push({
+          productId: product ? product.id : item.productId,
+          name: product ? product.name : (item.name || item.productName),
+          productName: product ? product.name : (item.name || item.productName),
+          unit: itemUnit,
+          unitName: itemUnit,
+          enteredUnit: itemUnit,
+          qty,
+          enteredQty: qty,
+          rate,
+          ratePerEnteredUnit: rate,
+          price: rate,
+          total: itemTotal,
+          totalAmount: itemTotal
         });
       }
 
-      processedItems.push({
-        productId: product ? product.id : item.productId,
-        name: product ? product.name : (item.name || item.productName),
-        productName: product ? product.name : (item.name || item.productName),
-        unit: itemUnit,
-        unitName: itemUnit,
-        enteredUnit: itemUnit,
-        qty,
-        enteredQty: qty,
-        rate,
-        ratePerEnteredUnit: rate,
-        price: rate,
-        total: itemTotal,
-        totalAmount: itemTotal
-      });
-    }
+      const returnAmt = Number(existingPurchase.returnAmount) || 0;
+      const netGrand = Math.max(0, totalGrand - returnAmt);
+      const paid = Number(paidAmount !== undefined ? paidAmount : existingPurchase.paidAmount) || 0;
+      const paymentStatus = paid >= netGrand ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
 
-    const returnAmt = Number(existingPurchase.returnAmount) || 0;
-    const netGrand = Math.max(0, totalGrand - returnAmt);
-    const paid = Number(paidAmount !== undefined ? paidAmount : existingPurchase.paidAmount) || 0;
-    const paymentStatus = paid >= netGrand ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+      let activeSupplierName = supplierName || existingPurchase.supplierName || 'Supplier';
+      let targetSupId = supplierId !== undefined ? supplierId : existingPurchase.supplierId;
 
-    let activeSupplierName = supplierName || existingPurchase.supplierName || 'Supplier';
-    let targetSupId = supplierId !== undefined ? supplierId : existingPurchase.supplierId;
-
-    if (targetSupId) {
-      const sup = await Supplier.findById(targetSupId, req.shop_id);
-      if (sup) {
-        activeSupplierName = sup.name;
-        const oldUnpaid = Math.max(0, Number(existingPurchase.netAmount || existingPurchase.grandTotal || existingPurchase.amount || 0) - Number(existingPurchase.paidAmount || 0));
-        const newUnpaid = Math.max(0, netGrand - paid);
-        const balanceDiff = newUnpaid - oldUnpaid;
-        if (balanceDiff !== 0) {
-          await Supplier.findByIdAndUpdate(sup.id, { balance: Math.max(0, Number(sup.balance || 0) + balanceDiff) }, { shop_id: req.shop_id });
+      if (targetSupId) {
+        const sup = await Supplier.findById(targetSupId, req.shop_id);
+        if (sup) {
+          activeSupplierName = sup.name;
+          const oldUnpaid = Math.max(0, Number(existingPurchase.netAmount || existingPurchase.grandTotal || existingPurchase.amount || 0) - Number(existingPurchase.paidAmount || 0));
+          const newUnpaid = Math.max(0, netGrand - paid);
+          const balanceDiff = newUnpaid - oldUnpaid;
+          if (balanceDiff !== 0) {
+            await Supplier.findByIdAndUpdate(sup.id, { balance: Math.max(0, Number(sup.balance || 0) + balanceDiff) }, { shop_id: req.shop_id });
+          }
         }
       }
-    }
 
-    // 3. Synchronize Ledger entry for this purchase
-    const allLedger = await Ledger.find({ shop_id: req.shop_id });
-    const existingLog = allLedger.find(l =>
-      (l.purchaseId && String(l.purchaseId) === String(id)) ||
-      (existingPurchase.purchaseNo && l.ref && l.ref.includes(existingPurchase.purchaseNo.split('-').pop()))
-    );
+      // 3. Synchronize Ledger entry for this purchase
+      const allLedger = await Ledger.find({ shop_id: req.shop_id });
+      const existingLog = allLedger.find(l =>
+        (l.purchaseId && String(l.purchaseId) === String(id)) ||
+        (existingPurchase.purchaseNo && l.ref && l.ref.includes(existingPurchase.purchaseNo.split('-').pop()))
+      );
 
-    if (existingLog) {
-      if (paid > 0) {
-        await run('UPDATE payment_logs SET amount = $1, mode = $2 WHERE id = $3 AND shop_id = $4', [
-          paid,
-          paymentMode || existingLog.mode || 'Cash',
-          existingLog.id,
-          req.shop_id
-        ]);
-      } else {
-        await run('DELETE FROM payment_logs WHERE id = $1 AND shop_id = $2', [existingLog.id, req.shop_id]);
+      if (existingLog) {
+        if (paid > 0) {
+          await run('UPDATE payment_logs SET amount = $1, mode = $2 WHERE id = $3 AND shop_id = $4', [
+            paid,
+            paymentMode || existingLog.mode || 'Cash',
+            existingLog.id,
+            req.shop_id
+          ]);
+        } else {
+          await run('DELETE FROM payment_logs WHERE id = $1 AND shop_id = $2', [existingLog.id, req.shop_id]);
+        }
+      } else if (paid > 0 && targetSupId) {
+        const dateStr = new Date().toLocaleDateString('en-GB');
+        await Ledger.create({
+          shop_id: req.shop_id,
+          partyId: targetSupId,
+          partyType: 'Supplier',
+          partyName: activeSupplierName,
+          amount: paid,
+          mode: paymentMode || 'Cash',
+          date: dateStr,
+          ref: `PAY-${existingPurchase.purchaseNo.split('-').pop()}`,
+          note: `Payment made on Purchase (${existingPurchase.purchaseNo})`,
+          purchaseId: id
+        });
       }
-    } else if (paid > 0 && targetSupId) {
-      const dateStr = new Date().toLocaleDateString('en-GB');
-      await Ledger.create({
-        shop_id: req.shop_id,
-        partyId: targetSupId,
-        partyType: 'Supplier',
-        partyName: activeSupplierName,
-        amount: paid,
-        mode: paymentMode || 'Cash',
-        date: dateStr,
-        ref: `PAY-${existingPurchase.purchaseNo.split('-').pop()}`,
-        note: `Payment made on Purchase (${existingPurchase.purchaseNo})`,
-        purchaseId: id
-      });
-    }
 
-    const updatedPurchase = await Purchase.findByIdAndUpdate(id, {
-      supplierName: activeSupplierName,
-      supplierId: targetSupId,
-      grandTotal: totalGrand,
-      amount: totalGrand,
-      netAmount: netGrand,
-      paidAmount: paid,
-      paymentStatus,
-      paymentMode: paymentMode || existingPurchase.paymentMode || 'Supplier Khata',
-      notes: notes !== undefined ? notes : existingPurchase.notes,
-      items: processedItems
-    }, { shop_id: req.shop_id });
+      const updated = await Purchase.findByIdAndUpdate(id, {
+        supplierName: activeSupplierName,
+        supplierId: targetSupId,
+        grandTotal: totalGrand,
+        amount: totalGrand,
+        netAmount: netGrand,
+        paidAmount: paid,
+        paymentStatus,
+        paymentMode: paymentMode || existingPurchase.paymentMode || 'Supplier Khata',
+        notes: notes !== undefined ? notes : existingPurchase.notes,
+        items: processedItems
+      }, { shop_id: req.shop_id });
+
+      return updated;
+    });
 
     return res.json({ success: true, purchase: updatedPurchase });
   } catch (err) {

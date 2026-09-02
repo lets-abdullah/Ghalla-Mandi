@@ -3,6 +3,7 @@ import { Customer } from '../models/customer.model.js';
 import { Supplier } from '../models/supplier.model.js';
 import { Sale } from '../models/sale.model.js';
 import { Purchase } from '../models/purchase.model.js';
+import { withTransaction } from '../services/db.service.js';
 
 // Anti-duplicate rapid submission cache (3.5s window)
 const recentPayments = new Map();
@@ -44,9 +45,10 @@ export const recordPayment = async (req, res) => {
       return res.status(200).json({ success: true, entry: existing.entry, deduplicated: true });
     }
 
-    const dateStr = new Date().toLocaleDateString('en-GB');
-    const ref = `PAY-${Math.floor(1000 + Math.random() * 9000)}`;
-    let targetPartyName = partyName || 'Party';
+    const savedEntry = await withTransaction(async (tx) => {
+      const dateStr = new Date().toLocaleDateString('en-GB');
+      const ref = `PAY-${Math.floor(1000 + Math.random() * 9000)}`;
+      let targetPartyName = partyName || 'Party';
 
     if (partyType === 'Customer') {
       let cust = partyId && !String(partyId).startsWith('walkin-') ? await Customer.findById(partyId, req.shop_id) : null;
@@ -152,131 +154,127 @@ export const recordPayment = async (req, res) => {
         }
       }
 
-      const entry = await Ledger.create({
-        shop_id: req.shop_id,
-        partyId: cust?.id || (partyId && !String(partyId).startsWith('walkin-') ? partyId : null),
-        partyType: 'Customer',
-        partyName: targetPartyName,
-        amount: amtNum,
-        mode: paymentMode,
-        date: dateStr,
-        ref,
-        note: note || (saleId ? `Payment for Invoice` : 'Customer payment received'),
-        saleId: saleId || null
-      });
-
-      recentPayments.set(dedupKey, { timestamp: Date.now(), entry });
-      return res.status(201).json({ success: true, entry });
-    } else {
-      // Supplier payment
-      const sup = partyId ? await Supplier.findById(partyId, req.shop_id) : null;
-      let maxSupplierPayable = 0;
-      if (sup) {
-        targetPartyName = sup.name;
-        maxSupplierPayable = Math.max(0, Number(sup.balance || 0));
-      } else if (purchaseId) {
-        const pur = await Purchase.findById(purchaseId, req.shop_id);
-        if (pur) {
-          const purTarget = Number(pur.netAmount !== undefined ? pur.netAmount : Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.returnAmount || 0)));
-          maxSupplierPayable = Math.max(0, purTarget - Number(pur.paidAmount || 0));
-        }
-      }
-
-      if (maxSupplierPayable <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Supplier has no outstanding payable balance (account is already settled).'
+        const entry = await Ledger.create({
+          shop_id: req.shop_id,
+          partyId: cust?.id || (partyId && !String(partyId).startsWith('walkin-') ? partyId : null),
+          partyType: 'Customer',
+          partyName: targetPartyName,
+          amount: amtNum,
+          mode: paymentMode,
+          date: dateStr,
+          ref,
+          note: note || (saleId ? `Payment for Invoice` : 'Customer payment received'),
+          saleId: saleId || null
         });
-      }
 
-      if (amtNum > maxSupplierPayable) {
-        return res.status(400).json({
-          success: false,
-          message: `Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the supplier's outstanding payable of Rs. ${maxSupplierPayable.toLocaleString()}.`
-        });
-      }
-
-      if (sup) {
-        const currentBal = Number(sup.balance || 0);
-        const newBalance = Math.max(0, currentBal - amtNum);
-        await Supplier.findByIdAndUpdate(sup.id, { balance: newBalance }, { shop_id: req.shop_id });
-      }
-
-      if (purchaseId) {
-        const pur = await Purchase.findById(purchaseId, req.shop_id);
-        if (pur) {
-          const purTarget = Number(pur.netAmount !== undefined ? pur.netAmount : Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.returnAmount || 0)));
-          const maxPurDue = Math.max(0, purTarget - Number(pur.paidAmount || 0));
-          const effectivePay = Math.min(maxPurDue, amtNum);
-          const newPaid = Number(pur.paidAmount || 0) + effectivePay;
-          const newStatus = (newPaid >= purTarget && purTarget > 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
-          await Purchase.findByIdAndUpdate(purchaseId, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
-
-          let excessAmt = amtNum - effectivePay;
-          if (excessAmt > 0) {
-            const allShopPurchases = await Purchase.find({ shop_id: req.shop_id });
-            const openPurchases = allShopPurchases.filter(p => {
-              const matchesSup = (sup && p.supplierId === sup.id) ||
-                (targetPartyName && p.supplier && p.supplier.trim().toLowerCase() === targetPartyName.trim().toLowerCase()) ||
-                (targetPartyName && p.supplierName && p.supplierName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
-              const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
-              const isUnpaid = String(p.id) !== String(purchaseId) && (p.paymentStatus === 'Pending' || p.paymentStatus === 'Partial' || (Number(p.paidAmount || 0) < pTarget));
-              return matchesSup && isUnpaid && p.paymentStatus !== 'Returned' && p.status !== 'Returned';
-            }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
-
-            for (const p of openPurchases) {
-              if (excessAmt <= 0) break;
-              const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
-              const due = Math.max(0, pTarget - Number(p.paidAmount || 0));
-              const payTowardsPur = Math.min(due, excessAmt);
-              const nextPaid = Number(p.paidAmount || 0) + payTowardsPur;
-              const nextStatus = (nextPaid >= pTarget && pTarget > 0) ? 'Paid' : 'Partial';
-              await Purchase.findByIdAndUpdate(p.id, { paidAmount: nextPaid, paymentStatus: nextStatus }, { shop_id: req.shop_id });
-              excessAmt -= payTowardsPur;
-            }
+        return entry;
+      } else {
+        // Supplier payment
+        const sup = partyId ? await Supplier.findById(partyId, req.shop_id) : null;
+        let maxSupplierPayable = 0;
+        if (sup) {
+          targetPartyName = sup.name;
+          maxSupplierPayable = Math.max(0, Number(sup.balance || 0));
+        } else if (purchaseId) {
+          const pur = await Purchase.findById(purchaseId, req.shop_id);
+          if (pur) {
+            const purTarget = Number(pur.netAmount !== undefined ? pur.netAmount : Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.returnAmount || 0)));
+            maxSupplierPayable = Math.max(0, purTarget - Number(pur.paidAmount || 0));
           }
         }
-      } else {
-        // General Supplier payment: allocate FIFO to open unpaid/partial purchases
-        const allShopPurchases = await Purchase.find({ shop_id: req.shop_id });
-        const openPurchases = allShopPurchases.filter(p => {
-          const matchesSup = (sup && p.supplierId === sup.id) ||
-            (targetPartyName && p.supplier && p.supplier.trim().toLowerCase() === targetPartyName.trim().toLowerCase()) ||
-            (targetPartyName && p.supplierName && p.supplierName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
-          const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
-          const isUnpaid = p.paymentStatus === 'Pending' || p.paymentStatus === 'Partial' || (Number(p.paidAmount || 0) < pTarget);
-          return matchesSup && isUnpaid && p.paymentStatus !== 'Returned' && p.status !== 'Returned';
-        }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
 
-        let remainingAmt = amtNum;
-        for (const p of openPurchases) {
-          if (remainingAmt <= 0) break;
-          const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
-          const due = Math.max(0, pTarget - Number(p.paidAmount || 0));
-          const payTowardsPur = Math.min(due, remainingAmt);
-          const newPaid = Number(p.paidAmount || 0) + payTowardsPur;
-          const newStatus = (newPaid >= pTarget && pTarget > 0) ? 'Paid' : 'Partial';
-          await Purchase.findByIdAndUpdate(p.id, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
-          remainingAmt -= payTowardsPur;
+        if (maxSupplierPayable <= 0) {
+          throw new Error('Supplier has no outstanding payable balance (account is already settled).');
         }
+
+        if (amtNum > maxSupplierPayable) {
+          throw new Error(`Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the supplier's outstanding payable of Rs. ${maxSupplierPayable.toLocaleString()}.`);
+        }
+
+        if (sup) {
+          const currentBal = Number(sup.balance || 0);
+          const newBalance = Math.max(0, currentBal - amtNum);
+          await Supplier.findByIdAndUpdate(sup.id, { balance: newBalance }, { shop_id: req.shop_id });
+        }
+
+        if (purchaseId) {
+          const pur = await Purchase.findById(purchaseId, req.shop_id);
+          if (pur) {
+            const purTarget = Number(pur.netAmount !== undefined ? pur.netAmount : Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.returnAmount || 0)));
+            const maxPurDue = Math.max(0, purTarget - Number(pur.paidAmount || 0));
+            const effectivePay = Math.min(maxPurDue, amtNum);
+            const newPaid = Number(pur.paidAmount || 0) + effectivePay;
+            const newStatus = (newPaid >= purTarget && purTarget > 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
+            await Purchase.findByIdAndUpdate(purchaseId, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
+
+            let excessAmt = amtNum - effectivePay;
+            if (excessAmt > 0) {
+              const allShopPurchases = await Purchase.find({ shop_id: req.shop_id });
+              const openPurchases = allShopPurchases.filter(p => {
+                const matchesSup = (sup && p.supplierId === sup.id) ||
+                  (targetPartyName && p.supplier && p.supplier.trim().toLowerCase() === targetPartyName.trim().toLowerCase()) ||
+                  (targetPartyName && p.supplierName && p.supplierName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
+                const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
+                const isUnpaid = String(p.id) !== String(purchaseId) && (p.paymentStatus === 'Pending' || p.paymentStatus === 'Partial' || (Number(p.paidAmount || 0) < pTarget));
+                return matchesSup && isUnpaid && p.paymentStatus !== 'Returned' && p.status !== 'Returned';
+              }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
+
+              for (const p of openPurchases) {
+                if (excessAmt <= 0) break;
+                const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
+                const due = Math.max(0, pTarget - Number(p.paidAmount || 0));
+                const payTowardsPur = Math.min(due, excessAmt);
+                const nextPaid = Number(p.paidAmount || 0) + payTowardsPur;
+                const nextStatus = (nextPaid >= pTarget && pTarget > 0) ? 'Paid' : 'Partial';
+                await Purchase.findByIdAndUpdate(p.id, { paidAmount: nextPaid, paymentStatus: nextStatus }, { shop_id: req.shop_id });
+                excessAmt -= payTowardsPur;
+              }
+            }
+          }
+        } else {
+          // General Supplier payment: allocate FIFO to open unpaid/partial purchases
+          const allShopPurchases = await Purchase.find({ shop_id: req.shop_id });
+          const openPurchases = allShopPurchases.filter(p => {
+            const matchesSup = (sup && p.supplierId === sup.id) ||
+              (targetPartyName && p.supplier && p.supplier.trim().toLowerCase() === targetPartyName.trim().toLowerCase()) ||
+              (targetPartyName && p.supplierName && p.supplierName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
+            const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
+            const isUnpaid = p.paymentStatus === 'Pending' || p.paymentStatus === 'Partial' || (Number(p.paidAmount || 0) < pTarget);
+            return matchesSup && isUnpaid && p.paymentStatus !== 'Returned' && p.status !== 'Returned';
+          }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
+
+          let remainingAmt = amtNum;
+          for (const p of openPurchases) {
+            if (remainingAmt <= 0) break;
+            const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
+            const due = Math.max(0, pTarget - Number(p.paidAmount || 0));
+            const payTowardsPur = Math.min(due, remainingAmt);
+            const newPaid = Number(p.paidAmount || 0) + payTowardsPur;
+            const newStatus = (newPaid >= pTarget && pTarget > 0) ? 'Paid' : 'Partial';
+            await Purchase.findByIdAndUpdate(p.id, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
+            remainingAmt -= payTowardsPur;
+          }
+        }
+
+        const entry = await Ledger.create({
+          shop_id: req.shop_id,
+          partyId: partyId || null,
+          partyType: 'Supplier',
+          partyName: targetPartyName,
+          amount: amtNum,
+          mode: paymentMode,
+          date: dateStr,
+          ref,
+          note: note || (purchaseId ? 'Payment for Purchase' : 'Payment paid to supplier'),
+          purchaseId: purchaseId || null
+        });
+
+        return entry;
       }
+    });
 
-      const entry = await Ledger.create({
-        shop_id: req.shop_id,
-        partyId: partyId || null,
-        partyType: 'Supplier',
-        partyName: targetPartyName,
-        amount: amtNum,
-        mode: paymentMode,
-        date: dateStr,
-        ref,
-        note: note || (purchaseId ? 'Payment for Purchase' : 'Payment paid to supplier'),
-        purchaseId: purchaseId || null
-      });
-
-      recentPayments.set(dedupKey, { timestamp: Date.now(), entry });
-      return res.status(201).json({ success: true, entry });
-    }
+    recentPayments.set(dedupKey, { timestamp: Date.now(), entry: savedEntry });
+    return res.status(201).json({ success: true, entry: savedEntry });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

@@ -1,5 +1,6 @@
 import { Product } from '../models/product.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
+import { isValidOperationalUnit } from '../services/unitConversion.service.js';
 
 export const getProducts = async (req, res) => {
   try {
@@ -27,10 +28,18 @@ export const getProducts = async (req, res) => {
 
 export const createProduct = async (req, res) => {
   try {
-    const { name, category, code, baseUnit, stockQty, minStockThreshold, purchasePrice, sellingPrice, image } = req.body;
+    const { name, category, code, baseUnit, unit, stockQty, minStockThreshold, purchasePrice, sellingPrice, image } = req.body;
 
     if (!name || !category) {
       return res.status(400).json({ success: false, message: 'Product name and category are required' });
+    }
+
+    const assignedUnit = baseUnit || unit || 'KG';
+    if (!isValidOperationalUnit(assignedUnit)) {
+      return res.status(400).json({
+        success: false,
+        message: `Unit "${assignedUnit}" is invalid. Only genuine base units (KG, Gram, Litre, ML, Meter, Piece, Unit) are permitted. Grouped/packaging units (Mann, Bori, Bag, Pack, Ton, Carton, Dozen) are strictly prohibited.`
+      });
     }
 
     const initialStockQty = Number(stockQty) || 0;
@@ -41,7 +50,7 @@ export const createProduct = async (req, res) => {
       name,
       category,
       code: code || `PRD-${Math.floor(1000 + Math.random() * 9000)}`,
-      unit: baseUnit || 'KG',
+      unit: assignedUnit,
       stockQty: initialStockQty,
       initialStock: initialStockQty,
       initialCost: initialPurchaseCost,
@@ -55,7 +64,7 @@ export const createProduct = async (req, res) => {
       shop_id: req.shop_id,
       product: name,
       type: 'IN (Product Created)',
-      qty: `${initialStockQty} ${baseUnit || 'KG'}`,
+      qty: `${initialStockQty} ${assignedUnit}`,
       ref: req.user ? req.user.fullName : 'Admin',
       date: new Date().toLocaleDateString('en-GB')
     });
@@ -70,6 +79,13 @@ export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
+
+    if (updateData.unit && !isValidOperationalUnit(updateData.unit)) {
+      return res.status(400).json({
+        success: false,
+        message: `Unit "${updateData.unit}" is invalid. Only genuine base units (KG, Gram, Litre, ML, Meter, Piece, Unit) are permitted.`
+      });
+    }
 
     const product = await Product.findByIdAndUpdate(id, updateData, { shop_id: req.shop_id });
 

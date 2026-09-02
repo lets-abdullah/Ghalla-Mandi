@@ -189,6 +189,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) 
 
   const returns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(sale.id)) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
   const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(sale.returnAmount || 0);
+  const cashRefundAmount = returns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
   const netDueableTotal = Math.max(0, total - returnAmount);
 
   // Categorize specific payment logs for this sale invoice
@@ -202,21 +203,12 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) 
     pl.mode !== 'Credit Note'
   );
 
-  const posLogs = matchingLogs.filter(pl =>
-    String(pl.mode || '').includes('POS') || String(pl.ref || '').includes('POS') || String(pl.note || '').includes('POS')
-  );
-  const otherLogs = matchingLogs.filter(pl =>
-    !(String(pl.mode || '').includes('POS') || String(pl.ref || '').includes('POS') || String(pl.note || '').includes('POS'))
-  );
-
-  const posLogsAmt = posLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-  const otherLogsAmt = otherLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-
   const res = resolveTransactionPayment(sale, 'Sale');
   const upfrontPaid = res.totalLiquid;
   const totalMatchingLogs = matchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-  const rawPaid = Math.max(upfrontPaid, totalMatchingLogs);
-  const paid = Math.min(netDueableTotal, rawPaid);
+  const rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs);
+  const netPaidTowardsInvoice = Math.max(0, rawGrossPaid - cashRefundAmount);
+  const paid = Math.min(netDueableTotal, netPaidTowardsInvoice);
 
   const isReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus && sale.returnStatus !== 'None') || (returnAmount >= total && total > 0);
   const due = Math.max(0, netDueableTotal - paid);
@@ -231,6 +223,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
 
   const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
   const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(purchase.returnAmount || 0);
+  const cashRefundAmount = returns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
   const netDueableTotal = Math.max(0, total - returnAmount);
 
   // Categorize specific payment logs for this purchase
@@ -247,8 +240,9 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const res = resolveTransactionPayment(purchase, 'Purchase');
   const upfrontPaid = res.totalLiquid;
   const totalMatchingLogs = matchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-  const rawPaid = Math.max(upfrontPaid, totalMatchingLogs);
-  const paid = Math.min(netDueableTotal, rawPaid);
+  const rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs);
+  const netPaidTowardsPurchase = Math.max(0, rawGrossPaid - cashRefundAmount);
+  const paid = Math.min(netDueableTotal, netPaidTowardsPurchase);
 
   const isReturned = (purchase.status === 'Returned') || (purchase.paymentStatus === 'Returned') || purchase.isReturned || (purchase.returnStatus && purchase.returnStatus !== 'None') || (returnAmount >= total && total > 0);
   const due = Math.max(0, netDueableTotal - paid);
