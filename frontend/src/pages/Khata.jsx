@@ -222,7 +222,7 @@ export const Khata = () => {
 
   // Aggregate Metrics based on Filtered Khata
   const totalOutstanding = filteredKhata.reduce((acc, k) => acc + (Number(k.receivableDue !== undefined ? k.receivableDue : (k.balance > 0 ? k.balance : 0)) || 0), 0);
-  const totalAdvanceCredit = filteredKhata.reduce((acc, k) => acc + (Number(k.advanceCredit !== undefined ? k.advanceCredit : (k.balance < 0 ? Math.abs(k.balance) : 0)) || 0), 0);
+  const settledAccountsCount = filteredKhata.filter(k => Number(k.receivableDue !== undefined ? k.receivableDue : (k.balance || 0)) <= 0).length;
 
   const isAnyFilterActive = (
     searchTerm.trim() !== '' ||
@@ -334,7 +334,7 @@ export const Khata = () => {
           </div>
         </div>
 
-        {/* 2. Customer Credit / Advance */}
+        {/* 2. Settled Accounts */}
         <div
           onClick={() => setBalanceStatusFilter(balanceStatusFilter === 'Clear' ? 'All' : 'Clear')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${balanceStatusFilter === 'Clear'
@@ -342,14 +342,14 @@ export const Khata = () => {
             : ''
             } ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
             }`}
-          title="Filter customer advance & clear accounts"
+          title="Filter settled accounts"
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <Wallet className="w-4 h-4 text-emerald-600" />
-            <span>Customer Credit / Advance</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>Settled Accounts (Rs. 0 Due)</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
-            Rs. {totalAdvanceCredit.toLocaleString()}
+            {settledAccountsCount} Accounts
           </div>
         </div>
       </div>
@@ -445,7 +445,7 @@ export const Khata = () => {
         stats={[
           { label: 'Total Accounts', value: filteredKhata.length },
           { label: 'Customer Receivables', value: `Rs. ${totalOutstanding.toLocaleString()}` },
-          { label: 'Customer Credit / Advance', value: `Rs. ${totalAdvanceCredit.toLocaleString()}` }
+          { label: 'Settled Accounts', value: `${settledAccountsCount} Accounts` }
         ]}
       />
 

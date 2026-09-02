@@ -864,21 +864,16 @@ export const Ledger = () => {
                           {/* 4. Current Balance */}
                           <td className="py-3.5 px-4 text-right font-mono font-black text-sm">
                             <span className={
-                              isZero ? 'text-slate-400 font-bold' :
-                                isNeg ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' :
-                                  'text-amber-500 font-black'
+                              isZero ? 'text-slate-400 font-bold' : 'text-amber-500 font-black'
                             }>
-                              {isNeg ? `Credit: Rs. ${Math.abs(cust.balance).toLocaleString()}` : `Rs. ${cust.balance.toLocaleString()}`}
+                              Rs. {cust.balance.toLocaleString()}
                             </span>
                           </td>
 
                           {/* 5. Condition Status */}
                           <td className="py-3.5 px-4 text-center">
-                            <span className={`text-xs font-bold ${isZero ? 'text-slate-500' :
-                              isNeg ? 'text-emerald-600 dark:text-emerald-400' :
-                                'text-amber-600 dark:text-amber-400'
-                              }`}>
-                              {isPos ? (isSupplier ? 'Payable' : 'Receivable') : isNeg ? (isSupplier ? 'Overpaid' : 'Customer Credit') : 'Settled'}
+                            <span className={`text-xs font-bold ${isZero ? 'text-slate-500' : 'text-amber-600 dark:text-amber-400'}`}>
+                              {isPos ? (isSupplier ? 'Payable' : 'Receivable') : 'Settled'}
                             </span>
                           </td>
 

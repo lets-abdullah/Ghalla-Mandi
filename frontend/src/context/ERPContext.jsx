@@ -1514,13 +1514,13 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     };
   });
 
-  const closingBalance = runningBalance;
-  const receivableDue = !isSupplier ? Math.max(0, closingBalance) : 0;
-  const payableDue = isSupplier ? Math.max(0, closingBalance) : 0;
-  const advanceCredit = Math.max(0, -closingBalance);
+  const closingBalance = Math.max(0, runningBalance);
+  const receivableDue = !isSupplier ? closingBalance : 0;
+  const payableDue = isSupplier ? closingBalance : 0;
+  const advanceCredit = 0;
   const status = closingBalance > 0
     ? (isSupplier ? 'Payable' : 'Receivable')
-    : (closingBalance < 0 ? 'Advance' : 'Settled');
+    : 'Settled';
 
   // 3. Reverse for Newest-First display while keeping verified chronological running balance
   const displayEntries = [...chronologicalEntries].reverse();
