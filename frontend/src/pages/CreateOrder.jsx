@@ -79,23 +79,12 @@ export const CreateOrder = () => {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [completedOrderData, setCompletedOrderData] = useState(null);
 
-  // Unit multiplier helpers
+  // Unit multiplier helpers (Genuine Base Units Only - Rule 1)
   const getUnitMultiplier = (unitName) => {
     switch (unitName) {
-      case 'Mann':
-      case 'Mann (40 KG)':
-        return 40;
-      case 'Bori':
-      case 'Bori (50 KG)':
-      case 'Bag':
-        return 50;
       case 'Gram':
       case 'ML':
         return 0.001;
-      case 'Dozen':
-        return 12;
-      case 'Ton':
-        return 1000;
       default:
         return 1;
     }
@@ -209,16 +198,8 @@ export const CreateOrder = () => {
       return prev.map(item => {
         if (item.productId === productId) {
           let adjustedPrice = item.basePrice;
-          if (newUnit === 'Mann' || newUnit === 'Mann (40 KG)') {
-            adjustedPrice = item.basePrice * 40;
-          } else if (newUnit === 'Bori' || newUnit === 'Bori (50 KG)' || newUnit === 'Bag') {
-            adjustedPrice = item.basePrice * 50;
-          } else if (newUnit === 'Gram' || newUnit === 'ML') {
+          if (newUnit === 'Gram' || newUnit === 'ML') {
             adjustedPrice = item.basePrice / 1000;
-          } else if (newUnit === 'Dozen') {
-            adjustedPrice = item.basePrice * 12;
-          } else if (newUnit === 'Ton') {
-            adjustedPrice = item.basePrice * 1000;
           }
           return recalculateLineItem({
             ...item,
@@ -311,27 +292,21 @@ export const CreateOrder = () => {
     return computeCustomerKhataBalance(selectedParty, sales, paymentLogs, saleReturns);
   }, [selectedParty, sales, paymentLogs, saleReturns]);
 
-  const availableAdvanceCredit = partyFinancials ? Number(partyFinancials.advanceCredit || 0) : 0;
   const partyReceivableDue = partyFinancials ? Number(partyFinancials.receivableDue || 0) : 0;
 
-  // Auto-apply available advance credit up to net grand total
-  const appliedAdvanceCredit = customerType === 'Regular Party' && selectedParty ? Math.min(netGrandTotal, availableAdvanceCredit) : 0;
-  const netPayableAfterCredit = Math.max(0, netGrandTotal - appliedAdvanceCredit);
-  const remainingAdvanceCredit = Math.max(0, availableAdvanceCredit - appliedAdvanceCredit);
-
-  // Payment Received & Balance / Change Calculations
+  // Payment Received & Balance / Change Calculations (Rules 2 & 3: No auto customer advance credit)
   const receivedNum = amountReceived === ''
-    ? (paymentMode === 'Credit' || paymentMode === 'Mandi Credit' || paymentMode === 'Khata (Udhaar)' ? 0 : netPayableAfterCredit)
+    ? (paymentMode === 'Credit' || paymentMode === 'Mandi Credit' || paymentMode === 'Khata (Udhaar)' ? 0 : netGrandTotal)
     : (Number(amountReceived) || 0);
 
-  const actualAdditionalCash = Math.min(netPayableAfterCredit, receivedNum);
-  const totalPaidTowardsBill = appliedAdvanceCredit + actualAdditionalCash;
-  const changeDue = Math.max(0, receivedNum - netPayableAfterCredit);
+  const actualAdditionalCash = Math.min(netGrandTotal, receivedNum);
+  const totalPaidTowardsBill = actualAdditionalCash;
+  const changeDue = Math.max(0, receivedNum - netGrandTotal);
   const remainingDue = Math.max(0, netGrandTotal - totalPaidTowardsBill);
 
-  // Customer Khata balances
-  const previousKhataBalance = partyReceivableDue > 0 ? partyReceivableDue : (availableAdvanceCredit > 0 ? -availableAdvanceCredit : 0);
-  const newKhataBalance = (previousKhataBalance + netGrandTotal) - totalPaidTowardsBill;
+  // Customer Khata balances (receivable due >= 0)
+  const previousKhataBalance = partyReceivableDue;
+  const newKhataBalance = previousKhataBalance + remainingDue;
 
   // Khata Mode is active if Payment Mode is Credit or Customer Type is Regular Party with selected Khata customer
   const isKhataActive = paymentMode === 'Credit' || (customerType === 'Regular Party' && Boolean(selectedParty));
@@ -363,16 +338,8 @@ export const CreateOrder = () => {
         const prod = (syncedProducts || []).find(p => p.id === item.productId);
         const catalogBasePrice = Number(prod?.sellingPrice || item.basePrice || 0);
         let adjustedPrice = catalogBasePrice;
-        if (item.unit === 'Mann' || item.unit === 'Mann (40 KG)') {
-          adjustedPrice = catalogBasePrice * 40;
-        } else if (item.unit === 'Bori' || item.unit === 'Bori (50 KG)' || item.unit === 'Bag') {
-          adjustedPrice = catalogBasePrice * 50;
-        } else if (item.unit === 'Gram' || item.unit === 'ML') {
+        if (item.unit === 'Gram' || item.unit === 'ML') {
           adjustedPrice = catalogBasePrice / 1000;
-        } else if (item.unit === 'Dozen') {
-          adjustedPrice = catalogBasePrice * 12;
-        } else if (item.unit === 'Ton') {
-          adjustedPrice = catalogBasePrice * 1000;
         }
         if (item.price !== adjustedPrice || item.basePrice !== catalogBasePrice) {
           return recalculateLineItem({
@@ -579,7 +546,6 @@ export const CreateOrder = () => {
       discount: orderDiscountAmount,
       tax: taxAmount,
       grandTotal: netGrandTotal,
-      appliedCredit: appliedAdvanceCredit,
       paidAmount: totalPaidTowardsBill,
       cashReceived: actualAdditionalCash,
       paymentStatus: totalPaidTowardsBill >= netGrandTotal ? 'Paid' : totalPaidTowardsBill > 0 ? 'Partial' : 'Pending',
@@ -594,7 +560,6 @@ export const CreateOrder = () => {
         customerId: orderPayload.customerId,
         customerName: finalCustomerName,
         grandTotal: netGrandTotal,
-        appliedCredit: appliedAdvanceCredit,
         paidAmount: totalPaidTowardsBill,
         cashReceived: actualAdditionalCash,
         paymentMethod: paymentMode,
@@ -1055,15 +1020,11 @@ export const CreateOrder = () => {
                           >
                             <option value="KG">KG</option>
                             <option value="Gram">Gram</option>
-                            <option value="Mann">Mann (40 KG)</option>
-                            <option value="Bori">Bori (50 KG)</option>
                             <option value="Litre">Litre</option>
                             <option value="ML">ML</option>
-                            <option value="Dozen">Dozen</option>
-                            <option value="Pack">Pack</option>
-                            <option value="Carton">Carton</option>
+                            <option value="Meter">Meter</option>
                             <option value="Piece">Piece</option>
-                            <option value="Ton">Ton</option>
+                            <option value="Unit">Unit</option>
                           </select>
 
                           {/* Unit Rate & Khata-Only Edit Control */}
@@ -1150,18 +1111,14 @@ export const CreateOrder = () => {
 
               {/* Customer Input or Selected Party Card */}
               {customerType === 'Regular Party' && selectedParty ? (
-                <div className={`p-3 rounded-2xl border space-y-1.5 text-xs ${availableAdvanceCredit > 0 ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-brand-500/5 border-brand-500/20'}`}>
+                <div className="p-3 rounded-2xl border space-y-1.5 text-xs bg-brand-500/5 border-brand-500/20">
                   <div className="font-black text-slate-900 dark:text-white flex items-center justify-between">
                     <span className="truncate">{selectedParty.name}</span>
                     <span className="text-[10px] text-slate-400 font-bold shrink-0">{selectedParty.city}</span>
                   </div>
                   <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200 dark:border-slate-700">
                     <span className="text-slate-400 font-bold">Previous Khata Position:</span>
-                    {availableAdvanceCredit > 0 ? (
-                      <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono text-xs">
-                        Credit: Rs. {availableAdvanceCredit.toLocaleString()}
-                      </span>
-                    ) : partyReceivableDue > 0 ? (
+                    {partyReceivableDue > 0 ? (
                       <span className="font-black text-amber-500 font-mono">
                         Due: Rs. {partyReceivableDue.toLocaleString()}
                       </span>
@@ -1274,34 +1231,6 @@ export const CreateOrder = () => {
                   Rs. {netGrandTotal.toLocaleString()}
                 </span>
               </div>
-
-              {/* Advance Credit Applied Banner (If Customer has Available Credit) */}
-              {availableAdvanceCredit > 0 && (
-                <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-300 font-extrabold">
-                    <span className="flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-emerald-500" />
-                      <span>Reusable Customer Advance Credit:</span>
-                    </span>
-                    <span className="font-mono font-black">Rs. {availableAdvanceCredit.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-black">
-                    <span>Auto-Applied to Current Sale:</span>
-                    <span className="font-mono">- Rs. {appliedAdvanceCredit.toLocaleString()}</span>
-                  </div>
-                  <div className="pt-1 border-t border-emerald-500/20 flex items-center justify-between font-black text-slate-800 dark:text-slate-100">
-                    <span>Net Cash / Payment to Collect:</span>
-                    <span className="font-mono text-sm text-emerald-600 dark:text-emerald-400 font-extrabold">
-                      Rs. {netPayableAfterCredit.toLocaleString()}
-                    </span>
-                  </div>
-                  {remainingAdvanceCredit > 0 && (
-                    <div className="text-[10px] text-slate-400 font-semibold text-right">
-                      (Remaining credit for next sale: Rs. {remainingAdvanceCredit.toLocaleString()})
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* 4. Payment Settlement */}

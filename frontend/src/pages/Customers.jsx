@@ -515,11 +515,7 @@ export const Customers = () => {
 
                       {/* 4. Balance */}
                       <td className="py-3 px-4 text-right font-mono font-black text-xs">
-                        {cust.advanceCredit > 0 ? (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
-                            Credit: Rs. {cust.advanceCredit.toLocaleString()}
-                          </span>
-                        ) : bal > 0 ? (
+                        {bal > 0 ? (
                           <span className="text-amber-500 font-black">
                             Rs. {bal.toLocaleString()}
                           </span>

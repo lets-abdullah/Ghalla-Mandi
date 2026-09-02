@@ -1,10 +1,11 @@
 export const defaultMandiUnits = [
   { unitName: 'KG', aliases: ['kg', 'kgs', 'kilogram', 'kilograms'], factorKg: 1 },
-  { unitName: 'Mann (Maund)', aliases: ['mann', 'maund', 'mon', 'mann (40 kg)', 'mann (maund)', 'maunds'], factorKg: 40 },
-  { unitName: 'Bag (Bora)', aliases: ['bag', 'bags', 'bori', 'bora', 'bag (bora)', 'bori (50 kg)', 'bag (50kg)', 'bori (50kg)'], factorKg: 50 },
-  { unitName: 'Ton', aliases: ['ton', 'tons', 'tonne', 'tonnes', 'metric ton'], factorKg: 1000 },
-  { unitName: 'Quintal', aliases: ['quintal', 'quintals', 'qtl'], factorKg: 100 },
-  { unitName: 'Gram', aliases: ['gram', 'grams', 'gm', 'g'], factorKg: 0.001 }
+  { unitName: 'Gram', aliases: ['gram', 'grams', 'gm', 'g'], factorKg: 0.001 },
+  { unitName: 'Litre', aliases: ['litre', 'liter', 'ltr', 'l'], factorKg: 1 },
+  { unitName: 'ML', aliases: ['ml', 'millilitre', 'milliliter'], factorKg: 0.001 },
+  { unitName: 'Meter', aliases: ['meter', 'metre', 'm'], factorKg: 1 },
+  { unitName: 'Piece', aliases: ['piece', 'pieces', 'pc', 'pcs'], factorKg: 1 },
+  { unitName: 'Unit', aliases: ['unit', 'units'], factorKg: 1 }
 ];
 
 export const getUnitFactor = (unitName = 'KG', customUnitConversions = []) => {
@@ -18,9 +19,9 @@ export const getUnitFactor = (unitName = 'KG', customUnitConversions = []) => {
     }
   }
 
-  // Check default Mandi units and aliases
+  // Check default genuine units
   for (const def of defaultMandiUnits) {
-    if (def.unitName.toLowerCase() === clean || def.aliases.some(a => a === clean || clean.includes(a))) {
+    if (def.unitName.toLowerCase() === clean || def.aliases.some(a => a === clean)) {
       return def.factorKg;
     }
   }
@@ -39,3 +40,4 @@ export const convertFromKg = (qtyKg, targetUnitName, customUnitConversions = [])
   const factor = getUnitFactor(targetUnitName, customUnitConversions);
   return factor > 0 ? kgNum / factor : kgNum;
 };
+

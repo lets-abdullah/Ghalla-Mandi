@@ -98,10 +98,11 @@ export const recordPayment = async (req, res) => {
       if (saleId) {
         const sale = await Sale.findById(saleId, req.shop_id);
         if (sale) {
-          const maxSaleDue = Math.max(0, Number(sale.amount || 0) - Number(sale.paidAmount || 0));
+          const maxSaleDue = Math.max(0, Number(sale.netAmount !== undefined ? sale.netAmount : (sale.amount - (sale.returnAmount || 0))) - Number(sale.paidAmount || 0));
           const effectivePay = Math.min(maxSaleDue, amtNum);
           const newPaid = Number(sale.paidAmount || 0) + effectivePay;
-          const newStatus = (newPaid >= Number(sale.amount || 0) && Number(sale.amount || 0) > 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
+          const targetSaleTotal = Number(sale.netAmount !== undefined ? sale.netAmount : Math.max(0, Number(sale.amount || 0) - Number(sale.returnAmount || 0)));
+          const newStatus = (newPaid >= targetSaleTotal && targetSaleTotal > 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
           await Sale.findByIdAndUpdate(saleId, { paidAmount: newPaid, status: newStatus }, { shop_id: req.shop_id });
 
           let excessAmt = amtNum - effectivePay;
@@ -110,16 +111,18 @@ export const recordPayment = async (req, res) => {
             const openSales = allShopSales.filter(s => {
               const matchesCust = (cust && s.customerId === cust.id) ||
                 (targetPartyName && s.partyName && s.partyName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
-              const isUnpaid = String(s.id) !== String(saleId) && (s.status === 'Pending' || s.status === 'Partial' || (Number(s.paidAmount || 0) < Number(s.amount || 0)));
+              const sTarget = Number(s.netAmount !== undefined ? s.netAmount : Math.max(0, Number(s.amount || 0) - Number(s.returnAmount || 0)));
+              const isUnpaid = String(s.id) !== String(saleId) && (s.status === 'Pending' || s.status === 'Partial' || (Number(s.paidAmount || 0) < sTarget));
               return matchesCust && isUnpaid && s.status !== 'Returned';
             }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
 
             for (const s of openSales) {
               if (excessAmt <= 0) break;
-              const due = Math.max(0, Number(s.amount || 0) - Number(s.paidAmount || 0));
+              const sTarget = Number(s.netAmount !== undefined ? s.netAmount : Math.max(0, Number(s.amount || 0) - Number(s.returnAmount || 0)));
+              const due = Math.max(0, sTarget - Number(s.paidAmount || 0));
               const payTowardsSale = Math.min(due, excessAmt);
               const nextPaid = Number(s.paidAmount || 0) + payTowardsSale;
-              const nextStatus = (nextPaid >= Number(s.amount || 0) && Number(s.amount || 0) > 0) ? 'Paid' : 'Partial';
+              const nextStatus = (nextPaid >= sTarget && sTarget > 0) ? 'Paid' : 'Partial';
               await Sale.findByIdAndUpdate(s.id, { paidAmount: nextPaid, status: nextStatus }, { shop_id: req.shop_id });
               excessAmt -= payTowardsSale;
             }
@@ -131,17 +134,19 @@ export const recordPayment = async (req, res) => {
         const openSales = allShopSales.filter(s => {
           const matchesCust = (cust && s.customerId === cust.id) ||
             (targetPartyName && s.partyName && s.partyName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
-          const isUnpaid = s.status === 'Pending' || s.status === 'Partial' || (Number(s.paidAmount || 0) < Number(s.amount || 0));
+          const sTarget = Number(s.netAmount !== undefined ? s.netAmount : Math.max(0, Number(s.amount || 0) - Number(s.returnAmount || 0)));
+          const isUnpaid = s.status === 'Pending' || s.status === 'Partial' || (Number(s.paidAmount || 0) < sTarget);
           return matchesCust && isUnpaid && s.status !== 'Returned';
         }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
 
         let remainingAmt = amtNum;
         for (const s of openSales) {
           if (remainingAmt <= 0) break;
-          const due = Math.max(0, Number(s.amount || 0) - Number(s.paidAmount || 0));
+          const sTarget = Number(s.netAmount !== undefined ? s.netAmount : Math.max(0, Number(s.amount || 0) - Number(s.returnAmount || 0)));
+          const due = Math.max(0, sTarget - Number(s.paidAmount || 0));
           const payTowardsSale = Math.min(due, remainingAmt);
           const newPaid = Number(s.paidAmount || 0) + payTowardsSale;
-          const newStatus = (newPaid >= Number(s.amount || 0) && Number(s.amount || 0) > 0) ? 'Paid' : 'Partial';
+          const newStatus = (newPaid >= sTarget && sTarget > 0) ? 'Paid' : 'Partial';
           await Sale.findByIdAndUpdate(s.id, { paidAmount: newPaid, status: newStatus }, { shop_id: req.shop_id });
           remainingAmt -= payTowardsSale;
         }
@@ -172,7 +177,8 @@ export const recordPayment = async (req, res) => {
       } else if (purchaseId) {
         const pur = await Purchase.findById(purchaseId, req.shop_id);
         if (pur) {
-          maxSupplierPayable = Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.paidAmount || 0));
+          const purTarget = Number(pur.netAmount !== undefined ? pur.netAmount : Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.returnAmount || 0)));
+          maxSupplierPayable = Math.max(0, purTarget - Number(pur.paidAmount || 0));
         }
       }
 
@@ -199,10 +205,11 @@ export const recordPayment = async (req, res) => {
       if (purchaseId) {
         const pur = await Purchase.findById(purchaseId, req.shop_id);
         if (pur) {
-          const maxPurDue = Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.paidAmount || 0));
+          const purTarget = Number(pur.netAmount !== undefined ? pur.netAmount : Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.returnAmount || 0)));
+          const maxPurDue = Math.max(0, purTarget - Number(pur.paidAmount || 0));
           const effectivePay = Math.min(maxPurDue, amtNum);
           const newPaid = Number(pur.paidAmount || 0) + effectivePay;
-          const newStatus = newPaid >= Number(pur.grandTotal || pur.amount || 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
+          const newStatus = (newPaid >= purTarget && purTarget > 0) ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending';
           await Purchase.findByIdAndUpdate(purchaseId, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
 
           let excessAmt = amtNum - effectivePay;
@@ -212,16 +219,18 @@ export const recordPayment = async (req, res) => {
               const matchesSup = (sup && p.supplierId === sup.id) ||
                 (targetPartyName && p.supplier && p.supplier.trim().toLowerCase() === targetPartyName.trim().toLowerCase()) ||
                 (targetPartyName && p.supplierName && p.supplierName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
-              const isUnpaid = String(p.id) !== String(purchaseId) && (p.paymentStatus === 'Pending' || p.paymentStatus === 'Partial' || (Number(p.paidAmount || 0) < Number(p.grandTotal || p.amount || 0)));
+              const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
+              const isUnpaid = String(p.id) !== String(purchaseId) && (p.paymentStatus === 'Pending' || p.paymentStatus === 'Partial' || (Number(p.paidAmount || 0) < pTarget));
               return matchesSup && isUnpaid && p.paymentStatus !== 'Returned' && p.status !== 'Returned';
             }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
 
             for (const p of openPurchases) {
               if (excessAmt <= 0) break;
-              const due = Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.paidAmount || 0));
+              const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
+              const due = Math.max(0, pTarget - Number(p.paidAmount || 0));
               const payTowardsPur = Math.min(due, excessAmt);
               const nextPaid = Number(p.paidAmount || 0) + payTowardsPur;
-              const nextStatus = nextPaid >= Number(p.grandTotal || p.amount || 0) ? 'Paid' : 'Partial';
+              const nextStatus = (nextPaid >= pTarget && pTarget > 0) ? 'Paid' : 'Partial';
               await Purchase.findByIdAndUpdate(p.id, { paidAmount: nextPaid, paymentStatus: nextStatus }, { shop_id: req.shop_id });
               excessAmt -= payTowardsPur;
             }
@@ -234,17 +243,19 @@ export const recordPayment = async (req, res) => {
           const matchesSup = (sup && p.supplierId === sup.id) ||
             (targetPartyName && p.supplier && p.supplier.trim().toLowerCase() === targetPartyName.trim().toLowerCase()) ||
             (targetPartyName && p.supplierName && p.supplierName.trim().toLowerCase() === targetPartyName.trim().toLowerCase());
-          const isUnpaid = p.paymentStatus === 'Pending' || p.paymentStatus === 'Partial' || (Number(p.paidAmount || 0) < Number(p.grandTotal || p.amount || 0));
+          const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
+          const isUnpaid = p.paymentStatus === 'Pending' || p.paymentStatus === 'Partial' || (Number(p.paidAmount || 0) < pTarget);
           return matchesSup && isUnpaid && p.paymentStatus !== 'Returned' && p.status !== 'Returned';
         }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
 
         let remainingAmt = amtNum;
         for (const p of openPurchases) {
           if (remainingAmt <= 0) break;
-          const due = Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.paidAmount || 0));
+          const pTarget = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
+          const due = Math.max(0, pTarget - Number(p.paidAmount || 0));
           const payTowardsPur = Math.min(due, remainingAmt);
           const newPaid = Number(p.paidAmount || 0) + payTowardsPur;
-          const newStatus = newPaid >= Number(p.grandTotal || p.amount || 0) ? 'Paid' : 'Partial';
+          const newStatus = (newPaid >= pTarget && pTarget > 0) ? 'Paid' : 'Partial';
           await Purchase.findByIdAndUpdate(p.id, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
           remainingAmt -= payTowardsPur;
         }

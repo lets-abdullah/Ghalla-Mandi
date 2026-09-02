@@ -101,11 +101,16 @@ const createTables = async () => {
       purchasePrice NUMERIC NOT NULL DEFAULT 0,
       sellingPrice NUMERIC NOT NULL DEFAULT 0,
       stockQty NUMERIC NOT NULL DEFAULT 0,
+      initialStock NUMERIC NOT NULL DEFAULT 0,
+      initialCost NUMERIC NOT NULL DEFAULT 0,
       minStock NUMERIC NOT NULL DEFAULT 10,
       unit TEXT DEFAULT 'KG',
       image TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS initialStock NUMERIC DEFAULT 0;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS initialCost NUMERIC DEFAULT 0;
 
     -- Customers Table
     CREATE TABLE IF NOT EXISTS customers (
@@ -158,7 +163,11 @@ const createTables = async () => {
       customerType TEXT,
       date TEXT NOT NULL,
       amount NUMERIC NOT NULL,
+      discount NUMERIC DEFAULT 0,
+      tax NUMERIC DEFAULT 0,
       paidAmount NUMERIC DEFAULT 0,
+      returnAmount NUMERIC DEFAULT 0,
+      netAmount NUMERIC DEFAULT 0,
       profit NUMERIC DEFAULT 0,
       status TEXT NOT NULL,
       paymentMode TEXT DEFAULT 'Cash',
@@ -168,6 +177,10 @@ const createTables = async () => {
     );
 
     ALTER TABLE sales ADD COLUMN IF NOT EXISTS paymentMode TEXT DEFAULT 'Cash';
+    ALTER TABLE sales ADD COLUMN IF NOT EXISTS discount NUMERIC DEFAULT 0;
+    ALTER TABLE sales ADD COLUMN IF NOT EXISTS tax NUMERIC DEFAULT 0;
+    ALTER TABLE sales ADD COLUMN IF NOT EXISTS returnAmount NUMERIC DEFAULT 0;
+    ALTER TABLE sales ADD COLUMN IF NOT EXISTS netAmount NUMERIC DEFAULT 0;
 
     -- Purchases Table
     CREATE TABLE IF NOT EXISTS purchases (
@@ -178,6 +191,8 @@ const createTables = async () => {
       supplierId TEXT,
       grandTotal NUMERIC NOT NULL,
       paidAmount NUMERIC DEFAULT 0,
+      returnAmount NUMERIC DEFAULT 0,
+      netAmount NUMERIC DEFAULT 0,
       paymentStatus TEXT DEFAULT 'Pending',
       paymentMode TEXT DEFAULT 'Supplier Khata',
       notes TEXT,
@@ -186,6 +201,8 @@ const createTables = async () => {
     );
 
     ALTER TABLE purchases ADD COLUMN IF NOT EXISTS paymentMode TEXT DEFAULT 'Supplier Khata';
+    ALTER TABLE purchases ADD COLUMN IF NOT EXISTS returnAmount NUMERIC DEFAULT 0;
+    ALTER TABLE purchases ADD COLUMN IF NOT EXISTS netAmount NUMERIC DEFAULT 0;
 
     -- Payment Logs Table
     CREATE TABLE IF NOT EXISTS payment_logs (

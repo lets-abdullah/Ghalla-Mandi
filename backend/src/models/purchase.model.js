@@ -5,10 +5,13 @@ const mapPurchaseRow = (r) => {
   const items = r.itemsjson ? (typeof r.itemsjson === 'string' ? JSON.parse(r.itemsjson) : r.itemsjson) : (r.itemsJson ? (typeof r.itemsJson === 'string' ? JSON.parse(r.itemsJson) : r.itemsJson) : []);
   const grandTotal = Number(r.grandtotal !== undefined ? r.grandtotal : (r.grandTotal !== undefined ? r.grandTotal : (r.amount !== undefined ? r.amount : 0)));
   const paidAmount = Number(r.paidamount !== undefined ? r.paidamount : (r.paidAmount !== undefined ? r.paidAmount : 0));
+  const returnAmount = Number(r.returnamount !== undefined ? r.returnamount : (r.returnAmount !== undefined ? r.returnAmount : 0));
+  const netAmount = Number(r.netamount !== undefined ? r.netamount : (r.netAmount !== undefined ? r.netAmount : Math.max(0, grandTotal - returnAmount)));
   const supplierName = r.suppliername || r.supplierName || r.supplier || 'Supplier';
   const purchaseNo = r.purchaseno || r.purchaseNo || '';
   const paymentMode = r.paymentmode || r.paymentMode || r.paymentmethod || r.paymentMethod || r.mode || 'Supplier Khata';
-  const paymentStatus = r.paymentstatus || r.paymentStatus || r.status || (paidAmount >= grandTotal ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+  const isReturned = (r.paymentstatus === 'Returned') || (r.status === 'Returned') || (r.returnStatus && r.returnStatus !== 'None') || (returnAmount >= grandTotal && grandTotal > 0);
+  const paymentStatus = isReturned ? 'Returned' : ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : 'Pending'));
   const date = r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
 
   return {
@@ -26,6 +29,10 @@ const mapPurchaseRow = (r) => {
     amount: grandTotal,
     paidAmount,
     paidamount: paidAmount,
+    returnAmount,
+    returnamount: returnAmount,
+    netAmount,
+    netamount: netAmount,
     paymentStatus,
     paymentstatus: paymentStatus,
     paymentMode,
@@ -85,15 +92,17 @@ export const Purchase = {
     const supplierId = purData.supplierId || null;
     const grandTotal = Number(purData.grandTotal || purData.amount) || 0;
     const paidAmount = Number(purData.paidAmount) || 0;
+    const returnAmount = Number(purData.returnAmount) || 0;
+    const netAmount = Number(purData.netAmount !== undefined ? purData.netAmount : Math.max(0, grandTotal - returnAmount));
     const paymentMode = purData.paymentMode || purData.paymentMethod || 'Supplier Khata';
-    const paymentStatus = purData.paymentStatus || (paidAmount >= grandTotal ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+    const paymentStatus = purData.paymentStatus || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
     const notes = purData.notes || '';
     const items = purData.items || [];
     const itemsJson = JSON.stringify(items);
 
     await run(
-      'INSERT INTO purchases (id, shop_id, purchaseNo, supplierName, supplierId, grandTotal, paidAmount, paymentStatus, paymentMode, notes, itemsJson) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
-      [id, shop_id, purchaseNo, supplierName, supplierId, grandTotal, paidAmount, paymentStatus, paymentMode, notes, itemsJson]
+      'INSERT INTO purchases (id, shop_id, purchaseNo, supplierName, supplierId, grandTotal, paidAmount, returnAmount, netAmount, paymentStatus, paymentMode, notes, itemsJson) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+      [id, shop_id, purchaseNo, supplierName, supplierId, grandTotal, paidAmount, returnAmount, netAmount, paymentStatus, paymentMode, notes, itemsJson]
     );
 
     return await this.findById(id, shop_id);
@@ -112,6 +121,8 @@ export const Purchase = {
     if (updateData.supplierId !== undefined) { fields.push(`supplierId = $${paramIndex++}`); params.push(updateData.supplierId); }
     if (updateData.grandTotal !== undefined || updateData.amount !== undefined) { fields.push(`grandTotal = $${paramIndex++}`); params.push(Number(updateData.grandTotal !== undefined ? updateData.grandTotal : updateData.amount)); }
     if (updateData.paidAmount !== undefined) { fields.push(`paidAmount = $${paramIndex++}`); params.push(Number(updateData.paidAmount)); }
+    if (updateData.returnAmount !== undefined) { fields.push(`returnAmount = $${paramIndex++}`); params.push(Number(updateData.returnAmount)); }
+    if (updateData.netAmount !== undefined) { fields.push(`netAmount = $${paramIndex++}`); params.push(Number(updateData.netAmount)); }
     if (updateData.paymentStatus !== undefined || updateData.status !== undefined) { fields.push(`paymentStatus = $${paramIndex++}`); params.push(updateData.paymentStatus || updateData.status); }
     if (updateData.paymentMode !== undefined || updateData.paymentMethod !== undefined) { fields.push(`paymentMode = $${paramIndex++}`); params.push(updateData.paymentMode || updateData.paymentMethod); }
     if (updateData.notes !== undefined) { fields.push(`notes = $${paramIndex++}`); params.push(updateData.notes); }

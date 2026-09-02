@@ -63,7 +63,7 @@ export const createSale = async (req, res) => {
         shop_id: req.shop_id,
         product: product.name,
         type: 'OUT (Sale)',
-        qty: `${qty} ${itemUnit} (${baseQtyDeducted} ${product.unit || 'KG'})`,
+        qty: `${qty} ${itemUnit}`,
         ref: `POS Checkout`,
         date: new Date().toLocaleDateString('en-GB')
       });
@@ -78,7 +78,9 @@ export const createSale = async (req, res) => {
       });
     }
 
-    const grandTotal = Math.max(0, subtotal - Number(discount) + Number(tax));
+    const discountVal = Number(discount) || 0;
+    const taxVal = Number(tax) || 0;
+    const grandTotal = Math.max(0, subtotal - discountVal + taxVal);
     const paid = Math.min(grandTotal, Math.max(0, Number(paidAmount) || 0));
     const status = paid >= grandTotal ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
 
@@ -95,7 +97,7 @@ export const createSale = async (req, res) => {
       if (cust) {
         activePartyName = cust.name;
         const unpaid = Math.max(0, grandTotal - paid);
-        await Customer.findByIdAndUpdate(cust.id, { balance: Number(cust.balance) + unpaid }, { shop_id: req.shop_id });
+        await Customer.findByIdAndUpdate(cust.id, { balance: Math.max(0, Number(cust.balance || 0) + unpaid) }, { shop_id: req.shop_id });
       }
     }
 
@@ -107,7 +109,11 @@ export const createSale = async (req, res) => {
       customerType: targetCustId ? 'Regular Party' : 'Walk-in Customer',
       date: dateStr,
       amount: grandTotal,
+      discount: discountVal,
+      tax: taxVal,
       paidAmount: paid,
+      returnAmount: 0,
+      netAmount: grandTotal,
       profit: Math.round(totalProfit),
       paymentMode: paymentMethod || 'Cash',
       paymentMethod: paymentMethod || 'Cash',
@@ -234,9 +240,13 @@ export const updateSale = async (req, res) => {
       });
     }
 
-    const grandTotal = Math.max(0, subtotal - Number(discount) + Number(tax));
+    const discountVal = Number(discount) || 0;
+    const taxVal = Number(tax) || 0;
+    const grandTotal = Math.max(0, subtotal - discountVal + taxVal);
+    const returnAmt = Number(existingSale.returnAmount) || 0;
+    const netGrand = Math.max(0, grandTotal - returnAmt);
     const paid = Number(paidAmount) || 0;
-    const status = paid >= grandTotal ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+    const status = paid >= netGrand ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
 
     let activePartyName = customerName || existingSale.partyName || 'Walk-in Customer';
     let targetCustId = customerId !== undefined ? customerId : existingSale.customerId;
@@ -246,12 +256,12 @@ export const updateSale = async (req, res) => {
       const cust = await Customer.findById(targetCustId, req.shop_id);
       if (cust) {
         activePartyName = cust.name;
-        const oldUnpaid = Math.max(0, Number(existingSale.amount || 0) - Number(existingSale.paidAmount || 0));
-        const newUnpaid = Math.max(0, grandTotal - paid);
+        const oldUnpaid = Math.max(0, Number(existingSale.netAmount || existingSale.amount || 0) - Number(existingSale.paidAmount || 0));
+        const newUnpaid = Math.max(0, netGrand - paid);
         const balanceDiff = newUnpaid - oldUnpaid;
 
         if (balanceDiff !== 0) {
-          await Customer.findByIdAndUpdate(cust.id, { balance: Number(cust.balance) + balanceDiff }, { shop_id: req.shop_id });
+          await Customer.findByIdAndUpdate(cust.id, { balance: Math.max(0, Number(cust.balance || 0) + balanceDiff) }, { shop_id: req.shop_id });
         }
       }
     }
@@ -261,7 +271,11 @@ export const updateSale = async (req, res) => {
       customerId: targetCustId,
       customerType: targetCustId ? 'Regular Party' : 'Walk-in Customer',
       amount: grandTotal,
+      discount: discountVal,
+      tax: taxVal,
       paidAmount: paid,
+      returnAmount: returnAmt,
+      netAmount: netGrand,
       profit: Math.round(totalProfit),
       status,
       itemsCount: processedCart.length,

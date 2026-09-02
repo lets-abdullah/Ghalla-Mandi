@@ -484,7 +484,7 @@ export const Ledger = () => {
       totalDebit: c.totalSale || 0,
       totalCredit: c.totalPaid || 0,
       balance: c.receivableDue || 0,
-      status: (c.receivableDue || 0) > 0 ? 'Receivable' : (c.advanceCredit > 0 ? 'Advance' : 'Settled')
+      status: (c.receivableDue || 0) > 0 ? 'Receivable' : 'Settled'
     }));
   }, [isSupplier, supFin, custFin]);
 

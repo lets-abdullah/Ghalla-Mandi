@@ -527,17 +527,13 @@ export const Products = () => {
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'
                       }`}
                   >
-                    <option value="KG">{t('kg')}</option>
-                    <option value="Gram">{t('gram')}</option>
-                    <option value="Mann">{t('mann')}</option>
-                    <option value="Bag">{t('bori')}</option>
-                    <option value="Litre">{t('litre')}</option>
-                    <option value="ML">{t('ml')}</option>
-                    <option value="Dozen">{t('dozen')}</option>
-                    <option value="Pack">{t('pack')}</option>
-                    <option value="Carton">{t('carton')}</option>
-                    <option value="PCS">{t('item')}</option>
-                    <option value="Ton">{t('ton')}</option>
+                    <option value="KG">KG (Kilogram)</option>
+                    <option value="Gram">Gram (g)</option>
+                    <option value="Litre">Litre (L)</option>
+                    <option value="ML">ML (Millilitre)</option>
+                    <option value="Meter">Meter (m)</option>
+                    <option value="Piece">Piece (pc)</option>
+                    <option value="Unit">Unit</option>
                   </select>
                 </div>
               </div>
@@ -744,17 +740,13 @@ export const Products = () => {
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'
                       }`}
                   >
-                    <option value="KG">{t('kg')}</option>
-                    <option value="Gram">{t('gram')}</option>
-                    <option value="Mann">{t('mann')}</option>
-                    <option value="Bag">{t('bori')}</option>
-                    <option value="Litre">{t('litre')}</option>
-                    <option value="ML">{t('ml')}</option>
-                    <option value="Dozen">{t('dozen')}</option>
-                    <option value="Pack">{t('pack')}</option>
-                    <option value="Carton">{t('carton')}</option>
-                    <option value="PCS">{t('item')}</option>
-                    <option value="Ton">{t('ton')}</option>
+                    <option value="KG">KG (Kilogram)</option>
+                    <option value="Gram">Gram (g)</option>
+                    <option value="Litre">Litre (L)</option>
+                    <option value="ML">ML (Millilitre)</option>
+                    <option value="Meter">Meter (m)</option>
+                    <option value="Piece">Piece (pc)</option>
+                    <option value="Unit">Unit</option>
                   </select>
                 </div>
               </div>

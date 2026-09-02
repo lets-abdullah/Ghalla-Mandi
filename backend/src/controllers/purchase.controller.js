@@ -50,11 +50,18 @@ export const createPurchase = async (req, res) => {
       const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
       const baseQtyAdded = qtyInKg / baseProductFactor;
 
-      // Update product stock and purchase price
-      const newStock = Number(product.stockQty) + baseQtyAdded;
+      // Update product stock and moving weighted average purchase price
+      const currentStock = Math.max(0, Number(product.stockQty) || 0);
+      const currentPrice = Number(product.purchasePrice) || 0;
+      const newStock = currentStock + baseQtyAdded;
+      let newAvgCost = currentPrice;
+      if (newStock > 0 && rate > 0) {
+        newAvgCost = Math.round(((currentStock * currentPrice) + (baseQtyAdded * rate)) / newStock * 100) / 100;
+      }
+
       await Product.findByIdAndUpdate(product.id, {
         stockQty: newStock,
-        purchasePrice: rate > 0 ? rate : product.purchasePrice
+        purchasePrice: newAvgCost
       }, { shop_id: req.shop_id });
 
       // Audit Log
@@ -62,7 +69,7 @@ export const createPurchase = async (req, res) => {
         shop_id: req.shop_id,
         product: product.name,
         type: 'IN (Purchase)',
-        qty: `${qty} ${itemUnit} (${baseQtyAdded} ${product.unit || 'KG'})`,
+        qty: `${qty} ${itemUnit}`,
         ref: `Purchase Bill`,
         date: new Date().toLocaleDateString('en-GB')
       });
@@ -101,6 +108,8 @@ export const createPurchase = async (req, res) => {
       supplierId: targetSupId,
       grandTotal: totalGrand,
       paidAmount: paid,
+      returnAmount: 0,
+      netAmount: totalGrand,
       paymentStatus,
       paymentMode: req.body.paymentMode || req.body.paymentMethod || (paid >= totalGrand ? 'Cash' : paid > 0 ? 'Cash / Supplier Khata' : 'Supplier Khata'),
       notes,
@@ -202,17 +211,24 @@ export const updatePurchase = async (req, res) => {
         const qtyInKg = convertToKg(qty, itemUnit);
         const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
         const addedBaseQty = qtyInKg / baseProductFactor;
-        const newStock = Number(product.stockQty) + addedBaseQty;
+        const currentStock = Math.max(0, Number(product.stockQty) || 0);
+        const currentPrice = Number(product.purchasePrice) || 0;
+        const newStock = currentStock + addedBaseQty;
+        let newAvgCost = currentPrice;
+        if (newStock > 0 && rate > 0) {
+          newAvgCost = Math.round(((currentStock * currentPrice) + (addedBaseQty * rate)) / newStock * 100) / 100;
+        }
+
         await Product.findByIdAndUpdate(product.id, {
           stockQty: newStock,
-          purchasePrice: rate > 0 ? rate : product.purchasePrice
+          purchasePrice: newAvgCost
         }, { shop_id: req.shop_id });
 
         await AuditLog.create({
           shop_id: req.shop_id,
           product: product.name,
           type: 'IN (Purchase Updated)',
-          qty: `${qty} ${itemUnit} (${addedBaseQty} ${product.unit || 'KG'})`,
+          qty: `${qty} ${itemUnit}`,
           ref: `Purchase #${existingPurchase.purchaseNo}`,
           date: new Date().toLocaleDateString('en-GB')
         });
@@ -235,8 +251,10 @@ export const updatePurchase = async (req, res) => {
       });
     }
 
+    const returnAmt = Number(existingPurchase.returnAmount) || 0;
+    const netGrand = Math.max(0, totalGrand - returnAmt);
     const paid = Number(paidAmount !== undefined ? paidAmount : existingPurchase.paidAmount) || 0;
-    const paymentStatus = paid >= totalGrand ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+    const paymentStatus = paid >= netGrand ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
 
     let activeSupplierName = supplierName || existingPurchase.supplierName || 'Supplier';
     let targetSupId = supplierId !== undefined ? supplierId : existingPurchase.supplierId;
@@ -245,11 +263,11 @@ export const updatePurchase = async (req, res) => {
       const sup = await Supplier.findById(targetSupId, req.shop_id);
       if (sup) {
         activeSupplierName = sup.name;
-        const oldUnpaid = Math.max(0, Number(existingPurchase.grandTotal || existingPurchase.amount || 0) - Number(existingPurchase.paidAmount || 0));
-        const newUnpaid = Math.max(0, totalGrand - paid);
+        const oldUnpaid = Math.max(0, Number(existingPurchase.netAmount || existingPurchase.grandTotal || existingPurchase.amount || 0) - Number(existingPurchase.paidAmount || 0));
+        const newUnpaid = Math.max(0, netGrand - paid);
         const balanceDiff = newUnpaid - oldUnpaid;
         if (balanceDiff !== 0) {
-          await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance || 0) + balanceDiff }, { shop_id: req.shop_id });
+          await Supplier.findByIdAndUpdate(sup.id, { balance: Math.max(0, Number(sup.balance || 0) + balanceDiff) }, { shop_id: req.shop_id });
         }
       }
     }
@@ -293,6 +311,7 @@ export const updatePurchase = async (req, res) => {
       supplierId: targetSupId,
       grandTotal: totalGrand,
       amount: totalGrand,
+      netAmount: netGrand,
       paidAmount: paid,
       paymentStatus,
       paymentMode: paymentMode || existingPurchase.paymentMode || 'Supplier Khata',

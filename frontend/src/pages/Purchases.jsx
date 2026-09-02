@@ -1533,12 +1533,12 @@ export const Purchases = () => {
                       }`}
                   >
                     <option value="KG">Kilogram (KG)</option>
-                    <option value="Maund">Maund (Mann - 40 KG)</option>
-                    <option value="Bag">Bag (Bori - 50 KG)</option>
                     <option value="Gram">Gram (g)</option>
-                    <option value="Liter">Liter (L)</option>
-                    <option value="Quintal">Quintal (100 KG)</option>
-                    <option value="Ton">Ton (1000 KG)</option>
+                    <option value="Litre">Litre (L)</option>
+                    <option value="ML">Millilitre (ML)</option>
+                    <option value="Meter">Meter (m)</option>
+                    <option value="Piece">Piece (pc)</option>
+                    <option value="Unit">Unit</option>
                   </select>
                 </div>
 

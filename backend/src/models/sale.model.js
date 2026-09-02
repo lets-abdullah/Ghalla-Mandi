@@ -8,11 +8,15 @@ const mapSaleRow = (r) => {
   const customerId = r.customerid || r.customerId || null;
   const customerType = r.customertype || r.customerType || 'Regular Party';
   const amount = Number(r.amount !== undefined ? r.amount : (r.grandtotal !== undefined ? r.grandtotal : (r.grandTotal !== undefined ? r.grandTotal : 0)));
+  const discount = Number(r.discount !== undefined ? r.discount : 0);
+  const tax = Number(r.tax !== undefined ? r.tax : 0);
   const paidAmount = Number(r.paidamount !== undefined ? r.paidamount : (r.paidAmount !== undefined ? r.paidAmount : 0));
+  const returnAmount = Number(r.returnamount !== undefined ? r.returnamount : (r.returnAmount !== undefined ? r.returnAmount : 0));
+  const netAmount = Number(r.netamount !== undefined ? r.netamount : (r.netAmount !== undefined ? r.netAmount : Math.max(0, amount - returnAmount)));
   const profit = Number(r.profit !== undefined ? r.profit : (r.profitmargin !== undefined ? r.profitmargin : (r.profitMargin !== undefined ? r.profitMargin : 0)));
   const paymentMode = r.paymentmode || r.paymentMode || r.paymentmethod || r.paymentMethod || r.mode || 'Cash';
-  const isReturned = (r.status === 'Returned') || (r.returnStatus && r.returnStatus !== 'None');
-  const status = isReturned ? 'Returned' : ((paidAmount >= amount && amount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : 'Pending'));
+  const isReturned = (r.status === 'Returned') || (r.returnStatus && r.returnStatus !== 'None') || (returnAmount >= amount && amount > 0);
+  const status = isReturned ? 'Returned' : ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : 'Pending'));
   const itemsCount = Number(r.itemscount !== undefined ? r.itemscount : (r.itemsCount !== undefined ? r.itemsCount : cart.length));
   const date = r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
 
@@ -32,6 +36,12 @@ const mapSaleRow = (r) => {
     date,
     amount,
     grandTotal: amount,
+    discount,
+    tax,
+    returnAmount,
+    returnamount: returnAmount,
+    netAmount,
+    netamount: netAmount,
     paidAmount,
     paidamount: paidAmount,
     paymentMode,
@@ -95,17 +105,21 @@ export const Sale = {
     const customerType = saleData.customerType || 'Regular Party';
     const date = saleData.date || new Date().toLocaleDateString('en-GB');
     const amount = Number(saleData.amount || saleData.grandTotal) || 0;
+    const discount = Number(saleData.discount) || 0;
+    const tax = Number(saleData.tax) || 0;
+    const returnAmount = Number(saleData.returnAmount) || 0;
+    const netAmount = Number(saleData.netAmount !== undefined ? saleData.netAmount : Math.max(0, amount - returnAmount));
     const paidAmount = Number(saleData.paidAmount !== undefined ? saleData.paidAmount : (saleData.paidamount !== undefined ? saleData.paidamount : 0));
     const paymentMode = saleData.paymentMode || saleData.paymentMethod || 'Cash';
     const profit = Number(saleData.profit || saleData.profitMargin) || 0;
-    const status = saleData.status || saleData.paymentStatus || ((paidAmount >= amount && amount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+    const status = saleData.status || saleData.paymentStatus || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
     const cart = saleData.cart || saleData.items || [];
     const itemsCount = saleData.itemsCount || cart.length;
     const cartJson = JSON.stringify(cart);
 
     await run(
-      'INSERT INTO sales (id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, paidAmount, paymentMode, profit, status, itemsCount, cartJson) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
-      [id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, paidAmount, paymentMode, profit, status, itemsCount, cartJson]
+      'INSERT INTO sales (id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, discount, tax, paidAmount, returnAmount, netAmount, paymentMode, profit, status, itemsCount, cartJson) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)',
+      [id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, discount, tax, paidAmount, returnAmount, netAmount, paymentMode, profit, status, itemsCount, cartJson]
     );
 
     return await this.findById(id, shop_id);
@@ -124,7 +138,11 @@ export const Sale = {
     if (updateData.customerId !== undefined) { fields.push(`customerId = $${paramIndex++}`); params.push(updateData.customerId); }
     if (updateData.customerType !== undefined) { fields.push(`customerType = $${paramIndex++}`); params.push(updateData.customerType); }
     if (updateData.amount !== undefined || updateData.grandTotal !== undefined) { fields.push(`amount = $${paramIndex++}`); params.push(Number(updateData.amount !== undefined ? updateData.amount : updateData.grandTotal)); }
+    if (updateData.discount !== undefined) { fields.push(`discount = $${paramIndex++}`); params.push(Number(updateData.discount)); }
+    if (updateData.tax !== undefined) { fields.push(`tax = $${paramIndex++}`); params.push(Number(updateData.tax)); }
     if (updateData.paidAmount !== undefined) { fields.push(`paidAmount = $${paramIndex++}`); params.push(Number(updateData.paidAmount)); }
+    if (updateData.returnAmount !== undefined) { fields.push(`returnAmount = $${paramIndex++}`); params.push(Number(updateData.returnAmount)); }
+    if (updateData.netAmount !== undefined) { fields.push(`netAmount = $${paramIndex++}`); params.push(Number(updateData.netAmount)); }
     if (updateData.paymentMode !== undefined || updateData.paymentMethod !== undefined) {
       fields.push(`paymentMode = $${paramIndex++}`);
       params.push(updateData.paymentMode || updateData.paymentMethod);

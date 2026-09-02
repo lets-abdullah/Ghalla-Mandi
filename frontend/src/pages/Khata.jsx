@@ -514,11 +514,7 @@ export const Khata = () => {
 
                       {/* Balance */}
                       <td className="py-3 px-4 text-right font-mono font-black text-xs">
-                        {item.advanceCredit > 0 ? (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
-                            Credit: Rs. {item.advanceCredit.toLocaleString()}
-                          </span>
-                        ) : item.receivableDue > 0 ? (
+                        {item.receivableDue > 0 ? (
                           <span className="text-amber-500 dark:text-amber-400 font-black">
                             Rs. {item.receivableDue.toLocaleString()}
                           </span>
@@ -529,13 +525,11 @@ export const Khata = () => {
 
                       {/* Status */}
                       <td className="py-3 px-3 text-center">
-                        <span className={`text-xs font-bold ${item.advanceCredit > 0
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : item.receivableDue > 0
-                            ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-slate-500'
+                        <span className={`text-xs font-bold ${item.receivableDue > 0
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-emerald-600 dark:text-emerald-400'
                           }`}>
-                          {item.advanceCredit > 0 ? 'Advance' : item.receivableDue > 0 ? 'Due' : 'Clear'}
+                          {item.receivableDue > 0 ? 'Due' : 'Settled'}
                         </span>
                       </td>
 

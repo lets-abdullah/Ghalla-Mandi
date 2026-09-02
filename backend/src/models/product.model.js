@@ -5,6 +5,8 @@ const mapProductRow = (r) => {
   const purchasePrice = Number(r.purchaseprice !== undefined ? r.purchaseprice : (r.purchasePrice !== undefined ? r.purchasePrice : 0));
   const sellingPrice = Number(r.sellingprice !== undefined ? r.sellingprice : (r.sellingPrice !== undefined ? r.sellingPrice : 0));
   const stockQty = Number(r.stockqty !== undefined ? r.stockqty : (r.stockQty !== undefined ? r.stockQty : 0));
+  const initialStock = Number(r.initialstock !== undefined ? r.initialstock : (r.initialStock !== undefined ? r.initialStock : stockQty));
+  const initialCost = Number(r.initialcost !== undefined ? r.initialcost : (r.initialCost !== undefined ? r.initialCost : purchasePrice));
   const minStock = Number(r.minstock !== undefined ? r.minstock : (r.minStock !== undefined ? r.minStock : (r.minStockThreshold !== undefined ? r.minStockThreshold : 10)));
   const unit = r.unit || r.baseUnit || 'KG';
 
@@ -21,6 +23,10 @@ const mapProductRow = (r) => {
     sellingprice: sellingPrice,
     stockQty,
     stockqty: stockQty,
+    initialStock,
+    initialstock: initialStock,
+    initialCost,
+    initialcost: initialCost,
     minStock,
     minstock: minStock,
     unit,
@@ -71,13 +77,15 @@ export const Product = {
     const purchasePrice = Number(prodData.purchasePrice !== undefined ? prodData.purchasePrice : (prodData.purchaseprice !== undefined ? prodData.purchaseprice : 0)) || 0;
     const sellingPrice = Number(prodData.sellingPrice !== undefined ? prodData.sellingPrice : (prodData.sellingprice !== undefined ? prodData.sellingprice : 0)) || 0;
     const stockQty = Number(prodData.stockQty !== undefined ? prodData.stockQty : (prodData.stockqty !== undefined ? prodData.stockqty : 0)) || 0;
+    const initialStock = Number(prodData.initialStock !== undefined ? prodData.initialStock : stockQty) || 0;
+    const initialCost = Number(prodData.initialCost !== undefined ? prodData.initialCost : purchasePrice) || 0;
     const minStock = Number(prodData.minStock || prodData.minstock || prodData.minStockThreshold) || 10;
     const unit = prodData.unit || prodData.baseUnit || 'KG';
     const image = prodData.image || prodData.imageUrl || '';
 
     await run(
-      'INSERT INTO products (id, shop_id, code, name, category, purchasePrice, sellingPrice, stockQty, minStock, unit, image) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
-      [id, shop_id, code, name, category, purchasePrice, sellingPrice, stockQty, minStock, unit, image]
+      'INSERT INTO products (id, shop_id, code, name, category, purchasePrice, sellingPrice, stockQty, initialStock, initialCost, minStock, unit, image) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+      [id, shop_id, code, name, category, purchasePrice, sellingPrice, stockQty, initialStock, initialCost, minStock, unit, image]
     );
 
     return await this.findById(id, shop_id);
@@ -102,6 +110,10 @@ export const Product = {
       sellingprice: 'sellingPrice',
       stockQty: 'stockQty',
       stockqty: 'stockQty',
+      initialStock: 'initialStock',
+      initialstock: 'initialStock',
+      initialCost: 'initialCost',
+      initialcost: 'initialCost',
       minStock: 'minStock',
       minstock: 'minStock',
       minStockThreshold: 'minStock',
@@ -117,7 +129,7 @@ export const Product = {
         handled.add(col);
         fields.push(`${col} = $${paramIndex++}`);
         params.push(
-          (col === 'purchasePrice' || col === 'sellingPrice' || col === 'stockQty' || col === 'minStock')
+          (col === 'purchasePrice' || col === 'sellingPrice' || col === 'stockQty' || col === 'initialStock' || col === 'initialCost' || col === 'minStock')
             ? Number(updateData[k]) || 0
             : updateData[k]
         );

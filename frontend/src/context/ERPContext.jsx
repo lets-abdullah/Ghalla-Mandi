@@ -351,17 +351,17 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   const openingBalance = Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0));
   const netSales = Math.max(0, totalGrossSale - totalReturnAmount);
 
-  // Canonical Accounting Equations:
-  // Total Debits = Opening Balance (Receivable) + Gross Sales Invoiced
-  // Total Credits = Actual Payments Received + Ledger Credit Notes (Returns adjusted against Khata)
-  // Net Balance = Debits - Credits
-  const totalDebits = openingBalance + totalGrossSale;
-  const totalCredits = totalActualPaymentsReceived + ledgerReturnAmount;
+  // Canonical Accounting Equations (Rules 2 & 3: Sale Returns reduce Sales, Customer cannot be creditor)
+  // Total Debits = Opening Balance (Receivable) + Net Sales Invoiced
+  // Total Credits = Actual Payments Received
+  // Receivable Due = max(0, Debits - Credits)
+  const totalDebits = openingBalance + netSales;
+  const totalCredits = totalActualPaymentsReceived;
   const netBalance = totalDebits - totalCredits;
 
   const receivableDue = Math.max(0, netBalance);
-  const advanceCredit = Math.max(0, -netBalance);
-  const status = netBalance > 0 ? 'Due' : (netBalance < 0 ? 'Advance' : 'Settled');
+  const advanceCredit = 0; // Strictly enforced: customers can never become creditors
+  const status = receivableDue > 0 ? 'Due' : 'Settled';
 
   return {
     openingBalance,
@@ -372,10 +372,10 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     totalPaid: totalActualPaymentsReceived,
     returnAmount: totalReturnAmount,
     netSale: netSales,
-    netBalance,
+    netBalance: receivableDue,
     balance: receivableDue,
     receivableDue,
-    advanceCredit,
+    advanceCredit: 0,
     status,
     ordersCount: custSales.length
   };
@@ -484,11 +484,12 @@ export const getUnitFactor = (unitName = 'KG') => {
   if (!unitName || typeof unitName !== 'string') return 1;
   const clean = unitName.trim().toLowerCase();
   if (clean === 'kg' || clean === 'kgs' || clean === 'kilogram') return 1;
-  if (clean.includes('mann') || clean.includes('maund') || clean.includes('mon')) return 40;
-  if (clean.includes('bori') || clean.includes('bag') || clean.includes('bora')) return 50;
-  if (clean.includes('ton') || clean.includes('tonne')) return 1000;
-  if (clean.includes('quintal') || clean.includes('qtl')) return 100;
   if (clean === 'gram' || clean === 'gm' || clean === 'g') return 0.001;
+  if (clean === 'ml' || clean === 'milliliter' || clean === 'millilitre') return 0.001;
+  if (clean === 'litre' || clean === 'liter' || clean === 'ltr' || clean === 'l') return 1;
+  if (clean === 'meter' || clean === 'metre' || clean === 'm') return 1;
+  if (clean === 'piece' || clean === 'pieces' || clean === 'pc' || clean === 'pcs') return 1;
+  if (clean === 'unit' || clean === 'units') return 1;
   return 1;
 };
 
@@ -528,7 +529,7 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     return prodName && itName && (itName === prodName || itName.includes(prodName) || prodName.includes(itName));
   };
 
-  const initialRate = safeNum(product.purchasePrice ?? product.purchase_price ?? product.rate ?? 0, 0);
+  const initialRate = safeNum(product.initialCost ?? product.initial_cost ?? product.purchasePrice ?? product.purchase_price ?? product.rate ?? 0, 0);
   const sellingRate = safeNum(product.sellingPrice ?? product.selling_price ?? 0, 0);
 
   // Collect authentic transaction events
@@ -670,14 +671,14 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     }
   });
 
-  const hasTransactions = purchaseEvents.length > 0 || purchaseReturnEvents.length > 0 || saleEvents.length > 0 || saleReturnEvents.length > 0 || adjustmentEvents.length > 0;
   const events = [];
 
-  const explicitOpeningQty = safeQty(product.openingStock ?? product.initialStock ?? product.opening_stock ?? product.initial_stock ?? 0);
-  if (explicitOpeningQty > 0 && !hasTransactions) {
+  // Rule 6: Initial Stock is ALWAYS preserved and seeded as the root opening batch
+  const explicitOpeningQty = safeQty(product.initialStock ?? product.initial_stock ?? product.openingStock ?? product.opening_stock ?? product.stockQty ?? 0);
+  if (explicitOpeningQty > 0) {
     events.push({
       id: `open-${product.id || 0}`,
-      date: new Date(product.created_at || '2026-01-01').getTime() || 0,
+      date: product.created_at ? (new Date(product.created_at).getTime() || 0) : 0,
       dateStr: product.created_at ? new Date(product.created_at).toLocaleDateString('en-GB') : 'Opening',
       type: 'OPENING',
       ref: 'OPENING-STOCK',
@@ -687,7 +688,11 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
   }
 
   events.push(...purchaseEvents, ...purchaseReturnEvents, ...saleEvents, ...saleReturnEvents, ...adjustmentEvents);
-  events.sort((a, b) => a.date - b.date);
+  const typeOrder = { 'OPENING': 0, 'PURCHASE': 1, 'PURCHASE_RETURN': 2, 'SALE': 3, 'SALE_RETURN': 4, 'ADJUSTMENT_IN': 5, 'ADJUSTMENT_OUT': 6 };
+  events.sort((a, b) => {
+    if (a.date !== b.date) return a.date - b.date;
+    return (typeOrder[a.type] ?? 99) - (typeOrder[b.type] ?? 99);
+  });
 
   // If no transactions exist, fallback to direct product stockQty and purchasePrice
   if (events.length === 0) {
@@ -958,17 +963,17 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   const openingBalance = Number(supplier.openingBalance !== undefined ? supplier.openingBalance : (supplier.openingbalance !== undefined ? supplier.openingbalance : 0));
   const netPurchases = Math.max(0, totalGrossPurchase - totalReturnAmount);
 
-  // Canonical Accounting Equations:
-  // Credits (Payable Liability) = Opening Balance + Gross Purchases Billed
-  // Debits = Actual Payments Paid + Ledger Debit Notes (Purchase Returns adjusted against Khata)
-  // Net Balance = Credits - Debits
-  const totalCredits = openingBalance + totalGrossPurchase;
-  const totalDebits = totalActualPaymentsPaid + ledgerReturnAmount;
+  // Canonical Accounting Equations (Rules 4 & 5: Purchase Returns reduce Purchases, No Supplier Advances)
+  // Credits (Payable Liability) = Opening Balance + Net Purchases Billed
+  // Debits = Actual Payments Paid
+  // Payable Due = max(0, Credits - Debits)
+  const totalCredits = openingBalance + netPurchases;
+  const totalDebits = totalActualPaymentsPaid;
   const netBalance = totalCredits - totalDebits;
 
   const payableDue = Math.max(0, netBalance);
-  const advanceCredit = Math.max(0, -netBalance);
-  const status = netBalance > 0 ? 'Payable' : (netBalance < 0 ? 'Advance' : 'Settled');
+  const advanceCredit = 0; // Strictly enforced: No supplier advances
+  const status = payableDue > 0 ? 'Payable' : 'Settled';
 
   return {
     openingBalance,
@@ -979,10 +984,10 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
     totalPaid: totalActualPaymentsPaid,
     returnAmount: totalReturnAmount,
     netPurchase: netPurchases,
-    netBalance,
-    balance: payableDue > 0 ? payableDue : -advanceCredit,
+    netBalance: payableDue,
+    balance: payableDue,
     payableDue,
-    advanceCredit,
+    advanceCredit: 0,
     status,
     ordersCount: supPurchases.length
   };

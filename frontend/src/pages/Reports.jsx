@@ -164,22 +164,7 @@ export const Reports = () => {
       const unit = (p.unit || p.baseUnit || 'KG').trim();
       const unitLower = unit.toLowerCase();
 
-      // Check unit classification
-      const isLiquidOrPackaged = ['litre', 'liter', 'ltr', 'bottle', 'packet', 'pcs', 'piece', 'can', 'tin', 'box', 'carton'].some(u => unitLower.includes(u));
-      const isBori = ['bori', 'bag', 'bora'].some(u => unitLower.includes(u));
-      const isMann = unitLower.includes('mann') || unitLower.includes('mon');
-      const isKg = ['kg', 'kilogram'].some(u => unitLower.includes(u));
-
       let bagDetail = null;
-      if (!isLiquidOrPackaged) {
-        if (isBori) {
-          bagDetail = `${qty} Bori`;
-        } else if (isMann) {
-          bagDetail = `~${Math.round((qty * 40) / 50)} Bags (50kg)`;
-        } else if (isKg) {
-          bagDetail = `~${Math.round(qty / 50)} Bags (50kg)`;
-        }
-      }
 
       let status = 'In Stock';
       if (qty <= 0) status = 'Out of Stock';

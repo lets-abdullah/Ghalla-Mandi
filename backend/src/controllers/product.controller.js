@@ -33,15 +33,20 @@ export const createProduct = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Product name and category are required' });
     }
 
+    const initialStockQty = Number(stockQty) || 0;
+    const initialPurchaseCost = Number(purchasePrice) || 0;
+
     const product = await Product.create({
       shop_id: req.shop_id,
       name,
       category,
       code: code || `PRD-${Math.floor(1000 + Math.random() * 9000)}`,
       unit: baseUnit || 'KG',
-      stockQty: Number(stockQty) || 0,
+      stockQty: initialStockQty,
+      initialStock: initialStockQty,
+      initialCost: initialPurchaseCost,
       minStock: Number(minStockThreshold) || 10,
-      purchasePrice: Number(purchasePrice) || 0,
+      purchasePrice: initialPurchaseCost,
       sellingPrice: Number(sellingPrice) || 0,
       image: image || ''
     });
@@ -50,7 +55,7 @@ export const createProduct = async (req, res) => {
       shop_id: req.shop_id,
       product: name,
       type: 'IN (Product Created)',
-      qty: `${stockQty || 0} Units`,
+      qty: `${initialStockQty} ${baseUnit || 'KG'}`,
       ref: req.user ? req.user.fullName : 'Admin',
       date: new Date().toLocaleDateString('en-GB')
     });

@@ -93,9 +93,14 @@ export const createSaleReturn = async (req, res) => {
         const relatedReturns = saleReturns.filter(r => String(r.saleId) === String(saleId) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
         const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
         const origAmt = Number(sale.amount || 0);
-        const isFull = totalReturnAmt >= (origAmt - 1);
+        const netAmt = Math.max(0, origAmt - totalReturnAmt);
+        const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
+        const newStatus = isFull ? 'Returned' : ((Number(sale.paidAmount || 0) >= netAmt && netAmt > 0) ? 'Paid' : (Number(sale.paidAmount || 0) > 0 ? 'Partial' : 'Pending'));
+        
         await Sale.findByIdAndUpdate(sale.id, {
-          status: isFull ? 'Returned' : (Number(sale.paidAmount || 0) >= (origAmt - totalReturnAmt) ? 'Paid' : 'Partial')
+          returnAmount: totalReturnAmt,
+          netAmount: netAmt,
+          status: newStatus
         }, { shop_id: req.shop_id });
       }
     }
@@ -153,7 +158,7 @@ export const deleteSaleReturn = async (req, res) => {
     if (existing.refundMode === 'Ledger' && existing.customerId) {
       const cust = await Customer.findOne({ id: existing.customerId, shop_id: req.shop_id });
       if (cust) {
-        const restoredBal = Number(cust.balance || 0) + Number(existing.refundAmount || 0);
+        const restoredBal = Math.max(0, Number(cust.balance || 0) + Number(existing.refundAmount || 0));
         await Customer.findByIdAndUpdate(cust.id, { balance: restoredBal }, { shop_id: req.shop_id });
       }
       await run('DELETE FROM payment_logs WHERE ref = $1 AND shop_id = $2', [existing.returnNo, req.shop_id]);
@@ -162,7 +167,7 @@ export const deleteSaleReturn = async (req, res) => {
     // 3. Delete the sale return record
     await SaleReturn.findByIdAndDelete(id, req.shop_id);
 
-    // 4. Update matching sale status
+    // 4. Update matching sale status and net amount
     if (existing.saleId) {
       const sale = await Sale.findOne({ id: existing.saleId, shop_id: req.shop_id });
       if (sale) {
@@ -171,10 +176,15 @@ export const deleteSaleReturn = async (req, res) => {
         );
         const totalReturnAmt = remainingReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
         const origAmt = Number(sale.amount || 0);
+        const netAmt = Math.max(0, origAmt - totalReturnAmt);
         const paidAmt = Number(sale.paidAmount || 0);
         const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
-        const newStatus = isFull ? 'Returned' : ((paidAmt >= (origAmt - totalReturnAmt) && origAmt > 0) ? 'Paid' : (paidAmt > 0 ? 'Partial' : 'Pending'));
-        await Sale.findByIdAndUpdate(sale.id, { status: newStatus }, { shop_id: req.shop_id });
+        const newStatus = isFull ? 'Returned' : ((paidAmt >= netAmt && netAmt > 0) ? 'Paid' : (paidAmt > 0 ? 'Partial' : 'Pending'));
+        await Sale.findByIdAndUpdate(sale.id, {
+          returnAmount: totalReturnAmt,
+          netAmount: netAmt,
+          status: newStatus
+        }, { shop_id: req.shop_id });
       }
     }
 
@@ -268,9 +278,14 @@ export const createPurchaseReturn = async (req, res) => {
         const relatedReturns = pReturns.filter(r => String(r.purchaseId) === String(purchaseId) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
         const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
         const origAmt = Number(purchase.grandTotal || purchase.amount || 0);
-        const isFull = totalReturnAmt >= (origAmt - 1);
+        const netAmt = Math.max(0, origAmt - totalReturnAmt);
+        const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
+        const newStatus = isFull ? 'Returned' : ((Number(purchase.paidAmount || 0) >= netAmt && netAmt > 0) ? 'Paid' : (Number(purchase.paidAmount || 0) > 0 ? 'Partial' : 'Pending'));
+
         await Purchase.findByIdAndUpdate(purchase.id, {
-          paymentStatus: isFull ? 'Returned' : (Number(purchase.paidAmount || 0) >= (origAmt - totalReturnAmt) ? 'Paid' : 'Partial')
+          returnAmount: totalReturnAmt,
+          netAmount: netAmt,
+          paymentStatus: newStatus
         }, { shop_id: req.shop_id });
       }
     }
@@ -328,7 +343,7 @@ export const deletePurchaseReturn = async (req, res) => {
     if (existing.refundMode === 'Ledger' && existing.supplierId) {
       const sup = await Supplier.findOne({ id: existing.supplierId, shop_id: req.shop_id });
       if (sup) {
-        const restoredBal = Number(sup.balance || 0) + Number(existing.refundAmount || 0);
+        const restoredBal = Math.max(0, Number(sup.balance || 0) + Number(existing.refundAmount || 0));
         await Supplier.findByIdAndUpdate(sup.id, { balance: restoredBal }, { shop_id: req.shop_id });
       }
       await run('DELETE FROM payment_logs WHERE ref = $1 AND shop_id = $2', [existing.returnNo, req.shop_id]);
@@ -337,7 +352,7 @@ export const deletePurchaseReturn = async (req, res) => {
     // 3. Delete the purchase return record
     await PurchaseReturn.findByIdAndDelete(id, req.shop_id);
 
-    // 4. Update matching purchase status
+    // 4. Update matching purchase status and net amount
     if (existing.purchaseId) {
       const purchase = await Purchase.findOne({ id: existing.purchaseId, shop_id: req.shop_id });
       if (purchase) {
@@ -346,10 +361,15 @@ export const deletePurchaseReturn = async (req, res) => {
         );
         const totalReturnAmt = remainingReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
         const origAmt = Number(purchase.grandTotal || purchase.amount || 0);
+        const netAmt = Math.max(0, origAmt - totalReturnAmt);
         const paidAmt = Number(purchase.paidAmount || 0);
         const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
-        const newStatus = isFull ? 'Returned' : ((paidAmt >= (origAmt - totalReturnAmt) && origAmt > 0) ? 'Paid' : (paidAmt > 0 ? 'Partial' : 'Pending'));
-        await Purchase.findByIdAndUpdate(purchase.id, { paymentStatus: newStatus }, { shop_id: req.shop_id });
+        const newStatus = isFull ? 'Returned' : ((paidAmt >= netAmt && netAmt > 0) ? 'Paid' : (paidAmt > 0 ? 'Partial' : 'Pending'));
+        await Purchase.findByIdAndUpdate(purchase.id, {
+          returnAmount: totalReturnAmt,
+          netAmount: netAmt,
+          paymentStatus: newStatus
+        }, { shop_id: req.shop_id });
       }
     }
 
@@ -358,3 +378,4 @@ export const deletePurchaseReturn = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
