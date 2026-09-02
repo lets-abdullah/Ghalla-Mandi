@@ -1091,36 +1091,19 @@ export const Customers = () => {
                     <span>Financial & Bank Account Info</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Customer Type
-                      </label>
-                      <select
-                        value={editingCustomer.customerType || 'Regular Customer'}
-                        onChange={(e) => setEditingCustomer({ ...editingCustomer, customerType: e.target.value })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      >
-                        <option value="Regular Customer">Regular Customer</option>
-                        <option value="Walk-in Customer">Walk-in Customer</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                        Current Balance (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        value={editingCustomer.balance || 0}
-                        onChange={(e) => setEditingCustomer({ ...editingCustomer, balance: Number(e.target.value) })}
-                        className={`w-full border rounded-xl px-3 py-1.5 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                      />
-                    </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                      Customer Type
+                    </label>
+                    <select
+                      value={editingCustomer.customerType || 'Regular Customer'}
+                      onChange={(e) => setEditingCustomer({ ...editingCustomer, customerType: e.target.value })}
+                      className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    >
+                      <option value="Regular Customer">Regular Customer</option>
+                      <option value="Walk-in Customer">Walk-in Customer</option>
+                    </select>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
