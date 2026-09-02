@@ -177,7 +177,7 @@ export const Sales = () => {
       }
 
       // 5. Payment Status Filter
-      const { status, isReturned } = computeSaleFinancials(s, saleReturns, paymentLogs);
+      const { status, isReturned } = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
 
       if (statusFilter === 'Returned') {
         if (!isReturned) return false;
@@ -217,7 +217,7 @@ export const Sales = () => {
     let totalReturns = 0;
 
     filteredSales.forEach(s => {
-      const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
+      const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
       totalCollected += fin.paid;
       totalOutstanding += fin.due;
       totalReturns += (fin.returnAmount || 0);
@@ -237,7 +237,7 @@ export const Sales = () => {
 
     return {
       totalFilteredCashReceived: totalCollected,
-      totalFilteredOutstandingDue: selectedCustomerId !== 'All' ? partyDue : (customerTypeFilter === 'Walk-in Customer' ? walkinDue : (customerTypeFilter === 'Regular Customer' ? partyDue : totalOutstanding)),
+      totalFilteredOutstandingDue: selectedCustomerId !== 'All' ? partyDue : (customerTypeFilter === 'Walk-in Customer' ? walkinDue : (customerTypeFilter === 'Regular Customer' ? partyDue : (partyDue + walkinDue))),
       totalFilteredReturnAmount: totalReturns,
       totalPartyKhataReceivables: partyDue,
       totalWalkinUncollected: walkinDue
@@ -637,7 +637,7 @@ export const Sales = () => {
                     isReturned,
                     isFullyReturned,
                     isPartiallyReturned
-                  } = computeSaleFinancials(s, saleReturns, paymentLogs);
+                  } = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
                   const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') ||
                     (s.partyName || '').toLowerCase().includes('walk-in');
 

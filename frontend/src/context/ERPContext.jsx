@@ -183,8 +183,8 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
   };
 };
 
-export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) => {
-  if (!sale) return { total: 0, grossTotal: 0, netTotal: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
+export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], allSales = []) => {
+  if (!sale) return { total: 0, grossTotal: 0, netTotal: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false, isFullyReturned: false, isPartiallyReturned: false };
   const total = Number(sale.amount !== undefined ? sale.amount : (sale.grandTotal !== undefined ? sale.grandTotal : (sale.grandtotal !== undefined ? sale.grandtotal : 0)));
 
   const returns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(sale.id)) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
@@ -206,7 +206,91 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) 
   const res = resolveTransactionPayment(sale, 'Sale');
   const upfrontPaid = res.totalLiquid;
   const totalMatchingLogs = matchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-  const rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs);
+  let rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs);
+
+  // Unlinked general customer payments (e.g. Khata payments) allocation
+  const custId = sale.customerId ? String(sale.customerId) : null;
+  const partyName = (sale.partyName || sale.customerName || '').trim().toLowerCase();
+  const isRegularCust = custId && !custId.startsWith('walkin-') && partyName !== 'walk-in customer';
+
+  const unlinkedGeneralLogs = (paymentLogs || []).filter(pl => {
+    const isCust = pl.type === 'Customer' || pl.partyType === 'Customer';
+    if (!isCust) return false;
+    const pMode = String(pl.mode || '').trim().toLowerCase();
+    if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+
+    // Check if this log is already specifically linked to ANY sale invoice
+    const hasSpecificInvoice = Boolean(
+      pl.saleId ||
+      (pl.ref && (pl.ref.includes('INV-') || pl.ref.includes('SAL-')))
+    );
+    if (hasSpecificInvoice) return false;
+
+    // Match party
+    const pPartyId = pl.partyId ? String(pl.partyId) : null;
+    const pPartyName = (pl.partyName || '').trim().toLowerCase();
+    if (isRegularCust) {
+      return (custId && pPartyId && pPartyId === custId) ||
+        (partyName && pPartyName === partyName && !pPartyName.includes('walk-in'));
+    } else {
+      return (custId && pPartyId && pPartyId === custId) || (partyName && pPartyName === partyName);
+    }
+  });
+
+  const totalUnlinkedCash = unlinkedGeneralLogs.reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
+
+  if (totalUnlinkedCash > 0) {
+    const relevantSales = (allSales && allSales.length > 0)
+      ? (allSales || []).filter(s => {
+          const sCustId = s.customerId ? String(s.customerId) : null;
+          const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
+          if (isRegularCust) {
+            return (custId && sCustId && sCustId === custId) ||
+              (partyName && sPartyName === partyName && !sPartyName.includes('walk-in'));
+          } else {
+            return (custId && sCustId && sCustId === custId) || (partyName && sPartyName === partyName);
+          }
+        }).sort((a, b) => {
+          const timeA = new Date(a.created_at || a.createdAt || a.date || 0).getTime() || Number(a.id) || 0;
+          const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
+          return timeA - timeB;
+        })
+      : [sale];
+
+    let availableGeneralCash = totalUnlinkedCash;
+    let generalAllocatedToThisSale = 0;
+
+    for (const s of relevantSales) {
+      if (availableGeneralCash <= 0) break;
+      const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
+      const sReturns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(s.id)) || (r.invoiceNo && r.invoiceNo === s.invoiceNo));
+      const sRetAmt = sReturns.length > 0 ? sReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(s.returnAmount || 0);
+      const sNetTotal = Math.max(0, sTotal - sRetAmt);
+
+      const sMatchingLogs = (paymentLogs || []).filter(pl =>
+        (pl.type === 'Customer' || pl.partyType === 'Customer') &&
+        (
+          (pl.saleId && String(pl.saleId) === String(s.id)) ||
+          (s.invoiceNo && pl.ref && pl.ref.includes(s.invoiceNo))
+        ) &&
+        pl.mode !== 'Opening Balance' &&
+        pl.mode !== 'Credit Note'
+      );
+      const sUpfront = resolveTransactionPayment(s, 'Sale').totalLiquid;
+      const sSpecificPaid = Math.max(sUpfront, sMatchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0));
+      const sRemainingDue = Math.max(0, sNetTotal - sSpecificPaid);
+
+      const alloc = Math.min(sRemainingDue, availableGeneralCash);
+      if (String(s.id) === String(sale.id)) {
+        generalAllocatedToThisSale = alloc;
+        break;
+      }
+      availableGeneralCash -= alloc;
+    }
+
+    rawGrossPaid += generalAllocatedToThisSale;
+  }
+
   const netPaidTowardsInvoice = Math.max(0, rawGrossPaid - cashRefundAmount);
   const paid = Math.min(netDueableTotal, netPaidTowardsInvoice);
 
@@ -219,7 +303,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) 
   return { total, grossTotal: total, netTotal: netDueableTotal, paid, returnAmount, due, status, isReturned, isFullyReturned, isPartiallyReturned };
 };
 
-export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymentLogs = []) => {
+export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymentLogs = [], allPurchases = []) => {
   if (!purchase) return { total: 0, grossTotal: 0, netTotal: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false, isFullyReturned: false, isPartiallyReturned: false };
   const total = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : (purchase.grandtotal !== undefined ? purchase.grandtotal : 0)));
 
@@ -242,7 +326,78 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const res = resolveTransactionPayment(purchase, 'Purchase');
   const upfrontPaid = res.totalLiquid;
   const totalMatchingLogs = matchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-  const rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs);
+  let rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs);
+
+  // Unlinked general supplier settlement payments allocation
+  const supId = purchase.supplierId ? String(purchase.supplierId) : null;
+  const supName = (purchase.supplier || purchase.supplierName || '').trim().toLowerCase();
+
+  const unlinkedGeneralLogs = (paymentLogs || []).filter(pl => {
+    const isSup = pl.type === 'Supplier' || pl.partyType === 'Supplier';
+    if (!isSup) return false;
+    const pMode = String(pl.mode || '').trim().toLowerCase();
+    if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+
+    const hasSpecificPurchase = Boolean(
+      pl.purchaseId ||
+      (pl.ref && (pl.ref.includes('PUR-') || pl.ref.includes('BILL-')))
+    );
+    if (hasSpecificPurchase) return false;
+
+    const pPartyId = pl.partyId ? String(pl.partyId) : null;
+    const pPartyName = (pl.partyName || '').trim().toLowerCase();
+    return (supId && pPartyId && pPartyId === supId) || (supName && pPartyName === supName);
+  });
+
+  const totalUnlinkedCash = unlinkedGeneralLogs.reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
+
+  if (totalUnlinkedCash > 0) {
+    const relevantPurchases = (allPurchases && allPurchases.length > 0)
+      ? (allPurchases || []).filter(p => {
+          const pSupId = p.supplierId ? String(p.supplierId) : null;
+          const pSupName = (p.supplier || p.supplierName || '').trim().toLowerCase();
+          return (supId && pSupId && pSupId === supId) || (supName && pSupName === supName);
+        }).sort((a, b) => {
+          const timeA = new Date(a.created_at || a.createdAt || a.date || 0).getTime() || Number(a.id) || 0;
+          const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
+          return timeA - timeB;
+        })
+      : [purchase];
+
+    let availableGeneralCash = totalUnlinkedCash;
+    let generalAllocatedToThisPurchase = 0;
+
+    for (const p of relevantPurchases) {
+      if (availableGeneralCash <= 0) break;
+      const pTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
+      const pReturns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(p.id)) || (r.purchaseNo && r.purchaseNo === p.purchaseNo));
+      const pRetAmt = pReturns.length > 0 ? pReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(p.returnAmount || 0);
+      const pNetTotal = Math.max(0, pTotal - pRetAmt);
+
+      const pMatchingLogs = (paymentLogs || []).filter(pl =>
+        (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
+        (
+          (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+          (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+        ) &&
+        pl.mode !== 'Opening Balance' &&
+        pl.mode !== 'Debit Note'
+      );
+      const pUpfront = resolveTransactionPayment(p, 'Purchase').totalLiquid;
+      const pSpecificPaid = Math.max(pUpfront, pMatchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0));
+      const pRemainingDue = Math.max(0, pNetTotal - pSpecificPaid);
+
+      const alloc = Math.min(pRemainingDue, availableGeneralCash);
+      if (String(p.id) === String(purchase.id)) {
+        generalAllocatedToThisPurchase = alloc;
+        break;
+      }
+      availableGeneralCash -= alloc;
+    }
+
+    rawGrossPaid += generalAllocatedToThisPurchase;
+  }
+
   const netPaidTowardsPurchase = Math.max(0, rawGrossPaid - cashRefundAmount);
   const paid = Math.min(netDueableTotal, netPaidTowardsPurchase);
 

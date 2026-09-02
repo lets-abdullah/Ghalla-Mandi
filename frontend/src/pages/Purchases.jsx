@@ -890,7 +890,7 @@ export const Purchases = () => {
                     isReturned,
                     isFullyReturned,
                     isPartiallyReturned
-                  } = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
+                  } = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
 
                   return (
                     <tr key={p.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'

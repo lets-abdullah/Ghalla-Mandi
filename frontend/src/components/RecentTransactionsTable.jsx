@@ -12,7 +12,7 @@ export const RecentTransactionsTable = ({ onViewInvoice }) => {
 
   const combined = [
     ...(sales || []).map(s => {
-      const { total, paid, due, status } = computeSaleFinancials(s, saleReturns, paymentLogs);
+      const { total, paid, due, status } = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
       const isPaid = status === 'Paid';
       const isPartial = status === 'Partial';
 
@@ -30,7 +30,7 @@ export const RecentTransactionsTable = ({ onViewInvoice }) => {
       };
     }),
     ...(purchases || []).map(p => {
-      const { total, paid, due, status } = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
+      const { total, paid, due, status } = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
       const isPaid = status === 'Paid';
       const isPartial = status === 'Partial';
 

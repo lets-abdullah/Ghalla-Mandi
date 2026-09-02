@@ -154,7 +154,7 @@ export const Invoices = () => {
   const rawList = useMemo(() => {
     if (isPurchases) {
       return purchases.map(p => {
-        const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
+        const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
 
         return {
           id: p.id,
@@ -181,7 +181,7 @@ export const Invoices = () => {
       });
     } else {
       return sales.map(s => {
-        const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
+        const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
 
         return {
           id: s.id,
