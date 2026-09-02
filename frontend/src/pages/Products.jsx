@@ -8,6 +8,7 @@ import { PrintFooter } from '../components/PrintFooter';
 import { ProductHistory } from './ProductHistory';
 import { useToast } from '../components/Toast';
 import { EmptyState } from '../components/EmptyState';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export const Products = () => {
   const toast = useToast();
@@ -22,6 +23,7 @@ export const Products = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [viewingHistoryProduct, setViewingHistoryProduct] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState(null);
 
   // Keyboard Esc Listener for closing active modals or history view
   useEffect(() => {
@@ -290,13 +292,13 @@ export const Products = () => {
               <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
                 <th className="py-3 px-4">Image</th>
-                <th className="py-3 px-4">Product</th>
+                <th className="py-3 px-4">Item / Produce</th>
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4">Code</th>
                 <th className="py-3 px-4 text-center">Available Stock</th>
-                <th className="py-3 px-4 text-right">Cost & Valuation</th>
-                <th className="py-3 px-4 text-right">Selling Rate</th>
-                <th className="py-3 px-4 text-center no-print">Action</th>
+                <th className="py-3 px-4 text-right">Purchase Cost</th>
+                <th className="py-3 px-4 text-right">Selling Price</th>
+                <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
@@ -403,15 +405,7 @@ export const Products = () => {
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={async () => {
-                              if (window.confirm(t('confirmDeleteProduct'))) {
-                                try {
-                                  await deleteProduct(product.id);
-                                } catch (err) {
-                                  alert(err.message || 'Error deleting product');
-                                }
-                              }
-                            }}
+                            onClick={() => setDeletingProductId(product.id)}
                             className="p-1.5 hover:bg-rose-500/10 text-rose-500 rounded-lg transition cursor-pointer"
                             title={t('delete')}
                           >
@@ -927,6 +921,26 @@ export const Products = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Product Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingProductId)}
+        title="Delete Item / Produce"
+        message="Are you sure you want to delete this commodity product? All associated records will be removed."
+        confirmLabel="Delete Item"
+        onConfirm={async () => {
+          if (!deletingProductId) return;
+          try {
+            await deleteProduct(deletingProductId);
+            toast.success('Product deleted successfully.');
+          } catch (err) {
+            toast.error(err.message || 'Error deleting product');
+          } finally {
+            setDeletingProductId(null);
+          }
+        }}
+        onCancel={() => setDeletingProductId(null)}
+      />
     </div>
   );
 };

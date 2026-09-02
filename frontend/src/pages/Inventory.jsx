@@ -75,10 +75,10 @@ export const Inventory = () => {
 
           if (entry.type === 'Purchase') {
             movementCategory = 'PURCHASE';
-            movementLabel = 'Stock In (Purchase)';
+            movementLabel = 'Stock In (Purchase Bill)';
           } else if (entry.type === 'Sale Invoice' || entry.type === 'POS Sale' || entry.type === 'SALE') {
             movementCategory = 'SALE';
-            movementLabel = 'Stock Out (POS Sale)';
+            movementLabel = 'Stock Out (Sale Invoice)';
           } else if (entry.type === 'Sale Return' || entry.type === 'SALE_RETURN') {
             movementCategory = 'SALE_RETURN';
             movementLabel = 'Stock In (Sale Return)';
@@ -436,9 +436,9 @@ export const Inventory = () => {
               <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50/80 border-slate-200 text-slate-500'
                 }`}>
                 <th className="py-2.5 px-4 w-32">Date</th>
-                <th className="py-2.5 px-4">Product</th>
+                <th className="py-2.5 px-4">Item / Produce</th>
                 <th className="py-2.5 px-4 w-44">Movement Type</th>
-                <th className="py-2.5 px-4">Reference</th>
+                <th className="py-2.5 px-4">Ref / Bill / Inv #</th>
                 <th className="py-2.5 px-4 text-right w-32">Quantity</th>
                 <th className="py-2.5 px-4 text-right w-32">On-Hand Stock</th>
               </tr>

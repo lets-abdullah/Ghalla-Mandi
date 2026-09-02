@@ -12,6 +12,7 @@ import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 import { useToast } from '../components/Toast';
 import { EmptyState } from '../components/EmptyState';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export const EXPENSE_CATEGORIES = [
   'Salary',
@@ -43,6 +44,7 @@ export const Expenses = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [deletingExpenseId, setDeletingExpenseId] = useState(null);
 
   // Filters State
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,17 +101,18 @@ export const Expenses = () => {
     }
   };
 
-  // Handle Delete Expense
-  const handleDeleteExpense = async (id) => {
-    if (window.confirm('Are you sure you want to delete this expense record?')) {
-      try {
-        if (deleteExpense) {
-          await deleteExpense(id);
-          toast.success('Expense record deleted.');
-        }
-      } catch (err) {
-        toast.error(err.message || 'Failed to delete expense');
+  // Handle Delete Expense via ConfirmDialog
+  const confirmDeleteExpense = async () => {
+    if (!deletingExpenseId) return;
+    try {
+      if (deleteExpense) {
+        await deleteExpense(deletingExpenseId);
+        toast.success('Expense record deleted.');
       }
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete expense');
+    } finally {
+      setDeletingExpenseId(null);
     }
   };
 
@@ -535,22 +538,20 @@ export const Expenses = () => {
               <thead>
                 <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-400 bg-slate-900/60 border-slate-700' : 'text-slate-500 bg-slate-50 border-slate-200'
                   }`}>
-                  <th className="py-3 px-3">Date</th>
-                  <th className="py-3 px-3">Voucher #</th>
-                  <th className="py-3 px-3">Category</th>
-                  <th className="py-3 px-3">Description / Remarks</th>
-                  <th className="py-3 px-3">Paid From</th>
-                  <th className="py-3 px-3 text-center">Status</th>
-                  <th className="py-3 px-3 text-center">Account Impact</th>
-                  <th className="py-3 px-3 text-right font-black">Amount (Rs.)</th>
-                  <th className="py-3 px-3 text-center no-print">Action</th>
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Voucher #</th>
+                  <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">Description</th>
+                  <th className="py-3 px-4">Paid Via</th>
+                  <th className="py-3 px-4 text-right font-black">Amount</th>
+                  <th className="py-3 px-4 text-center no-print">Actions</th>
                 </tr>
               </thead>
               <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
                 }`}>
                 {paginatedExpenses.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-8 text-center">
+                    <td colSpan={7} className="py-8 text-center">
                       <EmptyState
                         icon={Receipt}
                         title="No expense records found"
@@ -561,40 +562,35 @@ export const Expenses = () => {
                 ) : (
                   paginatedExpenses.map((exp) => {
                     const mode = exp.mode || 'Cash';
-                    const isBank = mode.toLowerCase().includes('bank');
-                    const isCard = mode.toLowerCase().includes('card');
-                    const accountLabel = isCard ? 'Card' : isBank ? 'Bank' : 'Cash';
 
                     return (
                       <tr key={exp.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'
                         }`}>
-                        <td className="py-3 px-3 text-slate-500 font-medium">{exp.date}</td>
-                        <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">{exp.ref}</td>
-                        <td className="py-3 px-3">
+                        <td className="py-3 px-4 text-slate-500 font-medium">{exp.date}</td>
+                        <td className="py-3 px-4 font-mono font-bold text-slate-900 dark:text-white">{exp.ref}</td>
+                        <td className="py-3 px-4">
                           <span className="font-bold text-rose-600 dark:text-rose-400">{exp.category}</span>
                         </td>
-                        <td className="py-3 px-3 max-w-[200px] truncate text-slate-600 dark:text-slate-300">
+                        <td className="py-3 px-4 max-w-[220px] truncate text-slate-600 dark:text-slate-300">
                           {exp.desc}
                         </td>
-                        <td className="py-3 px-3 font-semibold text-slate-700 dark:text-slate-300">
-                          {mode}
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            Paid
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${
+                            mode === 'Cash'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                              : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                          }`}>
+                            {mode}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-center font-mono font-bold text-[11px] text-rose-600 dark:text-rose-400">
-                          - Rs. {Number(exp.amount).toLocaleString()} ({accountLabel})
-                        </td>
-                        <td className="py-3 px-3 text-right font-mono font-black text-rose-600 dark:text-rose-400">
+                        <td className="py-3 px-4 text-right font-mono font-black text-rose-600 dark:text-rose-400 text-xs">
                           Rs. {Number(exp.amount).toLocaleString()}
                         </td>
-                        <td className="py-3 px-3 text-center no-print">
+                        <td className="py-3 px-4 text-center no-print">
                           <button
                             type="button"
-                            onClick={() => handleDeleteExpense(exp.id)}
-                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                            onClick={() => setDeletingExpenseId(exp.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
                             title="Delete Voucher"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -637,6 +633,16 @@ export const Expenses = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingExpenseId)}
+        title="Delete Expense Voucher"
+        message="Are you sure you want to delete this expense record? This action cannot be undone."
+        confirmLabel="Delete Voucher"
+        onConfirm={confirmDeleteExpense}
+        onCancel={() => setDeletingExpenseId(null)}
+      />
     </div>
   );
 };

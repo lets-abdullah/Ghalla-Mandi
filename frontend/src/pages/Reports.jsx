@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 import { EXPENSE_CATEGORIES } from './Expenses';
+import { StatusBadge } from '../components/StatusBadge';
 
 export const Reports = () => {
   const {
@@ -2592,9 +2593,9 @@ export const Reports = () => {
                     <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                       }`}>
                       <th className="py-3 px-3">Invoice & Date</th>
-                      <th className="py-3 px-3">Customer Party</th>
-                      <th className="py-3 px-3">Commodities Sold</th>
-                      <th className="py-3 px-3 text-right font-black">Total Amount</th>
+                      <th className="py-3 px-3">Customer</th>
+                      <th className="py-3 px-3">Items</th>
+                      <th className="py-3 px-3 text-right font-black">Amount</th>
                       <th className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400 font-bold">Paid</th>
                       <th className="py-3 px-3 text-right text-amber-600 dark:text-amber-400 font-bold">Remaining Due</th>
                       <th className="py-3 px-3 text-center">Status</th>
@@ -2638,14 +2639,7 @@ export const Reports = () => {
                               {s.dueAmt > 0 ? `Rs. ${s.dueAmt.toLocaleString()}` : <span className="text-emerald-500 font-bold text-[10px]">Cleared</span>}
                             </td>
                             <td className="py-3 px-3 text-center">
-                              <span className={`text-xs font-bold uppercase ${s.dueAmt <= 0
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : s.paidAmt > 0
-                                  ? 'text-amber-600 dark:text-amber-400'
-                                  : 'text-rose-600 dark:text-rose-400'
-                                }`}>
-                                {s.dueAmt <= 0 ? 'Paid' : s.paidAmt > 0 ? 'Partial' : 'Khata'}
-                              </span>
+                              <StatusBadge status={s.dueAmt <= 0 ? 'PAID' : s.paidAmt > 0 ? 'PARTIAL' : 'UNPAID'} />
                             </td>
                           </tr>
                         );
@@ -3159,8 +3153,8 @@ export const Reports = () => {
                     <th className="py-3 px-3">Voucher #</th>
                     <th className="py-3 px-3">Category</th>
                     <th className="py-3 px-3">Description</th>
-                    <th className="py-3 px-3">Payment Mode</th>
-                    <th className="py-3 px-3.5 text-right font-black">Amount (Rs.)</th>
+                    <th className="py-3 px-3">Paid Via</th>
+                    <th className="py-3 px-3.5 text-right font-black">Amount</th>
                     <th className="py-3 px-3 text-center">Status</th>
                   </tr>
                 </thead>
@@ -3458,8 +3452,8 @@ export const Reports = () => {
             filterSummary={`Period: ${plDateFilter} | Type: ${plTypeFilter}`}
             stats={[
               { label: 'Total Revenue', value: `Rs. ${plTotalRevenue.toLocaleString()}` },
-              { label: 'Purchases (COGS)', value: `Rs. ${plTotalCOGS.toLocaleString()}` },
-              { label: 'Shop Expenses', value: `Rs. ${plTotalExpenses.toLocaleString()}` },
+              { label: 'Purchase Costs', value: `Rs. ${plTotalCOGS.toLocaleString()}` },
+              { label: 'Operating Expenses', value: `Rs. ${plTotalExpenses.toLocaleString()}` },
               { label: 'Net Profit', value: `Rs. ${plNetProfit.toLocaleString()}` }
             ]}
           />
