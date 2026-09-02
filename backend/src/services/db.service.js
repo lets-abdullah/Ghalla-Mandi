@@ -1,9 +1,11 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 dotenv.config();
 
 const { Pool } = pg;
+const txStorage = new AsyncLocalStorage();
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -300,6 +302,11 @@ const createTables = async () => {
 
 // Async Query Helper Functions (Auto-ensures tables exist)
 export const query = async (sql, params = []) => {
+  const txClient = txStorage.getStore();
+  if (txClient) {
+    const res = await txClient.query(sql, params);
+    return res.rows;
+  }
   await initDatabase();
   const p = getPool();
   const res = await p.query(sql, params);
@@ -307,6 +314,11 @@ export const query = async (sql, params = []) => {
 };
 
 export const get = async (sql, params = []) => {
+  const txClient = txStorage.getStore();
+  if (txClient) {
+    const res = await txClient.query(sql, params);
+    return res.rows[0] || null;
+  }
   await initDatabase();
   const p = getPool();
   const res = await p.query(sql, params);
@@ -314,6 +326,11 @@ export const get = async (sql, params = []) => {
 };
 
 export const run = async (sql, params = []) => {
+  const txClient = txStorage.getStore();
+  if (txClient) {
+    const res = await txClient.query(sql, params);
+    return { rowCount: res.rowCount, rows: res.rows };
+  }
   await initDatabase();
   const p = getPool();
   const res = await p.query(sql, params);
@@ -331,7 +348,9 @@ export const withTransaction = async (callback) => {
       get: (sql, params = []) => client.query(sql, params).then(r => r.rows[0] || null),
       run: (sql, params = []) => client.query(sql, params).then(r => ({ rowCount: r.rowCount, rows: r.rows }))
     };
-    const result = await callback(tx);
+    const result = await txStorage.run(client, async () => {
+      return await callback(tx);
+    });
     await client.query('COMMIT');
     return result;
   } catch (err) {

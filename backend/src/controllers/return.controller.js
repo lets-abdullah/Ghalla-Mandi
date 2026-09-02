@@ -93,9 +93,12 @@ export const createSaleReturn = async (req, res) => {
           const saleReturns = await SaleReturn.find({ shop_id: req.shop_id });
           const relatedReturns = saleReturns.filter(r => String(r.saleId) === String(saleId) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
           const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+          const cashRefundAmt = relatedReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
           const origAmt = Number(sale.amount || 0);
           const netAmt = Math.max(0, origAmt - totalReturnAmt);
-          const effectivePaid = Math.min(netAmt, Number(sale.paidAmount || 0));
+          const grossPaid = Number(sale.paidAmount || 0);
+          const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
+          const effectivePaid = Math.min(netAmt, netCashPaid);
           const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
           const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
 
@@ -181,15 +184,17 @@ export const deleteSaleReturn = async (req, res) => {
             String(r.saleId) === String(existing.saleId) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo)
           );
           const totalReturnAmt = remainingReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+          const cashRefundAmt = remainingReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
           const origAmt = Number(sale.amount || 0);
           const netAmt = Math.max(0, origAmt - totalReturnAmt);
-          const effectivePaid = Math.min(netAmt, Number(sale.paidAmount || 0));
+          const grossPaid = Number(sale.paidAmount || 0);
+          const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
+          const effectivePaid = Math.min(netAmt, netCashPaid);
           const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
           const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
           await Sale.findByIdAndUpdate(sale.id, {
             returnAmount: totalReturnAmt,
             netAmount: netAmt,
-            paidAmount: effectivePaid,
             status: newStatus
           }, { shop_id: req.shop_id });
         }
@@ -286,9 +291,12 @@ export const createPurchaseReturn = async (req, res) => {
           const pReturns = await PurchaseReturn.find({ shop_id: req.shop_id });
           const relatedReturns = pReturns.filter(r => String(r.purchaseId) === String(purchaseId) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
           const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+          const cashRefundAmt = relatedReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
           const origAmt = Number(purchase.grandTotal || purchase.amount || 0);
           const netAmt = Math.max(0, origAmt - totalReturnAmt);
-          const effectivePaid = Math.min(netAmt, Number(purchase.paidAmount || 0));
+          const grossPaid = Number(purchase.paidAmount || 0);
+          const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
+          const effectivePaid = Math.min(netAmt, netCashPaid);
           const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
           const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
 
@@ -374,15 +382,17 @@ export const deletePurchaseReturn = async (req, res) => {
             String(r.purchaseId) === String(existing.purchaseId) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo)
           );
           const totalReturnAmt = remainingReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+          const cashRefundAmt = remainingReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
           const origAmt = Number(purchase.grandTotal || purchase.amount || 0);
           const netAmt = Math.max(0, origAmt - totalReturnAmt);
-          const effectivePaid = Math.min(netAmt, Number(purchase.paidAmount || 0));
+          const grossPaid = Number(purchase.paidAmount || 0);
+          const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
+          const effectivePaid = Math.min(netAmt, netCashPaid);
           const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
           const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
           await Purchase.findByIdAndUpdate(purchase.id, {
             returnAmount: totalReturnAmt,
             netAmount: netAmt,
-            paidAmount: effectivePaid,
             paymentStatus: newStatus
           }, { shop_id: req.shop_id });
         }

@@ -11,7 +11,7 @@ const mapPurchaseRow = (r) => {
   const purchaseNo = r.purchaseno || r.purchaseNo || '';
   const paymentMode = r.paymentmode || r.paymentMode || r.paymentmethod || r.paymentMethod || r.mode || 'Supplier Khata';
   const isReturned = (r.paymentstatus === 'Returned') || (r.status === 'Returned') || (r.returnStatus && r.returnStatus !== 'None') || (returnAmount >= grandTotal && grandTotal > 0);
-  const paymentStatus = isReturned ? 'Returned' : ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : 'Pending'));
+  const paymentStatus = isReturned ? 'Returned' : (r.paymentstatus || r.paymentStatus || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : 'Pending')));
   const date = r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
 
   return {

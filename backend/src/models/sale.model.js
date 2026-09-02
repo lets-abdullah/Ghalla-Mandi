@@ -16,7 +16,7 @@ const mapSaleRow = (r) => {
   const profit = Number(r.profit !== undefined ? r.profit : (r.profitmargin !== undefined ? r.profitmargin : (r.profitMargin !== undefined ? r.profitMargin : 0)));
   const paymentMode = r.paymentmode || r.paymentMode || r.paymentmethod || r.paymentMethod || r.mode || 'Cash';
   const isReturned = (r.status === 'Returned') || (r.returnStatus && r.returnStatus !== 'None') || (returnAmount >= amount && amount > 0);
-  const status = isReturned ? 'Returned' : ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : 'Pending'));
+  const status = isReturned ? 'Returned' : (r.status || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : 'Pending')));
   const itemsCount = Number(r.itemscount !== undefined ? r.itemscount : (r.itemsCount !== undefined ? r.itemsCount : cart.length));
   const date = r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
 
