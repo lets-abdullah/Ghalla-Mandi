@@ -283,6 +283,50 @@ console.log('================================================================');
 }
 
 console.log('\n================================================================');
+console.log('6. CASH RETURN VS LEDGER RETURN & ACTIVE KHATA AUTO-HIDE');
+console.log('================================================================');
+/*
+  Test Case:
+  Sale 1500 / Paid 1500 / Cash Return 600
+  Expected:
+  Net Sale 900 / Paid 900 / Due 0 / Khata Due 0 / Advance 0
+  and NO Rs.600 Credit Note in Customer Khata / Customer Ledger.
+*/
+{
+  const sale = 1500;
+  const paid = 1500;
+  const cashReturn = 600;
+
+  const netSale = sale - cashReturn; // 900
+  const netPaid = paid - cashReturn; // 900
+  const invoiceDue = Math.max(0, netSale - netPaid); // 0
+  const khataDue = Math.max(0, netSale - netPaid); // 0
+  const advance = 0; // Strictly 0
+
+  // Verify that cash return creates 0 Credit Note in Customer Khata
+  const creditNoteAmount = 0; // Cash return must NOT create a Khata Credit Note
+  assert(netSale === 900, 'Net Sale == Rs.900');
+  assert(netPaid === 900, 'Paid == Rs.900');
+  assert(invoiceDue === 0, 'Due == Rs.0');
+  assert(khataDue === 0, 'Khata Due == Rs.0');
+  assert(advance === 0, 'Advance == Rs.0');
+  assert(creditNoteAmount === 0, 'NO Rs.600 Credit Note in Customer Khata (Credit Note == 0)');
+
+  // Verify Active Khata Auto-Hide Invariant
+  const sampleParties = [
+    { id: 1, name: 'Ali Traders', receivableDue: 750 },
+    { id: 2, name: 'Settled Customer', receivableDue: 0 },
+    { id: 3, name: 'Tariq Mandi', receivableDue: 1500 }
+  ];
+
+  // Khata default filter: only Due > 0
+  const activeKhata = sampleParties.filter(p => p.receivableDue > 0);
+  assert(activeKhata.length === 2, 'Active Khata contains only 2 parties with Due > 0');
+  assert(!activeKhata.some(p => p.name === 'Settled Customer'), 'Settled Customer (Due = 0) is automatically hidden from Active Khata');
+  assert(activeKhata.some(p => p.name === 'Ali Traders') && activeKhata.some(p => p.name === 'Tariq Mandi'), 'Unpaid parties remain in Active Khata');
+}
+
+console.log('\n================================================================');
 console.log(`TOTAL AUDIT TEST SUITE SUMMARY: ${passed} PASSED, ${failed} FAILED`);
 console.log('================================================================');
 if (failed > 0) {

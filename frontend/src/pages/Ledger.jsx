@@ -284,7 +284,7 @@ export const Ledger = () => {
         });
       });
 
-      // 3. Sale Returns (Credit)
+      // 3. Sale Returns (Only Ledger returns create Khata Credit Notes; Cash returns are non-Khata cash movements)
       (saleReturns || []).forEach(r => {
         const custObj = customers.find(c => (r.customerId && String(c.id) === String(r.customerId)) || (c.name && r.customerName && c.name.trim().toLowerCase() === r.customerName.trim().toLowerCase() && c.name.trim().toLowerCase() !== 'walk-in customer'));
         const isWalkin = (!custObj && !r.customerId) || (r.customerName || '').toLowerCase().includes('walk-in');
@@ -292,6 +292,7 @@ export const Ledger = () => {
         const rawParty = (r.customerName || custObj?.name || 'Customer').trim();
         const partyId = custObj ? String(custObj.id) : (r.customerId ? String(r.customerId) : `walkin-${rawParty}`);
         const partyName = custObj?.name || rawParty;
+        const isCashRefund = String(r.refundMode || '').trim().toLowerCase() === 'cash';
 
         entries.push({
           id: `ret-${r.id}`,
@@ -302,12 +303,12 @@ export const Ledger = () => {
           customerType: custType,
           ref: r.returnNo || `RET-${r.id}`,
           txType: 'Returns',
-          desc: `Return: ${r.reason || 'Sale Return Credit'}`,
+          desc: isCashRefund ? `Cash Return Refund (Direct Counter Cash - No Khata Credit Note)` : `Return Credit Note: ${r.reason || 'Sale Return'}`,
           debit: 0,
-          credit: Number(r.refundAmount || 0),
+          credit: isCashRefund ? 0 : Number(r.refundAmount || 0),
           items: r.items || [],
           productNames: '',
-          notes: r.reason || ''
+          notes: isCashRefund ? `Cash refund of Rs. ${Number(r.refundAmount || 0).toLocaleString()} issued directly at counter.` : (r.reason || '')
         });
       });
     } else {
@@ -418,6 +419,8 @@ export const Ledger = () => {
 
       (purchaseReturns || []).forEach(r => {
         const supObj = suppliers.find(s => String(s.id) === String(r.supplierId) || s.name === r.supplierName);
+        const isCashRefund = String(r.refundMode || '').trim().toLowerCase() === 'cash';
+
         entries.push({
           id: `pret-${r.id}`,
           rawDate: r.date,
@@ -427,12 +430,12 @@ export const Ledger = () => {
           customerType: 'Supplier',
           ref: r.returnNo || `PR-${r.id}`,
           txType: 'Returns',
-          desc: `Purchase Return (${r.refundMode || 'Ledger'})`,
+          desc: isCashRefund ? `Cash Purchase Return Refund (Received from Supplier - No Khata Debit Note)` : `Purchase Return Debit Note (${r.reason || 'Return'})`,
           debit: 0,
-          credit: Number(r.refundAmount || 0),
+          credit: isCashRefund ? 0 : Number(r.refundAmount || 0),
           items: r.items || [],
           productNames: '',
-          notes: r.reason || ''
+          notes: isCashRefund ? `Cash refund of Rs. ${Number(r.refundAmount || 0).toLocaleString()} received directly from supplier.` : (r.reason || '')
         });
       });
     }
