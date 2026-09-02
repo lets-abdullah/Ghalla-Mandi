@@ -1,4 +1,5 @@
 import { isValidOperationalUnit, getUnitFactor } from './src/services/unitConversion.service.js';
+import { computeInvoiceFinancials, computeSaleInvoiceFromReturns } from './src/utils/accounting.util.js';
 
 let passed = 0;
 let failed = 0;
@@ -324,6 +325,26 @@ console.log('================================================================');
   assert(activeKhata.length === 2, 'Active Khata contains only 2 parties with Due > 0');
   assert(!activeKhata.some(p => p.name === 'Settled Customer'), 'Settled Customer (Due = 0) is automatically hidden from Active Khata');
   assert(activeKhata.some(p => p.name === 'Ali Traders') && activeKhata.some(p => p.name === 'Tariq Mandi'), 'Unpaid parties remain in Active Khata');
+}
+
+console.log('\n================================================================');
+console.log('7. BACKEND CANONICAL ACCOUNTING UTIL');
+console.log('================================================================');
+{
+  const fin = computeInvoiceFinancials({ grossAmount: 7500, returnAmount: 2750, grossPaid: 5000, cashRefundAmount: 1000 });
+  assert(fin.netAmt === 4750, 'Util: Net Amount == Rs.4,750', `Got ${fin.netAmt}`);
+  assert(fin.effectivePaid === 4000, 'Util: Effective Paid == Rs.4,000', `Got ${fin.effectivePaid}`);
+  assert(fin.due === 750, 'Util: Due == Rs.750', `Got ${fin.due}`);
+  assert(fin.status === 'Partial', 'Util: Status == Partial', `Got ${fin.status}`);
+
+  const saleFin = computeSaleInvoiceFromReturns(
+    { amount: 7500, paidAmount: 5000 },
+    [
+      { refundAmount: 1000, refundMode: 'Cash' },
+      { refundAmount: 1750, refundMode: 'Ledger' }
+    ]
+  );
+  assert(saleFin.due === 750 && saleFin.status === 'Partial', 'Util: Sale invoice from returns reconciles benchmark');
 }
 
 console.log('\n================================================================');

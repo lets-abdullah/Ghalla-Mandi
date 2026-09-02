@@ -237,27 +237,28 @@ export const Reports = () => {
   // =========================================================================
   const salesList = useMemo(() => {
     return (sales || []).map(s => {
-      const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
-      const paidAmt = Number(s.paidAmount !== undefined ? s.paidAmount : (s.status === 'Paid' ? grossAmt : 0));
-      const returnAmt = Number(s.returnAmount || 0);
+      const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
+      const grossAmt = fin.grossTotal;
+      const returnAmt = fin.returnAmount;
       const discount = Number(s.discount || 0);
-      const isCash = s.paymentMode?.toLowerCase().includes('cash') || paidAmt >= grossAmt;
+      const isCash = s.paymentMode?.toLowerCase().includes('cash') || fin.paid >= fin.netTotal;
       return {
         ...s,
         grossAmt,
         returnAmt,
         discount,
-        netAmt: Math.max(0, grossAmt - returnAmt - discount),
-        paidAmt,
-        dueAmt: Math.max(0, grossAmt - paidAmt - returnAmt),
+        netAmt: fin.netTotal,
+        paidAmt: fin.paid,
+        dueAmt: fin.due,
+        invoiceStatus: fin.status,
         isCash
       };
     });
-  }, [sales]);
+  }, [sales, saleReturns, paymentLogs]);
 
   const totalSalesGross = useMemo(() => salesList.reduce((sum, s) => sum + s.grossAmt, 0), [salesList]);
   const totalNetSales = useMemo(() => Math.max(0, totalSalesGross - totalSaleReturnsVal), [totalSalesGross, totalSaleReturnsVal]);
-  const totalSalesCash = useMemo(() => Math.max(0, salesList.filter(s => s.isCash).reduce((sum, s) => sum + s.paidAmt, 0) - totalSaleReturnsCash), [salesList, totalSaleReturnsCash]);
+  const totalSalesCash = useMemo(() => salesList.reduce((sum, s) => sum + s.paidAmt, 0), [salesList]);
   const totalSalesCredit = useMemo(() => salesList.reduce((sum, s) => sum + s.dueAmt, 0), [salesList]);
 
   // Map each product to its supplying supplier(s)
@@ -619,19 +620,18 @@ export const Reports = () => {
   // =========================================================================
   const purchasesList = useMemo(() => {
     return (purchases || []).map(p => {
-      const grossAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
-      const paidAmt = Number(p.paidAmount !== undefined ? p.paidAmount : (p.status === 'Paid' ? grossAmt : 0));
-      const returnAmt = Number(p.returnAmount || 0);
+      const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
       return {
         ...p,
-        grossAmt,
-        returnAmt,
-        netAmt: Math.max(0, grossAmt - returnAmt),
-        paidAmt,
-        dueAmt: Math.max(0, grossAmt - paidAmt - returnAmt)
+        grossAmt: fin.grossTotal,
+        returnAmt: fin.returnAmount,
+        netAmt: fin.netTotal,
+        paidAmt: fin.paid,
+        dueAmt: fin.due,
+        invoiceStatus: fin.status
       };
     });
-  }, [purchases]);
+  }, [purchases, purchaseReturns, paymentLogs]);
 
   const totalPurchasesGross = useMemo(() => purchasesList.reduce((sum, p) => sum + p.grossAmt, 0), [purchasesList]);
   const totalNetPurchases = useMemo(() => Math.max(0, totalPurchasesGross - totalPurchaseReturnsVal), [totalPurchasesGross, totalPurchaseReturnsVal]);

@@ -8,6 +8,7 @@ import { Sale } from '../models/sale.model.js';
 import { Purchase } from '../models/purchase.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
 import { run, withTransaction } from '../services/db.service.js';
+import { computeSaleInvoiceFromReturns, computePurchaseInvoiceFromReturns } from '../utils/accounting.util.js';
 
 // =========================================================================
 // SALE RETURNS
@@ -123,7 +124,36 @@ export const createSaleReturn = async (req, res) => {
 export const updateSaleReturn = async (req, res) => {
   try {
     const { id } = req.params;
-    const updated = await SaleReturn.findByIdAndUpdate(id, req.shop_id, req.body);
+    const existing = await SaleReturn.findById(id, req.shop_id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Sale return record not found' });
+    }
+
+    const updated = await withTransaction(async () => {
+      const result = await SaleReturn.findByIdAndUpdate(id, req.shop_id, req.body);
+      if (!result) return null;
+
+      const targetSale = result.saleId
+        ? await Sale.findOne({ id: result.saleId, shop_id: req.shop_id })
+        : (result.invoiceNo ? await Sale.findOne({ invoiceNo: result.invoiceNo, shop_id: req.shop_id }) : null);
+
+      if (targetSale) {
+        const saleReturns = await SaleReturn.find({ shop_id: req.shop_id });
+        const relatedReturns = saleReturns.filter(r =>
+          (r.saleId && String(r.saleId) === String(targetSale.id)) ||
+          (r.invoiceNo && r.invoiceNo === targetSale.invoiceNo)
+        );
+        const fin = computeSaleInvoiceFromReturns(targetSale, relatedReturns);
+        await Sale.findByIdAndUpdate(targetSale.id, {
+          returnAmount: fin.totalReturnAmt,
+          netAmount: fin.netAmt,
+          status: fin.status
+        }, { shop_id: req.shop_id });
+      }
+
+      return result;
+    });
+
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Sale return record not found' });
     }
@@ -322,7 +352,36 @@ export const createPurchaseReturn = async (req, res) => {
 export const updatePurchaseReturn = async (req, res) => {
   try {
     const { id } = req.params;
-    const updated = await PurchaseReturn.findByIdAndUpdate(id, req.shop_id, req.body);
+    const existing = await PurchaseReturn.findById(id, req.shop_id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Purchase return record not found' });
+    }
+
+    const updated = await withTransaction(async () => {
+      const result = await PurchaseReturn.findByIdAndUpdate(id, req.shop_id, req.body);
+      if (!result) return null;
+
+      const targetPurchase = result.purchaseId
+        ? await Purchase.findOne({ id: result.purchaseId, shop_id: req.shop_id })
+        : (result.purchaseNo ? await Purchase.findOne({ purchaseNo: result.purchaseNo, shop_id: req.shop_id }) : null);
+
+      if (targetPurchase) {
+        const purchaseReturns = await PurchaseReturn.find({ shop_id: req.shop_id });
+        const relatedReturns = purchaseReturns.filter(r =>
+          (r.purchaseId && String(r.purchaseId) === String(targetPurchase.id)) ||
+          (r.purchaseNo && r.purchaseNo === targetPurchase.purchaseNo)
+        );
+        const fin = computePurchaseInvoiceFromReturns(targetPurchase, relatedReturns);
+        await Purchase.findByIdAndUpdate(targetPurchase.id, {
+          returnAmount: fin.totalReturnAmt,
+          netAmount: fin.netAmt,
+          paymentstatus: fin.status
+        }, { shop_id: req.shop_id });
+      }
+
+      return result;
+    });
+
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Purchase return record not found' });
     }

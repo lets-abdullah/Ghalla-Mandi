@@ -1,10 +1,12 @@
 import { Purchase } from '../models/purchase.model.js';
+import { PurchaseReturn } from '../models/purchaseReturn.model.js';
 import { Product } from '../models/product.model.js';
 import { Supplier } from '../models/supplier.model.js';
 import { Ledger } from '../models/ledger.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
 import { convertToKg, isValidOperationalUnit } from '../services/unitConversion.service.js';
 import { withTransaction, run } from '../services/db.service.js';
+import { computePurchaseInvoiceFromReturns } from '../utils/accounting.util.js';
 
 // Anti-duplicate rapid submission cache
 const recentPurchases = new Map();
@@ -280,10 +282,16 @@ export const updatePurchase = async (req, res) => {
         });
       }
 
-      const returnAmt = Number(existingPurchase.returnAmount) || 0;
-      const netGrand = Math.max(0, totalGrand - returnAmt);
       const paid = Number(paidAmount !== undefined ? paidAmount : existingPurchase.paidAmount) || 0;
-      const paymentStatus = paid >= netGrand ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+
+      const purchaseReturns = await PurchaseReturn.find({ shop_id: req.shop_id });
+      const relatedReturns = purchaseReturns.filter(r =>
+        (r.purchaseId && String(r.purchaseId) === String(id)) ||
+        (existingPurchase.purchaseNo && r.purchaseNo === existingPurchase.purchaseNo)
+      );
+      const oldFin = computePurchaseInvoiceFromReturns(existingPurchase, relatedReturns);
+      const newFin = computePurchaseInvoiceFromReturns({ grandTotal: totalGrand, amount: totalGrand, paidAmount: paid }, relatedReturns);
+      const { netAmt: netGrand, status: paymentStatus, due: newDue, totalReturnAmt: returnAmt } = newFin;
 
       let activeSupplierName = supplierName || existingPurchase.supplierName || 'Supplier';
       let targetSupId = supplierId !== undefined ? supplierId : existingPurchase.supplierId;
@@ -292,9 +300,7 @@ export const updatePurchase = async (req, res) => {
         const sup = await Supplier.findById(targetSupId, req.shop_id);
         if (sup) {
           activeSupplierName = sup.name;
-          const oldUnpaid = Math.max(0, Number(existingPurchase.netAmount || existingPurchase.grandTotal || existingPurchase.amount || 0) - Number(existingPurchase.paidAmount || 0));
-          const newUnpaid = Math.max(0, netGrand - paid);
-          const balanceDiff = newUnpaid - oldUnpaid;
+          const balanceDiff = newDue - oldFin.due;
           if (balanceDiff !== 0) {
             await Supplier.findByIdAndUpdate(sup.id, { balance: Math.max(0, Number(sup.balance || 0) + balanceDiff) }, { shop_id: req.shop_id });
           }

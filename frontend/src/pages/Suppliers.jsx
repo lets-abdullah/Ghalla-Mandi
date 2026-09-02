@@ -32,7 +32,7 @@ import {
   Printer,
   AlertCircle
 } from 'lucide-react';
-import { useERP, computeSupplierKhataBalance, computeAllSuppliersFinancials } from '../context/ERPContext';
+import { useERP, computeSupplierKhataBalance, computeAllSuppliersFinancials, computePurchaseFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
@@ -1459,19 +1459,22 @@ export const Suppliers = () => {
 
         // Chronological combined transactions
         const allTransactions = [
-          ...supPurchases.map(p => ({
+          ...supPurchases.map(p => {
+            const pFin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+            return {
             id: `pur-${p.id}`,
             date: p.date || p.created_at || p.createdAt || '',
             type: 'Purchase',
             billNo: p.purchaseNo || p.billNumber || p.invoiceNo || `PUR-${p.id}`,
-            amount: Number(p.grandTotal !== undefined ? p.grandTotal : (p.amount !== undefined ? p.amount : 0)),
-            paid: Number(p.status === 'Paid' || p.paymentStatus === 'Paid' ? (p.grandTotal ?? p.amount ?? 0) : (p.paidAmount ?? p.paidamount ?? 0)),
-            status: p.paymentStatus || p.status || 'Pending',
+            amount: pFin.grossTotal,
+            paid: pFin.paid,
+            status: pFin.status,
             note: Array.isArray(p.cart || p.items) && (p.cart || p.items).length > 0
               ? (p.cart || p.items).map(i => `${i.name || 'Produce'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
               : (p.notes || p.note || 'Procurement Bill'),
             items: p.items || p.cart || []
-          })),
+          };
+          }),
           ...supPayments.map(p => ({
             id: `pay-${p.id}`,
             date: p.date || p.created_at || p.createdAt || '',
