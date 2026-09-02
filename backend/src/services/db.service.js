@@ -320,6 +320,28 @@ export const run = async (sql, params = []) => {
   return { rowCount: res.rowCount, rows: res.rows };
 };
 
+export const withTransaction = async (callback) => {
+  await initDatabase();
+  const p = getPool();
+  const client = await p.connect();
+  try {
+    await client.query('BEGIN');
+    const tx = {
+      query: (sql, params = []) => client.query(sql, params).then(r => r.rows),
+      get: (sql, params = []) => client.query(sql, params).then(r => r.rows[0] || null),
+      run: (sql, params = []) => client.query(sql, params).then(r => ({ rowCount: r.rowCount, rows: r.rows }))
+    };
+    const result = await callback(tx);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
 export const createBackup = async () => {
   return {
     status: 'success',
@@ -333,6 +355,7 @@ export default {
   query,
   get,
   run,
+  withTransaction,
   createBackup,
   getPool
 };

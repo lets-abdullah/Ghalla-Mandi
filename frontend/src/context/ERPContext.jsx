@@ -184,7 +184,7 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
 };
 
 export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) => {
-  if (!sale) return { total: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
+  if (!sale) return { total: 0, grossTotal: 0, netTotal: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
   const total = Number(sale.amount !== undefined ? sale.amount : (sale.grandTotal !== undefined ? sale.grandTotal : (sale.grandtotal !== undefined ? sale.grandtotal : 0)));
 
   const returns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(sale.id)) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
@@ -214,18 +214,19 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = []) 
 
   const res = resolveTransactionPayment(sale, 'Sale');
   const upfrontPaid = res.totalLiquid;
-  const effectiveUpfront = Math.max(upfrontPaid, posLogsAmt);
-  const paid = Math.min(netDueableTotal, Math.max(effectiveUpfront, upfrontPaid + otherLogsAmt));
+  const totalMatchingLogs = matchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+  const rawPaid = Math.max(upfrontPaid, totalMatchingLogs);
+  const paid = Math.min(netDueableTotal, rawPaid);
 
   const isReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus && sale.returnStatus !== 'None') || (returnAmount >= total && total > 0);
-  const due = Math.max(0, total - paid - returnAmount);
-  const status = isReturned ? 'Returned' : ((due === 0 && total > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
+  const due = Math.max(0, netDueableTotal - paid);
+  const status = isReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
 
-  return { total, paid, returnAmount, due, status, isReturned };
+  return { total, grossTotal: total, netTotal: netDueableTotal, paid, returnAmount, due, status, isReturned };
 };
 
 export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymentLogs = []) => {
-  if (!purchase) return { total: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
+  if (!purchase) return { total: 0, grossTotal: 0, netTotal: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false };
   const total = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : (purchase.grandtotal !== undefined ? purchase.grandtotal : 0)));
 
   const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
@@ -243,26 +244,17 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     pl.mode !== 'Debit Note'
   );
 
-  const posLogs = matchingLogs.filter(pl =>
-    String(pl.note || '').includes('on Purchase') || String(pl.ref || '').includes(purchase.purchaseNo?.split('-')?.pop() || 'XYZ')
-  );
-  const otherLogs = matchingLogs.filter(pl =>
-    !(String(pl.note || '').includes('on Purchase') || String(pl.ref || '').includes(purchase.purchaseNo?.split('-')?.pop() || 'XYZ'))
-  );
-
-  const posLogsAmt = posLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-  const otherLogsAmt = otherLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-
   const res = resolveTransactionPayment(purchase, 'Purchase');
   const upfrontPaid = res.totalLiquid;
-  const effectiveUpfront = Math.max(upfrontPaid, posLogsAmt);
-  const paid = Math.min(netDueableTotal, Math.max(effectiveUpfront, upfrontPaid + otherLogsAmt));
+  const totalMatchingLogs = matchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+  const rawPaid = Math.max(upfrontPaid, totalMatchingLogs);
+  const paid = Math.min(netDueableTotal, rawPaid);
 
   const isReturned = (purchase.status === 'Returned') || (purchase.paymentStatus === 'Returned') || purchase.isReturned || (purchase.returnStatus && purchase.returnStatus !== 'None') || (returnAmount >= total && total > 0);
-  const due = Math.max(0, total - paid - returnAmount);
-  const status = isReturned ? 'Returned' : ((due === 0 && total > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
+  const due = Math.max(0, netDueableTotal - paid);
+  const status = isReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
 
-  return { total, paid, returnAmount, due, status, isReturned };
+  return { total, grossTotal: total, netTotal: netDueableTotal, paid, returnAmount, due, status, isReturned };
 };
 
 export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = [], saleReturns = []) => {
@@ -346,14 +338,18 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     });
   }
 
-  const totalActualPaymentsReceived = directPaidLogs + unloggedUpfrontCash;
+  const cashRefundAmount = custReturns
+    .filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash')
+    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+  const totalActualPaymentsReceived = Math.max(0, (directPaidLogs + unloggedUpfrontCash) - cashRefundAmount);
 
   const openingBalance = Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0));
   const netSales = Math.max(0, totalGrossSale - totalReturnAmount);
 
   // Canonical Accounting Equations (Rules 2 & 3: Sale Returns reduce Sales, Customer cannot be creditor)
   // Total Debits = Opening Balance (Receivable) + Net Sales Invoiced
-  // Total Credits = Actual Payments Received
+  // Total Credits = Net Payments Received (Gross Cash - Cash Return Refunds)
   // Receivable Due = max(0, Debits - Credits)
   const totalDebits = openingBalance + netSales;
   const totalCredits = totalActualPaymentsReceived;
@@ -958,14 +954,18 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
     });
   }
 
-  const totalActualPaymentsPaid = directPaidLogs + unloggedUpfrontCash;
+  const cashRefundAmount = supReturns
+    .filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash')
+    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+  const totalActualPaymentsPaid = Math.max(0, (directPaidLogs + unloggedUpfrontCash) - cashRefundAmount);
 
   const openingBalance = Number(supplier.openingBalance !== undefined ? supplier.openingBalance : (supplier.openingbalance !== undefined ? supplier.openingbalance : 0));
   const netPurchases = Math.max(0, totalGrossPurchase - totalReturnAmount);
 
   // Canonical Accounting Equations (Rules 4 & 5: Purchase Returns reduce Purchases, No Supplier Advances)
   // Credits (Payable Liability) = Opening Balance + Net Purchases Billed
-  // Debits = Actual Payments Paid
+  // Debits = Net Payments Paid (Gross Paid - Supplier Cash Return Refunds)
   // Payable Due = max(0, Credits - Debits)
   const totalCredits = openingBalance + netPurchases;
   const totalDebits = totalActualPaymentsPaid;
