@@ -240,6 +240,7 @@ export const Invoices = () => {
         if (statusFilter === 'Paid' && item.status !== 'Paid') return false;
         if (statusFilter === 'Partial' && item.status !== 'Partial') return false;
         if (statusFilter === 'Pending' && item.status !== 'Pending') return false;
+        if (statusFilter === 'Returned' && item.status !== 'Returned' && Number(item.returnAmount || 0) <= 0) return false;
       }
 
       return true;
@@ -257,6 +258,10 @@ export const Invoices = () => {
 
   const totalSettledAmount = useMemo(() => {
     return filteredInvoices.reduce((sum, inv) => sum + Number(inv.paidAmount || 0), 0);
+  }, [filteredInvoices]);
+
+  const totalReturnAmount = useMemo(() => {
+    return filteredInvoices.reduce((sum, inv) => sum + Number(inv.returnAmount || 0), 0);
   }, [filteredInvoices]);
 
   const totalOutstandingDue = useMemo(() => {
@@ -373,7 +378,7 @@ export const Invoices = () => {
       </div>
 
       {/* Financial KPI Summary Cards (Screen Only) */}
-      <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Total Invoice Amount */}
         <div
           onClick={() => setStatusFilter('All')}
@@ -389,6 +394,9 @@ export const Invoices = () => {
           </div>
           <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${isPurchases ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand-600 dark:text-brand-400'}`}>
             Rs. {totalBilledVolume.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+            Gross invoiced value
           </div>
         </div>
 
@@ -406,9 +414,33 @@ export const Invoices = () => {
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalSettledAmount.toLocaleString()}
           </div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+            Total payments collected
+          </div>
         </div>
 
-        {/* 3. Invoice Remaining */}
+        {/* 3. Total Returns */}
+        <div
+          onClick={() => setStatusFilter(statusFilter === 'Returned' ? 'All' : 'Returned')}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark'
+            ? 'bg-slate-800 border-purple-500/30 text-white'
+            : 'bg-gradient-to-b from-purple-50/50 to-white border-purple-200/80'
+            }`}
+          title="Click to filter returned invoices"
+        >
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <span>{isPurchases ? 'Purchase Returns' : 'Sale Returns'}</span>
+          </div>
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-purple-600 dark:text-purple-400">
+            Rs. {totalReturnAmount.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+            Total returned produce value
+          </div>
+        </div>
+
+        {/* 4. Invoice Remaining */}
         <div
           onClick={() => setStatusFilter('Pending')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
@@ -421,6 +453,9 @@ export const Invoices = () => {
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalOutstandingDue.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+            Net pending receivables
           </div>
         </div>
       </div>
@@ -506,6 +541,7 @@ export const Invoices = () => {
               <option value="Paid">Fully Paid</option>
               <option value="Partial">Partially Paid</option>
               <option value="Pending">Unpaid</option>
+              <option value="Returned">Returned Invoices</option>
             </select>
           </div>
 
