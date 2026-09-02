@@ -75,17 +75,11 @@ export const recordPayment = async (req, res) => {
       }
 
       if (maxCustomerDue <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Customer has no outstanding due to pay (account is already settled).'
-        });
+        throw new Error('Customer has no outstanding due to pay (account is already settled).');
       }
 
       if (amtNum > maxCustomerDue) {
-        return res.status(400).json({
-          success: false,
-          message: `Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the customer's outstanding balance of Rs. ${maxCustomerDue.toLocaleString()}.`
-        });
+        throw new Error(`Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the customer's outstanding balance of Rs. ${maxCustomerDue.toLocaleString()}.`);
       }
 
       if (cust) {
@@ -275,6 +269,62 @@ export const recordPayment = async (req, res) => {
 
     recentPayments.set(dedupKey, { timestamp: Date.now(), entry: savedEntry });
     return res.status(201).json({ success: true, entry: savedEntry });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const deleteLedgerEntry = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const entry = await Ledger.findById(id, req.shop_id);
+    if (!entry) {
+      return res.status(404).json({ success: false, message: 'Ledger payment entry not found' });
+    }
+
+    await withTransaction(async (tx) => {
+      const amt = Number(entry.amount || 0);
+
+      if (entry.partyType === 'Customer') {
+        if (entry.partyId) {
+          const cust = await Customer.findById(entry.partyId, req.shop_id);
+          if (cust) {
+            const restoredBal = Number(cust.balance || 0) + amt;
+            await Customer.findByIdAndUpdate(cust.id, { balance: restoredBal }, { shop_id: req.shop_id });
+          }
+        }
+        if (entry.saleId) {
+          const sale = await Sale.findById(entry.saleId, req.shop_id);
+          if (sale) {
+            const newPaid = Math.max(0, Number(sale.paidAmount || 0) - amt);
+            const targetTotal = Number(sale.netAmount !== undefined ? sale.netAmount : Math.max(0, Number(sale.amount || 0) - Number(sale.returnAmount || 0)));
+            const newStatus = (newPaid >= targetTotal && targetTotal > 0) ? 'Paid' : (newPaid > 0 ? 'Partial' : 'Pending');
+            await Sale.findByIdAndUpdate(sale.id, { paidAmount: newPaid, status: newStatus }, { shop_id: req.shop_id });
+          }
+        }
+      } else if (entry.partyType === 'Supplier') {
+        if (entry.partyId) {
+          const sup = await Supplier.findById(entry.partyId, req.shop_id);
+          if (sup) {
+            const restoredBal = Number(sup.balance || 0) + amt;
+            await Supplier.findByIdAndUpdate(sup.id, { balance: restoredBal }, { shop_id: req.shop_id });
+          }
+        }
+        if (entry.purchaseId) {
+          const pur = await Purchase.findById(entry.purchaseId, req.shop_id);
+          if (pur) {
+            const newPaid = Math.max(0, Number(pur.paidAmount || 0) - amt);
+            const targetTotal = Number(pur.netAmount !== undefined ? pur.netAmount : Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.returnAmount || 0)));
+            const newStatus = (newPaid >= targetTotal && targetTotal > 0) ? 'Paid' : (newPaid > 0 ? 'Partial' : 'Pending');
+            await Purchase.findByIdAndUpdate(pur.id, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
+          }
+        }
+      }
+
+      await Ledger.findByIdAndDelete(id, req.shop_id);
+    });
+
+    return res.json({ success: true, message: 'Payment entry reversed and deleted successfully' });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

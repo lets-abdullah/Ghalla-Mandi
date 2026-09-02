@@ -2237,6 +2237,36 @@ export const ERPProvider = ({ children }) => {
     return promise;
   };
 
+  const deletePayment = async (id) => {
+    try {
+      const res = await authFetch(`/api/ledger/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.success) {
+        setPaymentLogs(prev => prev.filter(p => String(p.id) !== String(id)));
+
+        const [custRes, supRes, saleRes, purRes, ledgerRes] = await Promise.all([
+          authFetch('/api/customers'),
+          authFetch('/api/suppliers'),
+          authFetch('/api/sales'),
+          authFetch('/api/purchases'),
+          authFetch('/api/ledger')
+        ]);
+        if (custRes.success) setCustomers(custRes.customers || []);
+        if (supRes.success) setSuppliers(supRes.suppliers || []);
+        if (saleRes.success) setSales((saleRes.sales || []).map(normalizeSale));
+        if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
+        if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
+
+        return true;
+      }
+      throw new Error(res.message || 'Failed to delete payment');
+    } catch (err) {
+      console.error('deletePayment error:', err);
+      throw err;
+    }
+  };
+
   // 10. Record Purchase with anti-duplicate lock
   const recordPurchase = async (purchaseData) => {
     const rawItems = purchaseData.cart || (purchaseData.productId ? [{
@@ -2745,6 +2775,7 @@ export const ERPProvider = ({ children }) => {
       updateSupplier,
       deleteSupplier,
       recordPayment,
+      deletePayment,
       recordPurchase,
       createPurchase: recordPurchase,
       updatePurchase,
