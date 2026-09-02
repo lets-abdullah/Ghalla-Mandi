@@ -1480,7 +1480,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         payment: refAmt,
         debit: 0,
         credit: isCashRefund ? 0 : refAmt,
-        paymentMethod: isCashRefund ? 'Cash (Direct Refund)' : 'Khata Credit Note',
+        paymentMethod: isCashRefund ? 'Cash Refund' : 'Khata Adjustment',
         paymentAccount: isCashRefund ? 'Cash in Hand' : 'Customer Khata',
         status: 'Settled',
         notes: historyNote
@@ -1696,7 +1696,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         payment: refAmt,
         debit: 0,
         credit: isCashRefund ? 0 : refAmt,
-        paymentMethod: isCashRefund ? 'Cash (Direct Refund)' : 'Khata Debit Note',
+        paymentMethod: isCashRefund ? 'Cash Refund' : 'Khata Adjustment',
         paymentAccount: isCashRefund ? 'Cash in Hand' : 'Supplier Khata',
         status: 'Settled',
         notes: historyNote

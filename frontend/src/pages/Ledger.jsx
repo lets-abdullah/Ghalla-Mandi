@@ -1248,21 +1248,23 @@ export const Ledger = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
                 <thead>
-                  <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                  <tr className={`border-b text-[10px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                     }`}>
                     <th className="py-3 px-3.5">Date</th>
-                    <th className="py-3 px-3.5">Voucher / Ref #</th>
-                    <th className="py-3 px-3.5">Description</th>
-                    <th className="py-3 px-3.5 text-right">{isSupplier ? 'Purchases' : 'Sales'}</th>
-                    <th className="py-3 px-3.5 text-right">{isSupplier ? 'Payments / Returns' : 'Payments / Returns'}</th>
-                    <th className="py-3 px-3.5 text-center">Payment Method</th>
-                    <th className="py-3 px-3.5 text-right font-black">{isSupplier ? 'Remaining Balance' : 'Running Balance'}</th>
+                    <th className="py-3 px-3.5">Ref #</th>
+                    <th className="py-3 px-3.5">Transaction Details</th>
+                    <th className="py-3 px-3 text-right">Original Amount</th>
+                    <th className="py-3 px-3 text-right">Return / Adj.</th>
+                    <th className="py-3 px-3 text-right">{isSupplier ? 'Net Purchases' : 'Net Sales'}</th>
+                    <th className="py-3 px-3 text-right">{isSupplier ? 'Paid to Supplier' : 'Amount Received'}</th>
+                    <th className="py-3 px-3 text-center">Payment Method</th>
+                    <th className="py-3 px-3.5 text-right font-black">Running Balance</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                   {singleCustomerLedger.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center">
+                      <td colSpan={9} className="py-8 text-center">
                         <EmptyState
                           icon={BookOpen}
                           title="No transactions recorded"
@@ -1274,31 +1276,47 @@ export const Ledger = () => {
                     singleCustomerLedger.map(entry => {
                       const isBalPos = entry.runningBalance > 0;
                       const isBalNeg = entry.runningBalance < 0;
+                      const isZero = entry.runningBalance === 0;
+
+                      // Clean up description and avoid duplicate notes
+                      const cleanDesc = (entry.desc || 'Transaction')
+                        .replace(/:\s*Purchase Return$/i, '')
+                        .replace(/:\s*Sale Return$/i, '')
+                        .trim();
+                      const hasDistinctNotes = entry.notes && entry.notes.trim() !== '' && entry.notes.trim() !== entry.desc?.trim() && !entry.notes.includes('Original Bill:');
+
+                      // Method styling
+                      const rawMethod = entry.paymentMethod || 'Cash';
+                      const isCash = rawMethod.toLowerCase().includes('cash');
+                      const isAdj = rawMethod.toLowerCase().includes('khata') || rawMethod.toLowerCase().includes('debit') || rawMethod.toLowerCase().includes('credit');
+                      const isBank = rawMethod.toLowerCase().includes('bank');
+
+                      const methodLabel = isAdj ? 'Khata Adjustment' : isCash ? 'Cash' : isBank ? 'Bank Transfer' : rawMethod;
 
                       return (
                         <tr
                           key={entry.id}
                           onClick={() => setViewingEntry(entry)}
                           className={`transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
-                          title="Click to view complete voucher & lifecycle details"
+                          title="Click to view complete voucher details"
                         >
                           {/* 1. Date */}
-                          <td className="py-3.5 px-3.5 font-mono text-slate-500 dark:text-slate-400">
+                          <td className="py-3.5 px-3.5 font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
                             {entry.date}
                           </td>
 
-                          {/* 2. Voucher # */}
-                          <td className="py-3.5 px-3.5 font-mono font-bold text-blue-600 dark:text-blue-400">
+                          {/* 2. Voucher / Ref # */}
+                          <td className="py-3.5 px-3.5 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                             {entry.ref}
                           </td>
 
-                          {/* 3. Description & Full Lifecycle History */}
+                          {/* 3. Transaction Details */}
                           <td className="py-3.5 px-3.5">
-                            <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
-                              <span>{entry.desc}</span>
+                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                              <span>{cleanDesc}</span>
                               {entry.isPartiallyReturned && (
                                 <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 uppercase tracking-wider">
-                                  Partially Returned
+                                  Part Return
                                 </span>
                               )}
                               {entry.isFullyReturned && (
@@ -1307,51 +1325,91 @@ export const Ledger = () => {
                                 </span>
                               )}
                             </div>
-                            {entry.returnAmount > 0 ? (
-                              <div className="text-[11px] font-mono mt-0.5 text-purple-600 dark:text-purple-400 font-bold flex items-center gap-1.5 flex-wrap">
-                                <span>• Adjusted with Return: -Rs. {entry.returnAmount?.toLocaleString()}</span>
-                                <span className="text-slate-400 font-normal">(Net: Rs. {entry.netTotal?.toLocaleString()})</span>
-                              </div>
-                            ) : (
-                              entry.notes && <span className="text-[10px] text-slate-400 block mt-0.5">{entry.notes}</span>
+                            {hasDistinctNotes && (
+                              <span className="text-[10px] text-slate-400 block mt-0.5">{entry.notes}</span>
                             )}
                           </td>
 
-                          {/* 4. Sales / Purchases */}
-                          <td className="py-3.5 px-3.5 text-right font-mono font-black text-blue-600 dark:text-blue-400">
-                            {entry.returnAmount > 0 ? (
-                              <div>
-                                <div>Rs. {entry.netTotal?.toLocaleString()}</div>
-                                <div className="text-[10px] text-slate-400 font-normal line-through">
-                                  Orig: Rs. {entry.originalGross?.toLocaleString()}
-                                </div>
-                              </div>
-                            ) : entry.sales > 0 ? (
-                              `Rs. ${entry.sales.toLocaleString()}`
-                            ) : entry.debit > 0 ? (
-                              `Rs. ${entry.debit.toLocaleString()}`
+                          {/* 4. Original Amount */}
+                          <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                            {entry.originalGross > 0 ? (
+                              `Rs. ${entry.originalGross.toLocaleString()}`
+                            ) : entry.txType === 'Opening Balance' ? (
+                              `Rs. ${entry.debit?.toLocaleString()}`
+                            ) : entry.txType === 'Purchases' || entry.txType === 'Sales' ? (
+                              `Rs. ${(entry.debit || entry.sales || 0).toLocaleString()}`
                             ) : (
                               '—'
                             )}
                           </td>
 
-                          {/* 5. Payments / Returns */}
-                          <td className="py-3.5 px-3.5 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
-                            {entry.payment > 0 ? `Rs. ${entry.payment.toLocaleString()}` : (entry.credit > 0 ? `Rs. ${entry.credit.toLocaleString()}` : '—')}
+                          {/* 5. Return / Adjustment */}
+                          <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
+                            {entry.returnAmount > 0 ? (
+                              <span className="text-purple-600 dark:text-purple-400">
+                                -Rs. {entry.returnAmount.toLocaleString()}
+                              </span>
+                            ) : entry.txType === 'Returns' && (entry.payment > 0 || entry.credit > 0) ? (
+                              <span className="text-purple-600 dark:text-purple-400">
+                                Rs. {(entry.payment || entry.credit).toLocaleString()}
+                              </span>
+                            ) : (
+                              '—'
+                            )}
                           </td>
 
-                          {/* 6. Payment Method */}
-                          <td className="py-3.5 px-3.5 text-center">
-                            <span className="inline-block px-2.5 py-1 rounded-xl text-[11px] font-bold bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
-                              {entry.paymentMethod || 'Cash'}
+                          {/* 6. Net Purchases / Sales */}
+                          <td className="py-3.5 px-3 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
+                            {entry.netTotal !== undefined && entry.netTotal !== null && (entry.txType === 'Purchases' || entry.txType === 'Sales') ? (
+                              `Rs. ${entry.netTotal.toLocaleString()}`
+                            ) : (entry.txType === 'Purchases' || entry.txType === 'Sales') && entry.sales > 0 ? (
+                              `Rs. ${entry.sales.toLocaleString()}`
+                            ) : entry.txType === 'Opening Balance' ? (
+                              `Rs. ${entry.debit?.toLocaleString()}`
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+
+                          {/* 7. Paid to Supplier / Received */}
+                          <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
+                            {entry.txType === 'Payment' ? (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                                Rs. {(entry.payment || entry.credit || 0).toLocaleString()}
+                              </span>
+                            ) : entry.paidAmount > 0 ? (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                                Rs. {entry.paidAmount.toLocaleString()}
+                              </span>
+                            ) : entry.txType === 'Returns' && entry.refundMode === 'Cash' ? (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                Rs. {entry.returnAmount.toLocaleString()}
+                              </span>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+
+                          {/* 8. Payment Method */}
+                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                            <span className={`inline-block px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${
+                              isCash
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                : isAdj
+                                  ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                                  : isBank
+                                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                    : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
+                            }`}>
+                              {methodLabel}
                             </span>
                           </td>
 
-                          {/* 7. Running Balance */}
-                          <td className="py-3.5 px-3.5 text-right font-mono font-black text-xs">
-                            {isBalNeg ? (
-                              <span className="text-emerald-600 dark:text-emerald-400">
-                                Credit: Rs. {Math.abs(entry.runningBalance).toLocaleString()}
+                          {/* 9. Running Balance */}
+                          <td className="py-3.5 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap">
+                            {isZero ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                                ✓ Rs. 0 (Settled)
                               </span>
                             ) : isBalPos ? (
                               <span className="text-amber-600 dark:text-amber-400">
@@ -1359,7 +1417,7 @@ export const Ledger = () => {
                               </span>
                             ) : (
                               <span className="text-emerald-600 dark:text-emerald-400">
-                                Rs. 0 (Settled)
+                                Advance: Rs. {Math.abs(entry.runningBalance).toLocaleString()}
                               </span>
                             )}
                           </td>
