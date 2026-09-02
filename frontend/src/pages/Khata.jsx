@@ -14,7 +14,6 @@ import {
   BookOpen,
   X,
   Edit3,
-  Building2,
   Check
 } from 'lucide-react';
 import {
@@ -267,29 +266,10 @@ export const Khata = () => {
                 setSearchParams({ type: 'customer' });
                 resetAllFilters();
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${isCustomer
-                ? 'bg-brand-500 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:text-brand-500'
-                }`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-brand-500 text-white shadow-xs cursor-pointer"
             >
               <Users className="w-3.5 h-3.5" />
               <span>Customer Khata</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setKhataPartyType('Supplier');
-                setSearchParams({ type: 'supplier' });
-                resetAllFilters();
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${!isCustomer
-                ? 'bg-brand-500 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:text-brand-500'
-                }`}
-            >
-              <Building2 className="w-3.5 h-3.5" />
-              <span>Supplier Khata</span>
             </button>
           </div>
 
