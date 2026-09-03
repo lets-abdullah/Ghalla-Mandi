@@ -1186,21 +1186,23 @@ export const Reports = () => {
     return totalSupplierPayables + totalOverdraftLiabilities;
   }, [totalSupplierPayables, totalOverdraftLiabilities]);
 
-  // 3. EQUITY: Owner's Invested Capital (Initial Stock + Opening Khata) + Retained Net Profit
+  // 3. EQUITY: Owner's Invested Capital (Initial Stock + Opening Khata) + Retained Net Profit - Direct Cash Refunds
   const ownersCapital = useMemo(() => {
     return totalInitialStockValuation + (openingCustomerReceivables - openingSupplierPayables);
   }, [totalInitialStockValuation, openingCustomerReceivables, openingSupplierPayables]);
 
   const retainedProfit = netOperatingProfit;
-  const totalEquity = useMemo(() => ownersCapital + retainedProfit, [ownersCapital, retainedProfit]);
+  const totalCashRefundsPaidOut = cashCustomerRefundOut;
+  const totalEquity = useMemo(() => ownersCapital + retainedProfit - totalCashRefundsPaidOut, [ownersCapital, retainedProfit, totalCashRefundsPaidOut]);
 
   const bsEquityBreakdown = useMemo(() => {
     return {
       ownersCapital,
       retainedProfit,
+      totalCashRefundsPaidOut,
       total: totalEquity
     };
-  }, [ownersCapital, retainedProfit, totalEquity]);
+  }, [ownersCapital, retainedProfit, totalCashRefundsPaidOut, totalEquity]);
 
   // Granular Balance Sheet Breakdown Objects
   const bsCashBreakdown = useMemo(() => {
@@ -4016,10 +4018,16 @@ export const Reports = () => {
                         <span>Operating Expenses Added:</span>
                         <span className="font-mono font-bold">- Rs. {totalExpensesAmount.toLocaleString()}</span>
                       </div>
+                      {cashCustomerRefundOut > 0 && (
+                        <div className="flex justify-between text-amber-600 dark:text-amber-400">
+                          <span>Cash Refunds Paid Out:</span>
+                          <span className="font-mono font-bold">- Rs. {cashCustomerRefundOut.toLocaleString()}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center justify-between font-bold pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
-                      <span className="text-slate-800 dark:text-slate-200">• Retained Net Profit (P&L):</span>
-                      <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {retainedProfit.toLocaleString()}</span>
+                      <span className="text-slate-800 dark:text-slate-200">• Net Retained Equity:</span>
+                      <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalEquity.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
