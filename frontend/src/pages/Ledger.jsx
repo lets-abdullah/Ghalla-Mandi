@@ -853,21 +853,7 @@ export const Ledger = () => {
                 )}
               </div>
 
-              {/* Customer Type Filter */}
-              {!isSupplier && (
-                <div className="w-full sm:w-44">
-                  <select
-                    value={customerTypeFilter}
-                    onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  >
-                    <option value="All">All Customer Types</option>
-                    <option value="Regular Customer">Regular Customers</option>
-                    <option value="Walk-in Customer">Walk-in Customers</option>
-                  </select>
-                </div>
-              )}
+
 
               {/* Condition / Status Filter */}
               <div className="w-full sm:w-44">
