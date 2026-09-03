@@ -36,7 +36,6 @@ export const Header = () => {
     if (path === '/expenses') return t('expenses') || 'Expenses';
     if (path === '/reports') return t('reports');
     if (path === '/settings') return t('settings');
-    if (path === '/invoices') return 'Invoices';
     return t('appName');
   };
 

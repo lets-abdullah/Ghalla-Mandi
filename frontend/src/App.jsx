@@ -19,7 +19,6 @@ import { Purchases } from './pages/Purchases';
 import { Suppliers } from './pages/Suppliers';
 import { AddSupplier } from './pages/AddSupplier';
 import { Customers } from './pages/Customers';
-import { Invoices } from './pages/Invoices';
 import { Ledger } from './pages/Ledger';
 import { Khata } from './pages/Khata';
 import { Expenses } from './pages/Expenses';
@@ -55,8 +54,6 @@ export const App = () => {
                     <Route path="/suppliers/new" element={<MainLayout><AddSupplier /></MainLayout>} />
                     <Route path="/suppliers" element={<MainLayout><Suppliers /></MainLayout>} />
                     <Route path="/customers" element={<MainLayout><Customers /></MainLayout>} />
-                    {/* /invoices kept for backward compatibility — same as /sales or /purchases based on type param */}
-                    <Route path="/invoices" element={<MainLayout><Invoices /></MainLayout>} />
                     <Route path="/ledger" element={<MainLayout><Ledger /></MainLayout>} />
                     <Route path="/khata" element={<MainLayout><Khata /></MainLayout>} />
                     <Route path="/expenses" element={<MainLayout><Expenses /></MainLayout>} />
