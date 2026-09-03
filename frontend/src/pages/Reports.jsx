@@ -968,9 +968,14 @@ export const Reports = () => {
       }
     });
 
-    // 2. Sales with upfront counter cash/bank ONLY if NO customer payment logs exist
-    if (validCustPaymentLogs.length === 0) {
-      (sales || []).forEach(s => {
+    // 2. Sales with upfront counter cash/bank for sales not already logged in paymentLogs
+    (sales || []).forEach(s => {
+      const hasMatchingLog = validCustPaymentLogs.some(p =>
+        (p.saleId && String(p.saleId) === String(s.id)) ||
+        (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+      );
+
+      if (!hasMatchingLog) {
         const res = resolveTransactionPayment(s, 'Sale');
         if (res.totalLiquid > 0) {
           cInflow += res.cashAmount;
@@ -988,8 +993,8 @@ export const Reports = () => {
             amount: res.totalLiquid
           });
         }
-      });
-    }
+      }
+    });
 
     // 3. Purchase Returns Inflow (ONLY actual Cash / Bank refunds received from supplier)
     (purchaseReturns || []).forEach(r => {
@@ -1043,9 +1048,14 @@ export const Reports = () => {
       }
     });
 
-    // 5. Purchases with upfront cash/bank ONLY if NO supplier payment logs exist
-    if (validSupPaymentLogs.length === 0) {
-      (purchases || []).forEach(p => {
+    // 5. Purchases with upfront cash/bank for purchases not already logged in paymentLogs
+    (purchases || []).forEach(p => {
+      const hasMatchingLog = validSupPaymentLogs.some(pl =>
+        (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+        (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+      );
+
+      if (!hasMatchingLog) {
         const res = resolveTransactionPayment(p, 'Purchase');
         if (res.totalLiquid > 0) {
           cSupOut += res.cashAmount;
@@ -1063,8 +1073,8 @@ export const Reports = () => {
             amount: res.totalLiquid
           });
         }
-      });
-    }
+      }
+    });
 
     // 6. Expenses Outflows (Paid expenses deduct cash/bank/card directly)
     (expenses || []).forEach(e => {
@@ -3901,12 +3911,6 @@ export const Reports = () => {
                       <span>• Bank Account Balances:</span>
                       <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {liquidBankAsset.toLocaleString()}</span>
                     </div>
-                    {totalExpensesAmount > 0 && (
-                      <div className="flex justify-between text-rose-600 dark:text-rose-400 pt-0.5 border-t border-slate-200/50 dark:border-slate-700/50">
-                        <span>• Less: Paid Operating Expenses:</span>
-                        <span className="font-mono font-bold">- Rs. {totalExpensesAmount.toLocaleString()}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
