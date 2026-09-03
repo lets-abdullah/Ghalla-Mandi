@@ -1186,23 +1186,26 @@ export const Reports = () => {
     return totalSupplierPayables + totalOverdraftLiabilities;
   }, [totalSupplierPayables, totalOverdraftLiabilities]);
 
-  // 3. EQUITY: Owner's Invested Capital (Initial Stock + Opening Khata) + Retained Net Profit - Direct Cash Refunds
+  // 3. EQUITY: Canonical Double-Entry Equation (Total Assets - Total Liabilities)
   const ownersCapital = useMemo(() => {
     return totalInitialStockValuation + (openingCustomerReceivables - openingSupplierPayables);
   }, [totalInitialStockValuation, openingCustomerReceivables, openingSupplierPayables]);
 
-  const retainedProfit = netOperatingProfit;
-  const totalCashRefundsPaidOut = cashCustomerRefundOut;
-  const totalEquity = useMemo(() => ownersCapital + retainedProfit - totalCashRefundsPaidOut, [ownersCapital, retainedProfit, totalCashRefundsPaidOut]);
+  const totalEquity = useMemo(() => {
+    return totalAssets - totalLiabilities;
+  }, [totalAssets, totalLiabilities]);
+
+  const retainedProfit = useMemo(() => {
+    return totalEquity - ownersCapital;
+  }, [totalEquity, ownersCapital]);
 
   const bsEquityBreakdown = useMemo(() => {
     return {
       ownersCapital,
       retainedProfit,
-      totalCashRefundsPaidOut,
       total: totalEquity
     };
-  }, [ownersCapital, retainedProfit, totalCashRefundsPaidOut, totalEquity]);
+  }, [ownersCapital, retainedProfit, totalEquity]);
 
   // Granular Balance Sheet Breakdown Objects
   const bsCashBreakdown = useMemo(() => {
@@ -4006,27 +4009,19 @@ export const Reports = () => {
 
                   <div className={`p-3 rounded-xl border space-y-1.5 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
                     <div className="flex items-center justify-between font-bold">
-                      <span className="text-slate-800 dark:text-slate-200">• Owner's Invested Capital:</span>
+                      <span className="text-slate-800 dark:text-slate-200">• Owner's Opening Capital:</span>
                       <span className="font-mono text-slate-900 dark:text-white">Rs. {ownersCapital.toLocaleString()}</span>
                     </div>
                     <div className="space-y-0.5 text-[11px] text-slate-600 dark:text-slate-300 pl-2">
                       <div className="flex justify-between">
-                        <span>Gross Operating Profit:</span>
-                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">+ Rs. {grossOperatingProfit.toLocaleString()}</span>
+                        <span>Retained Earnings / P&L Balance:</span>
+                        <span className={`font-mono font-bold ${retainedProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          {retainedProfit >= 0 ? `+ Rs. ${retainedProfit.toLocaleString()}` : `- Rs. ${Math.abs(retainedProfit).toLocaleString()}`}
+                        </span>
                       </div>
-                      <div className="flex justify-between text-rose-600 dark:text-rose-400">
-                        <span>Operating Expenses Added:</span>
-                        <span className="font-mono font-bold">- Rs. {totalExpensesAmount.toLocaleString()}</span>
-                      </div>
-                      {cashCustomerRefundOut > 0 && (
-                        <div className="flex justify-between text-amber-600 dark:text-amber-400">
-                          <span>Cash Refunds Paid Out:</span>
-                          <span className="font-mono font-bold">- Rs. {cashCustomerRefundOut.toLocaleString()}</span>
-                        </div>
-                      )}
                     </div>
                     <div className="flex items-center justify-between font-bold pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
-                      <span className="text-slate-800 dark:text-slate-200">• Net Retained Equity:</span>
+                      <span className="text-slate-800 dark:text-slate-200">• Total Owner's Equity (Net Worth):</span>
                       <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalEquity.toLocaleString()}</span>
                     </div>
                   </div>
