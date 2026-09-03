@@ -900,8 +900,9 @@ export const Reports = () => {
     }, 0);
   }, [suppliers, purchases, purchaseReturns, paymentLogs]);
 
-  // Dynamic Liquid Funds (Cash, Bank, Mobile Wallets) Calculation
-  // Dynamic Liquid Funds (Cash, Bank, Mobile Wallets) Calculation - Single Source of Truth
+  // ---------------------------------------------------------------------------
+  // 5. CANONICAL LIQUID CASH, BANK & ACCRUAL BALANCE SHEET ENGINE
+  // ---------------------------------------------------------------------------
   const {
     cashInHand,
     bankBalance,
@@ -909,30 +910,33 @@ export const Reports = () => {
     totalLiquidFunds,
     liquidTransactionsList,
     cashInflows,
+    cashSupplierOut,
+    cashCustomerRefundOut,
     cashExpenses,
-    cashOutflows,
+    cashTotalOutflows,
     bankInflows,
+    bankSupplierOut,
+    bankCustomerRefundOut,
     bankExpenses,
-    bankOutflows,
+    bankTotalOutflows,
     cardInflows,
-    cardExpenses,
-    cardOutflows
+    cardSupplierOut,
+    cardExpenses
   } = useMemo(() => {
-    let cash = 0;
-    let bank = 0;
-    let card = 0;
-
     let cInflow = 0;
+    let cSupOut = 0;
+    let cCustRefundOut = 0;
     let cExp = 0;
-    let cOut = 0;
 
     let bInflow = 0;
+    let bSupOut = 0;
+    let bCustRefundOut = 0;
     let bExp = 0;
-    let bOut = 0;
 
     let kInflow = 0;
+    let kSupOut = 0;
+    let kCustRefundOut = 0;
     let kExp = 0;
-    let kOut = 0;
 
     const txList = [];
 
@@ -947,10 +951,6 @@ export const Reports = () => {
     validCustPaymentLogs.forEach(p => {
       const res = resolveTransactionPayment(p, 'CustomerPayment');
       if (res.totalLiquid > 0) {
-        cash += res.cashAmount;
-        bank += res.bankAmount;
-        card += res.cardAmount;
-
         cInflow += res.cashAmount;
         bInflow += res.bankAmount;
         kInflow += res.cardAmount;
@@ -973,10 +973,6 @@ export const Reports = () => {
       (sales || []).forEach(s => {
         const res = resolveTransactionPayment(s, 'Sale');
         if (res.totalLiquid > 0) {
-          cash += res.cashAmount;
-          bank += res.bankAmount;
-          card += res.cardAmount;
-
           cInflow += res.cashAmount;
           bInflow += res.bankAmount;
           kInflow += res.cardAmount;
@@ -1001,10 +997,6 @@ export const Reports = () => {
       if (!isCreditPr) {
         const res = resolveTransactionPayment(r, 'PurchaseReturn');
         if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
-          cash += res.cashAmount;
-          bank += res.bankAmount;
-          card += res.cardAmount;
-
           cInflow += res.cashAmount;
           bInflow += res.bankAmount;
           kInflow += res.cardAmount;
@@ -1034,13 +1026,9 @@ export const Reports = () => {
     validSupPaymentLogs.forEach(p => {
       const res = resolveTransactionPayment(p, 'SupplierPayment');
       if (res.totalLiquid > 0) {
-        cash -= res.cashAmount;
-        bank -= res.bankAmount;
-        card -= res.cardAmount;
-
-        cOut += res.cashAmount;
-        bOut += res.bankAmount;
-        kOut += res.cardAmount;
+        cSupOut += res.cashAmount;
+        bSupOut += res.bankAmount;
+        kSupOut += res.cardAmount;
 
         txList.push({
           date: p.date || 'Today',
@@ -1060,13 +1048,9 @@ export const Reports = () => {
       (purchases || []).forEach(p => {
         const res = resolveTransactionPayment(p, 'Purchase');
         if (res.totalLiquid > 0) {
-          cash -= res.cashAmount;
-          bank -= res.bankAmount;
-          card -= res.cardAmount;
-
-          cOut += res.cashAmount;
-          bOut += res.bankAmount;
-          kOut += res.cardAmount;
+          cSupOut += res.cashAmount;
+          bSupOut += res.bankAmount;
+          kSupOut += res.cardAmount;
 
           txList.push({
             date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Today'),
@@ -1086,10 +1070,6 @@ export const Reports = () => {
     (expenses || []).forEach(e => {
       const res = resolveTransactionPayment(e, 'Expense');
       if (res.isLiquid && res.totalLiquid > 0) {
-        cash -= res.cashAmount;
-        bank -= res.bankAmount;
-        card -= res.cardAmount;
-
         cExp += res.cashAmount;
         bExp += res.bankAmount;
         kExp += res.cardAmount;
@@ -1113,18 +1093,14 @@ export const Reports = () => {
       if (!isCreditSr) {
         const res = resolveTransactionPayment(r, 'SaleReturn');
         if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
-          cash -= res.cashAmount;
-          bank -= res.bankAmount;
-          card -= res.cardAmount;
-
-          cOut += res.cashAmount;
-          bOut += res.bankAmount;
-          kOut += res.cardAmount;
+          cCustRefundOut += res.cashAmount;
+          bCustRefundOut += res.bankAmount;
+          kCustRefundOut += res.cardAmount;
 
           txList.push({
             date: r.date || 'Today',
             created_at: r.created_at || r.createdAt || r.date,
-            source: `Sale Return Cash Refund (${res.refundMode || 'Cash'})`,
+            source: `Sale Return Cash Refund (${r.refundMode || 'Cash'})`,
             party: r.customerName || 'Customer',
             channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
             mode: r.refundMode || (res.channel === 'bank' ? 'Bank Transfer' : 'Cash'),
@@ -1135,20 +1111,29 @@ export const Reports = () => {
       }
     });
 
+    const netCash = cInflow - (cSupOut + cCustRefundOut + cExp);
+    const netBank = bInflow - (bSupOut + bCustRefundOut + bExp);
+    const netCard = kInflow - (kSupOut + kCustRefundOut + kExp);
+
     return {
-      cashInHand: cash,
-      bankBalance: bank,
-      cardBalance: card,
-      totalLiquidFunds: cash + bank + card,
+      cashInHand: netCash,
+      bankBalance: netBank,
+      cardBalance: netCard,
+      totalLiquidFunds: netCash + netBank + netCard,
       liquidTransactionsList: txList,
       cashInflows: cInflow,
+      cashSupplierOut: cSupOut,
+      cashCustomerRefundOut: cCustRefundOut,
       cashExpenses: cExp,
-      cashOutflows: cOut,
+      cashTotalOutflows: cSupOut + cCustRefundOut + cExp,
       bankInflows: bInflow,
+      bankSupplierOut: bSupOut,
+      bankCustomerRefundOut: bCustRefundOut,
       bankExpenses: bExp,
-      bankOutflows: bOut,
+      bankTotalOutflows: bSupOut + bCustRefundOut + bExp,
       cardInflows: kInflow,
-      cardExpenses: kExp,
+      cardSupplierOut: kSupOut,
+      cardExpenses: kExp
     };
   }, [sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns]);
 
@@ -1234,6 +1219,30 @@ export const Reports = () => {
       total: totalCustomerReceivables
     };
   }, [totalCustomerReceivables]);
+
+  const customerSalesGrossTotal = useMemo(() => {
+    return (sales || []).reduce((sum, s) => sum + Number(s.amount !== undefined ? s.amount : (s.grandTotal || 0)), 0);
+  }, [sales]);
+
+  const customerSaleReturnsTotal = useMemo(() => {
+    return (saleReturns || []).reduce((sum, r) => sum + Number(r.refundAmount !== undefined ? r.refundAmount : (r.amount || 0)), 0);
+  }, [saleReturns]);
+
+  const customerCollectionsTotal = useMemo(() => {
+    return cashInflows + bankInflows + cardInflows;
+  }, [cashInflows, bankInflows, cardInflows]);
+
+  const supplierPurchasesGrossTotal = useMemo(() => {
+    return (purchases || []).reduce((sum, p) => sum + Number(p.amount !== undefined ? p.amount : (p.total || p.grandTotal || 0)), 0);
+  }, [purchases]);
+
+  const supplierPurchaseReturnsTotal = useMemo(() => {
+    return (purchaseReturns || []).reduce((sum, r) => sum + Number(r.refundAmount !== undefined ? r.refundAmount : (r.amount || 0)), 0);
+  }, [purchaseReturns]);
+
+  const supplierPaymentsGrossTotal = useMemo(() => {
+    return cashSupplierOut + bankSupplierOut + cardSupplierOut;
+  }, [cashSupplierOut, bankSupplierOut, cardSupplierOut]);
 
   const bsInventoryBreakdown = useMemo(() => {
     return {
@@ -3801,67 +3810,79 @@ export const Reports = () => {
           {/* 4 Distinct Financial Metric Cards (Screen Only) */}
           <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* 1. TOTAL ASSETS */}
-            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200 text-slate-900'
+            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-br from-emerald-50/50 to-white border-emerald-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                <span className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
                   Total Assets
                 </span>
-                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400">
                   <ArrowUpRight className="w-3.5 h-3.5" />
                   <span>Gross Wealth</span>
                 </span>
               </div>
-              <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+              <div className="text-2xl font-black font-mono text-emerald-700 dark:text-emerald-400">
                 Rs. {totalAssets.toLocaleString()}
+              </div>
+              <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                Stock (Rs. {totalStockValuation.toLocaleString()}) + Liquid (Rs. {totalLiquidAssets.toLocaleString()}) + Receivables (Rs. {totalCustomerReceivables.toLocaleString()})
               </div>
             </div>
 
             {/* 2. TOTAL LIABILITIES */}
-            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-br from-rose-50/40 to-white border-rose-200 text-slate-900'
+            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-br from-rose-50/50 to-white border-rose-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                <span className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
                   Total Liabilities
                 </span>
-                <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400">
-                  Liabilities
+                <span className="text-xs font-bold text-rose-700 dark:text-rose-400">
+                  Total Dues & Debt
                 </span>
               </div>
-              <div className="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
+              <div className="text-2xl font-black font-mono text-rose-700 dark:text-rose-400">
                 Rs. {totalLiabilities.toLocaleString()}
+              </div>
+              <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                Suppliers (Rs. {totalSupplierPayables.toLocaleString()}) + Deficit/Overdraft (Rs. {totalOverdraftLiabilities.toLocaleString()})
               </div>
             </div>
 
             {/* 3. OPERATING NET PROFIT */}
-            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-br from-amber-50/40 to-white border-amber-200 text-slate-900'
+            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-br from-amber-50/50 to-white border-amber-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                <span className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
                   Net Profit
                 </span>
-                <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                  Profit
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                  From P&L Statement
                 </span>
               </div>
-              <div className="text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
+              <div className="text-2xl font-black font-mono text-amber-700 dark:text-amber-400">
                 Rs. {netOperatingProfit.toLocaleString()}
+              </div>
+              <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                Retained earnings generated from shop operations
               </div>
             </div>
 
             {/* 4. NET BUSINESS WORTH */}
-            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-br from-indigo-50/40 to-white border-indigo-200 text-slate-900'
+            <div className={`p-4 rounded-2xl border card-shadow space-y-2 ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                  Net Worth
+                <span className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                  Net Worth (Equity)
                 </span>
-                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 font-mono">
+                <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400 font-mono">
                   Assets − Liabilities
                 </span>
               </div>
-              <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">
+              <div className="text-2xl font-black font-mono text-indigo-700 dark:text-indigo-400">
                 Rs. {totalEquity.toLocaleString()}
+              </div>
+              <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                Capital (Rs. {ownersCapital.toLocaleString()}) + Profit (Rs. {retainedProfit.toLocaleString()})
               </div>
             </div>
           </div>
@@ -3888,215 +3909,268 @@ export const Reports = () => {
             <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
-                <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                   <Building className="w-4 h-4" />
                   <span>What You Own (Assets)</span>
                 </h3>
-                <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="text-sm font-mono font-black text-emerald-700 dark:text-emerald-400">
                   Rs. {totalAssets.toLocaleString()}
                 </span>
               </div>
 
-              <div className="space-y-3 text-xs">
+              <div className="space-y-4 text-xs">
                 {/* 1. Cash & Bank Balances (Liquid Funds) */}
-                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                <div className={`border rounded-xl p-3.5 space-y-3 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50/80 border-slate-200'
                   }`}>
                   <div
                     onClick={() => toggleBsSection('cashBank')}
-                    className="flex items-center justify-between cursor-pointer font-bold"
+                    className="flex items-center justify-between cursor-pointer font-bold select-none"
                   >
                     <div className="flex items-center gap-2">
                       {bsExpandedSections.cashBank ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                        <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                       ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                        <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                       )}
-                      <span className="text-slate-900 dark:text-white">Cash & Bank Balances</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">1. Liquid Funds (Cash & Bank)</span>
                     </div>
-                    {!bsExpandedSections.cashBank && (
-                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        Rs. {totalLiquidAssets.toLocaleString()}
-                      </span>
-                    )}
+                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                      Rs. {totalLiquidAssets.toLocaleString()}
+                    </span>
                   </div>
 
                   {bsExpandedSections.cashBank && (
-                    <div className="pl-5 pr-1 space-y-2 pt-2 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
+                    <div className="pl-4 pr-1 space-y-3 pt-2 text-xs text-slate-700 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700">
                       {/* Cash in Hand Calculation */}
-                      <div className="space-y-1 pb-1 border-b border-slate-200/40 dark:border-slate-700/40">
-                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                      <div className="space-y-1.5 pb-2 border-b border-slate-200/80 dark:border-slate-700/80">
+                        <div className="flex justify-between font-bold text-slate-900 dark:text-slate-100">
                           <span>• Cash in Hand:</span>
-                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {liquidCashAsset.toLocaleString()}</span>
+                          <span className="font-mono font-black text-emerald-700 dark:text-emerald-400">Rs. {liquidCashAsset.toLocaleString()}</span>
                         </div>
                         {cashInHand < 0 && (
-                          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium pl-3">
-                            (Cash deficit of Rs. {cashDeficitLiability.toLocaleString()} listed under Liabilities)
+                          <div className="text-[11px] text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/40 p-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50">
+                            ℹ️ Net Cash Position is -Rs. {cashDeficitLiability.toLocaleString()} (Cash Outflows exceeded Inflows). Listed as <strong>Cash Drawer Deficit Liability</strong> under Liabilities.
                           </div>
                         )}
-                        <div className="pl-3 space-y-0.5 text-[10px] text-slate-400">
+                        <div className="pl-2.5 space-y-1 text-[11px] font-medium text-slate-700 dark:text-slate-300">
                           <div className="flex justify-between">
-                            <span>Cash Inflows:</span>
-                            <span className="font-mono">+ Rs. {cashInflows.toLocaleString()}</span>
+                            <span className="text-slate-600 dark:text-slate-400">Total Cash Inflows (POS Sales + Khata Receipts):</span>
+                            <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">+ Rs. {cashInflows.toLocaleString()}</span>
                           </div>
                           {cashExpenses > 0 && (
-                            <div className="flex justify-between text-rose-500/90">
-                              <span>Less: Paid Expenses (Cash):</span>
-                              <span className="font-mono">- Rs. {cashExpenses.toLocaleString()}</span>
+                            <div className="flex justify-between text-rose-700 dark:text-rose-400">
+                              <span>Less: Paid Operating Expenses (Cash):</span>
+                              <span className="font-mono font-bold">- Rs. {cashExpenses.toLocaleString()}</span>
                             </div>
                           )}
-                          {cashOutflows > 0 && (
-                            <div className="flex justify-between text-rose-500/90">
+                          {cashSupplierOut > 0 && (
+                            <div className="flex justify-between text-rose-700 dark:text-rose-400">
                               <span>Less: Supplier Payments (Cash):</span>
-                              <span className="font-mono">- Rs. {cashOutflows.toLocaleString()}</span>
+                              <span className="font-mono font-bold">- Rs. {cashSupplierOut.toLocaleString()}</span>
                             </div>
                           )}
+                          {cashCustomerRefundOut > 0 && (
+                            <div className="flex justify-between text-rose-700 dark:text-rose-400">
+                              <span>Less: Customer Sale Return Cash Refunds:</span>
+                              <span className="font-mono font-bold">- Rs. {cashCustomerRefundOut.toLocaleString()}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 font-bold text-slate-900 dark:text-white">
+                            <span>Net Physical Cash Balance:</span>
+                            <span className={`font-mono ${cashInHand >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                              Rs. {cashInHand.toLocaleString()}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
                       {/* Bank Accounts Calculation */}
-                      <div className="space-y-1 pb-1 border-b border-slate-200/40 dark:border-slate-700/40">
-                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                      <div className="space-y-1.5 pb-2 border-b border-slate-200/80 dark:border-slate-700/80">
+                        <div className="flex justify-between font-bold text-slate-900 dark:text-slate-100">
                           <span>• Bank Accounts:</span>
-                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {liquidBankAsset.toLocaleString()}</span>
+                          <span className="font-mono font-black text-emerald-700 dark:text-emerald-400">Rs. {liquidBankAsset.toLocaleString()}</span>
                         </div>
                         {bankBalance < 0 && (
-                          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium pl-3">
-                            (Bank overdraft of Rs. {bankOverdraftLiability.toLocaleString()} listed under Liabilities)
+                          <div className="text-[11px] text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/40 p-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50">
+                            ℹ️ Net Bank Position is -Rs. {bankOverdraftLiability.toLocaleString()} (Bank Outflows exceeded Inflows). Listed as <strong>Bank Overdraft Liability</strong> under Liabilities.
                           </div>
                         )}
-                        <div className="pl-3 space-y-0.5 text-[10px] text-slate-400">
+                        <div className="pl-2.5 space-y-1 text-[11px] font-medium text-slate-700 dark:text-slate-300">
                           <div className="flex justify-between">
-                            <span>Bank Inflows:</span>
-                            <span className="font-mono">+ Rs. {bankInflows.toLocaleString()}</span>
+                            <span className="text-slate-600 dark:text-slate-400">Total Bank Inflows (POS Digital Receipts):</span>
+                            <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">+ Rs. {bankInflows.toLocaleString()}</span>
                           </div>
                           {bankExpenses > 0 && (
-                            <div className="flex justify-between text-rose-500/90">
-                              <span>Less: Paid Expenses (Bank):</span>
-                              <span className="font-mono">- Rs. {bankExpenses.toLocaleString()}</span>
+                            <div className="flex justify-between text-rose-700 dark:text-rose-400">
+                              <span>Less: Paid Operating Expenses (Bank):</span>
+                              <span className="font-mono font-bold">- Rs. {bankExpenses.toLocaleString()}</span>
                             </div>
                           )}
-                          {bankOutflows > 0 && (
-                            <div className="flex justify-between text-rose-500/90">
+                          {bankSupplierOut > 0 && (
+                            <div className="flex justify-between text-rose-700 dark:text-rose-400">
                               <span>Less: Supplier Payments (Bank):</span>
-                              <span className="font-mono">- Rs. {bankOutflows.toLocaleString()}</span>
+                              <span className="font-mono font-bold">- Rs. {bankSupplierOut.toLocaleString()}</span>
                             </div>
                           )}
+                          {bankCustomerRefundOut > 0 && (
+                            <div className="flex justify-between text-rose-700 dark:text-rose-400">
+                              <span>Less: Customer Sale Return Bank Refunds:</span>
+                              <span className="font-mono font-bold">- Rs. {bankCustomerRefundOut.toLocaleString()}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 font-bold text-slate-900 dark:text-white">
+                            <span>Net Bank Account Balance:</span>
+                            <span className={`font-mono ${bankBalance >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                              Rs. {bankBalance.toLocaleString()}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
                       {/* Card Payment Account Calculation */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                      <div className="space-y-1.5 pb-1">
+                        <div className="flex justify-between font-bold text-slate-900 dark:text-slate-100">
                           <span>• Card Payment Account:</span>
-                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {liquidCardAsset.toLocaleString()}</span>
+                          <span className="font-mono font-black text-emerald-700 dark:text-emerald-400">Rs. {liquidCardAsset.toLocaleString()}</span>
                         </div>
-                        <div className="pl-3 space-y-0.5 text-[10px] text-slate-400">
+                        <div className="pl-2.5 space-y-1 text-[11px] font-medium text-slate-700 dark:text-slate-300">
                           <div className="flex justify-between">
-                            <span>Card Inflows:</span>
-                            <span className="font-mono">+ Rs. {cardInflows.toLocaleString()}</span>
+                            <span className="text-slate-600 dark:text-slate-400">Card Inflows:</span>
+                            <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">+ Rs. {cardInflows.toLocaleString()}</span>
                           </div>
                           {cardExpenses > 0 && (
-                            <div className="flex justify-between text-rose-500/90">
+                            <div className="flex justify-between text-rose-700 dark:text-rose-400">
                               <span>Less: Paid Expenses (Card):</span>
-                              <span className="font-mono">- Rs. {cardExpenses.toLocaleString()}</span>
+                              <span className="font-mono font-bold">- Rs. {cardExpenses.toLocaleString()}</span>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1.5 text-slate-900 dark:text-white">
-                        <span className="font-bold">Total Liquid Assets:</span>
-                        <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidAssets.toLocaleString()}</span>
+                      <div className="flex justify-between border-t-2 border-slate-200 dark:border-slate-700 pt-2 text-slate-900 dark:text-white text-xs">
+                        <span className="font-black">Subtotal Realizable Liquid Assets:</span>
+                        <span className="font-mono font-black text-emerald-700 dark:text-emerald-400">Rs. {totalLiquidAssets.toLocaleString()}</span>
                       </div>
                     </div>
                   )}
                 </div>
 
                 {/* 2. Customer Receivables */}
-                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                <div className={`border rounded-xl p-3.5 space-y-3 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50/80 border-slate-200'
                   }`}>
                   <div
                     onClick={() => toggleBsSection('receivables')}
-                    className="flex items-center justify-between cursor-pointer font-bold"
+                    className="flex items-center justify-between cursor-pointer font-bold select-none"
                   >
                     <div className="flex items-center gap-2">
                       {bsExpandedSections.receivables ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                        <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                       ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                        <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                       )}
-                      <span className="text-slate-900 dark:text-white">Receivables (Khata Dues)</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">2. Customer Receivables (Khata Dues)</span>
                     </div>
-                    {!bsExpandedSections.receivables && (
-                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                        Rs. {totalCustomerReceivables.toLocaleString()}
-                      </span>
-                    )}
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">
+                      Rs. {totalCustomerReceivables.toLocaleString()}
+                    </span>
                   </div>
 
                   {bsExpandedSections.receivables && (
-                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      {regularCustomerReceivables > 0 && walkinCustomerReceivables > 0 ? (
-                        <>
-                          <div className="flex justify-between">
-                            <span>Regular Customer Khata Dues:</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {regularCustomerReceivables.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Walk-in Customer Khata Dues:</span>
-                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">Rs. {walkinCustomerReceivables.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-900 dark:text-white">
-                            <span className="font-bold">Total Khata Receivables:</span>
-                            <span className="font-mono font-black text-amber-600 dark:text-amber-400">Rs. {totalCustomerReceivables.toLocaleString()}</span>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
-                          <span>Customer Khata Dues:</span>
-                          <span className="font-mono text-amber-600 dark:text-amber-400">Rs. {totalCustomerReceivables.toLocaleString()}</span>
+                    <div className="pl-4 pr-1 space-y-2 pt-2 text-xs text-slate-700 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700">
+                      <div className="space-y-1 text-[11px]">
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Gross Sales Invoiced:</span>
+                          <span className="font-mono font-bold text-slate-800 dark:text-slate-200">+ Rs. {customerSalesGrossTotal.toLocaleString()}</span>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                        {customerSaleReturnsTotal > 0 && (
+                          <div className="flex justify-between text-rose-700 dark:text-rose-400">
+                            <span>Less: Sale Returns (Credit Offsets):</span>
+                            <span className="font-mono font-bold">- Rs. {customerSaleReturnsTotal.toLocaleString()}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-rose-700 dark:text-rose-400">
+                          <span>Less: Total Customer Payments Received:</span>
+                          <span className="font-mono font-bold">- Rs. {customerCollectionsTotal.toLocaleString()}</span>
+                        </div>
+                      </div>
 
-                {/* 3. Commodity Inventory Assets */}
-                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
-                  }`}>
-                  <div
-                    onClick={() => toggleBsSection('inventory')}
-                    className="flex items-center justify-between cursor-pointer font-bold"
-                  >
-                    <div className="flex items-center gap-2">
-                      {bsExpandedSections.inventory ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                      <span className="text-slate-900 dark:text-white">Inventory / Commodities</span>
-                    </div>
-                    {!bsExpandedSections.inventory && (
-                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                        Rs. {totalStockValuation.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
+                      {regularCustomerReceivables > 0 && walkinCustomerReceivables > 0 ? (
+                        <div className="pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 space-y-1 text-[11px]">
+                          <div className="flex justify-between">
+                            <span className="text-slate-600 dark:text-slate-400">• Regular Customer Accounts:</span>
+                            <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {regularCustomerReceivables.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600 dark:text-slate-400">• Walk-in Customer Accounts:</span>
+                            <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {walkinCustomerReceivables.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      ) : null}
 
-                  {bsExpandedSections.inventory && (
-                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
-                        <span>Stock in Warehouse Godown:</span>
-                        <span className="font-mono text-slate-900 dark:text-white">Rs. {totalStockValuation.toLocaleString()}</span>
+                      <div className="flex justify-between border-t-2 border-slate-200 dark:border-slate-700 pt-2 text-slate-900 dark:text-white text-xs">
+                        <span className="font-black">Subtotal Customer Receivables:</span>
+                        <span className="font-mono font-black text-slate-900 dark:text-white">Rs. {totalCustomerReceivables.toLocaleString()}</span>
                       </div>
                     </div>
                   )}
                 </div>
 
+                {/* 3. Commodity Inventory Assets */}
+                <div className={`border rounded-xl p-3.5 space-y-3 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50/80 border-slate-200'
+                  }`}>
+                  <div
+                    onClick={() => toggleBsSection('inventory')}
+                    className="flex items-center justify-between cursor-pointer font-bold select-none"
+                  >
+                    <div className="flex items-center gap-2">
+                      {bsExpandedSections.inventory ? (
+                        <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                      )}
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">3. Godown Inventory / Stock</span>
+                    </div>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white">
+                      Rs. {totalStockValuation.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {bsExpandedSections.inventory && (
+                    <div className="pl-4 pr-1 space-y-2 pt-2 text-xs text-slate-700 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700">
+                      <div className="space-y-1 text-[11px]">
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Total Commodities in Warehouse:</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalStockValuation.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                          <span>Valuation Method:</span>
+                          <span className="font-semibold">Purchase Price Weighted Cost</span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between border-t-2 border-slate-200 dark:border-slate-700 pt-2 text-slate-900 dark:text-white text-xs">
+                        <span className="font-black">Subtotal Commodity Assets:</span>
+                        <span className="font-mono font-black text-slate-900 dark:text-white">Rs. {totalStockValuation.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Supplier Advances */}
+                {totalSupplierAdvances > 0 && (
+                  <div className={`border rounded-xl p-3.5 space-y-3 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50/80 border-slate-200'
+                    }`}>
+                    <div className="flex items-center justify-between font-bold">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">4. Supplier Advance Balances</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {totalSupplierAdvances.toLocaleString()}</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Total Assets Summary Line */}
-                <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-slate-900 dark:text-white">
+                <div className="pt-4 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-base text-slate-900 dark:text-white">
                   <span>TOTAL ASSETS:</span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
+                  <span className="font-mono text-emerald-700 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -4107,120 +4181,179 @@ export const Reports = () => {
             <div className={`border rounded-2xl p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-700">
-                <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-2 text-rose-700 dark:text-rose-400">
                   <PieChart className="w-4 h-4" />
                   <span>Liabilities & Equity</span>
                 </h3>
-                <span className="text-[11px] font-mono font-bold text-slate-900 dark:text-white">
+                <span className="text-sm font-mono font-black text-slate-900 dark:text-white">
                   Rs. {(totalLiabilities + totalEquity).toLocaleString()}
                 </span>
               </div>
 
-              <div className="space-y-3 text-xs">
+              <div className="space-y-4 text-xs">
                 {/* 1. Current Liabilities */}
-                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                <div className={`border rounded-xl p-3.5 space-y-3 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50/80 border-slate-200'
                   }`}>
                   <div
                     onClick={() => toggleBsSection('payables')}
-                    className="flex items-center justify-between cursor-pointer font-bold"
+                    className="flex items-center justify-between cursor-pointer font-bold select-none"
                   >
                     <div className="flex items-center gap-2">
                       {bsExpandedSections.payables ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                        <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                       ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                        <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                       )}
-                      <span className="text-slate-900 dark:text-white">Current Liabilities & Overdrafts</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">1. Current Liabilities & Overdrafts</span>
                     </div>
-                    {!bsExpandedSections.payables && (
-                      <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
-                        Rs. {totalLiabilities.toLocaleString()}
-                      </span>
-                    )}
+                    <span className="font-mono font-bold text-rose-700 dark:text-rose-400">
+                      Rs. {totalLiabilities.toLocaleString()}
+                    </span>
                   </div>
 
                   {bsExpandedSections.payables && (
-                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between">
-                        <span>Supplier Khata Payables:</span>
-                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
+                    <div className="pl-4 pr-1 space-y-2.5 pt-2 text-xs text-slate-700 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700">
+                      {/* Supplier Khata Payables */}
+                      <div className="space-y-1 pb-1.5 border-b border-slate-200/60 dark:border-slate-700/60">
+                        <div className="flex justify-between font-bold text-slate-900 dark:text-slate-100">
+                          <span>• Supplier Khata Payables:</span>
+                          <span className="font-mono font-bold text-rose-700 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
+                        </div>
+                        <div className="pl-2 space-y-0.5 text-[11px] text-slate-600 dark:text-slate-400">
+                          <div className="flex justify-between">
+                            <span>Total Purchases Procured:</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">+ Rs. {supplierPurchasesGrossTotal.toLocaleString()}</span>
+                          </div>
+                          {supplierPurchaseReturnsTotal > 0 && (
+                            <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                              <span>Less: Purchase Returns:</span>
+                              <span className="font-mono font-bold">- Rs. {supplierPurchaseReturnsTotal.toLocaleString()}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                            <span>Less: Supplier Payments Settled:</span>
+                            <span className="font-mono font-bold">- Rs. {supplierPaymentsGrossTotal.toLocaleString()}</span>
+                          </div>
+                        </div>
                       </div>
+
                       {totalCustomerAdvances > 0 && (
-                        <div className="flex justify-between">
-                          <span>Customer Advance Credits:</span>
-                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalCustomerAdvances.toLocaleString()}</span>
+                        <div className="flex justify-between font-bold text-slate-900 dark:text-slate-100">
+                          <span>• Customer Advance Credits:</span>
+                          <span className="font-mono font-bold text-rose-700 dark:text-rose-400">Rs. {totalCustomerAdvances.toLocaleString()}</span>
                         </div>
                       )}
+
                       {cashDeficitLiability > 0 && (
-                        <div className="flex justify-between">
-                          <span>Cash Drawer Deficit (Short-term):</span>
-                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {cashDeficitLiability.toLocaleString()}</span>
+                        <div className="space-y-1 pb-1.5 border-b border-slate-200/60 dark:border-slate-700/60">
+                          <div className="flex justify-between font-bold text-slate-900 dark:text-slate-100">
+                            <span>• Cash Drawer Deficit (Short-term Debt):</span>
+                            <span className="font-mono font-bold text-rose-700 dark:text-rose-400">Rs. {cashDeficitLiability.toLocaleString()}</span>
+                          </div>
+                          <div className="pl-2 text-[11px] text-slate-600 dark:text-slate-400">
+                            Cash paid out (Rs. {cashTotalOutflows.toLocaleString()}) exceeded cash received (Rs. {cashInflows.toLocaleString()}).
+                          </div>
                         </div>
                       )}
+
                       {bankOverdraftLiability > 0 && (
-                        <div className="flex justify-between">
-                          <span>Bank Overdraft (Credit Facility):</span>
-                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {bankOverdraftLiability.toLocaleString()}</span>
+                        <div className="space-y-1 pb-1.5 border-b border-slate-200/60 dark:border-slate-700/60">
+                          <div className="flex justify-between font-bold text-slate-900 dark:text-slate-100">
+                            <span>• Bank Overdraft (Credit Facility):</span>
+                            <span className="font-mono font-bold text-rose-700 dark:text-rose-400">Rs. {bankOverdraftLiability.toLocaleString()}</span>
+                          </div>
+                          <div className="pl-2 text-[11px] text-slate-600 dark:text-slate-400">
+                            Bank payments (Rs. {bankTotalOutflows.toLocaleString()}) exceeded bank receipts (Rs. {bankInflows.toLocaleString()}).
+                          </div>
                         </div>
                       )}
-                      <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
-                        <span>Total Current Liabilities:</span>
-                        <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {totalLiabilities.toLocaleString()}</span>
+
+                      <div className="flex justify-between border-t-2 border-slate-200 dark:border-slate-700 pt-2 text-slate-900 dark:text-white text-xs">
+                        <span className="font-black">Subtotal Current Liabilities:</span>
+                        <span className="font-mono font-black text-rose-700 dark:text-rose-400">Rs. {totalLiabilities.toLocaleString()}</span>
                       </div>
                     </div>
                   )}
                 </div>
 
                 {/* 2. Equity & Business Net Worth */}
-                <div className={`border rounded-xl p-3 space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50/70 border-slate-200'
+                <div className={`border rounded-xl p-3.5 space-y-3 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50/80 border-slate-200'
                   }`}>
                   <div
                     onClick={() => toggleBsSection('equity')}
-                    className="flex items-center justify-between cursor-pointer font-bold"
+                    className="flex items-center justify-between cursor-pointer font-bold select-none"
                   >
                     <div className="flex items-center gap-2">
                       {bsExpandedSections.equity ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                        <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                       ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                        <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                       )}
-                      <span className="text-slate-900 dark:text-white">Equity & Capital</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">2. Owner's Equity & Net Worth</span>
                     </div>
-                    {!bsExpandedSections.equity && (
-                      <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                        Rs. {totalEquity.toLocaleString()}
-                      </span>
-                    )}
+                    <span className="font-mono font-bold text-indigo-700 dark:text-indigo-400">
+                      Rs. {totalEquity.toLocaleString()}
+                    </span>
                   </div>
 
                   {bsExpandedSections.equity && (
-                    <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <div className="flex justify-between">
-                        <span>Total Assets:</span>
-                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
+                    <div className="pl-4 pr-1 space-y-2 pt-2 text-xs text-slate-700 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700">
+                      <div className="space-y-1.5 text-[11px]">
+                        <div className="flex justify-between">
+                          <span className="text-slate-700 dark:text-slate-300">• Owner's Invested Opening Capital:</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {ownersCapital.toLocaleString()}</span>
+                        </div>
+                        <div className="pl-2 text-[10.5px] text-slate-500 dark:text-slate-400">
+                          (Opening Stock: Rs. {totalInitialStockValuation.toLocaleString()} + Net Opening Khata: Rs. {(openingCustomerReceivables - openingSupplierPayables).toLocaleString()})
+                        </div>
+
+                        <div className="flex justify-between pt-1">
+                          <span className="text-slate-700 dark:text-slate-300">• Accumulated Net Operating Profit (P&L):</span>
+                          <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">+ Rs. {retainedProfit.toLocaleString()}</span>
+                        </div>
+
+                        <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1 text-slate-800 dark:text-slate-200 font-bold">
+                          <span>Reconciliation Equation (Assets − Liabilities):</span>
+                          <span className="font-mono">Rs. {totalAssets.toLocaleString()} − Rs. {totalLiabilities.toLocaleString()}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Less: Total Liabilities & Dues:</span>
-                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">- Rs. {totalLiabilities.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
-                        <span>Net Worth (Assets − Liabilities):</span>
-                        <span className="font-mono text-indigo-600 dark:text-indigo-400">Rs. {totalEquity.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-[10px] text-slate-400 pt-0.5">
-                        <span>• Owner's Invested Capital: Rs. {bsEquityBreakdown.ownersCapital.toLocaleString()}</span>
-                        <span>• Retained Profit: Rs. {bsEquityBreakdown.retainedProfit.toLocaleString()}</span>
+
+                      <div className="flex justify-between border-t-2 border-slate-200 dark:border-slate-700 pt-2 text-slate-900 dark:text-white text-xs">
+                        <span className="font-black">Subtotal Net Worth (Total Equity):</span>
+                        <span className="font-mono font-black text-indigo-700 dark:text-indigo-400">Rs. {totalEquity.toLocaleString()}</span>
                       </div>
                     </div>
                   )}
                 </div>
 
                 {/* Total Liabilities + Equity Summary Line */}
-                <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-sm text-slate-900 dark:text-white">
+                <div className="pt-4 border-t-2 border-slate-900 dark:border-white flex justify-between font-black text-base text-slate-900 dark:text-white">
                   <span>TOTAL LIABILITIES & EQUITY:</span>
                   <span className="font-mono text-slate-900 dark:text-white">Rs. {(totalLiabilities + totalEquity).toLocaleString()}</span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* EQUATION BALANCING RECONCILIATION BAR */}
+          {/* ========================================================================= */}
+          <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold ${Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01
+            ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+            : 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200'
+            }`}>
+            <div className="flex items-center gap-2">
+              <span className="text-base">{Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01 ? '✅' : '⚠️'}</span>
+              <span>
+                <strong>Accounting Equation Status:</strong> Total Assets (Rs. {totalAssets.toLocaleString()}) = Total Liabilities (Rs. {totalLiabilities.toLocaleString()}) + Total Equity (Rs. {totalEquity.toLocaleString()})
+              </span>
+            </div>
+            <div className="font-mono font-black text-sm">
+              {Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01 ? (
+                <span className="text-emerald-700 dark:text-emerald-400">Balanced (Diff: Rs. 0)</span>
+              ) : (
+                <span className="text-rose-700 dark:text-rose-400">Imbalance: Rs. {Math.abs(totalAssets - (totalLiabilities + totalEquity)).toLocaleString()}</span>
+              )}
             </div>
           </div>
         </div>

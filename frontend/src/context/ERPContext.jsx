@@ -44,10 +44,9 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
   );
 
   const rawMode = String(
-    tx.paymentMode || tx.paymentmode ||
-    tx.paymentMethod || tx.paymentmethod ||
-    tx.refundMode || tx.refundmode ||
-    tx.mode || 'Cash'
+    (txType === 'SaleReturn' || txType === 'PurchaseReturn')
+      ? (tx.refundMode || tx.refundmode || tx.mode || tx.paymentMode || tx.paymentMethod || 'Credit')
+      : (tx.paymentMode || tx.paymentmode || tx.paymentMethod || tx.paymentmethod || tx.mode || 'Cash')
   ).trim();
 
   const modeLower = rawMode.toLowerCase();
