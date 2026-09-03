@@ -1013,8 +1013,6 @@ export const Purchases = () => {
                             <span>View</span>
                           </button>
 
-
-
                           {!isFullyReturned && (
                             <button
                               type="button"
@@ -1845,19 +1843,17 @@ export const Purchases = () => {
                       }
                     }}
                     placeholder={`Max Rs. ${maxDue.toLocaleString()}`}
-                    className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
 
                   {/* Live Remaining Balance Calculation Preview */}
                   <div className="mt-1.5 flex items-center justify-between text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/50">
                     <span className="text-slate-500 dark:text-slate-400">Balance after payment:</span>
-                    <span className={`font-mono ${
-                      remainingAfterPayment === 0
-                        ? 'text-emerald-600 dark:text-emerald-400 font-black'
-                        : 'text-amber-600 dark:text-amber-400 font-black'
-                    }`}>
+                    <span className={`font-mono ${remainingAfterPayment === 0
+                      ? 'text-emerald-600 dark:text-emerald-400 font-black'
+                      : 'text-amber-600 dark:text-amber-400 font-black'
+                      }`}>
                       Rs. {remainingAfterPayment.toLocaleString()}
                       {remainingAfterPayment === 0 && ' (Fully Settled)'}
                     </span>
@@ -1870,9 +1866,8 @@ export const Purchases = () => {
                     <select
                       value={payForm.paymentMode}
                       onChange={(e) => setPayForm({ ...payForm, paymentMode: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     >
                       <option value="Cash">Cash on Counter</option>
                       <option value="Bank Transfer">Bank Transfer</option>
@@ -1888,9 +1883,8 @@ export const Purchases = () => {
                       value={payForm.note || ''}
                       onChange={(e) => setPayForm({ ...payForm, note: e.target.value })}
                       placeholder="e.g. Counter cash"
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
                     />
                   </div>
                 </div>
@@ -1899,9 +1893,8 @@ export const Purchases = () => {
                   <button
                     type="button"
                     onClick={() => setPayModalPurchase(null)}
-                    className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
+                    className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
                   >
                     {t('cancel')}
                   </button>

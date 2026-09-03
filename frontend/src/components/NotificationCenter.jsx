@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-  Bell, 
-  Check, 
-  CheckCheck, 
-  ShoppingCart, 
-  Package, 
-  RotateCcw, 
-  CreditCard, 
-  DollarSign, 
-  AlertTriangle, 
-  ChevronRight, 
+import {
+  Bell,
+  Check,
+  CheckCheck,
+  ShoppingCart,
+  Package,
+  RotateCcw,
+  CreditCard,
+  DollarSign,
+  AlertTriangle,
+  ChevronRight,
   ExternalLink,
   X,
   Clock,
@@ -26,17 +26,17 @@ import { useNavigate } from 'react-router-dom';
 export const NotificationCenter = () => {
   const { user } = useAuth();
   const storageKey = `gm_${user?.shop_id || 'default'}_read_notifications_v1`;
-  const { 
-    products = [], 
-    sales = [], 
-    purchases = [], 
-    saleReturns = [], 
-    purchaseReturns = [], 
-    customers = [], 
-    suppliers = [], 
-    paymentLogs = [] 
+  const {
+    products = [],
+    sales = [],
+    purchases = [],
+    saleReturns = [],
+    purchaseReturns = [],
+    customers = [],
+    suppliers = [],
+    paymentLogs = []
   } = useERP();
-  
+
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -134,7 +134,7 @@ export const NotificationCenter = () => {
       const amt = Number(s.amount || s.grandTotal || 0);
       const paid = Number(s.paidAmount || 0);
       const isUnpaid = (amt - paid) > 0;
-      
+
       list.push({
         id: `sale-${s.id || s.invoiceNo}`,
         category: 'Sales POS',
@@ -377,10 +377,9 @@ export const NotificationCenter = () => {
 
       {/* Notification Center Dropdown Panel (Responsive: Full width centered on mobile, Anchored dropdown on desktop) */}
       {isOpen && (
-        <div 
-          className={`fixed left-2 right-2 top-14 xs:left-4 xs:right-4 sm:left-auto sm:right-0 sm:top-full sm:absolute sm:mt-2 sm:w-96 max-h-[85vh] flex flex-col rounded-2xl sm:rounded-3xl border card-shadow shadow-2xl z-50 overflow-hidden transition-all duration-200 ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}
+        <div
+          className={`fixed left-2 right-2 top-14 xs:left-4 xs:right-4 sm:left-auto sm:right-0 sm:top-full sm:absolute sm:mt-2 sm:w-96 max-h-[85vh] flex flex-col rounded-2xl sm:rounded-3xl border card-shadow shadow-2xl z-50 overflow-hidden transition-all duration-200 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}
           style={{ zIndex: 1000 }}
         >
           {/* Header */}
@@ -435,9 +434,8 @@ export const NotificationCenter = () => {
               <select
                 value={activeTab}
                 onChange={(e) => setActiveTab(e.target.value)}
-                className={`w-full border rounded-xl pl-3 pr-8 py-1.5 text-xs font-bold outline-none cursor-pointer h-[34px] appearance-none transition focus:border-brand-500 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl pl-3 pr-8 py-1.5 text-xs font-bold outline-none cursor-pointer h-[34px] appearance-none transition focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Notifications ({notifications.length})</option>
                 <option value="Unread">Unread ({unreadCount})</option>
@@ -479,9 +477,8 @@ export const NotificationCenter = () => {
                   <div
                     key={item.id}
                     onClick={() => handleNotificationClick(item)}
-                    className={`p-3 transition-colors cursor-pointer flex items-start gap-2.5 group relative hover:bg-slate-50 dark:hover:bg-slate-700/40 ${
-                      !isRead ? (theme === 'dark' ? 'bg-slate-900/40' : 'bg-brand-50/30') : ''
-                    }`}
+                    className={`p-3 transition-colors cursor-pointer flex items-start gap-2.5 group relative hover:bg-slate-50 dark:hover:bg-slate-700/40 ${!isRead ? (theme === 'dark' ? 'bg-slate-900/40' : 'bg-brand-50/30') : ''
+                      }`}
                   >
                     {/* Unread Indicator Bar */}
                     {!isRead && (
@@ -540,17 +537,6 @@ export const NotificationCenter = () => {
             <span className="text-[10px] sm:text-[11px] text-slate-400 font-bold">
               {notifications.length} active alerts
             </span>
-            <button
-              type="button"
-              onClick={() => {
-                setIsOpen(false);
-                navigate('/reports');
-              }}
-              className="text-[10px] sm:text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <span>Audit Reports</span>
-              <ExternalLink className="w-3 h-3" />
-            </button>
           </div>
         </div>
       )}
