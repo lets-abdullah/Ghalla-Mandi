@@ -35,14 +35,15 @@ export const Sidebar = () => {
   const isPartiesActive = ['/customers', '/suppliers', '/suppliers/new', '/khata', '/ledger'].includes(location.pathname);
   const isMoneyActive = ['/expenses'].includes(location.pathname) || (location.pathname === '/reports' && location.search.includes('CashFlow'));
   const isInventoryActive = ['/products', '/inventory'].includes(location.pathname) || (location.pathname === '/reports' && location.search.includes('Stock'));
-  const isReportsActive = location.pathname === '/reports' && !location.search.includes('CashFlow') && !location.search.includes('Stock');
+  const isReportsActive = location.pathname === '/reports' && !location.search.includes('CashFlow');
 
-  // Collapsible dropdown states (5 main groups max)
+  // Collapsible dropdown states
   const [salesOpen, setSalesOpen] = useState(true);
   const [purchasesOpen, setPurchasesOpen] = useState(true);
   const [partiesOpen, setPartiesOpen] = useState(true);
   const [moneyOpen, setMoneyOpen] = useState(true);
   const [inventoryOpen, setInventoryOpen] = useState(true);
+  const [reportsOpen, setReportsOpen] = useState(true);
 
   useEffect(() => {
     if (isSalesActive) setSalesOpen(true);
@@ -50,7 +51,8 @@ export const Sidebar = () => {
     if (isPartiesActive) setPartiesOpen(true);
     if (isMoneyActive) setMoneyOpen(true);
     if (isInventoryActive) setInventoryOpen(true);
-  }, [location.pathname, location.search, isSalesActive, isPurchasesActive, isPartiesActive, isMoneyActive, isInventoryActive]);
+    if (isReportsActive) setReportsOpen(true);
+  }, [location.pathname, location.search, isSalesActive, isPurchasesActive, isPartiesActive, isMoneyActive, isInventoryActive, isReportsActive]);
 
   const handleLogout = () => {
     if (isMobile) closeMobileMenu();
@@ -441,21 +443,66 @@ export const Sidebar = () => {
             </div>
           )}
 
-          {/* 7. Reports (Direct Link) */}
-          <NavLink
-            to="/reports"
-            onClick={handleLinkClick}
-            title={effectivelyCollapsed ? t('reports') : undefined}
-            className={({ isActive }) =>
-              `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isReportsActive
-                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`
-            }
-          >
-            <BarChart3 className="w-4 h-4 shrink-0 stroke-[2.2]" />
-            {!effectivelyCollapsed && <span className="truncate">{t('reports')}</span>}
-          </NavLink>
+          {/* 7. Reports Group */}
+          {effectivelyCollapsed ? (
+            <div className="relative group/menu">
+              <button
+                type="button"
+                className={`w-full flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isReportsActive
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              </button>
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-52 hidden group-hover/menu:block hover:block z-50`}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
+                  <Link to="/reports?type=Stock" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/reports', 'Stock') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Stock Report</Link>
+                  <Link to="/reports?type=Sales" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/reports', 'Sales') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Sales Report</Link>
+                  <Link to="/reports?type=Expenses" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/reports', 'Expenses') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Expense Report</Link>
+                  <Link to="/reports?type=ProfitLoss" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/reports', 'ProfitLoss') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Profit & Loss</Link>
+                  <Link to="/reports?type=BalanceSheet" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/reports', 'BalanceSheet') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Balance Sheet</Link>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => setReportsOpen(!reportsOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isReportsActive
+                  ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <BarChart3 className={`w-4 h-4 shrink-0 stroke-[2.2] ${isReportsActive ? 'text-brand-500' : ''}`} />
+                  <span>Reports</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${reportsOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
+              </button>
+
+              {reportsOpen && (
+                <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
+                  <Link to="/reports?type=Stock" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Stock') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Stock Report</span>
+                  </Link>
+                  <Link to="/reports?type=Sales" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Sales') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Sales Report</span>
+                  </Link>
+                  <Link to="/reports?type=Expenses" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Expenses') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Expense Report</span>
+                  </Link>
+                  <Link to="/reports?type=ProfitLoss" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'ProfitLoss') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Profit & Loss</span>
+                  </Link>
+                  <Link to="/reports?type=BalanceSheet" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'BalanceSheet') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Balance Sheet</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 8. Settings (Direct Link) */}
           <NavLink

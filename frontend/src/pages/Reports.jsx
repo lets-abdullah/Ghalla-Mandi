@@ -1106,9 +1106,29 @@ export const Reports = () => {
       bankOutflows: bOut,
       cardInflows: kInflow,
       cardExpenses: kExp,
-      cardOutflows: kOut
     };
   }, [sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns]);
+
+  const cashFlowTableRows = useMemo(() => {
+    let running = 0;
+    const list = [...(liquidTransactionsList || [])].reverse();
+    const computed = list.map(tx => {
+      const isIn = tx.type === 'Inflow';
+      const cashIn = isIn ? Number(tx.amount || 0) : 0;
+      const cashOut = isIn ? 0 : Number(tx.amount || 0);
+      running += (cashIn - cashOut);
+
+      return {
+        date: tx.date || 'Today',
+        desc: tx.source || (isIn ? 'Cash Inflow' : 'Cash Outflow'),
+        ref: tx.party ? `${tx.party}` : '—',
+        cashIn,
+        cashOut,
+        balance: running
+      };
+    });
+    return computed.reverse();
+  }, [liquidTransactionsList]);
 
   const totalSupplierAdvances = useMemo(() => {
     return (suppliers || []).reduce((sum, s) => {
@@ -2028,12 +2048,14 @@ export const Reports = () => {
             {reportType === 'Expenses' && <DollarSign className="w-6 h-6 text-rose-500" />}
             {reportType === 'ProfitLoss' && <PieChart className="w-6 h-6 text-brand-500" />}
             {reportType === 'BalanceSheet' && <Building className="w-6 h-6 text-indigo-500" />}
+            {reportType === 'CashFlow' && <DollarSign className="w-6 h-6 text-emerald-500" />}
             <span>
               {reportType === 'Stock' && 'Stock & Inventory'}
               {reportType === 'Sales' && 'Sales & Revenue Report'}
               {reportType === 'Expenses' && 'Operating Expenses'}
               {reportType === 'ProfitLoss' && 'Profit & Loss Statement'}
               {reportType === 'BalanceSheet' && 'Balance Sheet Statement'}
+              {reportType === 'CashFlow' && 'Cash Flow (Liquid Money Movement)'}
             </span>
           </h1>
           <p className="text-xs text-slate-400 font-medium mt-0.5">
@@ -2042,6 +2064,7 @@ export const Reports = () => {
             {reportType === 'Expenses' && 'Expense register and financial summary'}
             {reportType === 'ProfitLoss' && 'Income, purchase costs, expenses, and net profit'}
             {reportType === 'BalanceSheet' && 'Summary of assets, liabilities, and net worth'}
+            {reportType === 'CashFlow' && 'Real-time record of actual physical cash IN and cash OUT movements'}
           </p>
         </div>
 
@@ -2071,6 +2094,79 @@ export const Reports = () => {
       {/* ========================================================================= */}
       {/* 2. REPORT VIEW CONTENT */}
       {/* ========================================================================= */}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 0. CASH FLOW REGISTER (LIQUID MONEY MOVEMENT) */}
+      {/* ------------------------------------------------------------------------- */}
+      {reportType === 'CashFlow' && (
+        <div className="space-y-5">
+          {/* KPI Summary Cards */}
+          <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Cash Inflows</div>
+              <div className="text-2xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
+                +Rs. {cashInflows.toLocaleString()}
+              </div>
+            </div>
+            <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Cash Outflows</div>
+              <div className="text-2xl font-black mt-1 font-mono text-rose-600 dark:text-rose-400">
+                -Rs. {(cashExpenses + cashOutflows).toLocaleString()}
+              </div>
+            </div>
+            <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Net Liquid Balance</div>
+              <div className="text-2xl font-black mt-1 font-mono text-slate-900 dark:text-white">
+                Rs. {totalLiquidFunds.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          {/* Cash Flow Table */}
+          <div className={`border rounded-2xl overflow-hidden card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className={`border-b text-[11px] font-black uppercase tracking-wider text-slate-400 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <th className="py-3.5 px-4">Date</th>
+                    <th className="py-3.5 px-4">Description</th>
+                    <th className="py-3.5 px-4">Reference / Party</th>
+                    <th className="py-3.5 px-4 text-right">Cash In</th>
+                    <th className="py-3.5 px-4 text-right">Cash Out</th>
+                    <th className="py-3.5 px-4 text-right">Balance</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60 text-slate-200' : 'divide-slate-100 text-slate-800'}`}>
+                  {cashFlowTableRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400 font-normal">
+                        No cash flow transactions recorded yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    cashFlowTableRows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
+                        <td className="py-3 px-4 font-mono text-[11px] text-slate-500 dark:text-slate-400">{row.date}</td>
+                        <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{row.desc}</td>
+                        <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">{row.ref}</td>
+                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          {row.cashIn > 0 ? `+Rs. ${row.cashIn.toLocaleString()}` : '—'}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
+                          {row.cashOut > 0 ? `-Rs. ${row.cashOut.toLocaleString()}` : '—'}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-black text-slate-900 dark:text-white">
+                          Rs. {row.balance.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ------------------------------------------------------------------------- */}
       {/* 1. STOCK & INVENTORY REGISTER (ENTERPRISE VALUATION & AVAILABILITY) */}

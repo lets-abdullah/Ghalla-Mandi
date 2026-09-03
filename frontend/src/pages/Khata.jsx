@@ -53,14 +53,28 @@ export const Khata = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Khata Party Type: 'Customer' (Receivables) or 'Supplier' (Payables)
-  const initialType = searchParams.get('type');
+  // Khata Party Type: 'Customer' (Receivables) or 'Supplier' (Payables) derived reactively from URL
+  const typeParam = searchParams.get('type');
   const [khataPartyType, setKhataPartyType] = useState(
-    initialType && (initialType.toLowerCase() === 'supplier' || initialType.toLowerCase() === 'suppliers')
+    typeParam && (typeParam.toLowerCase() === 'supplier' || typeParam.toLowerCase() === 'suppliers')
       ? 'Supplier'
       : 'Customer'
   );
 
+  useEffect(() => {
+    const currentType = searchParams.get('type');
+    if (currentType) {
+      if (currentType.toLowerCase() === 'supplier' || currentType.toLowerCase() === 'suppliers') {
+        setKhataPartyType('Supplier');
+      } else {
+        setKhataPartyType('Customer');
+      }
+    } else {
+      setKhataPartyType('Customer');
+    }
+  }, [searchParams]);
+
+  const isCustomer = khataPartyType === 'Customer';
   const customerIdParam = searchParams.get('customerId');
 
   // Khata Filters State
@@ -105,9 +119,6 @@ export const Khata = () => {
   } = useMemo(() => {
     return computeAllSuppliersFinancials(suppliers, purchases, paymentLogs, purchaseReturns);
   }, [suppliers, purchases, paymentLogs, purchaseReturns]);
-
-  // Active Base List according to Party Type
-  const isCustomer = khataPartyType === 'Customer';
 
   // 3. Filtered Khata Accounts
   const filteredKhata = useMemo(() => {
@@ -300,97 +311,29 @@ export const Khata = () => {
         </div>
       </div>
 
-      {/* 4-Stat Summary KPI Strip */}
-      <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* 1. Total Outstanding Due */}
+      {/* Focused Outstanding Dues KPI Banner */}
+      <div className="no-print">
         <div
           onClick={() => setBalanceStatusFilter('All')}
-          className={`border rounded-2xl p-4 card-shadow card-hover transition cursor-pointer ${
-            balanceStatusFilter === 'All'
-              ? isCustomer ? 'ring-2 ring-amber-500' : 'ring-2 ring-rose-500'
-              : ''
-          } ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow transition ${
+            isCustomer ? 'bg-amber-500/5 border-amber-500/20' : 'bg-rose-500/5 border-rose-500/20'
+          }`}
         >
-          <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
-            <span className="flex items-center gap-1.5">
-              <Clock className={`w-4 h-4 ${isCustomer ? 'text-amber-500' : 'text-rose-500'}`} />
-              <span>{isCustomer ? 'Total Receivables' : 'Total Payables'}</span>
-            </span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
-              isCustomer ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-            }`}>
-              Pending
-            </span>
-          </div>
-          <div className={`text-xl sm:text-2xl font-black mt-2 font-mono tracking-tight ${
-            isCustomer ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
-          }`}>
-            Rs. {totalOutstanding.toLocaleString()}
-          </div>
-          <div className="text-[11px] text-slate-400 font-medium mt-1">
-            {activeDueCount} parties with pending dues
-          </div>
-        </div>
-
-        {/* 2. Total Turnover */}
-        <div className={`border rounded-2xl p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-          <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
-            <span className="flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4 text-blue-500" />
-              <span>{isCustomer ? 'Total Sales' : 'Total Purchases'}</span>
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-              Billed
-            </span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 font-mono tracking-tight text-slate-900 dark:text-white">
-            Rs. {totalGrossTurnover.toLocaleString()}
-          </div>
-          <div className="text-[11px] text-slate-400 font-medium mt-1">
-            Total recorded volume
-          </div>
-        </div>
-
-        {/* 3. Total Recovered / Paid */}
-        <div className={`border rounded-2xl p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-          <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
-            <span className="flex items-center gap-1.5">
-              <DollarSign className="w-4 h-4 text-emerald-500" />
-              <span>{isCustomer ? 'Total Collected' : 'Total Paid Out'}</span>
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              Settled
-            </span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
-            Rs. {totalPaidAmount.toLocaleString()}
-          </div>
-          <div className="text-[11px] text-slate-400 font-medium mt-1">
-            Payments settled so far
-          </div>
-        </div>
-
-        {/* 4. Settled Accounts */}
-        <div
-          onClick={() => setBalanceStatusFilter(balanceStatusFilter === 'Clear' ? 'All' : 'Clear')}
-          className={`border rounded-2xl p-4 card-shadow card-hover transition cursor-pointer ${
-            balanceStatusFilter === 'Clear' ? 'ring-2 ring-emerald-500' : ''
-          } ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
-        >
-          <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              <span>Settled Accounts</span>
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              Rs. 0 Balance
-            </span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
-            {settledAccountsCount} Parties
-          </div>
-          <div className="text-[11px] text-slate-400 font-medium mt-1">
-            {balanceStatusFilter === 'Clear' ? 'Click to show active dues' : 'Fully cleared accounts (Click to view)'}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Clock className={`w-4 h-4 ${isCustomer ? 'text-amber-500' : 'text-rose-500'}`} />
+                <span>{isCustomer ? 'Total Outstanding Receivables' : 'Total Outstanding Payables'}</span>
+              </div>
+              <div className={`text-2xl sm:text-3xl font-black mt-1 font-mono tracking-tight ${
+                isCustomer ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
+              }`}>
+                Rs. {totalOutstanding.toLocaleString()}
+              </div>
+            </div>
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 sm:text-right">
+              <span className="font-bold text-slate-900 dark:text-white text-base">{activeDueCount}</span> {isCustomer ? 'customers with active dues' : 'suppliers with pending payments'}
+            </div>
           </div>
         </div>
       </div>
