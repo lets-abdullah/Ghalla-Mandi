@@ -1144,10 +1144,6 @@ export const Reports = () => {
     }, 0);
   }, [suppliers, purchases, paymentLogs, purchaseReturns]);
 
-  const totalCustomerAdvances = useMemo(() => {
-    return allCustomerReceivablesList.reduce((sum, c) => sum + (c.advanceCredit || 0), 0);
-  }, [allCustomerReceivablesList]);
-
   const openingCustomerReceivables = useMemo(() => {
     return (customers || []).reduce((sum, c) => sum + Number(c.openingBalance || 0), 0);
   }, [customers]);
@@ -1176,15 +1172,15 @@ export const Reports = () => {
     return totalLiquidAssets + totalCustomerReceivables + totalStockValuation + totalSupplierAdvances;
   }, [totalLiquidAssets, totalCustomerReceivables, totalStockValuation, totalSupplierAdvances]);
 
-  // 2. LIABILITIES: Supplier Payables + Customer Advances + Cash Overdraft/Deficit + Bank Overdraft
+  // 2. LIABILITIES: Supplier Payables + Cash Overdraft/Deficit + Bank Overdraft
   const cashDeficitLiability = Math.abs(Math.min(0, cashInHand));
   const bankOverdraftLiability = Math.abs(Math.min(0, bankBalance));
   const cardDeficitLiability = Math.abs(Math.min(0, cardBalance));
   const totalOverdraftLiabilities = cashDeficitLiability + bankOverdraftLiability + cardDeficitLiability;
 
   const totalLiabilities = useMemo(() => {
-    return totalSupplierPayables + totalCustomerAdvances + totalOverdraftLiabilities;
-  }, [totalSupplierPayables, totalCustomerAdvances, totalOverdraftLiabilities]);
+    return totalSupplierPayables + totalOverdraftLiabilities;
+  }, [totalSupplierPayables, totalOverdraftLiabilities]);
 
   // 3. EQUITY: Owner's Invested Capital (Initial Stock + Opening Khata) + Retained Net Profit
   const ownersCapital = useMemo(() => {
@@ -1255,10 +1251,9 @@ export const Reports = () => {
   const bsLiabilitiesBreakdown = useMemo(() => {
     return {
       supplierPayables: totalSupplierPayables,
-      customerAdvances: totalCustomerAdvances,
       total: totalLiabilities
     };
-  }, [totalSupplierPayables, totalCustomerAdvances, totalLiabilities]);
+  }, [totalSupplierPayables, totalLiabilities]);
 
   // Development-Safe Accounting Integrity & Reconciliation Check
   useEffect(() => {
@@ -1979,9 +1974,6 @@ export const Reports = () => {
       csvContent += makeSectionHeader('2. LIABILITIES (WHAT THE BUSINESS OWES)', COLS);
       csvContent += makeRow(['Liability Classification', 'Category / Subhead', 'Line Item / Description', 'Settlement Terms', 'Outstanding (Rs.)', 'Subtotal (Rs.)'], COLS);
       csvContent += makeRow(['Current Liabilities', 'Payables', 'Supplier Khata Payables', 'Outstanding Mandi Suppliers', num(totalSupplierPayables), ''], COLS);
-      if (totalCustomerAdvances > 0) {
-        csvContent += makeRow(['Current Liabilities', 'Advances', 'Customer Advance Credits', 'Customer Advance Balance', num(totalCustomerAdvances), ''], COLS);
-      }
       csvContent += makeRow(['TOTAL LIABILITIES', '', '', '', '', num(totalLiabilities)], COLS);
 
       // Section 3: EQUITY & CAPITAL
@@ -4001,13 +3993,6 @@ export const Reports = () => {
                       <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300 pl-2">
                         <span>• Bank Overdraft</span>
                         <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {bankOverdraftLiability.toLocaleString()}</span>
-                      </div>
-                    )}
-
-                    {totalCustomerAdvances > 0 && (
-                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300 pl-2">
-                        <span>• Customer Advance Credits</span>
-                        <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {totalCustomerAdvances.toLocaleString()}</span>
                       </div>
                     )}
                   </div>
