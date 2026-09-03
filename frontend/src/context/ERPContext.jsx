@@ -2429,17 +2429,16 @@ export const ERPProvider = ({ children }) => {
       let maxCustomerDue = 0;
       if (cust) {
         const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
-        maxCustomerDue = Math.max(0, fin.receivableDue || 0);
+        maxCustomerDue = Math.max(0, fin.receivableDue !== undefined ? fin.receivableDue : (Number(cust.balance) || 0));
       } else if (saleId) {
         const targetSale = (sales || []).find(s => String(s.id) === String(saleId));
-        const fin = computeSaleFinancials(targetSale, saleReturns, paymentLogs);
-        maxCustomerDue = Math.max(0, fin.due || 0);
+        if (targetSale) {
+          const fin = computeSaleFinancials(targetSale, saleReturns, paymentLogs);
+          maxCustomerDue = Math.max(0, fin.due || 0);
+        }
       }
 
-      if (maxCustomerDue <= 0) {
-        throw new Error('Customer account is already settled. No outstanding due to pay.');
-      }
-      if (amtNum > maxCustomerDue) {
+      if (maxCustomerDue > 0 && amtNum > maxCustomerDue) {
         throw new Error(`Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the customer's outstanding balance of Rs. ${maxCustomerDue.toLocaleString()}.`);
       }
     } else {
@@ -2464,10 +2463,7 @@ export const ERPProvider = ({ children }) => {
         maxSupplierPayable = Math.max(0, Number(sup.balance) || 0);
       }
 
-      if (maxSupplierPayable <= 0) {
-        throw new Error('Supplier account is already settled. No outstanding payable balance.');
-      }
-      if (amtNum > maxSupplierPayable) {
+      if (maxSupplierPayable > 0 && amtNum > maxSupplierPayable) {
         throw new Error(`Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the supplier's outstanding payable of Rs. ${maxSupplierPayable.toLocaleString()}.`);
       }
     }

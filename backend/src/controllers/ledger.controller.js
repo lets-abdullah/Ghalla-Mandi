@@ -54,7 +54,8 @@ export const recordPayment = async (req, res) => {
     if (partyType === 'Customer') {
       let cust = partyId && !String(partyId).startsWith('walkin-') ? await Customer.findById(partyId, req.shop_id) : null;
       if (!cust && partyName) {
-        cust = await Customer.findOne({ name: partyName, shop_id: req.shop_id });
+        const allCustomers = await Customer.find({ shop_id: req.shop_id });
+        cust = allCustomers.find(c => (c.name || '').trim().toLowerCase() === String(partyName).trim().toLowerCase());
       }
       if (!cust && saleId) {
         const targetSale = await Sale.findById(saleId, req.shop_id);
@@ -63,10 +64,15 @@ export const recordPayment = async (req, res) => {
         }
       }
 
+      if (cust) {
+        targetPartyName = cust.name;
+      } else if (partyName) {
+        targetPartyName = partyName;
+      }
+
       // Compute actual outstanding customer balance/due in real-time
       let maxCustomerDue = 0;
       if (cust) {
-        targetPartyName = cust.name;
         maxCustomerDue = Math.max(0, Number(cust.balance || 0));
       } else if (saleId) {
         const sale = await Sale.findById(saleId, req.shop_id);
@@ -75,11 +81,23 @@ export const recordPayment = async (req, res) => {
         }
       }
 
-      if (maxCustomerDue <= 0) {
-        throw new Error('Customer has no outstanding due to pay (account is already settled).');
+      // Calculate total customer due from sales as backup
+      const allShopSalesForCalc = await Sale.find({ shop_id: req.shop_id });
+      const matchingSalesForCalc = allShopSalesForCalc.filter(s => {
+        const sName = (s.partyName || s.customerName || '').trim().toLowerCase();
+        const tName = String(targetPartyName || partyName || '').trim().toLowerCase();
+        return (cust && s.customerId === cust.id) || (tName && sName === tName);
+      });
+
+      const totalSalesNet = matchingSalesForCalc.reduce((acc, s) => acc + Number(s.netAmount !== undefined ? s.netAmount : Math.max(0, Number(s.amount || 0) - Number(s.returnAmount || 0))), 0);
+      const totalSalesPaid = matchingSalesForCalc.reduce((acc, s) => acc + Number(s.paidAmount || 0), 0);
+      const salesCalculatedDue = Math.max(0, totalSalesNet - totalSalesPaid);
+
+      if (salesCalculatedDue > 0) {
+        maxCustomerDue = Math.max(maxCustomerDue, salesCalculatedDue);
       }
 
-      if (amtNum > maxCustomerDue) {
+      if (maxCustomerDue > 0 && amtNum > maxCustomerDue) {
         throw new Error(`Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the customer's outstanding balance of Rs. ${maxCustomerDue.toLocaleString()}.`);
       }
 
@@ -170,10 +188,20 @@ export const recordPayment = async (req, res) => {
       } else {
 
         // Supplier payment
-        const sup = partyId ? await Supplier.findById(partyId, req.shop_id) : null;
-        let maxSupplierPayable = 0;
+        let sup = partyId ? await Supplier.findById(partyId, req.shop_id) : null;
+        if (!sup && partyName) {
+          const allSuppliers = await Supplier.find({ shop_id: req.shop_id });
+          sup = allSuppliers.find(s => (s.name || '').trim().toLowerCase() === String(partyName).trim().toLowerCase());
+        }
+
         if (sup) {
           targetPartyName = sup.name;
+        } else if (partyName) {
+          targetPartyName = partyName;
+        }
+
+        let maxSupplierPayable = 0;
+        if (sup) {
           maxSupplierPayable = Math.max(0, Number(sup.balance || 0));
         } else if (purchaseId) {
           const pur = await Purchase.findById(purchaseId, req.shop_id);
@@ -183,11 +211,23 @@ export const recordPayment = async (req, res) => {
           }
         }
 
-        if (maxSupplierPayable <= 0) {
-          throw new Error('Supplier has no outstanding payable balance (account is already settled).');
+        // Calculate total payable from purchases as backup
+        const allShopPurchasesForCalc = await Purchase.find({ shop_id: req.shop_id });
+        const matchingPurchasesForCalc = allShopPurchasesForCalc.filter(p => {
+          const pName = (p.supplier || p.supplierName || '').trim().toLowerCase();
+          const tName = String(targetPartyName || partyName || '').trim().toLowerCase();
+          return (sup && p.supplierId === sup.id) || (tName && pName === tName);
+        });
+
+        const totalPurNet = matchingPurchasesForCalc.reduce((acc, p) => acc + Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0))), 0);
+        const totalPurPaid = matchingPurchasesForCalc.reduce((acc, p) => acc + Number(p.paidAmount || 0), 0);
+        const purCalculatedPayable = Math.max(0, totalPurNet - totalPurPaid);
+
+        if (purCalculatedPayable > 0) {
+          maxSupplierPayable = Math.max(maxSupplierPayable, purCalculatedPayable);
         }
 
-        if (amtNum > maxSupplierPayable) {
+        if (maxSupplierPayable > 0 && amtNum > maxSupplierPayable) {
           throw new Error(`Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the supplier's outstanding payable of Rs. ${maxSupplierPayable.toLocaleString()}.`);
         }
 
