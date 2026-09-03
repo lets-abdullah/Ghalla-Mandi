@@ -291,9 +291,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
     rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs + generalAllocatedToThisSale);
   }
 
-  const netPaidTowardsInvoice = Math.max(0, rawGrossPaid - cashRefundAmount);
-  const paid = Math.min(netDueableTotal, netPaidTowardsInvoice);
-
+  const paid = Math.min(netDueableTotal, rawGrossPaid);
   const isFullyReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus === 'Fully Returned') || (returnAmount >= (total - 0.5) && total > 0);
   const isPartiallyReturned = !isFullyReturned && returnAmount > 0;
   const isReturned = isFullyReturned;
@@ -309,7 +307,6 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
 
   const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
   const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(purchase.returnAmount || 0);
-  const cashRefundAmount = returns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
   const netDueableTotal = Math.max(0, total - returnAmount);
 
   // Categorize specific payment logs for this purchase
@@ -398,9 +395,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs + generalAllocatedToThisPurchase);
   }
 
-  const netPaidTowardsPurchase = Math.max(0, rawGrossPaid - cashRefundAmount);
-  const paid = Math.min(netDueableTotal, netPaidTowardsPurchase);
-
+  const paid = Math.min(netDueableTotal, rawGrossPaid);
   const isFullyReturned = (purchase.status === 'Returned') || (purchase.paymentStatus === 'Returned') || purchase.isReturned || (purchase.returnStatus === 'Fully Returned') || (returnAmount >= (total - 0.5) && total > 0);
   const isPartiallyReturned = !isFullyReturned && returnAmount > 0;
   const isReturned = isFullyReturned;
@@ -491,18 +486,14 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     });
   }
 
-  const cashRefundAmount = custReturns
-    .filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash')
-    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-  const totalActualPaymentsReceived = Math.max(0, (directPaidLogs + unloggedUpfrontCash) - cashRefundAmount);
-
+  const grossPaymentsReceived = directPaidLogs + unloggedUpfrontCash;
   const openingBalance = Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0));
   const netSales = Math.max(0, totalGrossSale - totalReturnAmount);
+  const totalActualPaymentsReceived = Math.min(grossPaymentsReceived, netSales);
 
   // Canonical Accounting Equations (Rules 2 & 3: Sale Returns reduce Sales, Customer cannot be creditor)
   // Total Debits = Opening Balance (Receivable) + Net Sales Invoiced
-  // Total Credits = Net Payments Received (Gross Cash - Cash Return Refunds)
+  // Total Credits = Net Payments Received
   // Receivable Due = max(0, Debits - Credits)
   const totalDebits = openingBalance + netSales;
   const totalCredits = totalActualPaymentsReceived;
@@ -1108,18 +1099,14 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
     });
   }
 
-  const cashRefundAmount = supReturns
-    .filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash')
-    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-  const totalActualPaymentsPaid = Math.max(0, (directPaidLogs + unloggedUpfrontCash) - cashRefundAmount);
-
+  const grossPaymentsMade = directPaidLogs + unloggedUpfrontCash;
   const openingBalance = Number(supplier.openingBalance !== undefined ? supplier.openingBalance : (supplier.openingbalance !== undefined ? supplier.openingbalance : 0));
   const netPurchases = Math.max(0, totalGrossPurchase - totalReturnAmount);
+  const totalActualPaymentsPaid = Math.min(grossPaymentsMade, netPurchases);
 
   // Canonical Accounting Equations (Rules 4 & 5: Purchase Returns reduce Purchases, No Supplier Advances)
   // Credits (Payable Liability) = Opening Balance + Net Purchases Billed
-  // Debits = Net Payments Paid (Gross Paid - Supplier Cash Return Refunds)
+  // Debits = Net Payments Paid
   // Payable Due = max(0, Credits - Debits)
   const totalCredits = openingBalance + netPurchases;
   const totalDebits = totalActualPaymentsPaid;

@@ -16,14 +16,9 @@ export const computeInvoiceFinancials = ({
   const historicalPaid = Number(grossPaid) || 0;
   const netAmt = Math.max(0, origAmt - totalReturnAmt);
 
-  const computedCashRefund = Math.max(0, historicalPaid - netAmt);
-  const cashRefundAmt = (cashRefundAmount !== null && cashRefundAmount !== undefined)
-    ? Number(cashRefundAmount)
-    : computedCashRefund;
-
-  const netCashPaid = Math.max(0, historicalPaid - cashRefundAmt);
-  const effectivePaid = Math.min(netAmt, netCashPaid);
+  const effectivePaid = Math.min(netAmt, historicalPaid);
   const due = Math.max(0, netAmt - effectivePaid);
+  const actualCashRefund = Math.max(0, historicalPaid - netAmt);
   const isFull = (totalReturnAmt >= origAmt || netAmt === 0) && origAmt > 0;
   const status = isFull
     ? 'Returned'
@@ -34,7 +29,7 @@ export const computeInvoiceFinancials = ({
     totalReturnAmt,
     netAmt,
     historicalPaid,
-    cashRefundAmt,
+    cashRefundAmt: actualCashRefund,
     effectivePaid,
     due,
     status,
@@ -51,7 +46,7 @@ export const computeSaleInvoiceFromReturns = (sale, relatedReturns = []) => {
     grossAmount: sale.amount || sale.grandTotal || 0,
     returnAmount: totalReturnAmt,
     grossPaid: sale.paidAmount || 0,
-    cashRefundAmount: sumCashRefunds(relatedReturns)
+    cashRefundAmount: null
   });
 };
 
@@ -61,7 +56,7 @@ export const computePurchaseInvoiceFromReturns = (purchase, relatedReturns = [])
     grossAmount: purchase.grandTotal || purchase.amount || 0,
     returnAmount: totalReturnAmt,
     grossPaid: purchase.paidAmount || 0,
-    cashRefundAmount: sumCashRefunds(relatedReturns)
+    cashRefundAmount: null
   });
 };
 
@@ -103,13 +98,9 @@ export const syncCustomerBalance = async (customerId, shop_id, dbRun) => {
   });
 
   const totalPayments = directPaidLogs + unloggedUpfrontCash;
-  const cashRefunds = returnsRows
-    .filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash')
-    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-  const netCashReceived = Math.max(0, totalPayments - cashRefunds);
+  const effectivePaymentsReceived = Math.min(totalPayments, netSales);
   const totalDebits = openingBalance + netSales;
-  const totalCredits = netCashReceived;
+  const totalCredits = effectivePaymentsReceived;
   const canonicalDue = Math.max(0, totalDebits - totalCredits);
 
   await dbRun('UPDATE customers SET balance = $1 WHERE id = $2 AND shop_id = $3', [canonicalDue, customerId, shop_id]);
@@ -153,13 +144,9 @@ export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
   });
 
   const totalPayments = directPaidLogs + unloggedUpfrontCash;
-  const cashRefunds = returnsRows
-    .filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash')
-    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-
-  const netCashPaid = Math.max(0, totalPayments - cashRefunds);
+  const effectivePaymentsMade = Math.min(totalPayments, netPurchases);
   const totalCredits = openingBalance + netPurchases;
-  const totalDebits = netCashPaid;
+  const totalDebits = effectivePaymentsMade;
   const canonicalPayable = Math.max(0, totalCredits - totalDebits);
 
   await dbRun('UPDATE suppliers SET balance = $1 WHERE id = $2 AND shop_id = $3', [canonicalPayable, supplierId, shop_id]);

@@ -116,7 +116,7 @@ export const createSaleReturn = async (req, res) => {
         customerName: targetSale ? (targetSale.partyName || customerName || 'Customer Party') : (customerName || 'Customer Party'),
         items: processedItems,
         refundAmount: finalRefundAmount,
-        refundMode: 'Cash',
+        refundMode: req.body.refundMode || 'Credit',
         reason,
         date: dateStr
       });
@@ -160,7 +160,7 @@ export const updateSaleReturn = async (req, res) => {
     }
 
     const updated = await withTransaction(async (tx) => {
-      const result = await SaleReturn.findByIdAndUpdate(id, req.shop_id, { ...req.body, refundMode: 'Cash' });
+      const result = await SaleReturn.findByIdAndUpdate(id, req.shop_id, { ...req.body, refundMode: req.body.refundMode || existing.refundMode || 'Credit' });
       if (!result) return null;
 
       const targetSale = result.saleId
@@ -368,7 +368,7 @@ export const createPurchaseReturn = async (req, res) => {
         supplierName: targetPurchase ? (targetPurchase.supplierName || supplierName || 'Supplier Firm') : (supplierName || 'Supplier Firm'),
         items: processedItems,
         refundAmount: finalRefundAmount,
-        refundMode: 'Cash',
+        refundMode: req.body.refundMode || 'Credit',
         reason,
         date: dateStr
       });
@@ -412,7 +412,7 @@ export const updatePurchaseReturn = async (req, res) => {
     }
 
     const updated = await withTransaction(async (tx) => {
-      const result = await PurchaseReturn.findByIdAndUpdate(id, req.shop_id, { ...req.body, refundMode: 'Cash' });
+      const result = await PurchaseReturn.findByIdAndUpdate(id, req.shop_id, { ...req.body, refundMode: req.body.refundMode || existing.refundMode || 'Credit' });
       if (!result) return null;
 
       const targetPurchase = result.purchaseId
