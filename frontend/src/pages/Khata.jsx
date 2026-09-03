@@ -276,73 +276,26 @@ export const Khata = () => {
 
   return (
     <div className="space-y-5">
-      {/* Top Header & Party Mode Switcher */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 dark:text-white flex items-center gap-2.5">
             <BookOpen className="w-6 h-6 text-brand-600 dark:text-brand-400" />
-            <span>Khata (Dues Register)</span>
+            <span>{isCustomer ? 'Customer Khata (Receivables)' : 'Supplier Khata (Payables)'}</span>
           </h1>
           <p className="text-xs text-slate-400 font-semibold mt-0.5">
-            Real-time balance tracker • Instant payment settlements & statements
+            {isCustomer ? 'Real-time customer dues and payment settlements' : 'Real-time supplier payables and payment settlements'}
           </p>
         </div>
 
-        {/* Large Prominent Party Switcher */}
-        <div className="no-print flex items-center gap-2.5 flex-wrap">
-          <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl flex items-center gap-1 border border-slate-200 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={() => {
-                setKhataPartyType('Customer');
-                setSearchParams({ type: 'customer' });
-                resetAllFilters();
-              }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
-                isCustomer
-                  ? 'bg-amber-500 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Customer Khata</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${
-                isCustomer ? 'bg-amber-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-              }`}>
-                Rs. {totalReceivables.toLocaleString()}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setKhataPartyType('Supplier');
-                setSearchParams({ type: 'supplier' });
-                resetAllFilters();
-              }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
-                !isCustomer
-                  ? 'bg-rose-500 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <CreditCard className="w-4 h-4" />
-              <span>Supplier Khata</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${
-                !isCustomer ? 'bg-rose-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-              }`}>
-                Rs. {totalPayables.toLocaleString()}
-              </span>
-            </button>
-          </div>
-
+        <div className="no-print flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => window.print()}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold text-xs transition cursor-pointer text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
           >
             <Printer className="w-4 h-4" />
-            <span>Print</span>
+            <span>Print Register</span>
           </button>
         </div>
       </div>
