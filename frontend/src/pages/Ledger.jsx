@@ -78,7 +78,7 @@ export const Ledger = () => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [txTypeFilter, setTxTypeFilter] = useState('All'); // 'All' | 'Sales' | 'Payments' | 'Returns'
   const [txSearchQuery, setTxSearchQuery] = useState('');
-  const [statementViewMode, setStatementViewMode] = useState('timeline'); // 'timeline' (default easy view) | 'table'
+  const [statementViewMode, setStatementViewMode] = useState('table'); // Table / columns view strictly enforced
 
   // Modals state
   const [viewingEntry, setViewingEntry] = useState(null);
