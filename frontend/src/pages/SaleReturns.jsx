@@ -48,9 +48,8 @@ export const SaleReturns = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => window.print()}
-            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
+            className={`flex items-center gap-1.5 border px-3.5 py-2.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
           >
             <Printer className="w-4 h-4" />
             <span>Print Report</span>
@@ -108,15 +107,13 @@ export const SaleReturns = () => {
       />
 
       {/* Returns Table */}
-      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-      }`}>
+      <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        }`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
             <thead>
-              <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${
-                theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-              }`}>
+              <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                }`}>
                 <th className="py-3 px-4">Return #</th>
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4">Invoice #</th>
