@@ -1180,22 +1180,42 @@ export const Reports = () => {
     }, 0);
   }, [products]);
 
-  const totalAssets = useMemo(() => totalLiquidFunds + totalCustomerReceivables + totalStockValuation + totalSupplierAdvances, [totalLiquidFunds, totalCustomerReceivables, totalStockValuation, totalSupplierAdvances]);
-  // Total Liabilities strictly includes genuine debts (Supplier Payables + Customer Advances) - NO paid expenses
-  const totalLiabilities = useMemo(() => totalSupplierPayables + totalCustomerAdvances, [totalSupplierPayables, totalCustomerAdvances]);
+  // Canonical Double-Entry Balance Sheet:
+  // 1. ASSETS: Genuine Asset balances (Cash >= 0, Bank >= 0, Inventory, Receivables, Advances)
+  const liquidCashAsset = Math.max(0, cashInHand);
+  const liquidBankAsset = Math.max(0, bankBalance);
+  const liquidCardAsset = Math.max(0, cardBalance);
+  const totalLiquidAssets = liquidCashAsset + liquidBankAsset + liquidCardAsset;
 
-  // Canonical Net Worth (Equity) Equation: Net Worth = Total Assets - Total Liabilities
-  const totalEquity = useMemo(() => totalAssets - totalLiabilities, [totalAssets, totalLiabilities]);
+  const totalAssets = useMemo(() => {
+    return totalLiquidAssets + totalCustomerReceivables + totalStockValuation + totalSupplierAdvances;
+  }, [totalLiquidAssets, totalCustomerReceivables, totalStockValuation, totalSupplierAdvances]);
+
+  // 2. LIABILITIES: Supplier Payables + Customer Advances + Cash Overdraft/Deficit + Bank Overdraft
+  const cashDeficitLiability = Math.abs(Math.min(0, cashInHand));
+  const bankOverdraftLiability = Math.abs(Math.min(0, bankBalance));
+  const cardDeficitLiability = Math.abs(Math.min(0, cardBalance));
+  const totalOverdraftLiabilities = cashDeficitLiability + bankOverdraftLiability + cardDeficitLiability;
+
+  const totalLiabilities = useMemo(() => {
+    return totalSupplierPayables + totalCustomerAdvances + totalOverdraftLiabilities;
+  }, [totalSupplierPayables, totalCustomerAdvances, totalOverdraftLiabilities]);
+
+  // 3. EQUITY: Owner's Invested Capital (Initial Stock + Opening Khata) + Retained Net Profit
+  const ownersCapital = useMemo(() => {
+    return totalInitialStockValuation + (openingCustomerReceivables - openingSupplierPayables);
+  }, [totalInitialStockValuation, openingCustomerReceivables, openingSupplierPayables]);
+
+  const retainedProfit = netOperatingProfit;
+  const totalEquity = useMemo(() => ownersCapital + retainedProfit, [ownersCapital, retainedProfit]);
 
   const bsEquityBreakdown = useMemo(() => {
-    const openingNetCapital = totalInitialStockValuation + (openingCustomerReceivables - openingSupplierPayables);
-    const retained = netOperatingProfit;
     return {
-      ownersCapital: openingNetCapital,
-      retainedProfit: retained,
+      ownersCapital,
+      retainedProfit,
       total: totalEquity
     };
-  }, [totalInitialStockValuation, openingCustomerReceivables, openingSupplierPayables, netOperatingProfit, totalEquity]);
+  }, [ownersCapital, retainedProfit, totalEquity]);
 
   // Granular Balance Sheet Breakdown Objects
   const bsCashBreakdown = useMemo(() => {
@@ -3895,7 +3915,7 @@ export const Reports = () => {
                     </div>
                     {!bsExpandedSections.cashBank && (
                       <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        Rs. {totalLiquidFunds.toLocaleString()}
+                        Rs. {totalLiquidAssets.toLocaleString()}
                       </span>
                     )}
                   </div>
@@ -3906,8 +3926,13 @@ export const Reports = () => {
                       <div className="space-y-1 pb-1 border-b border-slate-200/40 dark:border-slate-700/40">
                         <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
                           <span>• Cash in Hand:</span>
-                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {cashInHand.toLocaleString()}</span>
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {liquidCashAsset.toLocaleString()}</span>
                         </div>
+                        {cashInHand < 0 && (
+                          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium pl-3">
+                            (Cash deficit of Rs. {cashDeficitLiability.toLocaleString()} listed under Liabilities)
+                          </div>
+                        )}
                         <div className="pl-3 space-y-0.5 text-[10px] text-slate-400">
                           <div className="flex justify-between">
                             <span>Cash Inflows:</span>
@@ -3921,7 +3946,7 @@ export const Reports = () => {
                           )}
                           {cashOutflows > 0 && (
                             <div className="flex justify-between text-rose-500/90">
-                              <span>Less: Supplier Payments / Refunds (Cash):</span>
+                              <span>Less: Supplier Payments (Cash):</span>
                               <span className="font-mono">- Rs. {cashOutflows.toLocaleString()}</span>
                             </div>
                           )}
@@ -3932,8 +3957,13 @@ export const Reports = () => {
                       <div className="space-y-1 pb-1 border-b border-slate-200/40 dark:border-slate-700/40">
                         <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
                           <span>• Bank Accounts:</span>
-                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {bankBalance.toLocaleString()}</span>
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {liquidBankAsset.toLocaleString()}</span>
                         </div>
+                        {bankBalance < 0 && (
+                          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium pl-3">
+                            (Bank overdraft of Rs. {bankOverdraftLiability.toLocaleString()} listed under Liabilities)
+                          </div>
+                        )}
                         <div className="pl-3 space-y-0.5 text-[10px] text-slate-400">
                           <div className="flex justify-between">
                             <span>Bank Inflows:</span>
@@ -3947,7 +3977,7 @@ export const Reports = () => {
                           )}
                           {bankOutflows > 0 && (
                             <div className="flex justify-between text-rose-500/90">
-                              <span>Less: Supplier Payments / Outflows (Bank):</span>
+                              <span>Less: Supplier Payments (Bank):</span>
                               <span className="font-mono">- Rs. {bankOutflows.toLocaleString()}</span>
                             </div>
                           )}
@@ -3958,7 +3988,7 @@ export const Reports = () => {
                       <div className="space-y-1">
                         <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
                           <span>• Card Payment Account:</span>
-                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {cardBalance.toLocaleString()}</span>
+                          <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {liquidCardAsset.toLocaleString()}</span>
                         </div>
                         <div className="pl-3 space-y-0.5 text-[10px] text-slate-400">
                           <div className="flex justify-between">
@@ -3975,8 +4005,8 @@ export const Reports = () => {
                       </div>
 
                       <div className="flex justify-between border-t border-slate-200/60 dark:border-slate-700/60 pt-1.5 text-slate-900 dark:text-white">
-                        <span className="font-bold">Total Liquid Cash & Bank:</span>
-                        <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidFunds.toLocaleString()}</span>
+                        <span className="font-bold">Total Liquid Assets:</span>
+                        <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidAssets.toLocaleString()}</span>
                       </div>
                     </div>
                   )}
@@ -4100,7 +4130,7 @@ export const Reports = () => {
                       ) : (
                         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                       )}
-                      <span className="text-slate-900 dark:text-white">Current Liabilities</span>
+                      <span className="text-slate-900 dark:text-white">Current Liabilities & Overdrafts</span>
                     </div>
                     {!bsExpandedSections.payables && (
                       <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
@@ -4111,27 +4141,32 @@ export const Reports = () => {
 
                   {bsExpandedSections.payables && (
                     <div className="pl-5 pr-1 space-y-1.5 pt-1 text-[11px] font-semibold text-slate-500 border-t border-slate-200/60 dark:border-slate-700/60">
-                      {totalCustomerAdvances > 0 ? (
-                        <>
-                          <div className="flex justify-between">
-                            <span>Supplier Khata Payables:</span>
-                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Customer Advance Credits (Liability):</span>
-                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalCustomerAdvances.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
-                            <span>Total Current Liabilities:</span>
-                            <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {totalLiabilities.toLocaleString()}</span>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
-                          <span>Supplier Khata Payables:</span>
-                          <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
+                      <div className="flex justify-between">
+                        <span>Supplier Khata Payables:</span>
+                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
+                      </div>
+                      {totalCustomerAdvances > 0 && (
+                        <div className="flex justify-between">
+                          <span>Customer Advance Credits:</span>
+                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalCustomerAdvances.toLocaleString()}</span>
                         </div>
                       )}
+                      {cashDeficitLiability > 0 && (
+                        <div className="flex justify-between">
+                          <span>Cash Drawer Deficit (Short-term):</span>
+                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {cashDeficitLiability.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {bankOverdraftLiability > 0 && (
+                        <div className="flex justify-between">
+                          <span>Bank Overdraft (Credit Facility):</span>
+                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {bankOverdraftLiability.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-bold pt-1 text-slate-900 dark:text-white border-t border-slate-200/60 dark:border-slate-700/60">
+                        <span>Total Current Liabilities:</span>
+                        <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {totalLiabilities.toLocaleString()}</span>
+                      </div>
                     </div>
                   )}
                 </div>
