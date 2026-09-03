@@ -1271,13 +1271,9 @@ export const Ledger = () => {
 
                           {/* 5. Return / Adjustment */}
                           <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
-                            {entry.returnAmount > 0 ? (
-                              <span className="text-purple-600 dark:text-purple-400">
-                                -Rs. {entry.returnAmount.toLocaleString()}
-                              </span>
-                            ) : entry.txType === 'Returns' && (entry.payment > 0 || entry.credit > 0) ? (
-                              <span className="text-purple-600 dark:text-purple-400">
-                                Rs. {(entry.payment || entry.credit).toLocaleString()}
+                            {(entry.txType === 'Returns' || entry.txType === 'Return') ? (
+                              <span className="text-purple-600 dark:text-purple-400 font-bold">
+                                Rs. {(entry.returnAmount || entry.credit || entry.payment || 0).toLocaleString()}
                               </span>
                             ) : (
                               '—'
@@ -1286,10 +1282,8 @@ export const Ledger = () => {
 
                           {/* 6. Net Purchases / Sales */}
                           <td className="py-3.5 px-3 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
-                            {entry.netTotal !== undefined && entry.netTotal !== null && (entry.txType === 'Purchases' || entry.txType === 'Sales') ? (
-                              `Rs. ${entry.netTotal.toLocaleString()}`
-                            ) : (entry.txType === 'Purchases' || entry.txType === 'Sales') && entry.sales > 0 ? (
-                              `Rs. ${entry.sales.toLocaleString()}`
+                            {(entry.txType === 'Purchases' || entry.txType === 'Sales') ? (
+                              `Rs. ${(entry.debit || entry.sales || entry.originalGross || 0).toLocaleString()}`
                             ) : entry.txType === 'Opening Balance' ? (
                               `Rs. ${entry.debit?.toLocaleString()}`
                             ) : (
@@ -1299,17 +1293,9 @@ export const Ledger = () => {
 
                           {/* 7. Paid to Supplier / Received */}
                           <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
-                            {entry.txType === 'Payment' ? (
+                            {(entry.txType === 'Payments' || entry.txType === 'Payment') ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-black">
                                 Rs. {(entry.payment || entry.credit || 0).toLocaleString()}
-                              </span>
-                            ) : entry.paidAmount > 0 ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                                Rs. {entry.paidAmount.toLocaleString()}
-                              </span>
-                            ) : entry.txType === 'Returns' && entry.refundMode === 'Cash' ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                                Rs. {entry.returnAmount.toLocaleString()}
                               </span>
                             ) : (
                               '—'

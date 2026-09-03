@@ -1275,7 +1275,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       credit: 0,
       paymentMethod: 'Opening Balance',
       paymentAccount: 'Opening Balance',
-      status: 'Due',
+      status: isSupplier ? 'Payable' : 'Due',
       notes: 'Opening balance registered on account creation'
     });
   }
@@ -1291,16 +1291,12 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       return (partyId && sCustId && sCustId === partyId) || (partyName && sCustName === partyName);
     });
 
-    // 2. Filter Customer Payments (excluding Opening Balance, Credit Notes, and POS upfront counter payments)
+    // 2. Filter Customer Payments (excluding Opening Balance)
     const partyPayments = (paymentLogs || []).filter(p => {
       const isCust = p.type === 'Customer' || p.partyType === 'Customer';
       if (!isCust) return false;
       const pMode = String(p.mode || '').trim().toLowerCase();
       if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
-
-      // Exclude POS upfront counter payments already reflected in direct invoices
-      if (p.ref && String(p.ref).startsWith('POS-PAY-')) return false;
-      if (p.saleId && partySales.some(s => String(s.id) === String(p.saleId) && (!s.paymentMethod || !s.paymentMethod.toLowerCase().includes('credit')))) return false;
 
       const pPartyId = p.partyId ? String(p.partyId) : null;
       const pPartyName = (p.partyName || '').trim().toLowerCase();
@@ -1320,7 +1316,18 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       return (partyId && rCustId && rCustId === partyId) || (partyName && rCustName === partyName);
     });
 
-    // Process Sales Invoices
+    // Track which sales have explicit payment logs
+    const salesWithPaymentLogs = new Set();
+    partyPayments.forEach(p => {
+      if (p.saleId) salesWithPaymentLogs.add(String(p.saleId));
+      if (p.ref) {
+        partySales.forEach(s => {
+          if (s.invoiceNo && p.ref.includes(s.invoiceNo)) salesWithPaymentLogs.add(String(s.id));
+        });
+      }
+    });
+
+    // Process Sales Invoices (Debit)
     partySales.forEach((s, idx) => {
       const ts = parseNormalizedTimestamp(s.date, s.created_at);
       const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
@@ -1337,98 +1344,76 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         ? s.cart.map(i => `${i.name || 'Commodity'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
         : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
 
-      const rawMode = String(s.paymentMethod || s.paymentMode || 'Cash').trim();
-      const modeLower = rawMode.toLowerCase();
-      const isCreditOnly = modeLower.includes('credit') || modeLower.includes('khata') || modeLower.includes('udhaar') || modeLower === 'unpaid' || modeLower === 'pending';
-
-      let methodDisplay = 'Cash';
-      if (modeLower.includes('bank') || modeLower.includes('transfer')) {
-        methodDisplay = 'Bank Transfer';
-      } else if (modeLower.includes('card')) {
-        methodDisplay = 'Card Payment';
-      } else if (isCreditOnly) {
-        methodDisplay = 'Credit / Khata';
-      } else {
-        methodDisplay = 'Cash';
-      }
-
       const descText = sReturn > 0
         ? `Invoice #${s.invoiceNo || s.id}: ${sItems}`
-        : `Invoice: ${sItems}`;
+        : `Invoice #${s.invoiceNo || s.id}: ${sItems}`;
 
       const historyNote = sReturn > 0
         ? `Original Sale: Rs. ${sGross.toLocaleString()} • Returned: Rs. ${sReturn.toLocaleString()} • Net Sale: Rs. ${sNet.toLocaleString()} | Paid: Rs. ${sPaid.toLocaleString()}, Due: Rs. ${sDue.toLocaleString()} (${sStatus})`
         : (s.saleNote || s.note || '');
 
-      if (isCreditOnly) {
-        // Credit / Khata Invoice: Creates pure debit receivable, subsequent Khata payments step down balance
-        entries.push({
-          id: `sale-${s.id || idx}`,
-          timestamp: ts,
-          eventPriority: 1, // Invoice occurs before same-day payments
-          seq: Number(s.id) || (idx + 1),
-          rawDate: s.date,
-          date: s.date || 'N/A',
-          partyId,
-          partyName: party.name,
-          ref: s.invoiceNo || `INV-${s.id || idx}`,
-          txType: 'Sales',
-          desc: descText,
-          sales: sNet,
-          originalGross: sGross,
-          netTotal: sNet,
-          returnAmount: sReturn,
-          paidAmount: sPaid,
-          dueAmount: sDue,
-          invoiceStatus: sStatus,
-          isPartiallyReturned,
-          isFullyReturned,
-          payment: 0,
-          debit: sGross,
-          credit: 0,
-          paymentMethod: 'Credit / Khata',
-          paymentAccount: 'Credit / Khata',
-          status: sStatus,
-          notes: historyNote
-        });
-      } else {
-        // Direct counter sale without Khata credit
-        entries.push({
-          id: `sale-${s.id || idx}`,
-          timestamp: ts,
-          eventPriority: 1,
-          seq: Number(s.id) || (idx + 1),
-          rawDate: s.date,
-          date: s.date || 'N/A',
-          partyId,
-          partyName: party.name,
-          ref: s.invoiceNo || `INV-${s.id || idx}`,
-          txType: 'Sales',
-          desc: descText,
-          sales: sNet,
-          originalGross: sGross,
-          netTotal: sNet,
-          returnAmount: sReturn,
-          paidAmount: sPaid,
-          dueAmount: sDue,
-          invoiceStatus: sStatus,
-          isPartiallyReturned,
-          isFullyReturned,
-          payment: sNet,
-          debit: 0,
-          credit: 0,
-          paymentMethod: methodDisplay,
-          paymentAccount: methodDisplay,
-          status: sStatus,
-          notes: historyNote
-        });
+      entries.push({
+        id: `sale-${s.id || idx}`,
+        timestamp: ts,
+        eventPriority: 1, // Invoice occurs before same-day payments
+        seq: Number(s.id) || (idx + 1),
+        rawDate: s.date,
+        date: s.date || 'N/A',
+        partyId,
+        partyName: party.name,
+        ref: s.invoiceNo || `INV-${s.id || idx}`,
+        txType: 'Sales',
+        desc: descText,
+        sales: sGross,
+        originalGross: sGross,
+        netTotal: sNet,
+        returnAmount: sReturn,
+        paidAmount: sPaid,
+        dueAmount: sDue,
+        invoiceStatus: sStatus,
+        isPartiallyReturned,
+        isFullyReturned,
+        payment: 0,
+        debit: sGross,
+        credit: 0,
+        paymentMethod: s.paymentMethod || 'Credit / Khata',
+        paymentAccount: s.paymentMethod || 'Credit / Khata',
+        status: sStatus,
+        notes: historyNote
+      });
+
+      // If this sale had upfront counter payment but has NO corresponding entry in paymentLogs
+      if (!salesWithPaymentLogs.has(String(s.id))) {
+        const upfrontPaid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.cashReceived || 0));
+        if (upfrontPaid > 0) {
+          entries.push({
+            id: `pay-direct-${s.id || idx}`,
+            timestamp: ts,
+            eventPriority: 2,
+            seq: Number(s.id) || (idx + 1),
+            rawDate: s.date,
+            date: s.date || 'N/A',
+            partyId,
+            partyName: party.name,
+            ref: `POS-PAY-${s.invoiceNo || s.id}`,
+            txType: 'Payments',
+            desc: `POS Payment Received against Invoice #${s.invoiceNo || s.id}`,
+            sales: 0,
+            payment: upfrontPaid,
+            debit: 0,
+            credit: upfrontPaid,
+            paymentMethod: s.paymentMethod || 'Cash',
+            paymentAccount: s.paymentMethod || 'Cash',
+            status: 'Settled',
+            notes: s.paymentMethod || 'POS Upfront Payment'
+          });
+        }
       }
     });
 
-    // Process Returns
+    // Process Returns (Credit)
     partyReturns.forEach((r, idx) => {
       const ts = parseNormalizedTimestamp(r.date, r.created_at);
-      const isCashRefund = String(r.refundMode || '').toLowerCase() === 'cash';
       const refAmt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.amount || 0));
 
       const matchingSale = partySales.find(s => (r.saleId && String(s.id) === String(r.saleId)) || (r.invoiceNo && s.invoiceNo && r.invoiceNo === s.invoiceNo));
@@ -1437,15 +1422,11 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
 
       const descText = matchingSale
         ? `Sale Return #${r.returnNo || 'RET'} against Invoice ${matchingSale.invoiceNo}: ${r.reason || 'Goods Return'}`
-        : `Sale Return: ${r.reason || 'Produce Return'}`;
+        : `Sale Return #${r.returnNo || 'RET'}: ${r.reason || 'Produce Return'}`;
 
-      const historyNote = isCashRefund
-        ? (origSaleGross > 0
-            ? `Direct counter cash refund of Rs. ${refAmt.toLocaleString()} given to customer. Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted to Net Rs. ${netAfterReturn.toLocaleString()}.`
-            : `Direct counter cash refund of Rs. ${refAmt.toLocaleString()} given to customer.`)
-        : (origSaleGross > 0
-            ? `Khata Credit Note adjusted. Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted to Net Rs. ${netAfterReturn.toLocaleString()}.`
-            : `Credit note of Rs. ${refAmt.toLocaleString()} adjusted against Khata.`);
+      const historyNote = origSaleGross > 0
+        ? `Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted by return of Rs. ${refAmt.toLocaleString()} → Net Invoice Rs. ${netAfterReturn.toLocaleString()}.`
+        : `Return of Rs. ${refAmt.toLocaleString()} adjusted against customer account.`;
 
       entries.push({
         id: `ret-${r.id || idx}`,
@@ -1461,21 +1442,21 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         originalGross: origSaleGross,
         returnAmount: refAmt,
         netTotal: netAfterReturn,
-        refundMode: isCashRefund ? 'Cash' : 'Ledger',
+        refundMode: r.refundMode || 'Credit',
         txType: 'Returns',
         desc: descText,
         sales: 0,
         payment: refAmt,
         debit: 0,
-        credit: isCashRefund ? 0 : refAmt,
-        paymentMethod: isCashRefund ? 'Cash Refund' : 'Khata Adjustment',
-        paymentAccount: isCashRefund ? 'Cash in Hand' : 'Customer Khata',
+        credit: refAmt,
+        paymentMethod: r.refundMode || 'Sale Return',
+        paymentAccount: 'Customer Khata',
         status: 'Settled',
         notes: historyNote
       });
     });
 
-    // Process Payment Logs
+    // Process Payment Logs (Credit)
     partyPayments.forEach((p, idx) => {
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
       const pAmt = Number(p.amount || 0);
@@ -1488,7 +1469,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       } else if (pModeLower.includes('card')) {
         methodLabel = 'Card Payment';
       } else {
-        methodLabel = 'Cash';
+        methodLabel = rawPMode || 'Cash';
       }
 
       entries.push({
@@ -1502,7 +1483,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         partyName: party.name,
         ref: p.ref || `PAY-${p.id || idx}`,
         txType: 'Payments',
-        desc: p.note || `Payment Received (${methodLabel})`,
+        desc: p.note || (p.saleId ? `POS Payment Received (${methodLabel})` : `Payment Received (${methodLabel})`),
         sales: 0,
         payment: pAmt,
         debit: 0,
@@ -1538,6 +1519,16 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       return (partyId && rSupId && rSupId === partyId) || (partyName && rSupName === partyName);
     });
 
+    const purchasesWithPaymentLogs = new Set();
+    partyPayments.forEach(p => {
+      if (p.purchaseId) purchasesWithPaymentLogs.add(String(p.purchaseId));
+      if (p.ref) {
+        partyPurchases.forEach(pr => {
+          if (pr.purchaseNo && p.ref.includes(pr.purchaseNo)) purchasesWithPaymentLogs.add(String(pr.id));
+        });
+      }
+    });
+
     // Process Purchases (Debit)
     partyPurchases.forEach((p, idx) => {
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
@@ -1555,96 +1546,75 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         ? p.items.map(i => `${i.name || 'Produce'} (${i.qty || i.enteredQty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
         : (typeof p.cart === 'string' ? p.cart : 'Commodity Procurement');
 
-      const rawMode = String(p.paymentMethod || p.paymentMode || 'Cash').trim();
-      const modeLower = rawMode.toLowerCase();
-      const isCreditOnly = modeLower.includes('credit') || modeLower.includes('khata') || modeLower.includes('udhaar') || modeLower === 'unpaid' || modeLower === 'pending';
-
-      let methodDisplay = 'Cash';
-      if (modeLower.includes('bank') || modeLower.includes('transfer')) {
-        methodDisplay = 'Bank Transfer';
-      } else if (modeLower.includes('card')) {
-        methodDisplay = 'Card Payment';
-      } else if (isCreditOnly) {
-        methodDisplay = 'Credit / Khata';
-      } else {
-        methodDisplay = 'Cash';
-      }
-
       const descText = pReturn > 0
-        ? `Purchase #${p.purchaseNo || p.id}: ${pItems}`
-        : `Bill: ${pItems}`;
+        ? `Bill #${p.purchaseNo || p.id}: ${pItems}`
+        : `Bill #${p.purchaseNo || p.id}: ${pItems}`;
 
       const historyNote = pReturn > 0
-        ? `Original Bill: Rs. ${pGross.toLocaleString()} • Returned: Rs. ${pReturn.toLocaleString()} • Net Bill: Rs. ${pNet.toLocaleString()} | Paid: Rs. ${pPaid.toLocaleString()}, Due: Rs. ${pDue.toLocaleString()} (${pStatus})`
+        ? `Original Bill: Rs. ${pGross.toLocaleString()} • Returned: Rs. ${pReturn.toLocaleString()} • Net Bill: Rs. ${pNet.toLocaleString()} | Paid: Rs. ${pPaid.toLocaleString()}, Payable: Rs. ${pDue.toLocaleString()} (${pStatus})`
         : (p.note || '');
 
-      if (isCreditOnly) {
-        entries.push({
-          id: `pur-${p.id || idx}`,
-          timestamp: ts,
-          eventPriority: 1,
-          seq: Number(p.id) || (idx + 1),
-          rawDate: p.date,
-          date: p.date || 'N/A',
-          partyId,
-          partyName: party.name,
-          ref: p.purchaseNo || `PUR-${p.id || idx}`,
-          txType: 'Purchases',
-          desc: descText,
-          sales: pNet,
-          originalGross: pGross,
-          netTotal: pNet,
-          returnAmount: pReturn,
-          paidAmount: pPaid,
-          dueAmount: pDue,
-          invoiceStatus: pStatus,
-          isPartiallyReturned,
-          isFullyReturned,
-          payment: 0,
-          debit: pGross,
-          credit: 0,
-          paymentMethod: 'Credit / Khata',
-          paymentAccount: 'Credit / Khata',
-          status: pStatus,
-          notes: historyNote
-        });
-      } else {
-        entries.push({
-          id: `pur-${p.id || idx}`,
-          timestamp: ts,
-          eventPriority: 1,
-          seq: Number(p.id) || (idx + 1),
-          rawDate: p.date,
-          date: p.date || 'N/A',
-          partyId,
-          partyName: party.name,
-          ref: p.purchaseNo || `PUR-${p.id || idx}`,
-          txType: 'Purchases',
-          desc: descText,
-          sales: pNet,
-          originalGross: pGross,
-          netTotal: pNet,
-          returnAmount: pReturn,
-          paidAmount: pPaid,
-          dueAmount: pDue,
-          invoiceStatus: pStatus,
-          isPartiallyReturned,
-          isFullyReturned,
-          payment: pNet,
-          debit: 0,
-          credit: 0,
-          paymentMethod: methodDisplay,
-          paymentAccount: methodDisplay,
-          status: pStatus,
-          notes: historyNote
-        });
+      entries.push({
+        id: `pur-${p.id || idx}`,
+        timestamp: ts,
+        eventPriority: 1,
+        seq: Number(p.id) || (idx + 1),
+        rawDate: p.date,
+        date: p.date || 'N/A',
+        partyId,
+        partyName: party.name,
+        ref: p.purchaseNo || `PUR-${p.id || idx}`,
+        txType: 'Purchases',
+        desc: descText,
+        sales: pGross,
+        originalGross: pGross,
+        netTotal: pNet,
+        returnAmount: pReturn,
+        paidAmount: pPaid,
+        dueAmount: pDue,
+        invoiceStatus: pStatus,
+        isPartiallyReturned,
+        isFullyReturned,
+        payment: 0,
+        debit: pGross,
+        credit: 0,
+        paymentMethod: p.paymentMethod || 'Supplier Khata',
+        paymentAccount: p.paymentMethod || 'Supplier Khata',
+        status: pStatus,
+        notes: historyNote
+      });
+
+      if (!purchasesWithPaymentLogs.has(String(p.id))) {
+        const upfrontPaid = Number(p.paidAmount !== undefined ? p.paidAmount : (p.cashPaid || 0));
+        if (upfrontPaid > 0) {
+          entries.push({
+            id: `pay-direct-sup-${p.id || idx}`,
+            timestamp: ts,
+            eventPriority: 2,
+            seq: Number(p.id) || (idx + 1),
+            rawDate: p.date,
+            date: p.date || 'N/A',
+            partyId,
+            partyName: party.name,
+            ref: `PUR-PAY-${p.purchaseNo || p.id}`,
+            txType: 'Payments',
+            desc: `Upfront Payment Made for Bill #${p.purchaseNo || p.id}`,
+            sales: 0,
+            payment: upfrontPaid,
+            debit: 0,
+            credit: upfrontPaid,
+            paymentMethod: p.paymentMethod || 'Cash',
+            paymentAccount: p.paymentMethod || 'Cash',
+            status: 'Settled',
+            notes: p.paymentMethod || 'Upfront Payment'
+          });
+        }
       }
     });
 
-    // Process Purchase Returns
+    // Process Purchase Returns (Credit)
     partyReturns.forEach((r, idx) => {
       const ts = parseNormalizedTimestamp(r.date, r.created_at);
-      const isCashRefund = String(r.refundMode || '').toLowerCase() === 'cash';
       const refAmt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.amount || 0));
 
       const matchingPurchase = partyPurchases.find(p => (r.purchaseId && String(p.id) === String(r.purchaseId)) || (r.purchaseNo && p.purchaseNo && r.purchaseNo === p.purchaseNo));
@@ -1653,15 +1623,11 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
 
       const descText = matchingPurchase
         ? `Purchase Return #${r.returnNo || 'PR'} against Bill ${matchingPurchase.purchaseNo}: ${r.reason || 'Goods Return'}`
-        : `Purchase Return: ${r.reason || 'Commodity Return'}`;
+        : `Purchase Return #${r.returnNo || 'PR'}: ${r.reason || 'Commodity Return'}`;
 
-      const historyNote = isCashRefund
-        ? (origPurchaseGross > 0
-            ? `Direct counter refund of Rs. ${refAmt.toLocaleString()} received from vendor. Original Bill was Rs. ${origPurchaseGross.toLocaleString()} → Net Bill now Rs. ${netAfterReturn.toLocaleString()}.`
-            : `Direct counter cash refund of Rs. ${refAmt.toLocaleString()} received from vendor.`)
-        : (origPurchaseGross > 0
-            ? `Khata Debit Note adjusted. Original Bill was Rs. ${origPurchaseGross.toLocaleString()} → Net Bill now Rs. ${netAfterReturn.toLocaleString()}.`
-            : `Debit note of Rs. ${refAmt.toLocaleString()} adjusted against Khata.`);
+      const historyNote = origPurchaseGross > 0
+        ? `Original Bill ${matchingPurchase?.purchaseNo || ''} (Rs. ${origPurchaseGross.toLocaleString()}) adjusted by return of Rs. ${refAmt.toLocaleString()} → Net Bill Rs. ${netAfterReturn.toLocaleString()}.`
+        : `Return of Rs. ${refAmt.toLocaleString()} adjusted against vendor account.`;
 
       entries.push({
         id: `pret-${r.id || idx}`,
@@ -1677,21 +1643,21 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         originalGross: origPurchaseGross,
         returnAmount: refAmt,
         netTotal: netAfterReturn,
-        refundMode: isCashRefund ? 'Cash' : 'Ledger',
+        refundMode: r.refundMode || 'Credit',
         txType: 'Returns',
         desc: descText,
         sales: 0,
         payment: refAmt,
         debit: 0,
-        credit: isCashRefund ? 0 : refAmt,
-        paymentMethod: isCashRefund ? 'Cash Refund' : 'Khata Adjustment',
-        paymentAccount: isCashRefund ? 'Cash in Hand' : 'Supplier Khata',
+        credit: refAmt,
+        paymentMethod: r.refundMode || 'Purchase Return',
+        paymentAccount: 'Supplier Khata',
         status: 'Settled',
         notes: historyNote
       });
     });
 
-    // Process Supplier Payments
+    // Process Supplier Payments (Credit)
     partyPayments.forEach((p, idx) => {
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
       const pAmt = Number(p.amount || 0);
@@ -1704,7 +1670,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       } else if (pModeLower.includes('card')) {
         methodLabel = 'Card Payment';
       } else {
-        methodLabel = 'Cash';
+        methodLabel = rawPMode || 'Cash';
       }
 
       entries.push({
@@ -1718,7 +1684,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         partyName: party.name,
         ref: p.ref || `PAY-${p.id || idx}`,
         txType: 'Payments',
-        desc: p.note || `Supplier Payment (${methodLabel})`,
+        desc: p.note || (p.purchaseId ? `Bill Payment (${methodLabel})` : `Supplier Payment (${methodLabel})`),
         sales: 0,
         payment: pAmt,
         debit: 0,
@@ -1750,12 +1716,12 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       ? 'Settled'
       : runningBalance > 0
         ? (isSupplier ? 'Payable' : 'Due')
-        : 'Advance';
+        : 'Settled';
 
     return {
       ...entry,
       stepIndex: index + 1,
-      runningBalance,
+      runningBalance: Math.max(0, runningBalance),
       balanceState: entryStatus,
       status: entryStatus
     };
@@ -1766,7 +1732,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
   const payableDue = isSupplier ? closingBalance : 0;
   const advanceCredit = 0;
   const status = closingBalance > 0
-    ? (isSupplier ? 'Payable' : 'Receivable')
+    ? (isSupplier ? 'Payable' : 'Due')
     : 'Settled';
 
   // 3. Reverse for Newest-First display while keeping verified chronological running balance
@@ -1781,7 +1747,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     closingBalance,
     receivableDue,
     payableDue,
-    advanceCredit,
+    advanceCredit: 0,
     status,
     chronologicalEntries,
     displayEntries
