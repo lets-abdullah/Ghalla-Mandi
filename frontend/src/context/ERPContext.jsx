@@ -81,9 +81,8 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
 
   const channel = isKhataOrCredit ? 'khata' : (isCard ? 'card' : (isBank ? 'bank' : 'cash'));
 
-  // Handle Returns
+  // Handle Returns - Strictly Cash Refunds
   if (txType === 'SaleReturn' || txType === 'PurchaseReturn') {
-    const isLiquidRefund = isCash || isBank || isCard;
     const refAmt = Number(
       tx.refundAmount !== undefined ? tx.refundAmount :
       tx.refundamount !== undefined ? tx.refundamount :
@@ -91,16 +90,16 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
     );
 
     return {
-      channel,
-      isLiquid: isLiquidRefund,
-      isKhata: isKhataOrCredit,
-      cashAmount: (isCash && isLiquidRefund) ? refAmt : 0,
-      bankAmount: (isBank && isLiquidRefund) ? refAmt : 0,
-      cardAmount: (isCard && isLiquidRefund) ? refAmt : 0,
-      totalLiquid: isLiquidRefund ? refAmt : 0,
-      creditAmount: isKhataOrCredit ? refAmt : 0,
+      channel: 'cash',
+      isLiquid: true,
+      isKhata: false,
+      cashAmount: refAmt,
+      bankAmount: 0,
+      cardAmount: 0,
+      totalLiquid: refAmt,
+      creditAmount: 0,
       grossAmount: refAmt,
-      refundMode: rawMode,
+      refundMode: 'Cash',
       refundAmount: refAmt
     };
   }
@@ -438,9 +437,6 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   });
 
   const totalReturnAmount = custReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-  const ledgerReturnAmount = custReturns
-    .filter(r => String(r.refundMode || '').trim().toLowerCase() !== 'cash')
-    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
 
   // Customer Payment Transactions in paymentLogs (excluding Opening Balance and Credit Notes)
   const custPayments = (paymentLogs || []).filter(p => {
@@ -1060,9 +1056,6 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   });
 
   const totalReturnAmount = supReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-  const ledgerReturnAmount = supReturns
-    .filter(r => String(r.refundMode || '').trim().toLowerCase() !== 'cash')
-    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
 
   // Supplier Payment Transactions recorded in paymentLogs (excluding Opening Balance and Debit Notes)
   const supPayments = (paymentLogs || []).filter(p => {

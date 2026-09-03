@@ -183,7 +183,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
               <div className="text-[10px] text-slate-400 font-bold uppercase">Original {isSale ? 'Invoice #' : 'Bill #'}</div>
               <div className="font-mono font-bold text-blue-700">{refInvoiceNo}</div>
               <div className="text-[10px] text-slate-500 mt-0.5">
-                Mode: <span className="font-bold text-slate-800">{refundMode === 'Cash' ? 'Cash Refund' : (isSale ? 'Khata Credit' : 'Khata Debit')}</span>
+                Mode: <span className="font-bold text-emerald-700">Cash Refund</span>
               </div>
             </div>
           </div>

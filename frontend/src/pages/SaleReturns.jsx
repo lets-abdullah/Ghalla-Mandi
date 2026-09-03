@@ -25,19 +25,11 @@ export const SaleReturns = () => {
   const { t } = useLocale();
   const navigate = useNavigate();
 
-  const [modeFilter, setModeFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [selectedReceiptReturn, setSelectedReceiptReturn] = useState(null);
 
-  const filteredReturns = saleReturns.filter(ret => {
-    if (modeFilter === 'Cash' && ret.refundMode !== 'Cash') return false;
-    if (modeFilter === 'Ledger' && ret.refundMode !== 'Ledger') return false;
-    return true;
-  }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-
+  const filteredReturns = [...saleReturns].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
   const totalRefundAmount = saleReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
-  const totalCashRefunds = saleReturns.filter(r => r.refundMode === 'Cash').reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
-  const totalKhataAdjustments = saleReturns.filter(r => r.refundMode === 'Ledger').reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -46,10 +38,10 @@ export const SaleReturns = () => {
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             <RotateCcw className="w-6 h-6 text-orange-500" />
-            <span>Sale Returns</span>
+            <span>Sale Returns (Cash Refunds)</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Record and manage customer return items, cash refunds, and Khata adjustments
+            Record customer produce return items and direct cash refund payouts
           </p>
         </div>
 
@@ -76,8 +68,8 @@ export const SaleReturns = () => {
       </div>
 
       {/* Summary KPI Cards (Screen Only) */}
-      <div className="no-print grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* 1. Total Returned Stock */}
+      <div className="no-print grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* 1. Total Returned Sales */}
         <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-orange-500/30 text-white' : 'bg-gradient-to-b from-orange-50/50 to-white border-orange-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <RotateCcw className="w-4 h-4 text-orange-600" />
@@ -86,67 +78,19 @@ export const SaleReturns = () => {
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-orange-600 dark:text-orange-400">
             Rs. {totalRefundAmount.toLocaleString()}
           </div>
+          <div className="text-[11px] font-semibold text-slate-400 mt-1">Returned produce restocked into inventory</div>
         </div>
 
-        {/* 2. Cash Payouts */}
+        {/* 2. Direct Cash Payouts */}
         <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-rose-600" />
-            <span>Cash Payouts</span>
+            <span>Total Cash Refunds Paid</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
-            Rs. {totalCashRefunds.toLocaleString()}
+            Rs. {totalRefundAmount.toLocaleString()}
           </div>
-        </div>
-
-        {/* 3. Khata Dues Deducted */}
-        <div
-          onClick={() => navigate('/ledger')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'}`}
-          title="Click to view Customer Ledgers"
-        >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-amber-600" />
-            <span>Khata Dues Adjusted</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
-            Rs. {totalKhataAdjustments.toLocaleString()}
-          </div>
-        </div>
-      </div>
-
-      {/* Filter Toolbar (Screen Only) */}
-      <div className={`no-print border rounded-2xl p-3.5 sm:p-4 card-shadow ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-      }`}>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
-          <div className="flex-1 min-w-[160px]">
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <RotateCcw className="w-3.5 h-3.5 text-brand-500" />
-              <span>Filter By Return Mode</span>
-            </label>
-            <select
-              value={modeFilter}
-              onChange={(e) => setModeFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer h-[38px] ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="All">All Return Modes</option>
-              <option value="Cash">Cash Refunds</option>
-              <option value="Ledger">Khata Adjustments</option>
-            </select>
-          </div>
-
-          {modeFilter !== 'All' && (
-            <button
-              onClick={() => setModeFilter('All')}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 transition cursor-pointer self-end"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Reset</span>
-            </button>
-          )}
+          <div className="text-[11px] font-semibold text-slate-400 mt-1">Direct physical cash refunded at counter</div>
         </div>
       </div>
 
@@ -155,12 +99,11 @@ export const SaleReturns = () => {
       {/* ========================================================================= */}
       <PrintHeader
         title="Sale Returns & Customer Refunds Statement"
-        filterSummary={`Return Mode: ${modeFilter}`}
+        filterSummary="Direct Cash Refunds"
         stats={[
           { label: 'Total Returns', value: filteredReturns.length },
           { label: 'Total Refund Value', value: `Rs. ${totalRefundAmount.toLocaleString()}` },
-          { label: 'Cash Refunds Paid', value: `Rs. ${totalCashRefunds.toLocaleString()}` },
-          { label: 'Khata Dues Adjusted', value: `Rs. ${totalKhataAdjustments.toLocaleString()}` }
+          { label: 'Cash Refunds Paid', value: `Rs. ${totalRefundAmount.toLocaleString()}` }
         ]}
       />
 
@@ -178,8 +121,8 @@ export const SaleReturns = () => {
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4">Invoice #</th>
                 <th className="py-3 px-4">Customer</th>
-                <th className="py-3 px-4 text-right">Return Amount</th>
-                <th className="py-3 px-4 text-right">Cash Refund</th>
+                <th className="py-3 px-4 text-right">Return Value</th>
+                <th className="py-3 px-4 text-right">Cash Refund Paid</th>
                 <th className="py-3 px-4 text-center">Status</th>
                 <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
@@ -195,7 +138,6 @@ export const SaleReturns = () => {
               ) : (
                 filteredReturns.map(ret => {
                   const retAmt = Number(ret.refundAmount || 0);
-                  const cashRefund = ret.refundMode === 'Cash' ? retAmt : 0;
 
                   return (
                     <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
@@ -206,11 +148,11 @@ export const SaleReturns = () => {
                       <td className="py-3 px-4 text-right font-black font-mono text-purple-600 dark:text-purple-400">
                         Rs. {retAmt.toLocaleString()}
                       </td>
-                      <td className="py-3 px-4 text-right font-black font-mono text-amber-600 dark:text-amber-400">
-                        Rs. {cashRefund.toLocaleString()}
+                      <td className="py-3 px-4 text-right font-black font-mono text-emerald-600 dark:text-emerald-400">
+                        Rs. {retAmt.toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-center font-bold text-xs">
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono">
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-bold">
                           Cash Refunded
                         </span>
                       </td>
