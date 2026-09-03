@@ -29,6 +29,7 @@ import { ReceiptModal } from '../modals/ReceiptModal';
 import { PurchaseReceiptModal } from '../modals/PurchaseReceiptModal';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
+import { StatusBadge } from '../components/StatusBadge';
 
 export const Invoices = () => {
   const { sales = [], purchases = [], saleReturns = [], purchaseReturns = [], customers = [], suppliers = [], products = [], paymentLogs = [] } = useERP();

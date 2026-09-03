@@ -14,6 +14,7 @@ import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
+import { StatusBadge } from '../components/StatusBadge';
 import { EXPENSE_CATEGORIES } from './Expenses';
 // Universal date parsing helper for reports and journals
 const parseJournalDate = (dateVal, createdVal) => {
