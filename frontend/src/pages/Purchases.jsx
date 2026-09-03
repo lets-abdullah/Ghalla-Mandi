@@ -909,8 +909,12 @@ export const Purchases = () => {
                 <th className="py-3 px-4">Bill #</th>
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4">Supplier</th>
-                <th className="py-3 px-4">Items</th>
-                <th className="py-3 px-4 text-right">Amount</th>
+                <th className="py-3 px-4 text-right">Gross Purchase</th>
+                <th className="py-3 px-4 text-right">Paid</th>
+                <th className="py-3 px-4 text-right">Returned</th>
+                <th className="py-3 px-4 text-right">Cash Refund</th>
+                <th className="py-3 px-4 text-right">Net Purchase</th>
+                <th className="py-3 px-4 text-right">Payable</th>
                 <th className="py-3 px-4 text-center">Status</th>
                 <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
@@ -919,7 +923,7 @@ export const Purchases = () => {
               }`}>
               {filteredPurchases.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center">
+                  <td colSpan={11} className="py-8 text-center">
                     <EmptyState
                       icon={ShoppingCart}
                       title="No purchases found"
@@ -952,10 +956,12 @@ export const Purchases = () => {
                     isPartiallyReturned
                   } = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
 
+                  const cashRefunded = Math.max(0, paid - netTotal);
+
                   return (
                     <tr key={p.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
                       }`}>
-                      {/* 1. Purchase # */}
+                      {/* 1. Bill # */}
                       <td className="py-3.5 px-4 font-mono font-black text-brand-500 text-xs">
                         {p.purchaseNo || p.purchaseno}
                       </td>
@@ -972,22 +978,41 @@ export const Purchases = () => {
                         </div>
                       </td>
 
-                      {/* 4. Items */}
-                      <td className="py-3.5 px-4">
-                        {p.cart && p.cart.length > 0 ? (
-                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-xs leading-relaxed">
-                            {p.cart.map((item, idx) => (
-                              <span key={idx}>
-                                {item.name || item.productName} ({item.qty || item.enteredQty || 1} {item.unit || item.unitName || 'KG'}){idx < p.cart.length - 1 ? ', ' : ''}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-600 dark:text-slate-300 font-semibold text-xs">{typeof p.items === 'string' ? p.items : (Array.isArray(p.items) ? p.items.map(i => i.name || i.productName).join(', ') : 'Commodity Items')}</span>
-                        )}
+                      {/* 4. Gross Purchase */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
+                        Rs. {grossTotal.toLocaleString()}
                       </td>
 
-                      {/* 5. Amount */}
+                      {/* 5. Paid */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                        Rs. {paid.toLocaleString()}
+                      </td>
+
+                      {/* 6. Returned */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-purple-600 dark:text-purple-400">
+                        Rs. {retAmt.toLocaleString()}
+                      </td>
+
+                      {/* 7. Cash Refund */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-amber-600 dark:text-amber-400">
+                        Rs. {cashRefunded.toLocaleString()}
+                      </td>
+
+                      {/* 8. Net Purchase */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
+                        Rs. {netTotal.toLocaleString()}
+                      </td>
+
+                      {/* 9. Payable */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-rose-500">
+                        Rs. {due.toLocaleString()}
+                      </td>
+
+                      {/* 10. Status */}
+                      <td className="py-3.5 px-4 text-center">
+                        <StatusBadge status={isFullyReturned ? 'Returned' : status} />
+                      </td>
+
                       <td className="py-3.5 px-4 text-right">
                         <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
                           Rs. {total.toLocaleString()}

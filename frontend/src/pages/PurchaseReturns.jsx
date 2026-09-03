@@ -171,11 +171,11 @@ export const PurchaseReturns = () => {
                 }`}>
                 <th className="py-3 px-4">Return #</th>
                 <th className="py-3 px-4">Date</th>
+                <th className="py-3 px-4">Bill #</th>
                 <th className="py-3 px-4">Supplier</th>
-                <th className="py-3 px-4">Purchase Bill #</th>
-                <th className="py-3 px-4">Item</th>
-                <th className="py-3 px-4 text-center">Refund Method</th>
-                <th className="py-3 px-4 text-right">Amount</th>
+                <th className="py-3 px-4 text-right">Return Amount</th>
+                <th className="py-3 px-4 text-right">Cash Refund Received</th>
+                <th className="py-3 px-4 text-center">Status</th>
                 <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
             </thead>
@@ -188,41 +188,43 @@ export const PurchaseReturns = () => {
                   </td>
                 </tr>
               ) : (
-                filteredReturns.map(ret => (
-                  <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
-                    <td className="py-3 px-4 font-mono font-bold text-rose-600 dark:text-rose-400">{ret.returnNo}</td>
-                    <td className="py-3 px-4 text-slate-500">{ret.date}</td>
-                    <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{ret.supplierName}</td>
-                    <td className="py-3 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">{ret.purchaseNo}</td>
-                    <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200">
-                      {ret.items && ret.items[0] ? `${ret.items[0].name} (${ret.items[0].qty} ${ret.items[0].unit})` : 'Item'}
-                    </td>
-                    <td className="py-3 px-4 text-center font-bold text-xs">
-                      <span className={`px-2 py-0.5 rounded-md ${
-                        ret.refundMode === 'Cash'
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                          : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
-                      }`}>
-                        {ret.refundMode === 'Cash' ? 'Cash Refund' : 'Khata Adjustment'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right font-black font-mono text-rose-600 dark:text-rose-400">
-                      Rs. {Number(ret.refundAmount || 0).toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 text-center no-print">
-                      <button
-                        onClick={() => setSelectedReceiptReturn(ret)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98 shadow-xs"
-                        title="View & Print Purchase Return Receipt Voucher"
-                      >
-                        <Receipt className="w-3.5 h-3.5" />
-                        <span>Return Receipt</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                filteredReturns.map(ret => {
+                  const retAmt = Number(ret.refundAmount || 0);
+                  const cashRefund = ret.refundMode === 'Cash' ? retAmt : 0;
+
+                  return (
+                    <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
+                      <td className="py-3 px-4 font-mono font-bold text-rose-600 dark:text-rose-400">{ret.returnNo}</td>
+                      <td className="py-3 px-4 text-slate-500 font-mono text-xs">{ret.date}</td>
+                      <td className="py-3 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">{ret.purchaseNo}</td>
+                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{ret.supplierName}</td>
+                      <td className="py-3 px-4 text-right font-black font-mono text-purple-600 dark:text-purple-400">
+                        Rs. {retAmt.toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4 text-right font-black font-mono text-emerald-600 dark:text-emerald-400">
+                        Rs. {cashRefund.toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4 text-center font-bold text-xs">
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono">
+                          Cash Received
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center no-print">
+                        <button
+                          onClick={() => setSelectedReceiptReturn(ret)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98 shadow-xs"
+                          title="View & Print Purchase Return Receipt Voucher"
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                          <span>Return Receipt</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
+
           </table>
         </div>
       </div>

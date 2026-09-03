@@ -665,8 +665,12 @@ export const Sales = () => {
                 <th className="py-3.5 px-4">Invoice #</th>
                 <th className="py-3.5 px-4">Date</th>
                 <th className="py-3.5 px-4">Customer</th>
-                <th className="py-3.5 px-4">Items</th>
-                <th className="py-3.5 px-4 text-right">Amount</th>
+                <th className="py-3.5 px-4 text-right">Gross Sale</th>
+                <th className="py-3.5 px-4 text-right">Paid</th>
+                <th className="py-3.5 px-4 text-right">Returned</th>
+                <th className="py-3.5 px-4 text-right">Cash Refunded</th>
+                <th className="py-3.5 px-4 text-right">Net Sale</th>
+                <th className="py-3.5 px-4 text-right">Due</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
                 <th className="py-3.5 px-4 text-center no-print">Actions</th>
               </tr>
@@ -675,7 +679,7 @@ export const Sales = () => {
               }`}>
               {filteredSales.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center">
+                  <td colSpan={11} className="py-8 text-center">
                     <EmptyState
                       icon={ShoppingBag}
                       title="No sales found"
@@ -706,15 +710,15 @@ export const Sales = () => {
                     isFullyReturned,
                     isPartiallyReturned
                   } = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
-                  const isWalkin = (s.customerType || '').toLowerCase().includes('walk-in') ||
-                    (s.partyName || '').toLowerCase().includes('walk-in');
+
+                  const cashRefunded = Math.max(0, paid - netTotal);
 
                   return (
                     <tr
                       key={s.id}
                       className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
                     >
-                      {/* 1. Sale ID */}
+                      {/* 1. Invoice # */}
                       <td className="py-3.5 px-4 font-mono font-black text-brand-500 text-xs">
                         {s.invoiceNo}
                       </td>
@@ -724,55 +728,48 @@ export const Sales = () => {
                         {s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '-')}
                       </td>
 
-                      {/* 3. Buyer / Customer */}
+                      {/* 3. Customer */}
                       <td className="py-3.5 px-4">
                         <div className="font-extrabold text-xs text-slate-900 dark:text-white">
                           {s.partyName}
                         </div>
                       </td>
 
-                      {/* 4. Commodity */}
-                      <td className="py-3.5 px-4">
-                        {s.cart && s.cart.length > 0 ? (
-                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-xs leading-relaxed">
-                            {s.cart.map((item, idx) => (
-                              <span key={idx}>
-                                {item.name} ({item.qty} {item.unitName || item.unit || t('kg')}){idx < s.cart.length - 1 ? ', ' : ''}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-600 dark:text-slate-300 font-semibold text-xs">
-                            {typeof s.items === 'string'
-                              ? s.items
-                              : (Array.isArray(s.items) ? s.items.map(i => i.name || i.productName).join(', ') : t('products'))}
-                          </span>
-                        )}
+                      {/* 4. Gross Sale */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
+                        Rs. {grossTotal.toLocaleString()}
                       </td>
 
-                      {/* 5. Amount (Total Price Only) */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
-                          Rs. {total.toLocaleString()}
-                        </div>
-                        {due > 0 && (
-                          <div className="text-[10px] font-bold text-rose-500 font-mono">
-                            Due: Rs. {due.toLocaleString()}
-                          </div>
-                        )}
+                      {/* 5. Paid */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                        Rs. {paid.toLocaleString()}
                       </td>
 
-                      {/* 6. Status */}
+                      {/* 6. Returned */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-purple-600 dark:text-purple-400">
+                        Rs. {retAmt.toLocaleString()}
+                      </td>
+
+                      {/* 7. Cash Refunded */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-amber-600 dark:text-amber-400">
+                        Rs. {cashRefunded.toLocaleString()}
+                      </td>
+
+                      {/* 8. Net Sale */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
+                        Rs. {netTotal.toLocaleString()}
+                      </td>
+
+                      {/* 9. Due */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-rose-500">
+                        Rs. {due.toLocaleString()}
+                      </td>
+
+                      {/* 10. Status */}
                       <td className="py-3.5 px-4 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <StatusBadge status={isFullyReturned ? 'Returned' : status} />
-                          {isPartiallyReturned && (
-                            <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400">
-                              (Part Return)
-                            </span>
-                          )}
-                        </div>
+                        <StatusBadge status={isFullyReturned ? 'Returned' : status} />
                       </td>
+
 
                       {/* 7. Actions: Receipt | Pay | Edit | Return Sale (Screen Only) */}
                       <td className="py-3.5 px-4 text-center no-print">

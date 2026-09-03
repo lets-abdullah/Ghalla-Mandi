@@ -650,9 +650,12 @@ export const Invoices = () => {
                 <th className="py-3.5 px-4">{isPurchases ? 'Bill #' : 'Invoice #'}</th>
                 <th className="py-3.5 px-4">Billing Date</th>
                 <th className="py-3.5 px-4">{isPurchases ? 'Supplier' : 'Customer'}</th>
-                <th className="py-3.5 px-4">Payment Mode</th>
-                <th className="py-3.5 px-4 text-right">Amount</th>
+                <th className="py-3.5 px-4 text-right">Gross</th>
                 <th className="py-3.5 px-4 text-right">Paid</th>
+                <th className="py-3.5 px-4 text-right">Returned</th>
+                <th className="py-3.5 px-4 text-right">Refund</th>
+                <th className="py-3.5 px-4 text-right">Net</th>
+                <th className="py-3.5 px-4 text-right">Due</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
                 <th className="py-3.5 px-4 text-center no-print">Actions</th>
               </tr>
@@ -661,7 +664,7 @@ export const Invoices = () => {
               }`}>
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={11} className="py-12 text-center text-slate-400 text-xs">
                     No billing records found matching your selected filters.
                   </td>
                 </tr>
@@ -671,6 +674,7 @@ export const Invoices = () => {
                   const total = Number(inv.amount || 0);
                   const retAmt = Number(inv.returnAmount || 0);
                   const netTotal = Math.max(0, total - retAmt);
+                  const cashRefund = Math.max(0, paid - netTotal);
                   const due = Math.max(0, netTotal - paid);
 
                   return (
@@ -693,59 +697,43 @@ export const Invoices = () => {
                         <div className="font-extrabold text-xs text-slate-900 dark:text-white">
                           {inv.partyName}
                         </div>
-                        {inv.customerCity && (
-                          <div className="text-[10px] text-slate-400 font-medium">
-                            {inv.customerCity}
-                          </div>
-                        )}
                       </td>
 
-                      {/* 4. Payment Mode */}
-                      <td className="py-3.5 px-4">
-                        <span className="font-bold text-xs text-slate-600 dark:text-slate-300">
-                          {inv.paymentMode}
-                        </span>
+                      {/* 4. Gross */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
+                        Rs. {total.toLocaleString()}
                       </td>
 
-                      {/* 5. Amount (Net Invoice Amount with Return Breakdown if applicable) */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="font-black font-mono text-xs text-slate-900 dark:text-white">
-                          Rs. {netTotal.toLocaleString()}
-                        </div>
-                        {retAmt > 0 && (
-                          <div className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">
-                            Orig: Rs. {total.toLocaleString()} | Ret: Rs. {retAmt.toLocaleString()}
-                          </div>
-                        )}
+                      {/* 5. Paid */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                        Rs. {paid.toLocaleString()}
                       </td>
 
-                      {/* 6. Paid (Paid so far) */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="font-black font-mono text-xs text-emerald-600 dark:text-emerald-400">
-                          Rs. {paid.toLocaleString()}
-                        </div>
+                      {/* 6. Returned */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-purple-600 dark:text-purple-400">
+                        Rs. {retAmt.toLocaleString()}
                       </td>
 
-                      {/* 7. Status (Paid / Partially Paid / Unpaid / Returned) — Single Source of Truth from inv.status */}
+                      {/* 7. Refund */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-amber-600 dark:text-amber-400">
+                        Rs. {cashRefund.toLocaleString()}
+                      </td>
+
+                      {/* 8. Net */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
+                        Rs. {netTotal.toLocaleString()}
+                      </td>
+
+                      {/* 9. Due */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-rose-500">
+                        Rs. {due.toLocaleString()}
+                      </td>
+
+                      {/* 10. Status */}
                       <td className="py-3.5 px-4 text-center">
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className={`font-extrabold text-xs whitespace-nowrap ${inv.status === 'Paid'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : inv.status === 'Returned'
-                              ? 'text-purple-600 dark:text-purple-400'
-                              : inv.status === 'Partial'
-                                ? 'text-amber-600 dark:text-amber-400'
-                                : 'text-rose-600 dark:text-rose-400'
-                            }`}>
-                            {inv.status === 'Paid' ? 'Paid' : inv.status === 'Returned' ? 'Returned' : inv.status === 'Partial' ? 'Partially Paid' : 'Unpaid'}
-                          </span>
-                          {retAmt > 0 && inv.status !== 'Returned' && (
-                            <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400">
-                              (Partially Returned)
-                            </span>
-                          )}
-                        </div>
+                        <StatusBadge status={inv.status} />
                       </td>
+
 
                       {/* 8. Actions: View / Print A4 (Screen Only) */}
                       <td className="py-3.5 px-4 text-center no-print">
