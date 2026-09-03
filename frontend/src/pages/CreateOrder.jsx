@@ -997,42 +997,18 @@ export const CreateOrder = () => {
                 </button>
               </div>
 
-              {/* Toggle Customer Type */}
-              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-xs font-black">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomerType('Walk-in Customer');
-                    setSelectedParty(null);
-                  }}
-                  className={`py-1.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${customerType === 'Walk-in Customer'
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                    }`}
-                >
-                  <span>{t('walkInCustomer')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomerType('Regular Party');
-                    if (!selectedParty) setShowCustomerModal(true);
-                  }}
-                  className={`py-1.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${customerType === 'Regular Party'
-                    ? 'bg-brand-500 text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                    }`}
-                >
-                  <span>{t('regularParty')}</span>
-                </button>
-              </div>
-
-              {/* Customer Input or Selected Party Card */}
-              {customerType === 'Regular Party' && selectedParty ? (
+              {/* Single Unified Customer Selector */}
+              {selectedParty ? (
                 <div className="p-3 rounded-2xl border space-y-1.5 text-xs bg-brand-500/5 border-brand-500/20">
                   <div className="font-black text-slate-900 dark:text-white flex items-center justify-between">
                     <span className="truncate">{selectedParty.name}</span>
-                    <span className="text-[10px] text-slate-400 font-bold shrink-0">{selectedParty.city}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedParty(null)}
+                      className="text-[11px] font-bold text-rose-500 hover:underline"
+                    >
+                      Change
+                    </button>
                   </div>
                   <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200 dark:border-slate-700">
                     <span className="text-slate-400 font-bold">Previous Khata Position:</span>
@@ -1048,21 +1024,31 @@ export const CreateOrder = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      value={walkinName}
-                      onChange={(e) => setWalkinName(e.target.value)}
-                      placeholder="Customer / Farmer Name * (Required)"
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-2 text-xs font-bold outline-none focus:border-brand-500 ${!walkinName.trim()
-                          ? 'border-amber-400/80 dark:border-amber-500/50'
-                          : 'focus:border-brand-500'
-                        } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={walkinName}
+                        onChange={(e) => setWalkinName(e.target.value)}
+                        placeholder="Customer / Farmer Name *"
+                        className={`w-full border rounded-2xl pl-10 pr-3.5 py-2 text-xs font-bold outline-none focus:border-brand-500 ${!walkinName.trim()
+                            ? 'border-amber-400/80 dark:border-amber-500/50'
+                            : 'focus:border-brand-500'
+                          } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomerModal(true)}
+                      className="px-3 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-2xl shrink-0 transition"
+                      title="Select Existing Customer"
+                    >
+                      Select
+                    </button>
                   </div>
                   {!walkinName.trim() && (
                     <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold px-1">

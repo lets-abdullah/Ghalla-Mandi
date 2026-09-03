@@ -30,9 +30,10 @@ export const Sidebar = () => {
   }, [location.pathname, location.search, isMobile, closeMobileMenu]);
 
   // Active group checks
-  const isSalesActive = ['/sales', '/sale-returns'].includes(location.pathname);
-  const isPurchasesActive = ['/purchases', '/purchase-returns'].includes(location.pathname);
-  const isPartiesActive = ['/customers', '/suppliers', '/suppliers/new', '/khata', '/ledger'].includes(location.pathname);
+  const isSalesActive = ['/sales', '/sale-returns', '/customers'].includes(location.pathname) ||
+    ((location.pathname === '/khata' || location.pathname === '/ledger') && !location.search.toLowerCase().includes('supplier'));
+  const isPurchasesActive = ['/purchases', '/purchase-returns', '/suppliers', '/suppliers/new'].includes(location.pathname) ||
+    ((location.pathname === '/khata' || location.pathname === '/ledger') && location.search.toLowerCase().includes('supplier'));
   const isMoneyActive = ['/expenses'].includes(location.pathname) || (location.pathname === '/reports' && location.search.includes('CashFlow'));
   const isInventoryActive = ['/products', '/inventory'].includes(location.pathname) || (location.pathname === '/reports' && location.search.includes('Stock'));
   const isReportsActive = location.pathname === '/reports' && !location.search.includes('CashFlow');
@@ -40,7 +41,6 @@ export const Sidebar = () => {
   // Collapsible dropdown states
   const [salesOpen, setSalesOpen] = useState(true);
   const [purchasesOpen, setPurchasesOpen] = useState(true);
-  const [partiesOpen, setPartiesOpen] = useState(true);
   const [moneyOpen, setMoneyOpen] = useState(true);
   const [inventoryOpen, setInventoryOpen] = useState(true);
   const [reportsOpen, setReportsOpen] = useState(true);
@@ -48,11 +48,10 @@ export const Sidebar = () => {
   useEffect(() => {
     if (isSalesActive) setSalesOpen(true);
     if (isPurchasesActive) setPurchasesOpen(true);
-    if (isPartiesActive) setPartiesOpen(true);
     if (isMoneyActive) setMoneyOpen(true);
     if (isInventoryActive) setInventoryOpen(true);
     if (isReportsActive) setReportsOpen(true);
-  }, [location.pathname, location.search, isSalesActive, isPurchasesActive, isPartiesActive, isMoneyActive, isInventoryActive, isReportsActive]);
+  }, [location.pathname, location.search, isSalesActive, isPurchasesActive, isMoneyActive, isInventoryActive, isReportsActive]);
 
   const handleLogout = () => {
     if (isMobile) closeMobileMenu();
@@ -182,7 +181,7 @@ export const Sidebar = () => {
             {!effectivelyCollapsed && <span className="truncate font-black">New Sale (POS)</span>}
           </NavLink>
 
-          {/* 2. Sales Group */}
+          {/* 2. Sales Group (Sales, Sale Returns, Customers, Customer Khata, Customer Ledger) */}
           {effectivelyCollapsed ? (
             <div className="relative group/menu">
               <button
@@ -194,10 +193,13 @@ export const Sidebar = () => {
               >
                 <Receipt className="w-4 h-4 shrink-0 stroke-[2.2]" />
               </button>
-              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-48 hidden group-hover/menu:block hover:block z-50`}>
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-52 hidden group-hover/menu:block hover:block z-50`}>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
                   <Link to="/sales" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/sales') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Sales</Link>
                   <Link to="/sale-returns" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/sale-returns') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Sale Returns</Link>
+                  <Link to="/customers" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/customers') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Customers</Link>
+                  <Link to="/khata?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/khata', 'Customer') || (isSubActive('/khata') && !location.search.includes('Supplier')) ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Customer Khata</Link>
+                  <Link to="/ledger?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/ledger', 'Customer') || (isSubActive('/ledger') && !location.search.includes('Supplier')) ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Customer Ledger</Link>
                 </div>
               </div>
             </div>
@@ -226,12 +228,21 @@ export const Sidebar = () => {
                   <Link to="/sale-returns" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/sale-returns') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <span>Sale Returns</span>
                   </Link>
+                  <Link to="/customers" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/customers') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Customers</span>
+                  </Link>
+                  <Link to="/khata?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/khata', 'Customer') || (isSubActive('/khata') && !location.search.includes('Supplier')) ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Customer Khata</span>
+                  </Link>
+                  <Link to="/ledger?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Customer') || (isSubActive('/ledger') && !location.search.includes('Supplier')) ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Customer Ledger</span>
+                  </Link>
                 </div>
               )}
             </div>
           )}
 
-          {/* 3. Purchases Group */}
+          {/* 3. Purchases Group (Purchases, Purchase Returns, Suppliers, Supplier Khata, Supplier Ledger) */}
           {effectivelyCollapsed ? (
             <div className="relative group/menu">
               <button
@@ -243,10 +254,13 @@ export const Sidebar = () => {
               >
                 <ShoppingCart className="w-4 h-4 shrink-0 stroke-[2.2]" />
               </button>
-              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-48 hidden group-hover/menu:block hover:block z-50`}>
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-52 hidden group-hover/menu:block hover:block z-50`}>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
                   <Link to="/purchases" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/purchases') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Purchases</Link>
                   <Link to="/purchase-returns" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/purchase-returns') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Purchase Returns</Link>
+                  <Link to="/suppliers" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/suppliers') || isSubActive('/suppliers/new') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Suppliers</Link>
+                  <Link to="/khata?type=Supplier" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/khata', 'Supplier') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Supplier Khata</Link>
+                  <Link to="/ledger?type=Supplier" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/ledger', 'Supplier') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Supplier Ledger</Link>
                 </div>
               </div>
             </div>
@@ -275,67 +289,11 @@ export const Sidebar = () => {
                   <Link to="/purchase-returns" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchase-returns') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <span>Purchase Returns</span>
                   </Link>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 4. Parties Group (Unified Customers, Suppliers, Khata, Ledger) */}
-          {effectivelyCollapsed ? (
-            <div className="relative group/menu">
-              <button
-                type="button"
-                className={`w-full flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isPartiesActive
-                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Users className="w-4 h-4 shrink-0 stroke-[2.2]" />
-              </button>
-              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-52 hidden group-hover/menu:block hover:block z-50`}>
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
-                  <Link to="/customers" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/customers') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Customers</Link>
-                  <Link to="/suppliers" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/suppliers') || isSubActive('/suppliers/new') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Suppliers</Link>
-                  <Link to="/khata?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/khata', 'Customer') || (isSubActive('/khata') && !location.search.includes('Supplier')) ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Customer Khata</Link>
-                  <Link to="/khata?type=Supplier" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/khata', 'Supplier') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Supplier Khata</Link>
-                  <Link to="/ledger?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/ledger', 'Customer') || (isSubActive('/ledger') && !location.search.includes('Supplier')) ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Customer Ledger</Link>
-                  <Link to="/ledger?type=Supplier" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/ledger', 'Supplier') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Supplier Ledger</Link>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => setPartiesOpen(!partiesOpen)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isPartiesActive
-                  ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Users className={`w-4 h-4 shrink-0 stroke-[2.2] ${isPartiesActive ? 'text-brand-500' : ''}`} />
-                  <span>Parties</span>
-                </div>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${partiesOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
-              </button>
-
-              {partiesOpen && (
-                <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
-                  <Link to="/customers" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/customers') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                    <span>Customers</span>
-                  </Link>
                   <Link to="/suppliers" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/suppliers') || isSubActive('/suppliers/new') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <span>Suppliers</span>
                   </Link>
-                  <Link to="/khata?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/khata', 'Customer') || (isSubActive('/khata') && !location.search.includes('Supplier')) ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                    <span>Customer Khata</span>
-                  </Link>
                   <Link to="/khata?type=Supplier" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/khata', 'Supplier') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <span>Supplier Khata</span>
-                  </Link>
-                  <Link to="/ledger?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Customer') || (isSubActive('/ledger') && !location.search.includes('Supplier')) ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                    <span>Customer Ledger</span>
                   </Link>
                   <Link to="/ledger?type=Supplier" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Supplier') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <span>Supplier Ledger</span>

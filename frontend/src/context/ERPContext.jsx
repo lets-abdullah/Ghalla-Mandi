@@ -534,52 +534,53 @@ export const computeAllCustomersFinancials = (customers = [], sales = [], paymen
   const registeredCustIds = new Set((customers || []).map(c => String(c.id)));
   const registeredCustNames = new Set((customers || []).map(c => (c.name || '').trim().toLowerCase()));
 
-  // 1. Registered Customers
+  // 1. Saved Customer Profiles
   const registeredList = (customers || []).map(cust => {
     const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
-    const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
     return {
       ...cust,
-      customerType: isWalkin ? 'Walk-in Customer' : 'Regular Customer',
+      customerType: 'Customer',
       isRegistered: true,
       ...fin
     };
   });
 
-  // 2. Walk-in Customer Parties
-  const walkinSalesMap = new Map();
+  // 2. POS / Sales Counter Customer Parties (auto-converted to Customer records)
+  const unlistedSalesMap = new Map();
   (sales || []).forEach(s => {
     const sCustId = s.customerId ? String(s.customerId) : null;
     const sName = (s.partyName || s.customerName || '').trim().toLowerCase();
     const isRegistered = (sCustId && registeredCustIds.has(sCustId)) ||
-      (sName && registeredCustNames.has(sName) && sName !== 'walk-in customer');
+      (sName && registeredCustNames.has(sName));
 
     if (!isRegistered) {
-      const rawName = (s.partyName || s.customerName || 'Walk-in Customer').trim();
+      const rawName = (s.partyName || s.customerName || 'Customer').trim();
       const key = rawName.toLowerCase();
-      if (!walkinSalesMap.has(key)) {
-        walkinSalesMap.set(key, { name: rawName, sales: [] });
+      if (!unlistedSalesMap.has(key)) {
+        unlistedSalesMap.set(key, { name: rawName, sales: [] });
       }
-      walkinSalesMap.get(key).sales.push(s);
+      unlistedSalesMap.get(key).sales.push(s);
     }
   });
 
-  const walkinList = [];
-  walkinSalesMap.forEach((val, key) => {
-    const fin = computeCustomerKhataBalance({ id: `walkin-${key}`, name: val.name, customerType: 'Walk-in Customer' }, val.sales, paymentLogs, saleReturns);
-    walkinList.push({
-      id: `walkin-${key}`,
+  const unlistedList = [];
+  unlistedSalesMap.forEach((val, key) => {
+    const fin = computeCustomerKhataBalance({ id: `cust-pos-${key}`, name: val.name, customerType: 'Customer' }, val.sales, paymentLogs, saleReturns);
+    unlistedList.push({
+      id: `cust-pos-${key}`,
       name: val.name,
-      businessName: 'Walk-in Party',
+      businessName: 'Counter Customer',
       phone: 'Counter Sale',
       city: 'Local Mandi',
-      customerType: 'Walk-in Customer',
+      customerType: 'Customer',
       isRegistered: false,
       ...fin
     });
   });
 
-  const allCustomers = [...registeredList, ...walkinList];
+  const allCustomers = [...registeredList, ...unlistedList];
+  const registeredCustomersList = allCustomers;
+  const walkinList = [];
 
   const totalGrossSales = allCustomers.reduce((sum, c) => sum + Number(c.totalSale || 0), 0);
   const totalReturns = allCustomers.reduce((sum, c) => sum + Number(c.returnAmount || 0), 0);

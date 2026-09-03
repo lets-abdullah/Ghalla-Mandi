@@ -242,88 +242,43 @@ export const Customers = () => {
             className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Regular Customer</span>
+            <span>Add Customer</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Cards Row (Screen Only) */}
-      <div className="no-print grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* 1. Regular Customers */}
+      {/* KPI Cards Row (Screen Only: ONLY Total Customers & Total Customer Due) */}
+      <div className="no-print grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* 1. Total Customers */}
         <div
-          onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('All'); }}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${customerTypeFilter === 'Regular'
-            ? 'ring-2 ring-blue-500'
-            : ''
-            } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-            }`}
-          title="Filter saved regular customers"
+          onClick={() => setBalanceFilter('All')}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow transition-all cursor-pointer ${
+            balanceFilter === 'All' ? 'ring-2 ring-blue-500' : ''
+          } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Users className="w-4 h-4 text-blue-600" />
-            <span>Regular Customers</span>
+            <span>Total Customers</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
-            {regularCount || totalCustomers}
+          <div className="text-2xl sm:text-3xl font-black mt-1.5 tracking-tight text-blue-600 dark:text-blue-400 font-mono">
+            {allCustomers.length} <span className="text-sm font-semibold text-slate-400">Profiles</span>
           </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Registered customer profiles</div>
         </div>
 
-        {/* 2. Walk-in Customers */}
+        {/* 2. Total Customer Due */}
         <div
-          onClick={() => { setCustomerTypeFilter('Walk-in'); setBalanceFilter('All'); }}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${customerTypeFilter === 'Walk-in'
-            ? 'ring-2 ring-indigo-500'
-            : ''
-            } ${theme === 'dark' ? 'bg-slate-800 border-indigo-500/30 text-white' : 'bg-gradient-to-b from-indigo-50/50 to-white border-indigo-200/80'
-            }`}
-          title="Filter Walk-in Counter customers"
-        >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <User className="w-4 h-4 text-indigo-600" />
-            <span>Walk-in Customers</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-indigo-600 dark:text-indigo-400">
-            {walkinCount}
-          </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Counter / spot buyer records</div>
-        </div>
-
-        {/* 3. Customer Receivables */}
-        <div
-          onClick={() => { setCustomerTypeFilter('Regular'); setBalanceFilter('Due'); }}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${balanceFilter === 'Due'
-            ? 'ring-2 ring-amber-500'
-            : ''
-            } ${theme === 'dark' ? 'bg-slate-800 border-amber-500/30 text-white' : 'bg-gradient-to-b from-amber-50/50 to-white border-amber-200/80'
-            }`}
-          title="Filter Customers with Outstanding Balance"
+          onClick={() => setBalanceFilter('Due')}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow transition-all cursor-pointer ${
+            balanceFilter === 'Due' ? 'ring-2 ring-amber-500' : ''
+          } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Building2 className="w-4 h-4 text-amber-600" />
-            <span>Customer Receivables</span>
+            <span>Total Customer Due</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
+          <div className="text-2xl sm:text-3xl font-black mt-1.5 tracking-tight text-amber-600 dark:text-amber-400 font-mono">
             Rs. {totalReceivables.toLocaleString()}
           </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Net party receivables (Khata)</div>
-        </div>
-
-        {/* 4. Walk-in Counter Dues */}
-        <div
-          onClick={() => { setCustomerTypeFilter('Walk-in'); setBalanceFilter('Due'); }}
-          className={`border rounded-2xl p-4 sm:p-5 card-hover card-shadow transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-teal-500/30 text-white' : 'bg-gradient-to-b from-teal-50/50 to-white border-teal-200/80'
-            }`}
-          title="Filter Walk-in Counter Sales with pending dues"
-        >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-teal-600" />
-            <span>Walk-in Counter Dues</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-teal-600 dark:text-teal-400">
-            Rs. {totalWalkinDues.toLocaleString()}
-          </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Unpaid walk-in counter balances</div>
         </div>
       </div>
 
@@ -433,7 +388,6 @@ export const Customers = () => {
               <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
                 <th className="py-3 px-4">Customer</th>
-                <th className="py-3 px-3">Type</th>
                 <th className="py-3 px-3">Phone</th>
                 <th className="py-3 px-4 text-right">Balance</th>
                 <th className="py-3 px-4 text-center no-print">Action</th>
@@ -443,11 +397,11 @@ export const Customers = () => {
               }`}>
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center">
+                  <td colSpan={5} className="py-8 text-center">
                     <EmptyState
                       icon={Users}
                       title="No customers found"
-                      description="No customer records match your current search and filter criteria."
+                      description="No customer records match your current search criteria."
                       action={
                         <button
                           type="button"
@@ -464,7 +418,6 @@ export const Customers = () => {
               ) : (
                 filteredCustomers.map(cust => {
                   const bal = Number(cust.balance || 0);
-                  const isWalkin = (cust.customerType || '').toLowerCase().includes('walk-in');
 
                   return (
                     <tr
@@ -483,14 +436,7 @@ export const Customers = () => {
                         )}
                       </td>
 
-                      {/* 2. Customer Type */}
-                      <td className="py-3 px-3">
-                        <span className="font-semibold text-xs text-slate-600 dark:text-slate-300">
-                          {isWalkin ? 'Walk-in' : 'Regular'}
-                        </span>
-                      </td>
-
-                      {/* 3. Phone */}
+                      {/* 2. Phone */}
                       <td className="py-3 px-3 font-mono text-slate-600 dark:text-slate-300">
                         {cust.phone && cust.phone !== 'N/A' ? cust.phone : '-'}
                       </td>

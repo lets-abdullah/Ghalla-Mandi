@@ -122,11 +122,7 @@ export const Khata = () => {
 
   // 3. Filtered Khata Accounts
   const filteredKhata = useMemo(() => {
-    const baseList = isCustomer
-      ? (customerTypeFilter === 'Walk-in Customer'
-        ? walkinList
-        : (customerTypeFilter === 'Regular Customer' ? registeredList : allCustomers))
-      : allSuppliers;
+    const baseList = isCustomer ? allCustomers : allSuppliers;
 
     return baseList.filter(item => {
       // Current Due extraction

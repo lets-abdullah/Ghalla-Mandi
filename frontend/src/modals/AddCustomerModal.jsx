@@ -275,26 +275,7 @@ export const AddCustomerModal = ({ isOpen, onClose, onSuccess }) => {
                 <span>Financial & Bank Account Info</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                    Customer Type
-                  </label>
-                  <select
-                    value={form.customerType}
-                    onChange={(e) => setForm({ ...form, customerType: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    <option value="Regular Customer">Regular Customer</option>
-                    <option value="Walk-in Customer">Walk-in Customer</option>
-                    <option value="Wholesale Buyer">Wholesale Buyer</option>
-                    <option value="Retailer">Retailer</option>
-                    <option value="Farmer / Producer">Farmer / Producer</option>
-                  </select>
-                </div>
-              </div>
+
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div>
