@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Package, Warehouse, ShoppingCart,
-  Receipt, Users, UserCheck, BookOpen, FileText,
-  BarChart3, Settings, Wheat, LogOut, X, PlusCircle,
+  LayoutDashboard, Package, ShoppingCart,
+  Receipt, Users, BookOpen, Settings, Wheat, LogOut, X,
   ChevronLeft, ChevronRight, ChevronDown,
-  TrendingUp, DollarSign, RotateCcw, PieChart, Building,
-  CreditCard
+  DollarSign, RotateCcw, CreditCard, BarChart3
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
@@ -31,33 +29,28 @@ export const Sidebar = () => {
     }
   }, [location.pathname, location.search, isMobile, closeMobileMenu]);
 
-  // Check active navigation areas
-  const isSalesActive =
-    ['/sales', '/customers', '/khata', '/sale-returns'].includes(location.pathname) ||
-    (location.pathname === '/ledger' && (location.search.includes('Customer') || location.search.includes('customer') || !location.search));
+  // Active group checks
+  const isSalesActive = ['/sales', '/sale-returns'].includes(location.pathname);
+  const isPurchasesActive = ['/purchases', '/purchase-returns'].includes(location.pathname);
+  const isKhataActive = ['/khata', '/customers', '/suppliers', '/suppliers/new'].includes(location.pathname);
+  const isMoneyActive = ['/ledger', '/expenses'].includes(location.pathname) || (location.pathname === '/reports' && location.search.includes('CashFlow'));
+  const isInventoryActive = ['/products', '/inventory'].includes(location.pathname) || (location.pathname === '/reports' && location.search.includes('Stock'));
+  const isReportsActive = location.pathname === '/reports' && !location.search.includes('CashFlow') && !location.search.includes('Stock');
 
-  const isPurchasesActive =
-    ['/purchases', '/suppliers', '/purchase-returns', '/suppliers/new'].includes(location.pathname) ||
-    (location.pathname === '/ledger' && (location.search.includes('Supplier') || location.search.includes('supplier')));
-
-  const isReportsActive = location.pathname === '/reports';
-
-  // Collapsible dropdown states for full expanded mode
+  // Collapsible dropdown states
   const [salesOpen, setSalesOpen] = useState(true);
   const [purchasesOpen, setPurchasesOpen] = useState(true);
-  const [reportsOpen, setReportsOpen] = useState(true);
+  const [khataOpen, setKhataOpen] = useState(true);
+  const [moneyOpen, setMoneyOpen] = useState(true);
+  const [inventoryOpen, setInventoryOpen] = useState(true);
 
   useEffect(() => {
     if (isSalesActive) setSalesOpen(true);
-  }, [location.pathname, location.search, isSalesActive]);
-
-  useEffect(() => {
     if (isPurchasesActive) setPurchasesOpen(true);
-  }, [location.pathname, location.search, isPurchasesActive]);
-
-  useEffect(() => {
-    if (isReportsActive) setReportsOpen(true);
-  }, [location.pathname, location.search, isReportsActive]);
+    if (isKhataActive) setKhataOpen(true);
+    if (isMoneyActive) setMoneyOpen(true);
+    if (isInventoryActive) setInventoryOpen(true);
+  }, [location.pathname, location.search, isSalesActive, isPurchasesActive, isKhataActive, isMoneyActive, isInventoryActive]);
 
   const handleLogout = () => {
     if (isMobile) closeMobileMenu();
@@ -79,10 +72,8 @@ export const Sidebar = () => {
     return location.pathname === path;
   };
 
-  // On mobile: always show full text inside drawer
   const effectivelyCollapsed = isMobile ? false : isCollapsed;
 
-  // ─── Sidebar Inner Content ───
   const sidebarInner = (
     <div className={`
       w-full h-full flex flex-col justify-between p-3.5 select-none transition-colors
@@ -113,7 +104,7 @@ export const Sidebar = () => {
             )}
           </Link>
 
-          {/* Mobile: Cross (X) button with distinct click handler */}
+          {/* Mobile: Close X */}
           {isMobile && (
             <button
               type="button"
@@ -129,7 +120,7 @@ export const Sidebar = () => {
             </button>
           )}
 
-          {/* Desktop: Collapse Toggle Button */}
+          {/* Desktop: Collapse Toggle */}
           {!isMobile && !effectivelyCollapsed && (
             <button
               type="button"
@@ -142,7 +133,6 @@ export const Sidebar = () => {
           )}
         </div>
 
-        {/* Desktop: If Collapsed, show expand button */}
         {!isMobile && effectivelyCollapsed && (
           <div className="flex justify-center mb-4">
             <button
@@ -156,7 +146,7 @@ export const Sidebar = () => {
           </div>
         )}
 
-        {/* Navigation Items */}
+        {/* Navigation Tree */}
         <nav className="space-y-1">
           {/* 1. Dashboard */}
           <NavLink
@@ -172,35 +162,9 @@ export const Sidebar = () => {
           >
             <LayoutDashboard className="w-4 h-4 shrink-0 stroke-[2.2]" />
             {!effectivelyCollapsed && <span className="truncate">{t('dashboard')}</span>}
-            {effectivelyCollapsed && (
-              <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-                {t('dashboard')}
-              </div>
-            )}
           </NavLink>
 
-          {/* 2. New Sale (POS) */}
-          <NavLink
-            to="/create-order"
-            onClick={handleLinkClick}
-            title={effectivelyCollapsed ? 'New Sale' : undefined}
-            className={({ isActive }) =>
-              `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
-                ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20 font-black'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`
-            }
-          >
-            <PlusCircle className="w-4 h-4 shrink-0 stroke-[2.2]" />
-            {!effectivelyCollapsed && <span className="truncate">New Sale</span>}
-            {effectivelyCollapsed && (
-              <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-                New Sale
-              </div>
-            )}
-          </NavLink>
-
-          {/* 3. Sales ▾ (Collapsible Dropdown Group & Compact Flyout Popover) */}
+          {/* 2. Sales Group */}
           {effectivelyCollapsed ? (
             <div className="relative group/menu">
               <button
@@ -212,39 +176,10 @@ export const Sidebar = () => {
               >
                 <Receipt className="w-4 h-4 shrink-0 stroke-[2.2]" />
               </button>
-
-              {/* Flyout Submenu on Hover / Focus — Sales */}
-              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5 before:-right-4' : 'left-full ml-3.5 before:-left-4'} w-52 hidden group-hover/menu:block hover:block z-50 before:absolute before:inset-y-0 before:w-4 before:content-['']`}>
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-48 hidden group-hover/menu:block hover:block z-50`}>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
-                  <div className="px-3 py-1.5 text-[11px] font-black uppercase text-brand-600 dark:text-brand-400 border-b border-slate-100 dark:border-slate-700/60 flex items-center gap-2">
-                    <Receipt className="w-3.5 h-3.5" />
-                    <span>Sales</span>
-                  </div>
-
-                  <Link to="/khata" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/khata') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <CreditCard className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Khata (Due)</span>
-                  </Link>
-
-                  <Link to="/sales" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/sales') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <Receipt className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Sales</span>
-                  </Link>
-
-                  <Link to="/customers" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/customers') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <Users className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Customers</span>
-                  </Link>
-
-                  <Link to="/ledger?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Customer') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Customer Ledger</span>
-                  </Link>
-
-                  <Link to="/sale-returns" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/sale-returns') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Sale Returns</span>
-                  </Link>
+                  <Link to="/sales" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/sales') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Sales</Link>
+                  <Link to="/sale-returns" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/sale-returns') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Sale Returns</Link>
                 </div>
               </div>
             </div>
@@ -260,36 +195,17 @@ export const Sidebar = () => {
               >
                 <div className="flex items-center gap-3">
                   <Receipt className={`w-4 h-4 shrink-0 stroke-[2.2] ${isSalesActive ? 'text-brand-500' : ''}`} />
-                  <span>{t('sales')}</span>
+                  <span>Sales</span>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${salesOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
               </button>
 
-              {/* Submenu Items for Sales — Khata first (most used) */}
               {salesOpen && (
                 <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
-                  <Link to="/khata" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/khata') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <CreditCard className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Khata (Due)</span>
-                  </Link>
-
-                  <Link to="/sales" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/sales') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <Receipt className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                  <Link to="/sales" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/sales') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <span>Sales</span>
                   </Link>
-
-                  <Link to="/customers" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/customers') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <Users className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Customers</span>
-                  </Link>
-
-                  <Link to="/ledger?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Customer') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Customer Ledger</span>
-                  </Link>
-
-                  <Link to="/sale-returns" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/sale-returns') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                  <Link to="/sale-returns" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/sale-returns') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <span>Sale Returns</span>
                   </Link>
                 </div>
@@ -297,7 +213,7 @@ export const Sidebar = () => {
             </div>
           )}
 
-          {/* 4. Purchases ▾ (Collapsible Dropdown Group & Compact Flyout Popover) */}
+          {/* 3. Purchases Group */}
           {effectivelyCollapsed ? (
             <div className="relative group/menu">
               <button
@@ -309,34 +225,10 @@ export const Sidebar = () => {
               >
                 <ShoppingCart className="w-4 h-4 shrink-0 stroke-[2.2]" />
               </button>
-
-              {/* Flyout Submenu on Hover / Focus — Purchases */}
-              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5 before:-right-4' : 'left-full ml-3.5 before:-left-4'} w-52 hidden group-hover/menu:block hover:block z-50 before:absolute before:inset-y-0 before:w-4 before:content-['']`}>
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-48 hidden group-hover/menu:block hover:block z-50`}>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
-                  <div className="px-3 py-1.5 text-[11px] font-black uppercase text-brand-600 dark:text-brand-400 border-b border-slate-100 dark:border-slate-700/60 flex items-center gap-2">
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>Purchases</span>
-                  </div>
-
-                  <Link to="/purchases" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchases') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <ShoppingCart className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Purchases</span>
-                  </Link>
-
-                  <Link to="/suppliers" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/suppliers') || isSubActive('/suppliers/new') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <UserCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Suppliers</span>
-                  </Link>
-
-                  <Link to="/ledger?type=Supplier" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Supplier') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Supplier Ledger</span>
-                  </Link>
-
-                  <Link to="/purchase-returns" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchase-returns') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Purchase Returns</span>
-                  </Link>
+                  <Link to="/purchases" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/purchases') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Purchases</Link>
+                  <Link to="/purchase-returns" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/purchase-returns') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Purchase Returns</Link>
                 </div>
               </div>
             </div>
@@ -352,31 +244,17 @@ export const Sidebar = () => {
               >
                 <div className="flex items-center gap-3">
                   <ShoppingCart className={`w-4 h-4 shrink-0 stroke-[2.2] ${isPurchasesActive ? 'text-brand-500' : ''}`} />
-                  <span>{t('purchases')}</span>
+                  <span>Purchases</span>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${purchasesOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
               </button>
 
-              {/* Submenu Items for Purchases — no duplicate invoice items */}
               {purchasesOpen && (
                 <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
-                  <Link to="/purchases" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchases') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <ShoppingCart className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                  <Link to="/purchases" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchases') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <span>Purchases</span>
                   </Link>
-
-                  <Link to="/suppliers" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/suppliers') || isSubActive('/suppliers/new') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <UserCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Suppliers</span>
-                  </Link>
-
-                  <Link to="/ledger?type=Supplier" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger', 'Supplier') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <BookOpen className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>Supplier Ledger</span>
-                  </Link>
-
-                  <Link to="/purchase-returns" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchase-returns') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <RotateCcw className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                  <Link to="/purchase-returns" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/purchase-returns') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <span>Purchase Returns</span>
                   </Link>
                 </div>
@@ -384,150 +262,22 @@ export const Sidebar = () => {
             </div>
           )}
 
-          {/* 5. Products */}
-          <NavLink
-            to="/products"
-            onClick={handleLinkClick}
-            title={effectivelyCollapsed ? t('products') : undefined}
-            className={({ isActive }) =>
-              `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
-                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`
-            }
-          >
-            <Package className="w-4 h-4 shrink-0 stroke-[2.2]" />
-            {!effectivelyCollapsed && <span className="truncate">{t('products')}</span>}
-            {effectivelyCollapsed && (
-              <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-                {t('products')}
-              </div>
-            )}
-          </NavLink>
-
-          {/* 6. Inventory */}
-          <NavLink
-            to="/inventory"
-            onClick={handleLinkClick}
-            title={effectivelyCollapsed ? t('inventory') : undefined}
-            className={({ isActive }) =>
-              `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
-                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`
-            }
-          >
-            <Warehouse className="w-4 h-4 shrink-0 stroke-[2.2]" />
-            {!effectivelyCollapsed && <span className="truncate">{t('inventory')}</span>}
-            {effectivelyCollapsed && (
-              <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-                {t('inventory')}
-              </div>
-            )}
-          </NavLink>
-
-          {/* 7. Expenses (Dedicated Operating Expenses Page) */}
-          <NavLink
-            to="/expenses"
-            onClick={handleLinkClick}
-            title={effectivelyCollapsed ? (t('expenses') || 'Expenses') : undefined}
-            className={({ isActive }) =>
-              `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isActive
-                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`
-            }
-          >
-            <DollarSign className="w-4 h-4 shrink-0 stroke-[2.2]" />
-            {!effectivelyCollapsed && <span className="truncate">{t('expenses') || 'Expenses'}</span>}
-            {effectivelyCollapsed && (
-              <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-                {t('expenses') || 'Expenses'}
-              </div>
-            )}
-          </NavLink>
-
-          {/* 8. Reports ▾ (Collapsible Dropdown Group & Compact Flyout Popover) */}
+          {/* 4. Khata Group */}
           {effectivelyCollapsed ? (
             <div className="relative group/menu">
               <button
                 type="button"
-                className={`w-full flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isReportsActive
+                className={`w-full flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isKhataActive
                   ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <BarChart3 className="w-4 h-4 shrink-0 stroke-[2.2]" />
+                <CreditCard className="w-4 h-4 shrink-0 stroke-[2.2]" />
               </button>
-
-              {/* Flyout Submenu on Hover / Focus */}
-              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5 before:-right-4' : 'left-full ml-3.5 before:-left-4'} w-56 hidden group-hover/menu:block hover:block z-50 before:absolute before:inset-y-0 before:w-4 before:content-['']`}>
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-48 hidden group-hover/menu:block hover:block z-50`}>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
-                  {/* Category Header */}
-                  <div className="px-3 py-1.5 text-[11px] font-black uppercase text-brand-600 dark:text-brand-400 border-b border-slate-100 dark:border-slate-700/60 flex items-center gap-2">
-                    <BarChart3 className="w-3.5 h-3.5" />
-                    <span>{t('reports')}</span>
-                  </div>
-
-                  <Link
-                    to="/reports?type=Stock"
-                    onClick={handleLinkClick}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Stock') || (location.pathname === '/reports' && (!location.search || location.search === '?type=Stock'))
-                      ? 'bg-brand-500 text-white font-black'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <Warehouse className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>{t('stockReport') || 'Stock Report'}</span>
-                  </Link>
-
-                  <Link
-                    to="/reports?type=Sales"
-                    onClick={handleLinkClick}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Sales')
-                      ? 'bg-brand-500 text-white font-black'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <TrendingUp className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>{t('salesReport') || 'Sales & Profit Report'}</span>
-                  </Link>
-
-                  <Link
-                    to="/reports?type=Expenses"
-                    onClick={handleLinkClick}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Expenses')
-                      ? 'bg-brand-500 text-white font-black'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <DollarSign className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>{t('expenseReport') || 'Expense Report'}</span>
-                  </Link>
-
-                  <Link
-                    to="/reports?type=ProfitLoss"
-                    onClick={handleLinkClick}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'ProfitLoss')
-                      ? 'bg-brand-500 text-white font-black'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <PieChart className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>{t('profitLoss') || 'Profit & Loss'}</span>
-                  </Link>
-
-                  <Link
-                    to="/reports?type=BalanceSheet"
-                    onClick={handleLinkClick}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'BalanceSheet')
-                      ? 'bg-brand-500 text-white font-black'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <Building className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>{t('balanceSheet') || 'Balance Sheet'}</span>
-                  </Link>
+                  <Link to="/khata?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/khata', 'Customer') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Customer Khata</Link>
+                  <Link to="/khata?type=Supplier" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/khata', 'Supplier') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Supplier Khata</Link>
                 </div>
               </div>
             </div>
@@ -535,85 +285,149 @@ export const Sidebar = () => {
             <div className="space-y-1">
               <button
                 type="button"
-                onClick={() => setReportsOpen(!reportsOpen)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isReportsActive
+                onClick={() => setKhataOpen(!khataOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isKhataActive
                   ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <BarChart3 className={`w-4 h-4 shrink-0 stroke-[2.2] ${isReportsActive ? 'text-brand-500' : ''}`} />
-                  <span>{t('reports')}</span>
+                  <CreditCard className={`w-4 h-4 shrink-0 stroke-[2.2] ${isKhataActive ? 'text-brand-500' : ''}`} />
+                  <span>Khata</span>
                 </div>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${reportsOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${khataOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
               </button>
 
-              {/* Submenu Items for Reports */}
-              {reportsOpen && (
+              {khataOpen && (
                 <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
-                  <Link
-                    to="/reports?type=Stock"
-                    onClick={handleLinkClick}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Stock') || (location.pathname === '/reports' && (!location.search || location.search === '?type=Stock'))
-                      ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <Warehouse className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>{t('stockReport') || 'Stock Report'}</span>
+                  <Link to="/khata?type=Customer" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/khata', 'Customer') || (isSubActive('/khata') && !location.search.includes('Supplier')) ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Customer Khata</span>
                   </Link>
-
-                  <Link
-                    to="/reports?type=Sales"
-                    onClick={handleLinkClick}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Sales')
-                      ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <TrendingUp className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>{t('salesReport') || 'Sales & Profit Report'}</span>
-                  </Link>
-
-                  <Link
-                    to="/reports?type=Expenses"
-                    onClick={handleLinkClick}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'Expenses')
-                      ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <DollarSign className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>{t('expenseReport') || 'Expense Report'}</span>
-                  </Link>
-
-                  <Link
-                    to="/reports?type=ProfitLoss"
-                    onClick={handleLinkClick}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'ProfitLoss')
-                      ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <PieChart className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>{t('profitLoss') || 'Profit & Loss'}</span>
-                  </Link>
-
-                  <Link
-                    to="/reports?type=BalanceSheet"
-                    onClick={handleLinkClick}
-                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'BalanceSheet')
-                      ? 'bg-brand-500 text-white shadow-xs font-black'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <Building className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
-                    <span>{t('balanceSheet') || 'Balance Sheet'}</span>
+                  <Link to="/khata?type=Supplier" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/khata', 'Supplier') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Supplier Khata</span>
                   </Link>
                 </div>
               )}
             </div>
           )}
+
+          {/* 5. Money Group */}
+          {effectivelyCollapsed ? (
+            <div className="relative group/menu">
+              <button
+                type="button"
+                className={`w-full flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isMoneyActive
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <DollarSign className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              </button>
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-48 hidden group-hover/menu:block hover:block z-50`}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
+                  <Link to="/ledger" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/ledger') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Ledger</Link>
+                  <Link to="/reports?type=CashFlow" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/reports', 'CashFlow') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Cash Flow</Link>
+                  <Link to="/expenses" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/expenses') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Expenses</Link>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => setMoneyOpen(!moneyOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isMoneyActive
+                  ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <DollarSign className={`w-4 h-4 shrink-0 stroke-[2.2] ${isMoneyActive ? 'text-brand-500' : ''}`} />
+                  <span>Money</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${moneyOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
+              </button>
+
+              {moneyOpen && (
+                <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
+                  <Link to="/ledger" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/ledger') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Ledger</span>
+                  </Link>
+                  <Link to="/reports?type=CashFlow" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'CashFlow') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Cash Flow</span>
+                  </Link>
+                  <Link to="/expenses" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/expenses') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Expenses</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 6. Inventory Group */}
+          {effectivelyCollapsed ? (
+            <div className="relative group/menu">
+              <button
+                type="button"
+                className={`w-full flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isInventoryActive
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Package className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              </button>
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-48 hidden group-hover/menu:block hover:block z-50`}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
+                  <Link to="/products" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/products') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Products</Link>
+                  <Link to="/inventory" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/inventory') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Stock</Link>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => setInventoryOpen(!inventoryOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isInventoryActive
+                  ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Package className={`w-4 h-4 shrink-0 stroke-[2.2] ${isInventoryActive ? 'text-brand-500' : ''}`} />
+                  <span>Inventory</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${inventoryOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
+              </button>
+
+              {inventoryOpen && (
+                <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
+                  <Link to="/products" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/products') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Products</span>
+                  </Link>
+                  <Link to="/inventory" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/inventory') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Stock</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 7. Reports */}
+          <NavLink
+            to="/reports"
+            onClick={handleLinkClick}
+            title={effectivelyCollapsed ? t('reports') : undefined}
+            className={({ isActive }) =>
+              `flex items-center ${effectivelyCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all relative group ${isReportsActive
+                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+              }`
+            }
+          >
+            <BarChart3 className="w-4 h-4 shrink-0 stroke-[2.2]" />
+            {!effectivelyCollapsed && <span className="truncate">{t('reports')}</span>}
+          </NavLink>
 
           {/* 8. Settings */}
           <NavLink
@@ -629,16 +443,11 @@ export const Sidebar = () => {
           >
             <Settings className="w-4 h-4 shrink-0 stroke-[2.2]" />
             {!effectivelyCollapsed && <span className="truncate">{t('settings')}</span>}
-            {effectivelyCollapsed && (
-              <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-                {t('settings')}
-              </div>
-            )}
           </NavLink>
         </nav>
       </div>
 
-      {/* Sign Out (Clean bottom section without Need Help card) */}
+      {/* Sign Out */}
       <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
         <button
           type="button"
@@ -648,11 +457,6 @@ export const Sidebar = () => {
         >
           <LogOut className="w-4 h-4 shrink-0" />
           {!effectivelyCollapsed && <span>{t('signOut')}</span>}
-          {effectivelyCollapsed && (
-            <div className={`absolute ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} px-2.5 py-1 bg-rose-900 text-white text-[11px] font-bold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-lg`}>
-              {t('signOut')}
-            </div>
-          )}
         </button>
       </div>
     </div>
@@ -660,10 +464,9 @@ export const Sidebar = () => {
 
   return (
     <>
-      {/* ─── Mobile Drawer (Overlay Mode) ─── */}
+      {/* Mobile Drawer */}
       {isMobile ? (
         <div className="relative z-50">
-          {/* Backdrop Blur Overlay */}
           <div
             onClick={closeMobileMenu}
             className={`fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-300 ${
@@ -671,8 +474,6 @@ export const Sidebar = () => {
             }`}
             aria-hidden="true"
           />
-
-          {/* Drawer Panel Container — Starts OFF-SCREEN on mobile */}
           <aside
             className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] h-full shadow-2xl transition-transform duration-300 ease-in-out z-50 ${
               isMobileOpen ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'
@@ -682,7 +483,7 @@ export const Sidebar = () => {
           </aside>
         </div>
       ) : (
-        /* ─── Desktop Fixed Mode ─── */
+        /* Desktop Fixed */
         <aside className={`${effectivelyCollapsed ? 'w-20' : 'w-64'} sticky top-0 shrink-0 h-screen z-30 transition-all duration-300`}>
           {sidebarInner}
         </aside>
@@ -692,4 +493,3 @@ export const Sidebar = () => {
 };
 
 export default Sidebar;
-

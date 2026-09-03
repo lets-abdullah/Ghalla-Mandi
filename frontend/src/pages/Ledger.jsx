@@ -339,11 +339,11 @@ export const Ledger = () => {
 
         const historyNote = isCashRefund
           ? (origSaleGross > 0
-              ? `Direct counter cash refund of Rs. ${refAmt.toLocaleString()} given to customer. Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted to Net Rs. ${netAfterReturn.toLocaleString()}.`
-              : `Cash refund of Rs. ${refAmt.toLocaleString()} issued directly at counter.`)
+            ? `Direct counter cash refund of Rs. ${refAmt.toLocaleString()} given to customer. Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted to Net Rs. ${netAfterReturn.toLocaleString()}.`
+            : `Cash refund of Rs. ${refAmt.toLocaleString()} issued directly at counter.`)
           : (origSaleGross > 0
-              ? `Khata Credit Note adjusted. Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted to Net Rs. ${netAfterReturn.toLocaleString()}.`
-              : `Credit note of Rs. ${refAmt.toLocaleString()} adjusted against Khata.`);
+            ? `Khata Credit Note adjusted. Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted to Net Rs. ${netAfterReturn.toLocaleString()}.`
+            : `Credit note of Rs. ${refAmt.toLocaleString()} adjusted against Khata.`);
 
         entries.push({
           id: `ret-${r.id}`,
@@ -519,11 +519,11 @@ export const Ledger = () => {
 
         const historyNote = isCashRefund
           ? (origPurchaseGross > 0
-              ? `Direct counter refund of Rs. ${refAmt.toLocaleString()} received from vendor. Original Bill was Rs. ${origPurchaseGross.toLocaleString()} → Net Bill now Rs. ${netAfterReturn.toLocaleString()}.`
-              : `Cash refund of Rs. ${refAmt.toLocaleString()} received directly from supplier.`)
+            ? `Direct counter refund of Rs. ${refAmt.toLocaleString()} received from vendor. Original Bill was Rs. ${origPurchaseGross.toLocaleString()} → Net Bill now Rs. ${netAfterReturn.toLocaleString()}.`
+            : `Cash refund of Rs. ${refAmt.toLocaleString()} received directly from supplier.`)
           : (origPurchaseGross > 0
-              ? `Khata Debit Note adjusted. Original Bill was Rs. ${origPurchaseGross.toLocaleString()} → Net Bill now Rs. ${netAfterReturn.toLocaleString()}.`
-              : `Debit note of Rs. ${refAmt.toLocaleString()} adjusted against Khata.`);
+            ? `Khata Debit Note adjusted. Original Bill was Rs. ${origPurchaseGross.toLocaleString()} → Net Bill now Rs. ${netAfterReturn.toLocaleString()}.`
+            : `Debit note of Rs. ${refAmt.toLocaleString()} adjusted against Khata.`);
 
         entries.push({
           id: `pret-${r.id}`,
@@ -745,36 +745,6 @@ export const Ledger = () => {
         <div className="flex items-center gap-2.5">
           {selectedPartyId !== 'All' ? (
             <>
-              {/* View Mode Toggle: Timeline Flow vs Classic Table */}
-              <div className={`flex items-center p-1 rounded-xl border ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
-                <button
-                  type="button"
-                  onClick={() => setStatementViewMode('timeline')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    statementViewMode === 'timeline'
-                      ? 'bg-brand-500 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  title="View clean step-by-step transaction flow and outcome explanation"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Timeline Flow</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatementViewMode('table')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    statementViewMode === 'table'
-                      ? 'bg-brand-500 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  title="View traditional chronological accounting table"
-                >
-                  <List className="w-3.5 h-3.5" />
-                  <span>Classic Table</span>
-                </button>
-              </div>
-
               <button
                 type="button"
                 onClick={handleBackToCustomers}
@@ -1067,368 +1037,367 @@ export const Ledger = () => {
               {/* Customer Financial Condition Summary Header */}
               <div className={`p-5 rounded-3xl border card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                 }`}>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-3.5">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-xs border ${activeCustomer?.isWalkin
-                  ? 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'
-                  : 'bg-gradient-to-br from-brand-500/20 to-brand-600/10 text-brand-600 dark:text-brand-400 border-brand-500/20'
-                  }`}>
-                  {activeCustomer?.name?.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg sm:text-xl font-black tracking-tight">{activeCustomer?.name}</h2>
-                    <span className={`text-xs font-black uppercase tracking-wider ${activeCustomer?.isWalkin
-                      ? 'text-slate-500 dark:text-slate-400'
-                      : 'text-brand-600 dark:text-brand-400'
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+                  <div className="flex items-center gap-3.5">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-xs border ${activeCustomer?.isWalkin
+                      ? 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'
+                      : 'bg-gradient-to-br from-brand-500/20 to-brand-600/10 text-brand-600 dark:text-brand-400 border-brand-500/20'
                       }`}>
-                      • {activeCustomer?.customerType}
+                      {activeCustomer?.name?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg sm:text-xl font-black tracking-tight">{activeCustomer?.name}</h2>
+                        <span className={`text-xs font-black uppercase tracking-wider ${activeCustomer?.isWalkin
+                          ? 'text-slate-500 dark:text-slate-400'
+                          : 'text-brand-600 dark:text-brand-400'
+                          }`}>
+                          • {activeCustomer?.customerType}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-slate-400 font-semibold mt-0.5">
+                        {activeCustomer?.businessName && <span>{activeCustomer?.businessName}</span>}
+                        {activeCustomer?.phone && <span>• Phone: {activeCustomer?.phone}</span>}
+                        <span>• City: {activeCustomer?.city || 'Local Mandi'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1.5 rounded-2xl text-xs font-black border uppercase tracking-wider flex items-center gap-1.5 ${(activeCustomer?.balance || 0) > 0
+                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                      }`}>
+                      <span className={`w-2 h-2 rounded-full ${(activeCustomer?.balance || 0) > 0 ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`}></span>
+                      <span>
+                        {(activeCustomer?.balance || 0) > 0
+                          ? (isSupplier ? 'Status: Payable (Due)' : 'Status: Receivable (Due)')
+                          : 'Status: Settled (Cleared)'}
+                      </span>
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-400 font-semibold mt-0.5">
-                    {activeCustomer?.businessName && <span>{activeCustomer?.businessName}</span>}
-                    {activeCustomer?.phone && <span>• Phone: {activeCustomer?.phone}</span>}
-                    <span>• City: {activeCustomer?.city || 'Local Mandi'}</span>
+                </div>
+
+                {/* 3 Financial Strip Metrics */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Total Purchases / Sales */}
+                  <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                    }`}>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      {isSupplier ? 'Total Purchases' : 'Total Sales'}
+                    </div>
+                    <div className="text-lg font-mono font-black text-blue-600 dark:text-blue-400 mt-1">
+                      Rs. {(activeCustomer?.totalDebit || 0).toLocaleString()}
+                    </div>
+                  </div>
+
+                  {/* Total Paid out / Received */}
+                  <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                    }`}>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      {isSupplier ? 'Total Paid out' : 'Cash Received'}
+                    </div>
+                    <div className="text-lg font-mono font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                      Rs. {(activeCustomer?.totalCredit || 0).toLocaleString()}
+                    </div>
+                  </div>
+
+                  {/* Remaining Balance */}
+                  <div className={`p-3.5 rounded-2xl border ${(activeCustomer?.balance || 0) > 0
+                    ? isSupplier
+                      ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-rose-50/70 border-rose-200'
+                      : theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-emerald-50/70 border-emerald-200'
+                    : theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                    }`}>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      {isSupplier ? 'Supplier dues deducted' : 'Account Balance'}
+                    </div>
+                    <div className={`text-lg font-mono font-black mt-1 ${(activeCustomer?.balance || 0) < 0
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : (activeCustomer?.balance || 0) > 0
+                        ? 'text-amber-500 dark:text-amber-400'
+                        : 'text-slate-400'
+                      }`}>
+                      {(activeCustomer?.balance || 0) < 0
+                        ? `Credit: Rs. ${Math.abs(activeCustomer?.balance || 0).toLocaleString()}`
+                        : `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}`}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Status Badge */}
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1.5 rounded-2xl text-xs font-black border uppercase tracking-wider flex items-center gap-1.5 ${(activeCustomer?.balance || 0) > 0
-                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                  }`}>
-                  <span className={`w-2 h-2 rounded-full ${(activeCustomer?.balance || 0) > 0 ? 'bg-amber-500' : 'bg-emerald-500'
-                    }`}></span>
-                  <span>
-                    {(activeCustomer?.balance || 0) > 0
-                      ? (isSupplier ? 'Status: Payable (Due)' : 'Status: Receivable (Due)')
-                      : 'Status: Settled (Cleared)'}
-                  </span>
-                </span>
-              </div>
-            </div>
-
-            {/* 3 Financial Strip Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Total Purchases / Sales */}
-              <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-                }`}>
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  {isSupplier ? 'Total Purchases' : 'Total Sales'}
-                </div>
-                <div className="text-lg font-mono font-black text-blue-600 dark:text-blue-400 mt-1">
-                  Rs. {(activeCustomer?.totalDebit || 0).toLocaleString()}
-                </div>
-              </div>
-
-              {/* Total Paid out / Received */}
-              <div className={`p-3.5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-                }`}>
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  {isSupplier ? 'Total Paid out' : 'Cash Received'}
-                </div>
-                <div className="text-lg font-mono font-black text-emerald-600 dark:text-emerald-400 mt-1">
-                  Rs. {(activeCustomer?.totalCredit || 0).toLocaleString()}
-                </div>
-              </div>
-
-              {/* Remaining Balance */}
-              <div className={`p-3.5 rounded-2xl border ${(activeCustomer?.balance || 0) > 0
-                ? isSupplier
-                  ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-rose-50/70 border-rose-200'
-                  : theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-emerald-50/70 border-emerald-200'
-                : theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-                }`}>
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  {isSupplier ? 'Supplier dues deducted' : 'Account Balance'}
-                </div>
-                <div className={`text-lg font-mono font-black mt-1 ${(activeCustomer?.balance || 0) < 0
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : (activeCustomer?.balance || 0) > 0
-                    ? 'text-amber-500 dark:text-amber-400'
-                    : 'text-slate-400'
-                  }`}>
-                  {(activeCustomer?.balance || 0) < 0
-                    ? `Credit: Rs. ${Math.abs(activeCustomer?.balance || 0).toLocaleString()}`
-                    : `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}`}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Statement Transaction Filter Bar (Screen Only) */}
-          <div className={`no-print border rounded-3xl p-3.5 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {/* Voucher search */}
-              <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}>
-                <Search className="w-4 h-4 text-slate-400 shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Search voucher # or description..."
-                  value={txSearchQuery}
-                  onChange={(e) => setTxSearchQuery(e.target.value)}
-                  className="w-full bg-transparent text-xs font-bold outline-none placeholder:font-normal placeholder-slate-400"
-                />
-              </div>
-
-              {/* Date Filter */}
-              <div className="w-full sm:w-44">
-                <select
-                  value={dateFilterType}
-                  onChange={(e) => setDateFilterType(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Dates</option>
-                  <option value="Today">Today</option>
-                  <option value="This Week">This Week</option>
-                  <option value="This Month">This Month</option>
-                  <option value="Custom">Custom Date Range</option>
-                </select>
-              </div>
-
-              {/* Tx Type Filter */}
-              <div className="w-full sm:w-44">
-                <select
-                  value={txTypeFilter}
-                  onChange={(e) => setTxTypeFilter(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                >
-                  <option value="All">All Transactions</option>
-                  <option value="Sales">{isSupplier ? 'Purchases Only' : 'Sales Only'}</option>
-                  <option value="Payments">Payments Only</option>
-                  <option value="Returns">Returns Only</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Custom Date Pickers */}
-            {dateFilterType === 'Custom' && (
-              <div className="flex flex-wrap items-center gap-2 pt-2 mt-2 border-t border-slate-100 dark:border-slate-700">
-                <span className="text-xs font-bold text-slate-400">Date Range:</span>
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-                <span className="text-xs text-slate-400 font-bold">to</span>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* ========================================================================= */}
-          {/* PRINT-ONLY HEADER (Single Customer Statement) */}
-          {/* ========================================================================= */}
-          <PrintHeader
-            title={`${activeCustomer?.name || 'Account'} — Statement of Account`}
-            filterSummary={`Period: ${dateFilterType} | Type: ${txTypeFilter}`}
-            stats={[
-              { label: isSupplier ? 'Total Purchases' : 'Total Sales', value: `Rs. ${(activeCustomer?.totalDebit || 0).toLocaleString()}` },
-              { label: isSupplier ? 'Total Paid out' : 'Cash Received', value: `Rs. ${(activeCustomer?.totalCredit || 0).toLocaleString()}` },
-              { label: isSupplier ? 'Supplier dues deducted' : 'Remaining Balance', value: `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}` }
-            ]}
-          />
-
-          {/* Complete Chronological Statement Table */}
-          <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-            }`}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
-                <thead>
-                  <tr className={`border-b text-[10px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+              {/* Statement Transaction Filter Bar (Screen Only) */}
+              <div className={`no-print border rounded-3xl p-3.5 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  {/* Voucher search */}
+                  <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}>
-                    <th className="py-3 px-3.5">Date</th>
-                    <th className="py-3 px-3.5">Ref #</th>
-                    <th className="py-3 px-3.5">Transaction Details</th>
-                    <th className="py-3 px-3 text-right">Original Amount</th>
-                    <th className="py-3 px-3 text-right">Return / Adj.</th>
-                    <th className="py-3 px-3 text-right">{isSupplier ? 'Net Purchases' : 'Net Sales'}</th>
-                    <th className="py-3 px-3 text-right">{isSupplier ? 'Paid to Supplier' : 'Amount Received'}</th>
-                    <th className="py-3 px-3 text-center">Payment Method</th>
-                    <th className="py-3 px-3.5 text-right font-black">Running Balance</th>
-                  </tr>
-                </thead>
-                <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                  {singleCustomerLedger.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="py-8 text-center">
-                        <EmptyState
-                          icon={BookOpen}
-                          title="No transactions recorded"
-                          description="No entries found for this party matching the selected date range."
-                        />
-                      </td>
-                    </tr>
-                  ) : (
-                    singleCustomerLedger.map(entry => {
-                      const isBalPos = entry.runningBalance > 0;
-                      const isBalNeg = entry.runningBalance < 0;
-                      const isZero = entry.runningBalance === 0;
+                    <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Search voucher # or description..."
+                      value={txSearchQuery}
+                      onChange={(e) => setTxSearchQuery(e.target.value)}
+                      className="w-full bg-transparent text-xs font-bold outline-none placeholder:font-normal placeholder-slate-400"
+                    />
+                  </div>
 
-                      // Clean up description and avoid duplicate notes
-                      const cleanDesc = (entry.desc || 'Transaction')
-                        .replace(/:\s*Purchase Return$/i, '')
-                        .replace(/:\s*Sale Return$/i, '')
-                        .trim();
-                      const hasDistinctNotes = entry.notes && entry.notes.trim() !== '' && entry.notes.trim() !== entry.desc?.trim() && !entry.notes.includes('Original Bill:');
+                  {/* Date Filter */}
+                  <div className="w-full sm:w-44">
+                    <select
+                      value={dateFilterType}
+                      onChange={(e) => setDateFilterType(e.target.value)}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    >
+                      <option value="All">All Dates</option>
+                      <option value="Today">Today</option>
+                      <option value="This Week">This Week</option>
+                      <option value="This Month">This Month</option>
+                      <option value="Custom">Custom Date Range</option>
+                    </select>
+                  </div>
 
-                      // Method styling
-                      const rawMethod = entry.paymentMethod || 'Cash';
-                      const isCash = rawMethod.toLowerCase().includes('cash');
-                      const isAdj = rawMethod.toLowerCase().includes('khata') || rawMethod.toLowerCase().includes('debit') || rawMethod.toLowerCase().includes('credit');
-                      const isBank = rawMethod.toLowerCase().includes('bank');
+                  {/* Tx Type Filter */}
+                  <div className="w-full sm:w-44">
+                    <select
+                      value={txTypeFilter}
+                      onChange={(e) => setTxTypeFilter(e.target.value)}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    >
+                      <option value="All">All Transactions</option>
+                      <option value="Sales">{isSupplier ? 'Purchases Only' : 'Sales Only'}</option>
+                      <option value="Payments">Payments Only</option>
+                      <option value="Returns">Returns Only</option>
+                    </select>
+                  </div>
+                </div>
 
-                      const methodLabel = isAdj ? 'Khata Adjustment' : isCash ? 'Cash' : isBank ? 'Bank Transfer' : rawMethod;
+                {/* Custom Date Pickers */}
+                {dateFilterType === 'Custom' && (
+                  <div className="flex flex-wrap items-center gap-2 pt-2 mt-2 border-t border-slate-100 dark:border-slate-700">
+                    <span className="text-xs font-bold text-slate-400">Date Range:</span>
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                    <span className="text-xs text-slate-400 font-bold">to</span>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                    />
+                  </div>
+                )}
+              </div>
 
-                      return (
-                        <tr
-                          key={entry.id}
-                          onClick={() => setViewingEntry(entry)}
-                          className={`transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
-                          title="Click to view complete voucher details"
-                        >
-                          {/* 1. Date */}
-                          <td className="py-3.5 px-3.5 font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                            {entry.date}
-                          </td>
+              {/* ========================================================================= */}
+              {/* PRINT-ONLY HEADER (Single Customer Statement) */}
+              {/* ========================================================================= */}
+              <PrintHeader
+                title={`${activeCustomer?.name || 'Account'} — Statement of Account`}
+                filterSummary={`Period: ${dateFilterType} | Type: ${txTypeFilter}`}
+                stats={[
+                  { label: isSupplier ? 'Total Purchases' : 'Total Sales', value: `Rs. ${(activeCustomer?.totalDebit || 0).toLocaleString()}` },
+                  { label: isSupplier ? 'Total Paid out' : 'Cash Received', value: `Rs. ${(activeCustomer?.totalCredit || 0).toLocaleString()}` },
+                  { label: isSupplier ? 'Supplier dues deducted' : 'Remaining Balance', value: `Rs. ${(activeCustomer?.balance || 0).toLocaleString()}` }
+                ]}
+              />
 
-                          {/* 2. Voucher / Ref # */}
-                          <td className="py-3.5 px-3.5 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
-                            {entry.ref}
-                          </td>
-
-                          {/* 3. Transaction Details */}
-                          <td className="py-3.5 px-3.5">
-                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
-                              <span>{cleanDesc}</span>
-                              {entry.isPartiallyReturned && (
-                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 uppercase tracking-wider">
-                                  Part Return
-                                </span>
-                              )}
-                              {entry.isFullyReturned && (
-                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 uppercase tracking-wider">
-                                  Returned
-                                </span>
-                              )}
-                            </div>
-                            {hasDistinctNotes && (
-                              <span className="text-[10px] text-slate-400 block mt-0.5">{entry.notes}</span>
-                            )}
-                          </td>
-
-                          {/* 4. Original Amount */}
-                          <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                            {entry.originalGross > 0 ? (
-                              `Rs. ${entry.originalGross.toLocaleString()}`
-                            ) : entry.txType === 'Opening Balance' ? (
-                              `Rs. ${entry.debit?.toLocaleString()}`
-                            ) : entry.txType === 'Purchases' || entry.txType === 'Sales' ? (
-                              `Rs. ${(entry.debit || entry.sales || 0).toLocaleString()}`
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-
-                          {/* 5. Return / Adjustment */}
-                          <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
-                            {entry.returnAmount > 0 ? (
-                              <span className="text-purple-600 dark:text-purple-400">
-                                -Rs. {entry.returnAmount.toLocaleString()}
-                              </span>
-                            ) : entry.txType === 'Returns' && (entry.payment > 0 || entry.credit > 0) ? (
-                              <span className="text-purple-600 dark:text-purple-400">
-                                Rs. {(entry.payment || entry.credit).toLocaleString()}
-                              </span>
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-
-                          {/* 6. Net Purchases / Sales */}
-                          <td className="py-3.5 px-3 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
-                            {entry.netTotal !== undefined && entry.netTotal !== null && (entry.txType === 'Purchases' || entry.txType === 'Sales') ? (
-                              `Rs. ${entry.netTotal.toLocaleString()}`
-                            ) : (entry.txType === 'Purchases' || entry.txType === 'Sales') && entry.sales > 0 ? (
-                              `Rs. ${entry.sales.toLocaleString()}`
-                            ) : entry.txType === 'Opening Balance' ? (
-                              `Rs. ${entry.debit?.toLocaleString()}`
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-
-                          {/* 7. Paid to Supplier / Received */}
-                          <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
-                            {entry.txType === 'Payment' ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                                Rs. {(entry.payment || entry.credit || 0).toLocaleString()}
-                              </span>
-                            ) : entry.paidAmount > 0 ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                                Rs. {entry.paidAmount.toLocaleString()}
-                              </span>
-                            ) : entry.txType === 'Returns' && entry.refundMode === 'Cash' ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                                Rs. {entry.returnAmount.toLocaleString()}
-                              </span>
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-
-                          {/* 8. Payment Method */}
-                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                            <span className={`inline-block px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${
-                              isCash
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                : isAdj
-                                  ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
-                                  : isBank
-                                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                                    : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
-                            }`}>
-                              {methodLabel}
-                            </span>
-                          </td>
-
-                          {/* 9. Running Balance */}
-                          <td className="py-3.5 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap">
-                            {isZero ? (
-                              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                                ✓ Rs. 0 (Settled)
-                              </span>
-                            ) : isBalPos ? (
-                              <span className="text-amber-600 dark:text-amber-400">
-                                {isSupplier ? 'Payable:' : 'Due:'} Rs. {entry.runningBalance.toLocaleString()}
-                              </span>
-                            ) : (
-                              <span className="text-emerald-600 dark:text-emerald-400">
-                                Advance: Rs. {Math.abs(entry.runningBalance).toLocaleString()}
-                              </span>
-                            )}
+              {/* Complete Chronological Statement Table */}
+              <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                }`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+                    <thead>
+                      <tr className={`border-b text-[10px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                        }`}>
+                        <th className="py-3 px-3.5">Date</th>
+                        <th className="py-3 px-3.5">Ref #</th>
+                        <th className="py-3 px-3.5">Transaction Details</th>
+                        <th className="py-3 px-3 text-right">Original Amount</th>
+                        <th className="py-3 px-3 text-right">Return / Adj.</th>
+                        <th className="py-3 px-3 text-right">{isSupplier ? 'Net Purchases' : 'Net Sales'}</th>
+                        <th className="py-3 px-3 text-right">{isSupplier ? 'Paid to Supplier' : 'Amount Received'}</th>
+                        <th className="py-3 px-3 text-center">Payment Method</th>
+                        <th className="py-3 px-3.5 text-right font-black">Running Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                      {singleCustomerLedger.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="py-8 text-center">
+                            <EmptyState
+                              icon={BookOpen}
+                              title="No transactions recorded"
+                              description="No entries found for this party matching the selected date range."
+                            />
                           </td>
                         </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                      ) : (
+                        singleCustomerLedger.map(entry => {
+                          const isBalPos = entry.runningBalance > 0;
+                          const isBalNeg = entry.runningBalance < 0;
+                          const isZero = entry.runningBalance === 0;
+
+                          // Clean up description and avoid duplicate notes
+                          const cleanDesc = (entry.desc || 'Transaction')
+                            .replace(/:\s*Purchase Return$/i, '')
+                            .replace(/:\s*Sale Return$/i, '')
+                            .trim();
+                          const hasDistinctNotes = entry.notes && entry.notes.trim() !== '' && entry.notes.trim() !== entry.desc?.trim() && !entry.notes.includes('Original Bill:');
+
+                          // Method styling
+                          const rawMethod = entry.paymentMethod || 'Cash';
+                          const isCash = rawMethod.toLowerCase().includes('cash');
+                          const isAdj = rawMethod.toLowerCase().includes('khata') || rawMethod.toLowerCase().includes('debit') || rawMethod.toLowerCase().includes('credit');
+                          const isBank = rawMethod.toLowerCase().includes('bank');
+
+                          const methodLabel = isAdj ? 'Khata Adjustment' : isCash ? 'Cash' : isBank ? 'Bank Transfer' : rawMethod;
+
+                          return (
+                            <tr
+                              key={entry.id}
+                              onClick={() => setViewingEntry(entry)}
+                              className={`transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                              title="Click to view complete voucher details"
+                            >
+                              {/* 1. Date */}
+                              <td className="py-3.5 px-3.5 font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                {entry.date}
+                              </td>
+
+                              {/* 2. Voucher / Ref # */}
+                              <td className="py-3.5 px-3.5 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                                {entry.ref}
+                              </td>
+
+                              {/* 3. Transaction Details */}
+                              <td className="py-3.5 px-3.5">
+                                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                                  <span>{cleanDesc}</span>
+                                  {entry.isPartiallyReturned && (
+                                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 uppercase tracking-wider">
+                                      Part Return
+                                    </span>
+                                  )}
+                                  {entry.isFullyReturned && (
+                                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 uppercase tracking-wider">
+                                      Returned
+                                    </span>
+                                  )}
+                                </div>
+                                {hasDistinctNotes && (
+                                  <span className="text-[10px] text-slate-400 block mt-0.5">{entry.notes}</span>
+                                )}
+                              </td>
+
+                              {/* 4. Original Amount */}
+                              <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                                {entry.originalGross > 0 ? (
+                                  `Rs. ${entry.originalGross.toLocaleString()}`
+                                ) : entry.txType === 'Opening Balance' ? (
+                                  `Rs. ${entry.debit?.toLocaleString()}`
+                                ) : entry.txType === 'Purchases' || entry.txType === 'Sales' ? (
+                                  `Rs. ${(entry.debit || entry.sales || 0).toLocaleString()}`
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+
+                              {/* 5. Return / Adjustment */}
+                              <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
+                                {entry.returnAmount > 0 ? (
+                                  <span className="text-purple-600 dark:text-purple-400">
+                                    -Rs. {entry.returnAmount.toLocaleString()}
+                                  </span>
+                                ) : entry.txType === 'Returns' && (entry.payment > 0 || entry.credit > 0) ? (
+                                  <span className="text-purple-600 dark:text-purple-400">
+                                    Rs. {(entry.payment || entry.credit).toLocaleString()}
+                                  </span>
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+
+                              {/* 6. Net Purchases / Sales */}
+                              <td className="py-3.5 px-3 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
+                                {entry.netTotal !== undefined && entry.netTotal !== null && (entry.txType === 'Purchases' || entry.txType === 'Sales') ? (
+                                  `Rs. ${entry.netTotal.toLocaleString()}`
+                                ) : (entry.txType === 'Purchases' || entry.txType === 'Sales') && entry.sales > 0 ? (
+                                  `Rs. ${entry.sales.toLocaleString()}`
+                                ) : entry.txType === 'Opening Balance' ? (
+                                  `Rs. ${entry.debit?.toLocaleString()}`
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+
+                              {/* 7. Paid to Supplier / Received */}
+                              <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
+                                {entry.txType === 'Payment' ? (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                                    Rs. {(entry.payment || entry.credit || 0).toLocaleString()}
+                                  </span>
+                                ) : entry.paidAmount > 0 ? (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                                    Rs. {entry.paidAmount.toLocaleString()}
+                                  </span>
+                                ) : entry.txType === 'Returns' && entry.refundMode === 'Cash' ? (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                    Rs. {entry.returnAmount.toLocaleString()}
+                                  </span>
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+
+                              {/* 8. Payment Method */}
+                              <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                <span className={`inline-block px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${isCash
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                    : isAdj
+                                      ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                                      : isBank
+                                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                        : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
+                                  }`}>
+                                  {methodLabel}
+                                </span>
+                              </td>
+
+                              {/* 9. Running Balance */}
+                              <td className="py-3.5 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap">
+                                {isZero ? (
+                                  <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                                    ✓ Rs. 0 (Settled)
+                                  </span>
+                                ) : isBalPos ? (
+                                  <span className="text-amber-600 dark:text-amber-400">
+                                    {isSupplier ? 'Payable:' : 'Due:'} Rs. {entry.runningBalance.toLocaleString()}
+                                  </span>
+                                ) : (
+                                  <span className="text-emerald-600 dark:text-emerald-400">
+                                    Advance: Rs. {Math.abs(entry.runningBalance).toLocaleString()}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </>
           )}
 

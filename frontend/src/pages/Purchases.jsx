@@ -22,7 +22,8 @@ import {
   Hash,
   Edit3,
   CreditCard,
-  Receipt
+  Receipt,
+  Eye
 } from 'lucide-react';
 import { useERP, computePurchaseFinancials, computeSupplierKhataBalance, computeAllSuppliersFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
