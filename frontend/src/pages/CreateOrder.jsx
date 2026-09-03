@@ -205,9 +205,22 @@ export const CreateOrder = () => {
     });
   };
 
-  // Apply Rate Override (Only allowed when Khata is active)
+  // Direct manual edit of Selling Price per unit
+  const setDirectItemRate = (productId, val) => {
+    const newPrice = Math.max(0, Number(val) || 0);
+    setCart(prev => {
+      return prev.map(item => {
+        if (item.productId === productId) {
+          return recalculateLineItem({ ...item, price: newPrice, basePrice: newPrice });
+        }
+        return item;
+      });
+    });
+  };
+
+  // Apply Rate Override via Modal (Available for all sales: Cash, Walk-in, Card, Bank, Khata)
   const handleSaveRateOverride = () => {
-    if (!showRateModal || !isKhataActive) {
+    if (!showRateModal) {
       setShowRateModal(null);
       return;
     }
@@ -215,7 +228,7 @@ export const CreateOrder = () => {
     setCart(prev => {
       return prev.map(item => {
         if (item.productId === showRateModal.productId) {
-          return recalculateLineItem({ ...item, price: newPrice });
+          return recalculateLineItem({ ...item, price: newPrice, basePrice: newPrice });
         }
         return item;
       });
@@ -945,26 +958,31 @@ export const CreateOrder = () => {
                             <option value="Unit">Unit</option>
                           </select>
 
-                          {/* Unit Rate & Khata-Only Edit Control */}
-                          <div className="flex items-center gap-1 text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400">
-                            <span>@Rs.{Number(item.price).toLocaleString()}</span>
-                            {isKhataActive ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowRateModal(item);
-                                  setTempNewRate(item.price.toString());
-                                }}
-                                className="p-1 rounded-md bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 transition cursor-pointer flex items-center gap-0.5"
-                                title="Edit Selling Price (Khata Customer)"
-                              >
-                                <Edit3 className="w-2.5 h-2.5" />
-                              </button>
-                            ) : (
-                              <span className="text-[9px] font-bold text-slate-400 px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 select-none" title="Catalog price is fixed for Cash, Bank & Card sales without Khata">
-                                Fixed
-                              </span>
-                            )}
+                          {/* Manual Selling Price Input & Override Control */}
+                          <div className="inline-flex items-center bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 text-[11px] font-mono font-bold text-slate-700 dark:text-slate-200">
+                            <span className="text-[10px] text-slate-400 mr-1">@Rs.</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              value={item.price}
+                              onChange={(e) => setDirectItemRate(item.productId, e.target.value)}
+                              className="w-14 text-right bg-transparent outline-none font-black font-mono text-brand-600 dark:text-brand-400 focus:text-brand-500"
+                              title="Manual Selling Price per unit"
+                              placeholder="Price"
+                            />
+                            <span className="text-[10px] text-slate-400 ml-0.5">/{item.unit}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowRateModal(item);
+                                setTempNewRate(item.price.toString());
+                              }}
+                              className="ml-1 p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-brand-500 transition cursor-pointer"
+                              title="Click to open selling price modal"
+                            >
+                              <Edit3 className="w-2.5 h-2.5" />
+                            </button>
                           </div>
                         </div>
 
@@ -1466,8 +1484,8 @@ export const CreateOrder = () => {
         </div>
       )}
 
-      {/* QUICK RATE OVERRIDE MODAL (Only when Khata is active) */}
-      {showRateModal && isKhataActive && (
+      {/* QUICK RATE OVERRIDE MODAL (Available for all sales) */}
+      {showRateModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowRateModal(null); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
@@ -1477,7 +1495,7 @@ export const CreateOrder = () => {
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-base font-black flex items-center gap-2">
                 <Edit3 className="w-5 h-5 text-brand-500" />
-                {t('editItemPriceModalTitle') || 'Edit Selling Rate (Khata)'}
+                {t('editItemPriceModalTitle') || 'Manual Selling Price (Rate)'}
               </h3>
               <button
                 onClick={() => setShowRateModal(null)}
@@ -1488,11 +1506,17 @@ export const CreateOrder = () => {
             </div>
 
             <div>
-              <div className="font-black text-xs mb-2 text-brand-500">{showRateModal.name}</div>
-              <label className="text-xs font-bold text-slate-400 block mb-1">{t('newRatePerUnit') || 'Selling Rate (PKR)'}</label>
+              <div className="font-black text-xs mb-1 text-brand-500">{showRateModal.name}</div>
+              <div className="text-[11px] text-slate-400 font-medium mb-2">
+                Override catalog price for this sale. COGS and inventory valuation remain based on actual purchase cost.
+              </div>
+              <label className="text-xs font-bold text-slate-400 block mb-1">
+                {t('newRatePerUnit') || 'Selling Rate (PKR)'} / {showRateModal.unit || 'Unit'}
+              </label>
               <input
                 type="number"
                 min="0"
+                step="any"
                 value={tempNewRate}
                 onChange={(e) => setTempNewRate(e.target.value)}
                 className={`w-full border rounded-2xl px-3.5 py-2.5 text-sm font-black outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
@@ -1514,7 +1538,7 @@ export const CreateOrder = () => {
                 onClick={handleSaveRateOverride}
                 className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-black text-xs rounded-2xl shadow-md transition cursor-pointer"
               >
-                {t('saveRate') || 'Save Rate'}
+                {t('saveRate') || 'Apply Price'}
               </button>
             </div>
           </div>
