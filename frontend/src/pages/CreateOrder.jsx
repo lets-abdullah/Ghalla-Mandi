@@ -117,7 +117,7 @@ export const CreateOrder = () => {
             : item
         );
       } else {
-        const defaultUnit = product.unit || t('kg');
+        const defaultUnit = product.unit || product.baseUnit || product.productUnit || 'KG';
         const newItem = {
           id: `item-${Date.now()}-${Math.random()}`,
           productId: product.id,
@@ -171,26 +171,7 @@ export const CreateOrder = () => {
     });
   };
 
-  // Update Item Unit
-  const updateItemUnit = (productId, newUnit) => {
-    setCart(prev => {
-      return prev.map(item => {
-        if (item.productId === productId) {
-          let adjustedPrice = item.basePrice;
-          if (newUnit === 'Gram' || newUnit === 'ML') {
-            adjustedPrice = item.basePrice / 1000;
-          }
-          return recalculateLineItem({
-            ...item,
-            unit: newUnit,
-            unitMultiplier: getUnitMultiplier(newUnit),
-            price: adjustedPrice
-          });
-        }
-        return item;
-      });
-    });
-  };
+
 
   // Update Item Discount %
   const updateItemDiscountPct = (productId, discPct) => {
@@ -945,20 +926,14 @@ export const CreateOrder = () => {
                               +
                             </button>
                           </div>
-                          <select
-                            value={item.unit}
-                            onChange={(e) => updateItemUnit(item.productId, e.target.value)}
-                            className={`text-[10px] font-bold py-0.5 px-1 rounded-lg border outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
+                          {/* Product Master Unit (Read-only) */}
+                          <span
+                            className={`text-[10px] font-extrabold py-1 px-2 rounded-lg border select-none ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
                               }`}
+                            title="Product Master Unit (Read-only)"
                           >
-                            <option value="KG">KG</option>
-                            <option value="Gram">Gram</option>
-                            <option value="Litre">Litre</option>
-                            <option value="ML">ML</option>
-                            <option value="Meter">Meter</option>
-                            <option value="Piece">Piece</option>
-                            <option value="Unit">Unit</option>
-                          </select>
+                            {item.unit || 'KG'}
+                          </span>
 
                           {/* Manual Selling Price Input & Override Control */}
                           <div className="inline-flex items-center bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 text-[11px] font-mono font-bold text-slate-700 dark:text-slate-200">
