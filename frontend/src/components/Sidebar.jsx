@@ -178,7 +178,56 @@ export const Sidebar = () => {
             {!effectivelyCollapsed && <span className="truncate font-black">New Sale (POS)</span>}
           </NavLink>
 
-          {/* 2. Sales Group (Sales, Sale Returns, Customers, Customer Khata, Customer Ledger) */}
+          {/* 3. Inventory Group (Products & Stock) */}
+          {effectivelyCollapsed ? (
+            <div className="relative group/menu">
+              <button
+                type="button"
+                className={`w-full flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isInventoryActive
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Package className="w-4 h-4 shrink-0 stroke-[2.2]" />
+              </button>
+              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-48 hidden group-hover/menu:block hover:block z-50`}>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
+                  <Link to="/products" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/products') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Products</Link>
+                  <Link to="/inventory" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/inventory') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Stock</Link>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => setInventoryOpen(!inventoryOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isInventoryActive
+                  ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Package className={`w-4 h-4 shrink-0 stroke-[2.2] ${isInventoryActive ? 'text-brand-500' : ''}`} />
+                  <span>Inventory</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${inventoryOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
+              </button>
+
+              {inventoryOpen && (
+                <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
+                  <Link to="/products" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/products') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Products</span>
+                  </Link>
+                  <Link to="/inventory" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/inventory') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Stock</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 4. Sales Group (Sales, Sale Returns, Customers, Customer Khata, Customer Ledger) */}
           {effectivelyCollapsed ? (
             <div className="relative group/menu">
               <button
@@ -239,7 +288,7 @@ export const Sidebar = () => {
             </div>
           )}
 
-          {/* 3. Purchases Group (Purchases, Purchase Returns, Suppliers, Supplier Khata, Supplier Ledger) */}
+          {/* 5. Purchases Group (Purchases, Purchase Returns, Suppliers, Supplier Khata, Supplier Ledger) */}
           {effectivelyCollapsed ? (
             <div className="relative group/menu">
               <button
@@ -300,7 +349,7 @@ export const Sidebar = () => {
             </div>
           )}
 
-          {/* 5. Expenses (Direct Link) */}
+          {/* 6. Expenses (Direct Link) */}
           <NavLink
             to="/expenses"
             onClick={handleLinkClick}
@@ -315,55 +364,6 @@ export const Sidebar = () => {
             <DollarSign className="w-4 h-4 shrink-0 stroke-[2.2]" />
             {!effectivelyCollapsed && <span className="truncate">{t('expenses') || 'Expenses'}</span>}
           </NavLink>
-
-          {/* 6. Inventory Group */}
-          {effectivelyCollapsed ? (
-            <div className="relative group/menu">
-              <button
-                type="button"
-                className={`w-full flex items-center justify-center px-2 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isInventoryActive
-                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20 font-black'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Package className="w-4 h-4 shrink-0 stroke-[2.2]" />
-              </button>
-              <div className={`absolute top-0 ${isRTL ? 'right-full mr-3.5' : 'left-full ml-3.5'} w-48 hidden group-hover/menu:block hover:block z-50`}>
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 space-y-1">
-                  <Link to="/products" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/products') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Products</Link>
-                  <Link to="/inventory" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/inventory') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Stock</Link>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => setInventoryOpen(!inventoryOpen)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${isInventoryActive
-                  ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Package className={`w-4 h-4 shrink-0 stroke-[2.2] ${isInventoryActive ? 'text-brand-500' : ''}`} />
-                  <span>Inventory</span>
-                </div>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${inventoryOpen ? 'rotate-180 text-brand-500' : 'text-slate-400'}`} />
-              </button>
-
-              {inventoryOpen && (
-                <div className={`space-y-0.5 mt-0.5 ${isRTL ? 'pr-4 border-r-2 mr-4' : 'pl-4 border-l-2 ml-4'} border-slate-200 dark:border-slate-700`}>
-                  <Link to="/products" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/products') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                    <span>Products</span>
-                  </Link>
-                  <Link to="/inventory" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/inventory') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                    <span>Stock</span>
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* 7. Reports Group */}
           {effectivelyCollapsed ? (
