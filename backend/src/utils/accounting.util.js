@@ -9,22 +9,41 @@ export const computeInvoiceFinancials = ({
   grossAmount,
   returnAmount = 0,
   grossPaid = 0,
-  cashRefundAmount = 0
+  cashRefundAmount = null
 }) => {
   const origAmt = Number(grossAmount) || 0;
   const totalReturnAmt = Number(returnAmount) || 0;
-  const cashRefundAmt = Number(cashRefundAmount) || 0;
+  const historicalPaid = Number(grossPaid) || 0;
   const netAmt = Math.max(0, origAmt - totalReturnAmt);
-  const netCashPaid = Math.max(0, Number(grossPaid) - cashRefundAmt);
+
+  const computedCashRefund = Math.max(0, historicalPaid - netAmt);
+  const cashRefundAmt = (cashRefundAmount !== null && cashRefundAmount !== undefined)
+    ? Number(cashRefundAmount)
+    : computedCashRefund;
+
+  const netCashPaid = Math.max(0, historicalPaid - cashRefundAmt);
   const effectivePaid = Math.min(netAmt, netCashPaid);
   const due = Math.max(0, netAmt - effectivePaid);
-  const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
+  const isFull = (totalReturnAmt >= origAmt || netAmt === 0) && origAmt > 0;
   const status = isFull
     ? 'Returned'
-    : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
+    : (due === 0 && netAmt > 0 ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
 
-  return { netAmt, effectivePaid, due, status, isFull, netCashPaid, totalReturnAmt };
+  return {
+    grossAmount: origAmt,
+    totalReturnAmt,
+    netAmt,
+    historicalPaid,
+    cashRefundAmt,
+    effectivePaid,
+    due,
+    status,
+    isFull,
+    customerCredit: 0,
+    supplierCredit: 0
+  };
 };
+
 
 export const computeSaleInvoiceFromReturns = (sale, relatedReturns = []) => {
   const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
@@ -45,3 +64,107 @@ export const computePurchaseInvoiceFromReturns = (purchase, relatedReturns = [])
     cashRefundAmount: sumCashRefunds(relatedReturns)
   });
 };
+
+export const syncCustomerBalance = async (customerId, shop_id, dbRun) => {
+  if (!customerId || String(customerId).startsWith('walkin-')) return 0;
+  
+  const custRows = await dbRun('SELECT * FROM customers WHERE id = $1 AND shop_id = $2', [customerId, shop_id]);
+  if (!custRows || custRows.length === 0) return 0;
+  const cust = custRows[0];
+  const openingBalance = Number(cust.openingbalance !== undefined ? cust.openingbalance : (cust.openingBalance !== undefined ? cust.openingBalance : 0));
+
+  const salesRows = await dbRun('SELECT * FROM sales WHERE shop_id = $1 AND customerId = $2', [shop_id, customerId]);
+  const grossSales = salesRows.reduce((acc, s) => acc + Number(s.amount || s.grandtotal || 0), 0);
+
+  const returnsRows = await dbRun('SELECT * FROM sale_returns WHERE shop_id = $1 AND customerId = $2', [shop_id, customerId]);
+  const totalReturns = returnsRows.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const netSales = Math.max(0, grossSales - totalReturns);
+
+  const paymentRows = await dbRun(
+    "SELECT * FROM payment_logs WHERE shop_id = $1 AND partyId = $2 AND LOWER(partyType) = 'customer' AND LOWER(mode) NOT IN ('opening balance', 'credit note', 'debit note')",
+    [shop_id, customerId]
+  );
+  const directPaidLogs = paymentRows.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+  // Upfront POS payments on sales that do not have a separate payment log
+  let unloggedUpfrontCash = 0;
+  salesRows.forEach(s => {
+    const hasMatchingLog = paymentRows.some(p =>
+      (p.saleId && String(p.saleId) === String(s.id)) ||
+      (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+    );
+    if (!hasMatchingLog) {
+      const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandtotal !== undefined ? s.grandtotal : 0));
+      const sPaid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount || 0));
+      if (sPaid > 0) {
+        unloggedUpfrontCash += Math.min(sTotal, sPaid);
+      }
+    }
+  });
+
+  const totalPayments = directPaidLogs + unloggedUpfrontCash;
+  const cashRefunds = returnsRows
+    .filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash')
+    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+  const netCashReceived = Math.max(0, totalPayments - cashRefunds);
+  const totalDebits = openingBalance + netSales;
+  const totalCredits = netCashReceived;
+  const canonicalDue = Math.max(0, totalDebits - totalCredits);
+
+  await dbRun('UPDATE customers SET balance = $1 WHERE id = $2 AND shop_id = $3', [canonicalDue, customerId, shop_id]);
+  return canonicalDue;
+};
+
+export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
+  if (!supplierId) return 0;
+
+  const supRows = await dbRun('SELECT * FROM suppliers WHERE id = $1 AND shop_id = $2', [supplierId, shop_id]);
+  if (!supRows || supRows.length === 0) return 0;
+  const sup = supRows[0];
+  const openingBalance = Number(sup.openingbalance !== undefined ? sup.openingbalance : (sup.openingBalance !== undefined ? sup.openingBalance : 0));
+
+  const purchaseRows = await dbRun('SELECT * FROM purchases WHERE shop_id = $1 AND supplierId = $2', [shop_id, supplierId]);
+  const grossPurchases = purchaseRows.reduce((acc, p) => acc + Number(p.grandTotal || p.amount || 0), 0);
+
+  const returnsRows = await dbRun('SELECT * FROM purchase_returns WHERE shop_id = $1 AND supplierId = $2', [shop_id, supplierId]);
+  const totalReturns = returnsRows.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const netPurchases = Math.max(0, grossPurchases - totalReturns);
+
+  const paymentRows = await dbRun(
+    "SELECT * FROM payment_logs WHERE shop_id = $1 AND partyId = $2 AND LOWER(partyType) = 'supplier' AND LOWER(mode) NOT IN ('opening balance', 'credit note', 'debit note')",
+    [shop_id, supplierId]
+  );
+  const directPaidLogs = paymentRows.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+  let unloggedUpfrontCash = 0;
+  purchaseRows.forEach(p => {
+    const hasMatchingLog = paymentRows.some(pl =>
+      (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+      (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+    );
+    if (!hasMatchingLog) {
+      const pTotal = Number(p.grandTotal || p.amount || 0);
+      const pPaid = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount || 0));
+      if (pPaid > 0) {
+        unloggedUpfrontCash += Math.min(pTotal, pPaid);
+      }
+    }
+  });
+
+  const totalPayments = directPaidLogs + unloggedUpfrontCash;
+  const cashRefunds = returnsRows
+    .filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash')
+    .reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+
+  const netCashPaid = Math.max(0, totalPayments - cashRefunds);
+  const totalCredits = openingBalance + netPurchases;
+  const totalDebits = netCashPaid;
+  const canonicalPayable = Math.max(0, totalCredits - totalDebits);
+
+  await dbRun('UPDATE suppliers SET balance = $1 WHERE id = $2 AND shop_id = $3', [canonicalPayable, supplierId, shop_id]);
+  return canonicalPayable;
+};
+
+
+

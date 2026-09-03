@@ -6,7 +6,7 @@ import { Ledger } from '../models/ledger.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
 import { convertToKg, isValidOperationalUnit } from '../services/unitConversion.service.js';
 import { withTransaction } from '../services/db.service.js';
-import { computeSaleInvoiceFromReturns } from '../utils/accounting.util.js';
+import { computeSaleInvoiceFromReturns, syncCustomerBalance } from '../utils/accounting.util.js';
 
 // Anti-duplicate rapid submission cache
 const recentSales = new Map();
@@ -111,8 +111,6 @@ export const createSale = async (req, res) => {
         cust = await Customer.findById(targetCustId, req.shop_id);
         if (cust) {
           activePartyName = cust.name;
-          const unpaid = Math.max(0, grandTotal - paid);
-          await Customer.findByIdAndUpdate(cust.id, { balance: Math.max(0, Number(cust.balance || 0) + unpaid) }, { shop_id: req.shop_id });
         }
       }
 
@@ -150,6 +148,10 @@ export const createSale = async (req, res) => {
           note: `POS Payment Received via ${paymentMethod || 'Cash'} on Invoice (${invoiceNo})`,
           saleId: sale.id
         });
+      }
+
+      if (targetCustId) {
+        await syncCustomerBalance(targetCustId, req.shop_id, tx.query);
       }
 
       return sale;
@@ -288,16 +290,10 @@ export const updateSale = async (req, res) => {
       let activePartyName = customerName || existingSale.partyName || 'Walk-in Customer';
       let targetCustId = customerId !== undefined ? customerId : existingSale.customerId;
 
-      // 3. Customer balance adjustment (use effective due, not raw paid vs net)
       if (targetCustId) {
         const cust = await Customer.findById(targetCustId, req.shop_id);
         if (cust) {
           activePartyName = cust.name;
-          const balanceDiff = newDue - oldFin.due;
-
-          if (balanceDiff !== 0) {
-            await Customer.findByIdAndUpdate(cust.id, { balance: Math.max(0, Number(cust.balance || 0) + balanceDiff) }, { shop_id: req.shop_id });
-          }
         }
       }
 
@@ -317,7 +313,12 @@ export const updateSale = async (req, res) => {
         cart: processedCart
       }, { shop_id: req.shop_id });
 
+      if (targetCustId) {
+        await syncCustomerBalance(targetCustId, req.shop_id, tx.query);
+      }
+
       return updated;
+
     });
 
     return res.json({ success: true, sale: updatedSale });

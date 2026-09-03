@@ -8,7 +8,7 @@ import { Sale } from '../models/sale.model.js';
 import { Purchase } from '../models/purchase.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
 import { run, withTransaction } from '../services/db.service.js';
-import { computeSaleInvoiceFromReturns, computePurchaseInvoiceFromReturns } from '../utils/accounting.util.js';
+import { computeSaleInvoiceFromReturns, computePurchaseInvoiceFromReturns, syncCustomerBalance, syncSupplierBalance } from '../utils/accounting.util.js';
 
 // =========================================================================
 // SALE RETURNS
@@ -25,91 +25,121 @@ export const getSaleReturns = async (req, res) => {
 
 export const createSaleReturn = async (req, res) => {
   try {
-    const { saleId, invoiceNo, customerId, customerName, items, refundAmount, refundMode = 'Cash', reason = '', date } = req.body;
+    const { saleId, invoiceNo, customerId, customerName, items, reason = '', date } = req.body;
 
     const count = await SaleReturn.countDocuments({ shop_id: req.shop_id });
     const returnNo = `SR-2026-${String(count + 1).padStart(4, '0')}`;
     const dateStr = date || new Date().toLocaleDateString('en-GB');
 
     const result = await withTransaction(async (tx) => {
-      const createdReturn = await SaleReturn.create({
-        shop_id: req.shop_id,
-        returnNo,
-        saleId: saleId || null,
-        invoiceNo: invoiceNo || 'Direct Sale Return',
-        customerId: customerId || null,
-        customerName: customerName || 'Customer Party',
-        items: items || [],
-        refundAmount: Number(refundAmount) || 0,
-        refundMode,
-        reason,
-        date: dateStr
-      });
-
-      // 1. Restock products in inventory
-      for (const item of items || []) {
-        const pId = item.productId || item.id;
-        const rQty = Number(item.qty || item.enteredQty) || 0;
-        if (pId && rQty > 0) {
-          const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
-          if (prod) {
-            const newStock = Number(prod.stockQty || 0) + rQty;
-            await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
-            await AuditLog.create({
-              shop_id: req.shop_id,
-              product: prod.name,
-              type: 'IN (Sale Return)',
-              qty: `${rQty} ${prod.unit || 'KG'}`,
-              ref: `Sale Return #${returnNo}`,
-              date: dateStr
-            });
-          }
-        }
-      }
-
-      // 2. Adjust customer ledger if refund mode is Ledger
-      if (refundMode === 'Ledger' && customerId) {
-        const cust = await Customer.findOne({ id: customerId, shop_id: req.shop_id });
-        if (cust) {
-          const newBal = Math.max(0, Number(cust.balance || 0) - Number(refundAmount || 0));
-          await Customer.findByIdAndUpdate(cust.id, { balance: newBal }, { shop_id: req.shop_id });
-          await Ledger.create({
-            shop_id: req.shop_id,
-            partyId: cust.id,
-            partyName: cust.name,
-            partyType: 'Customer',
-            amount: Number(refundAmount) || 0,
-            mode: 'Credit Note',
-            date: dateStr,
-            note: `Sale Return Credit Adjustment #${returnNo}`,
-            ref: returnNo
-          });
-        }
-      }
-
-      // 3. Update matching sale invoice if linked
       const targetSale = saleId
         ? await Sale.findOne({ id: saleId, shop_id: req.shop_id })
         : (invoiceNo ? await Sale.findOne({ invoiceNo, shop_id: req.shop_id }) : null);
 
-      if (targetSale) {
-        const saleReturns = await SaleReturn.find({ shop_id: req.shop_id });
-        const relatedReturns = saleReturns.filter(r => (r.saleId && String(r.saleId) === String(targetSale.id)) || (r.invoiceNo && r.invoiceNo === targetSale.invoiceNo));
-        const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-        const cashRefundAmt = relatedReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-        const origAmt = Number(targetSale.amount || 0);
-        const netAmt = Math.max(0, origAmt - totalReturnAmt);
-        const grossPaid = Number(targetSale.paidAmount || 0);
-        const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
-        const effectivePaid = Math.min(netAmt, netCashPaid);
-        const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
-        const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
+      let approvedTotal = 0;
+      const processedItems = [];
+      const origCart = targetSale && Array.isArray(targetSale.cart) ? targetSale.cart : [];
 
+      // Fetch prior returns for quantity validation
+      const existingReturns = targetSale
+        ? (await SaleReturn.find({ shop_id: req.shop_id })).filter(r =>
+            String(r.saleId) === String(targetSale.id) || (r.invoiceNo && r.invoiceNo === targetSale.invoiceNo)
+          )
+        : [];
+
+      const priorReturnedMap = new Map();
+      existingReturns.forEach(er => {
+        (er.items || []).forEach(it => {
+          const pKey = String(it.productId || it.id || '');
+          priorReturnedMap.set(pKey, (priorReturnedMap.get(pKey) || 0) + Number(it.qty || it.enteredQty || 0));
+        });
+      });
+
+      for (const item of items || []) {
+        const pId = item.productId || item.id;
+        const rQty = Number(item.qty || item.enteredQty) || 0;
+        if (!pId || rQty <= 0) continue;
+
+        // Rate validation against original line item
+        let lineRate = Number(item.rate || item.unitPrice || 0);
+        if (origCart.length > 0) {
+          const matchedLine = origCart.find(c => String(c.productId || c.id) === String(pId));
+          if (matchedLine) {
+            lineRate = Number(matchedLine.rate || matchedLine.unitPrice || lineRate);
+            const origQty = Number(matchedLine.qty || matchedLine.enteredQty || 0);
+            const prevReturned = priorReturnedMap.get(String(pId)) || 0;
+            const maxAllowed = Math.max(0, origQty - prevReturned);
+            if (rQty > maxAllowed && origQty > 0) {
+              throw new Error(`Return quantity (${rQty}) for product "${matchedLine.name || pId}" exceeds maximum eligible returned quantity (${maxAllowed}).`);
+            }
+          }
+        }
+
+        const itemTotal = rQty * lineRate;
+        approvedTotal += itemTotal;
+
+        processedItems.push({
+          productId: pId,
+          id: pId,
+          name: item.name || item.productName || 'Returned Product',
+          qty: rQty,
+          rate: lineRate,
+          unit: item.unit || 'KG',
+          totalAmount: itemTotal
+        });
+
+        // 1. Restock products in inventory
+        const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
+        if (prod) {
+          const newStock = Number(prod.stockQty || 0) + rQty;
+          await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
+          await AuditLog.create({
+            shop_id: req.shop_id,
+            product: prod.name,
+            type: 'IN (Sale Return)',
+            qty: `${rQty} ${prod.unit || 'KG'}`,
+            ref: `Sale Return #${returnNo}`,
+            date: dateStr
+          });
+        }
+      }
+
+      const finalRefundAmount = req.body.refundAmount !== undefined ? Number(req.body.refundAmount) : approvedTotal;
+
+      // 2. Create Sale Return Record (refundMode is strictly Cash under canonical rules)
+      const createdReturn = await SaleReturn.create({
+        shop_id: req.shop_id,
+        returnNo,
+        saleId: targetSale ? targetSale.id : (saleId || null),
+        invoiceNo: targetSale ? targetSale.invoiceNo : (invoiceNo || 'Direct Sale Return'),
+        customerId: targetSale ? (targetSale.customerId || customerId || null) : (customerId || null),
+        customerName: targetSale ? (targetSale.partyName || customerName || 'Customer Party') : (customerName || 'Customer Party'),
+        items: processedItems,
+        refundAmount: finalRefundAmount,
+        refundMode: 'Cash',
+        reason,
+        date: dateStr
+      });
+
+      // 3. Update parent sale financials if linked
+      if (targetSale) {
+        const allSaleReturns = await SaleReturn.find({ shop_id: req.shop_id });
+        const relatedReturns = allSaleReturns.filter(r =>
+          (r.saleId && String(r.saleId) === String(targetSale.id)) ||
+          (r.invoiceNo && r.invoiceNo === targetSale.invoiceNo)
+        );
+        const fin = computeSaleInvoiceFromReturns(targetSale, relatedReturns);
         await Sale.findByIdAndUpdate(targetSale.id, {
-          returnAmount: totalReturnAmt,
-          netAmount: netAmt,
-          status: newStatus
+          returnAmount: fin.totalReturnAmt,
+          netAmount: fin.netAmt,
+          status: fin.status
         }, { shop_id: req.shop_id });
+      }
+
+      // 4. Sync customer balance strictly to canonical Khata Due
+      const targetCustId = targetSale ? targetSale.customerId : customerId;
+      if (targetCustId) {
+        await syncCustomerBalance(targetCustId, req.shop_id, tx.query);
       }
 
       return createdReturn;
@@ -129,8 +159,8 @@ export const updateSaleReturn = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Sale return record not found' });
     }
 
-    const updated = await withTransaction(async () => {
-      const result = await SaleReturn.findByIdAndUpdate(id, req.shop_id, req.body);
+    const updated = await withTransaction(async (tx) => {
+      const result = await SaleReturn.findByIdAndUpdate(id, req.shop_id, { ...req.body, refundMode: 'Cash' });
       if (!result) return null;
 
       const targetSale = result.saleId
@@ -149,6 +179,11 @@ export const updateSaleReturn = async (req, res) => {
           netAmount: fin.netAmt,
           status: fin.status
         }, { shop_id: req.shop_id });
+      }
+
+      const targetCustId = targetSale ? targetSale.customerId : result.customerId;
+      if (targetCustId) {
+        await syncCustomerBalance(targetCustId, req.shop_id, tx.query);
       }
 
       return result;
@@ -194,41 +229,28 @@ export const deleteSaleReturn = async (req, res) => {
         }
       }
 
-      // 2. Reverse customer balance & remove Ledger credit note
-      if (existing.refundMode === 'Ledger' && existing.customerId) {
-        const cust = await Customer.findOne({ id: existing.customerId, shop_id: req.shop_id });
-        if (cust) {
-          const restoredBal = Math.max(0, Number(cust.balance || 0) + Number(existing.refundAmount || 0));
-          await Customer.findByIdAndUpdate(cust.id, { balance: restoredBal }, { shop_id: req.shop_id });
-        }
-        await tx.run('DELETE FROM payment_logs WHERE ref = $1 AND shop_id = $2', [existing.returnNo, req.shop_id]);
-      }
-
-      // 3. Delete the sale return record
+      // 2. Delete the sale return record
       await SaleReturn.findByIdAndDelete(id, req.shop_id);
 
-      // 4. Update matching sale status and net amount
+      // 3. Update matching sale status and net amount
       if (existing.saleId) {
         const sale = await Sale.findOne({ id: existing.saleId, shop_id: req.shop_id });
         if (sale) {
           const remainingReturns = (await SaleReturn.find({ shop_id: req.shop_id })).filter(r =>
             String(r.saleId) === String(existing.saleId) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo)
           );
-          const totalReturnAmt = remainingReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-          const cashRefundAmt = remainingReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-          const origAmt = Number(sale.amount || 0);
-          const netAmt = Math.max(0, origAmt - totalReturnAmt);
-          const grossPaid = Number(sale.paidAmount || 0);
-          const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
-          const effectivePaid = Math.min(netAmt, netCashPaid);
-          const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
-          const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
+          const fin = computeSaleInvoiceFromReturns(sale, remainingReturns);
           await Sale.findByIdAndUpdate(sale.id, {
-            returnAmount: totalReturnAmt,
-            netAmount: netAmt,
-            status: newStatus
+            returnAmount: fin.totalReturnAmt,
+            netAmount: fin.netAmt,
+            status: fin.status
           }, { shop_id: req.shop_id });
         }
+      }
+
+      // 4. Sync customer balance
+      if (existing.customerId) {
+        await syncCustomerBalance(existing.customerId, req.shop_id, tx.query);
       }
     });
 
@@ -253,91 +275,123 @@ export const getPurchaseReturns = async (req, res) => {
 
 export const createPurchaseReturn = async (req, res) => {
   try {
-    const { purchaseId, purchaseNo, supplierId, supplierName, items, refundAmount, refundMode = 'Cash', reason = '', date } = req.body;
+    const { purchaseId, purchaseNo, supplierId, supplierName, items, reason = '', date } = req.body;
 
     const count = await PurchaseReturn.countDocuments({ shop_id: req.shop_id });
     const returnNo = `PR-2026-${String(count + 1).padStart(4, '0')}`;
     const dateStr = date || new Date().toLocaleDateString('en-GB');
 
     const result = await withTransaction(async (tx) => {
-      const createdReturn = await PurchaseReturn.create({
-        shop_id: req.shop_id,
-        returnNo,
-        purchaseId: purchaseId || null,
-        purchaseNo: purchaseNo || 'Direct Purchase Return',
-        supplierId: supplierId || null,
-        supplierName: supplierName || 'Supplier Firm',
-        items: items || [],
-        refundAmount: Number(refundAmount) || 0,
-        refundMode,
-        reason,
-        date: dateStr
-      });
-
-      // 1. Deduct products from inventory
-      for (const item of items || []) {
-        const pId = item.productId || item.id;
-        const rQty = Number(item.qty || item.enteredQty) || 0;
-        if (pId && rQty > 0) {
-          const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
-          if (prod) {
-            const newStock = Math.max(0, Number(prod.stockQty || 0) - rQty);
-            await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
-            await AuditLog.create({
-              shop_id: req.shop_id,
-              product: prod.name,
-              type: 'OUT (Purchase Return)',
-              qty: `${rQty} ${prod.unit || 'KG'}`,
-              ref: `Purchase Return #${returnNo}`,
-              date: dateStr
-            });
-          }
-        }
-      }
-
-      // 2. Adjust supplier ledger if refund mode is Ledger
-      if (refundMode === 'Ledger' && supplierId) {
-        const sup = await Supplier.findOne({ id: supplierId, shop_id: req.shop_id });
-        if (sup) {
-          const newBal = Math.max(0, Number(sup.balance || 0) - Number(refundAmount || 0));
-          await Supplier.findByIdAndUpdate(sup.id, { balance: newBal }, { shop_id: req.shop_id });
-          await Ledger.create({
-            shop_id: req.shop_id,
-            partyId: sup.id,
-            partyName: sup.name,
-            partyType: 'Supplier',
-            amount: Number(refundAmount) || 0,
-            mode: 'Debit Note',
-            date: dateStr,
-            note: `Purchase Return Debit Adjustment #${returnNo}`,
-            ref: returnNo
-          });
-        }
-      }
-
-      // 3. Update matching purchase invoice if linked
       const targetPurchase = purchaseId
         ? await Purchase.findOne({ id: purchaseId, shop_id: req.shop_id })
         : (purchaseNo ? await Purchase.findOne({ purchaseNo, shop_id: req.shop_id }) : null);
 
-      if (targetPurchase) {
-        const pReturns = await PurchaseReturn.find({ shop_id: req.shop_id });
-        const relatedReturns = pReturns.filter(r => (r.purchaseId && String(r.purchaseId) === String(targetPurchase.id)) || (r.purchaseNo && r.purchaseNo === targetPurchase.purchaseNo));
-        const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-        const cashRefundAmt = relatedReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-        const origAmt = Number(targetPurchase.grandTotal || targetPurchase.amount || 0);
-        const netAmt = Math.max(0, origAmt - totalReturnAmt);
-        const grossPaid = Number(targetPurchase.paidAmount || 0);
-        const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
-        const effectivePaid = Math.min(netAmt, netCashPaid);
-        const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
-        const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
+      let approvedTotal = 0;
+      const processedItems = [];
+      const origCart = targetPurchase && Array.isArray(targetPurchase.itemsJson ? JSON.parse(targetPurchase.itemsJson) : (targetPurchase.items || targetPurchase.cart || []))
+        ? (typeof targetPurchase.itemsJson === 'string' ? JSON.parse(targetPurchase.itemsJson) : (targetPurchase.items || targetPurchase.cart || []))
+        : [];
 
+      // Fetch prior returns for quantity validation
+      const existingReturns = targetPurchase
+        ? (await PurchaseReturn.find({ shop_id: req.shop_id })).filter(r =>
+            String(r.purchaseId) === String(targetPurchase.id) || (r.purchaseNo && r.purchaseNo === targetPurchase.purchaseNo)
+          )
+        : [];
+
+      const priorReturnedMap = new Map();
+      existingReturns.forEach(er => {
+        (er.items || []).forEach(it => {
+          const pKey = String(it.productId || it.id || '');
+          priorReturnedMap.set(pKey, (priorReturnedMap.get(pKey) || 0) + Number(it.qty || it.enteredQty || 0));
+        });
+      });
+
+      for (const item of items || []) {
+        const pId = item.productId || item.id;
+        const rQty = Number(item.qty || item.enteredQty) || 0;
+        if (!pId || rQty <= 0) continue;
+
+        // Rate validation against original line item
+        let lineRate = Number(item.rate || item.unitPrice || 0);
+        if (origCart.length > 0) {
+          const matchedLine = origCart.find(c => String(c.productId || c.id) === String(pId));
+          if (matchedLine) {
+            lineRate = Number(matchedLine.rate || matchedLine.unitPrice || lineRate);
+            const origQty = Number(matchedLine.qty || matchedLine.enteredQty || 0);
+            const prevReturned = priorReturnedMap.get(String(pId)) || 0;
+            const maxAllowed = Math.max(0, origQty - prevReturned);
+            if (rQty > maxAllowed && origQty > 0) {
+              throw new Error(`Return quantity (${rQty}) for product "${matchedLine.name || pId}" exceeds maximum eligible returned quantity (${maxAllowed}).`);
+            }
+          }
+        }
+
+        const itemTotal = rQty * lineRate;
+        approvedTotal += itemTotal;
+
+        processedItems.push({
+          productId: pId,
+          id: pId,
+          name: item.name || item.productName || 'Returned Product',
+          qty: rQty,
+          rate: lineRate,
+          unit: item.unit || 'KG',
+          totalAmount: itemTotal
+        });
+
+        // 1. Deduct products from inventory
+        const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
+        if (prod) {
+          const newStock = Math.max(0, Number(prod.stockQty || 0) - rQty);
+          await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
+          await AuditLog.create({
+            shop_id: req.shop_id,
+            product: prod.name,
+            type: 'OUT (Purchase Return)',
+            qty: `${rQty} ${prod.unit || 'KG'}`,
+            ref: `Purchase Return #${returnNo}`,
+            date: dateStr
+          });
+        }
+      }
+
+      const finalRefundAmount = req.body.refundAmount !== undefined ? Number(req.body.refundAmount) : approvedTotal;
+
+      // 2. Create Purchase Return Record (refundMode is strictly Cash)
+      const createdReturn = await PurchaseReturn.create({
+        shop_id: req.shop_id,
+        returnNo,
+        purchaseId: targetPurchase ? targetPurchase.id : (purchaseId || null),
+        purchaseNo: targetPurchase ? targetPurchase.purchaseNo : (purchaseNo || 'Direct Purchase Return'),
+        supplierId: targetPurchase ? (targetPurchase.supplierId || supplierId || null) : (supplierId || null),
+        supplierName: targetPurchase ? (targetPurchase.supplierName || supplierName || 'Supplier Firm') : (supplierName || 'Supplier Firm'),
+        items: processedItems,
+        refundAmount: finalRefundAmount,
+        refundMode: 'Cash',
+        reason,
+        date: dateStr
+      });
+
+      // 3. Update matching purchase invoice if linked
+      if (targetPurchase) {
+        const allPurchaseReturns = await PurchaseReturn.find({ shop_id: req.shop_id });
+        const relatedReturns = allPurchaseReturns.filter(r =>
+          (r.purchaseId && String(r.purchaseId) === String(targetPurchase.id)) ||
+          (r.purchaseNo && r.purchaseNo === targetPurchase.purchaseNo)
+        );
+        const fin = computePurchaseInvoiceFromReturns(targetPurchase, relatedReturns);
         await Purchase.findByIdAndUpdate(targetPurchase.id, {
-          returnAmount: totalReturnAmt,
-          netAmount: netAmt,
-          paymentStatus: newStatus
+          returnAmount: fin.totalReturnAmt,
+          netAmount: fin.netAmt,
+          paymentStatus: fin.status
         }, { shop_id: req.shop_id });
+      }
+
+      // 4. Sync supplier balance
+      const targetSupId = targetPurchase ? targetPurchase.supplierId : supplierId;
+      if (targetSupId) {
+        await syncSupplierBalance(targetSupId, req.shop_id, tx.query);
       }
 
       return createdReturn;
@@ -357,8 +411,8 @@ export const updatePurchaseReturn = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Purchase return record not found' });
     }
 
-    const updated = await withTransaction(async () => {
-      const result = await PurchaseReturn.findByIdAndUpdate(id, req.shop_id, req.body);
+    const updated = await withTransaction(async (tx) => {
+      const result = await PurchaseReturn.findByIdAndUpdate(id, req.shop_id, { ...req.body, refundMode: 'Cash' });
       if (!result) return null;
 
       const targetPurchase = result.purchaseId
@@ -377,6 +431,11 @@ export const updatePurchaseReturn = async (req, res) => {
           netAmount: fin.netAmt,
           paymentstatus: fin.status
         }, { shop_id: req.shop_id });
+      }
+
+      const targetSupId = targetPurchase ? targetPurchase.supplierId : result.supplierId;
+      if (targetSupId) {
+        await syncSupplierBalance(targetSupId, req.shop_id, tx.query);
       }
 
       return result;
@@ -422,41 +481,28 @@ export const deletePurchaseReturn = async (req, res) => {
         }
       }
 
-      // 2. Reverse supplier balance & remove Ledger debit note
-      if (existing.refundMode === 'Ledger' && existing.supplierId) {
-        const sup = await Supplier.findOne({ id: existing.supplierId, shop_id: req.shop_id });
-        if (sup) {
-          const restoredBal = Math.max(0, Number(sup.balance || 0) + Number(existing.refundAmount || 0));
-          await Supplier.findByIdAndUpdate(sup.id, { balance: restoredBal }, { shop_id: req.shop_id });
-        }
-        await tx.run('DELETE FROM payment_logs WHERE ref = $1 AND shop_id = $2', [existing.returnNo, req.shop_id]);
-      }
-
-      // 3. Delete the purchase return record
+      // 2. Delete the purchase return record
       await PurchaseReturn.findByIdAndDelete(id, req.shop_id);
 
-      // 4. Update matching purchase status and net amount
+      // 3. Update matching purchase status and net amount
       if (existing.purchaseId) {
         const purchase = await Purchase.findOne({ id: existing.purchaseId, shop_id: req.shop_id });
         if (purchase) {
           const remainingReturns = (await PurchaseReturn.find({ shop_id: req.shop_id })).filter(r =>
             String(r.purchaseId) === String(existing.purchaseId) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo)
           );
-          const totalReturnAmt = remainingReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-          const cashRefundAmt = remainingReturns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-          const origAmt = Number(purchase.grandTotal || purchase.amount || 0);
-          const netAmt = Math.max(0, origAmt - totalReturnAmt);
-          const grossPaid = Number(purchase.paidAmount || 0);
-          const netCashPaid = Math.max(0, grossPaid - cashRefundAmt);
-          const effectivePaid = Math.min(netAmt, netCashPaid);
-          const isFull = totalReturnAmt >= (origAmt - 1) && origAmt > 0;
-          const newStatus = isFull ? 'Returned' : ((effectivePaid >= netAmt && netAmt > 0) ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
+          const fin = computePurchaseInvoiceFromReturns(purchase, remainingReturns);
           await Purchase.findByIdAndUpdate(purchase.id, {
-            returnAmount: totalReturnAmt,
-            netAmount: netAmt,
-            paymentStatus: newStatus
+            returnAmount: fin.totalReturnAmt,
+            netAmount: fin.netAmt,
+            paymentStatus: fin.status
           }, { shop_id: req.shop_id });
         }
+      }
+
+      // 4. Sync supplier balance
+      if (existing.supplierId) {
+        await syncSupplierBalance(existing.supplierId, req.shop_id, tx.query);
       }
     });
 
@@ -465,4 +511,5 @@ export const deletePurchaseReturn = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
 

@@ -4,6 +4,7 @@ import { Supplier } from '../models/supplier.model.js';
 import { Sale } from '../models/sale.model.js';
 import { Purchase } from '../models/purchase.model.js';
 import { withTransaction } from '../services/db.service.js';
+import { syncCustomerBalance, syncSupplierBalance } from '../utils/accounting.util.js';
 
 // Anti-duplicate rapid submission cache (3.5s window)
 const recentPayments = new Map();
@@ -161,8 +162,13 @@ export const recordPayment = async (req, res) => {
           saleId: saleId || null
         });
 
+        if (cust?.id) {
+          await syncCustomerBalance(cust.id, req.shop_id, tx.query);
+        }
+
         return entry;
       } else {
+
         // Supplier payment
         const sup = partyId ? await Supplier.findById(partyId, req.shop_id) : null;
         let maxSupplierPayable = 0;
@@ -263,9 +269,14 @@ export const recordPayment = async (req, res) => {
           purchaseId: purchaseId || null
         });
 
+        if (partyId) {
+          await syncSupplierBalance(partyId, req.shop_id, tx.query);
+        }
+
         return entry;
       }
     });
+
 
     recentPayments.set(dedupKey, { timestamp: Date.now(), entry: savedEntry });
     return res.status(201).json({ success: true, entry: savedEntry });
@@ -363,7 +374,14 @@ export const deleteLedgerEntry = async (req, res) => {
       }
 
       await Ledger.findByIdAndDelete(id, req.shop_id);
+
+      if (entry.partyType === 'Customer' && entry.partyId) {
+        await syncCustomerBalance(entry.partyId, req.shop_id, tx.query);
+      } else if (entry.partyType === 'Supplier' && entry.partyId) {
+        await syncSupplierBalance(entry.partyId, req.shop_id, tx.query);
+      }
     });
+
 
     return res.json({ success: true, message: 'Payment entry reversed and deleted successfully' });
   } catch (err) {

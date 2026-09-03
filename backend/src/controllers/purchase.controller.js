@@ -6,7 +6,7 @@ import { Ledger } from '../models/ledger.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
 import { convertToKg, isValidOperationalUnit } from '../services/unitConversion.service.js';
 import { withTransaction, run } from '../services/db.service.js';
-import { computePurchaseInvoiceFromReturns } from '../utils/accounting.util.js';
+import { computePurchaseInvoiceFromReturns, syncSupplierBalance } from '../utils/accounting.util.js';
 
 // Anti-duplicate rapid submission cache
 const recentPurchases = new Map();
@@ -135,8 +135,6 @@ export const createPurchase = async (req, res) => {
         const sup = await Supplier.findById(targetSupId, req.shop_id);
         if (sup) {
           activeSupplierName = sup.name;
-          const unpaid = Math.max(0, totalGrand - paid);
-          await Supplier.findByIdAndUpdate(sup.id, { balance: Number(sup.balance || 0) + unpaid }, { shop_id: req.shop_id });
 
           if (paid > 0) {
             await Ledger.create({
@@ -153,9 +151,11 @@ export const createPurchase = async (req, res) => {
             });
           }
         }
+        await syncSupplierBalance(targetSupId, req.shop_id, tx.query);
       }
 
       return purchase;
+
     });
 
     recentPurchases.set(dedupKey, { timestamp: Date.now(), purchase: result });
@@ -353,6 +353,10 @@ export const updatePurchase = async (req, res) => {
         notes: notes !== undefined ? notes : existingPurchase.notes,
         items: processedItems
       }, { shop_id: req.shop_id });
+
+      if (targetSupId) {
+        await syncSupplierBalance(targetSupId, req.shop_id, tx.query);
+      }
 
       return updated;
     });

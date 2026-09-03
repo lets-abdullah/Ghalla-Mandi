@@ -84,8 +84,9 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
 
   const [selectedItemIdx, setSelectedItemIdx] = useState(0);
   const [returnQty, setReturnQty] = useState('');
-  const [refundMode, setRefundMode] = useState('Ledger'); // 'Ledger' | 'Cash'
+  const [refundMode, setRefundMode] = useState('Cash'); // Strictly Cash under canonical rules
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [completedReturn, setCompletedReturn] = useState(null);
 
   // Sync state whenever active sale or items change
@@ -381,15 +382,15 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                     Settlement Mode
                   </label>
                   <select
-                    value={refundMode}
-                    onChange={(e) => setRefundMode(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer focus:border-brand-500 ${
+                    value="Cash"
+                    disabled
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-not-allowed opacity-90 ${
                       theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                   >
-                    <option value="Ledger">Deduct from Customer Khata (Balance Adjustment)</option>
-                    <option value="Cash">Cash Refund (Counter)</option>
+                    <option value="Cash">Cash Settlement (Automatic Cash Refund / Due Clearance)</option>
                   </select>
+
                 </div>
               </>
             )}
