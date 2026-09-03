@@ -1035,8 +1035,8 @@ export const CreateOrder = () => {
                         onChange={(e) => setWalkinName(e.target.value)}
                         placeholder="Customer / Farmer Name *"
                         className={`w-full border rounded-2xl pl-10 pr-3.5 py-2 text-xs font-bold outline-none focus:border-brand-500 ${!walkinName.trim()
-                            ? 'border-amber-400/80 dark:border-amber-500/50'
-                            : 'focus:border-brand-500'
+                          ? 'border-amber-400/80 dark:border-amber-500/50'
+                          : 'focus:border-brand-500'
                           } ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                           }`}
                       />
@@ -1149,7 +1149,6 @@ export const CreateOrder = () => {
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { key: 'Cash', label: 'Cash', icon: DollarSign },
-                  { key: 'Credit', label: 'Khata', icon: Wallet },
                   { key: 'Bank', label: 'Bank Transfer', icon: Building2 },
                   { key: 'Card', label: 'Card Payment', icon: CreditCard }
                 ].map(mode => (
@@ -1287,9 +1286,8 @@ export const CreateOrder = () => {
           onClick={(e) => { if (e.target === e.currentTarget) setShowCustomerModal(false); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-lg w-full p-4 sm:p-6 space-y-3.5 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+          <div className={`rounded-3xl max-w-lg w-full p-4 sm:p-6 space-y-3.5 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-700">
               <h3 className="text-base font-black flex items-center gap-2">
                 <User className="w-5 h-5 text-brand-500" />
@@ -1313,9 +1311,8 @@ export const CreateOrder = () => {
                   value={partySearch}
                   onChange={(e) => setPartySearch(e.target.value)}
                   placeholder={t('searchPartyPlaceholder')}
-                  className={`w-full border rounded-2xl pl-9 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                    theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={`w-full border rounded-2xl pl-9 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
                 />
               </div>
 
@@ -1326,11 +1323,10 @@ export const CreateOrder = () => {
                   setSelectedParty(null);
                   setShowCustomerModal(false);
                 }}
-                className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${
-                  customerType === 'Walk-in Customer' && !selectedParty
+                className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${customerType === 'Walk-in Customer' && !selectedParty
                     ? 'border-brand-500 bg-brand-500/10 text-brand-500 font-black'
                     : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 border-slate-200 dark:border-slate-700'
-                }`}
+                  }`}
               >
                 <div>
                   <div className="font-black text-xs">{t('walkInCustomer')}</div>
@@ -1348,11 +1344,10 @@ export const CreateOrder = () => {
                       setCustomerType('Regular Party');
                       setShowCustomerModal(false);
                     }}
-                    className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${
-                      selectedParty?.id === c.id
+                    className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${selectedParty?.id === c.id
                         ? 'border-brand-500 bg-brand-500/10 text-brand-500 font-black'
                         : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 border-slate-200 dark:border-slate-700'
-                    }`}
+                      }`}
                   >
                     <div>
                       <div className="font-black text-xs">{c.name} {c.shopName ? `(${c.shopName})` : ''}</div>
