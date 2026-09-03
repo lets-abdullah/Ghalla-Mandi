@@ -1140,10 +1140,10 @@ export const Reports = () => {
     });
 
     return {
-      cashInHand: Math.max(0, cash),
-      bankBalance: Math.max(0, bank),
-      cardBalance: Math.max(0, card),
-      totalLiquidFunds: Math.max(0, cash) + Math.max(0, bank) + Math.max(0, card),
+      cashInHand: cash,
+      bankBalance: bank,
+      cardBalance: card,
+      totalLiquidFunds: cash + bank + card,
       liquidTransactionsList: txList,
       cashInflows: cInflow,
       cashExpenses: cExp,
@@ -1175,6 +1175,15 @@ export const Reports = () => {
     return (suppliers || []).reduce((sum, s) => sum + Number(s.openingBalance || 0), 0);
   }, [suppliers]);
 
+  // Initial stock valuation seeded as owner's invested opening equity
+  const totalInitialStockValuation = useMemo(() => {
+    return (products || []).reduce((sum, prod) => {
+      const initQty = Number(prod.initialStock !== undefined ? prod.initialStock : (prod.initialstock !== undefined ? prod.initialstock : (prod.openingStock ?? prod.opening_stock ?? 0)));
+      const initRate = Number(prod.purchasePrice !== undefined ? prod.purchasePrice : (prod.purchaseprice !== undefined ? prod.purchaseprice : (prod.initialCost || 0)));
+      return sum + (initQty * initRate);
+    }, 0);
+  }, [products]);
+
   const totalAssets = useMemo(() => totalLiquidFunds + totalCustomerReceivables + totalStockValuation + totalSupplierAdvances, [totalLiquidFunds, totalCustomerReceivables, totalStockValuation, totalSupplierAdvances]);
   // Total Liabilities strictly includes genuine debts (Supplier Payables + Customer Advances) - NO paid expenses
   const totalLiabilities = useMemo(() => totalSupplierPayables + totalCustomerAdvances, [totalSupplierPayables, totalCustomerAdvances]);
@@ -1183,14 +1192,14 @@ export const Reports = () => {
   const totalEquity = useMemo(() => totalAssets - totalLiabilities, [totalAssets, totalLiabilities]);
 
   const bsEquityBreakdown = useMemo(() => {
-    const openingNetCapital = Math.max(0, openingCustomerReceivables - openingSupplierPayables);
+    const openingNetCapital = totalInitialStockValuation + (openingCustomerReceivables - openingSupplierPayables);
     const retained = netOperatingProfit;
     return {
       ownersCapital: openingNetCapital,
       retainedProfit: retained,
       total: totalEquity
     };
-  }, [openingCustomerReceivables, openingSupplierPayables, netOperatingProfit, totalEquity]);
+  }, [totalInitialStockValuation, openingCustomerReceivables, openingSupplierPayables, netOperatingProfit, totalEquity]);
 
   // Granular Balance Sheet Breakdown Objects
   const bsCashBreakdown = useMemo(() => {
