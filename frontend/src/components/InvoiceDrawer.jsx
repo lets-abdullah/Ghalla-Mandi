@@ -118,21 +118,38 @@ export const InvoiceDrawer = ({ invoice, onClose }) => {
             <div className={`w-full max-w-xs space-y-2 p-4 rounded-2xl border ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
               }`}>
               <div className="flex justify-between text-xs font-bold text-slate-500">
-                <span>{t('grandTotal')}:</span>
-                <span className="font-extrabold text-slate-900 dark:text-white">Rs. {formatAmount(invoice.amount)}</span>
+                <span>Gross Sale:</span>
+                <span className="font-mono text-slate-900 dark:text-white">Rs. {formatAmount(invoice.amount || 0)}</span>
               </div>
-              <div className="flex justify-between text-xs font-bold text-emerald-600">
-                <span>{t('paid')}:</span>
-                <span>Rs. {formatAmount(Number(invoice.paidAmount || 0))}</span>
+              <div className="flex justify-between text-xs font-bold text-slate-500">
+                <span>Paid Amount:</span>
+                <span className="font-mono text-slate-900 dark:text-white">Rs. {formatAmount(invoice.paidAmount || 0)}</span>
               </div>
-              {Math.max(0, Number(invoice.amount || 0) - Number(invoice.paidAmount || 0)) > 0 && (
-                <div className="flex justify-between text-xs font-extrabold text-rose-500 pt-1 border-t border-slate-200 dark:border-slate-700">
-                  <span>{t('remainingDueKhata')}:</span>
-                  <span>Rs. {formatAmount(Math.max(0, Number(invoice.amount || 0) - Number(invoice.paidAmount || 0)))}</span>
+              {Number(invoice.returnAmount || 0) > 0 && (
+                <div className="flex justify-between text-xs font-bold text-purple-600 dark:text-purple-400">
+                  <span>Returned:</span>
+                  <span className="font-mono">Rs. {formatAmount(invoice.returnAmount)}</span>
+                </div>
+              )}
+              {Math.max(0, Number(invoice.paidAmount || 0) - Math.max(0, Number(invoice.amount || 0) - Number(invoice.returnAmount || 0))) > 0 && (
+                <div className="flex justify-between text-xs font-bold text-amber-600 dark:text-amber-400">
+                  <span>Cash Refunded:</span>
+                  <span className="font-mono">Rs. {formatAmount(Math.max(0, Number(invoice.paidAmount || 0) - Math.max(0, Number(invoice.amount || 0) - Number(invoice.returnAmount || 0))))}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-xs font-extrabold text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-700">
+                <span>Net Sale:</span>
+                <span className="font-mono">Rs. {formatAmount(Math.max(0, Number(invoice.amount || 0) - Number(invoice.returnAmount || 0)))}</span>
+              </div>
+              {Math.max(0, Math.max(0, Number(invoice.amount || 0) - Number(invoice.returnAmount || 0)) - Number(invoice.paidAmount || 0)) > 0 && (
+                <div className="flex justify-between text-xs font-extrabold text-rose-500">
+                  <span>Remaining Due:</span>
+                  <span className="font-mono">Rs. {formatAmount(Math.max(0, Math.max(0, Number(invoice.amount || 0) - Number(invoice.returnAmount || 0)) - Number(invoice.paidAmount || 0)))}</span>
                 </div>
               )}
             </div>
           </div>
+
 
           {/* Dedicated Print Sign-off Block (Visible only on print/paper) */}
           <div className="print-only hidden pt-12 mt-8 border-t border-slate-300">

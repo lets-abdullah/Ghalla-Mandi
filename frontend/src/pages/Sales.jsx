@@ -665,11 +665,9 @@ export const Sales = () => {
                 <th className="py-3.5 px-4">Invoice #</th>
                 <th className="py-3.5 px-4">Date</th>
                 <th className="py-3.5 px-4">Customer</th>
-                <th className="py-3.5 px-4 text-right">Gross Sale</th>
+                <th className="py-3.5 px-4 text-right">Total</th>
                 <th className="py-3.5 px-4 text-right">Paid</th>
                 <th className="py-3.5 px-4 text-right">Returned</th>
-                <th className="py-3.5 px-4 text-right">Cash Refunded</th>
-                <th className="py-3.5 px-4 text-right">Net Sale</th>
                 <th className="py-3.5 px-4 text-right">Due</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
                 <th className="py-3.5 px-4 text-center no-print">Actions</th>
@@ -679,7 +677,7 @@ export const Sales = () => {
               }`}>
               {filteredSales.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-8 text-center">
+                  <td colSpan={9} className="py-8 text-center">
                     <EmptyState
                       icon={ShoppingBag}
                       title="No sales found"
@@ -711,8 +709,6 @@ export const Sales = () => {
                     isPartiallyReturned
                   } = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
 
-                  const cashRefunded = Math.max(0, paid - netTotal);
-
                   return (
                     <tr
                       key={s.id}
@@ -735,100 +731,57 @@ export const Sales = () => {
                         </div>
                       </td>
 
-                      {/* 4. Gross Sale */}
+                      {/* 4. Total */}
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
                         Rs. {grossTotal.toLocaleString()}
                       </td>
 
                       {/* 5. Paid */}
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
                         Rs. {paid.toLocaleString()}
                       </td>
 
                       {/* 6. Returned */}
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-purple-600 dark:text-purple-400">
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
                         Rs. {retAmt.toLocaleString()}
                       </td>
 
-                      {/* 7. Cash Refunded */}
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-amber-600 dark:text-amber-400">
-                        Rs. {cashRefunded.toLocaleString()}
-                      </td>
-
-                      {/* 8. Net Sale */}
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
-                        Rs. {netTotal.toLocaleString()}
-                      </td>
-
-                      {/* 9. Due */}
+                      {/* 7. Due */}
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-xs text-rose-500">
                         Rs. {due.toLocaleString()}
                       </td>
 
-                      {/* 10. Status */}
+                      {/* 8. Status */}
                       <td className="py-3.5 px-4 text-center">
                         <StatusBadge status={isFullyReturned ? 'Returned' : status} />
                       </td>
 
-
-                      {/* 7. Actions: Receipt | Pay | Edit | Return Sale (Screen Only) */}
+                      {/* 9. Actions: Consistent View + Action Cluster */}
                       <td className="py-3.5 px-4 text-center no-print">
-                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                          {/* Receipt View */}
+                        <div className="flex items-center justify-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => openReceiptForSale(s)}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer text-xs font-bold active:scale-98"
-                            title="View / Print Invoice Receipt"
+                            title="View Details / Print Receipt"
                           >
                             <Eye className="w-3.5 h-3.5 text-slate-500" />
-                            <span className="hidden sm:inline">Receipt</span>
+                            <span>View</span>
                           </button>
 
-                          {/* Quick Pay / Collect Cash if Due exists */}
                           {due > 0 && !isFullyReturned && (
                             <button
                               type="button"
                               onClick={() => openPaymentModal(s)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
-                              title={`Collect payment for this invoice (Due: Rs. ${due.toLocaleString()})`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition cursor-pointer text-xs font-bold active:scale-98 shadow-xs"
+                              title="Collect Payment"
                             >
                               <DollarSign className="w-3.5 h-3.5" />
                               <span>Pay</span>
                             </button>
                           )}
 
-                          {/* Edit Action (Locked if goods have been returned) */}
-                          {(s.returnStatus || Number(s.returnAmount || 0) > 0 || isReturned || isFullyReturned || isPartiallyReturned) ? (
-                            <span
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold cursor-not-allowed select-none opacity-60"
-                              title="Sale cannot be edited because returned goods exist in Sale Returns"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              <span>Edit</span>
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setEditingSale(s)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
-                              title="Edit Sale / Modify Items"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              <span>Edit</span>
-                            </button>
-                          )}
-
-                          {/* Return Sale Action */}
-                          {isFullyReturned ? (
-                            <span
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 text-xs font-bold select-none cursor-not-allowed"
-                              title="This sale is fully returned"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5 text-purple-500" />
-                              <span>Fully Returned</span>
-                            </span>
-                          ) : (
+                          {!isFullyReturned && (
                             <button
                               type="button"
                               onClick={() => {
@@ -836,7 +789,7 @@ export const Sales = () => {
                                 setShowReturnModal(true);
                               }}
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
-                              title="Return Sale (Partial or Full)"
+                              title="Return Items"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
                               <span>Return</span>
@@ -852,6 +805,7 @@ export const Sales = () => {
           </table>
         </div>
       </div>
+
 
       {/* Print Footer */}
       <PrintFooter note="Official Business Record • Ghalla Mandi Sales & Orders Register" />
