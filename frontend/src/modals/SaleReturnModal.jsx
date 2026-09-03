@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  RotateCcw, 
-  X, 
-  CheckCircle2, 
+import {
+  RotateCcw,
+  X,
+  CheckCircle2,
   Printer,
   ShoppingBag
 } from 'lucide-react';
@@ -32,13 +32,13 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
         const matchingReturnsQty = (saleReturns || [])
           .filter(r => (r.saleId === activeSale.id || r.invoiceNo === activeSale.invoiceNo))
           .reduce((sum, r) => {
-            const rItem = (r.items || []).find(ri => 
+            const rItem = (r.items || []).find(ri =>
               (ri.productId && ri.productId === (it.productId || it.id)) ||
               (ri.name && ri.name === it.name)
             );
             return sum + (rItem ? Number(rItem.qty || 0) : 0);
           }, 0);
-        
+
         const alreadyRet = Math.max(Number(it.returnedQty || 0), matchingReturnsQty);
         const remaining = Math.max(0, origQty - alreadyRet);
         const rate = Number(it.rate || it.price || (it.total / (origQty || 1)) || 0);
@@ -184,9 +184,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
       onClick={(e) => { if (e.target === e.currentTarget && !completedReturn) onClose(); }}
       className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
     >
-      <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border my-6 transition-all ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-      }`}>
+      <div className={`rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow border my-6 transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        }`}>
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-2.5">
@@ -223,9 +222,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
             </div>
 
             {/* Clean Summary */}
-            <div className={`border rounded-2xl p-3.5 text-left space-y-2 text-xs ${
-              theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-            }`}>
+            <div className={`border rounded-2xl p-3.5 text-left space-y-2 text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
               <div className="flex justify-between">
                 <span className="text-slate-400 font-medium">Customer:</span>
                 <span className="font-bold">{activeSale.partyName}</span>
@@ -269,7 +267,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
         ) : (
           /* Simplified Return Form */
           <form onSubmit={handleSubmit} className="space-y-3.5">
-            
+
             {/* Multi-item selector if sale has more than 1 item */}
             {saleItems.length > 1 && (
               <div>
@@ -280,11 +278,10 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                       key={it.id}
                       type="button"
                       onClick={() => handleItemSelect(idx)}
-                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer border ${
-                        selectedItemIdx === idx
+                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer border ${selectedItemIdx === idx
                           ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
                           : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-500'
-                      }`}
+                        }`}
                     >
                       {it.name} ({it.remainingQty} {it.unit} left)
                     </button>
@@ -294,9 +291,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
             )}
 
             {/* Clean Single Summary Card */}
-            <div className={`p-3 rounded-2xl border space-y-1.5 ${
-              theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-            }`}>
+            <div className={`p-3 rounded-2xl border space-y-1.5 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 block uppercase">Product</span>
@@ -359,9 +355,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                         if (e.key === '.' || e.key === ',') e.preventDefault();
                       }}
                       onChange={(e) => handleQtyChange(e.target.value.replace(/[^0-9]/g, ''))}
-                      className={`w-full border rounded-xl px-3 py-2 text-sm font-bold font-mono outline-none focus:border-brand-500 ${
-                        theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'
-                      }`}
+                      className={`w-full border rounded-xl px-3 py-2 text-sm font-bold font-mono outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'
+                        }`}
                       required
                     />
                   </div>
@@ -370,30 +365,12 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
                       Refund Amount
                     </label>
-                    <div className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold flex items-center justify-between ${
-                      theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-emerald-400' : 'bg-emerald-50/60 border-emerald-200 text-emerald-700'
-                    }`}>
+                    <div className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold flex items-center justify-between ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-emerald-400' : 'bg-emerald-50/60 border-emerald-200 text-emerald-700'
+                      }`}>
                       <span className="text-[10px] text-slate-400 uppercase">Total:</span>
                       <span className="text-sm font-black">Rs. {refundAmount.toLocaleString()}</span>
                     </div>
                   </div>
-                </div>
-
-                {/* Settlement Mode */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                    Settlement Mode
-                  </label>
-                  <select
-                    value="Cash"
-                    disabled
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-not-allowed opacity-90 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  >
-                    <option value="Cash">Cash Settlement (Automatic Cash Refund / Due Clearance)</option>
-                  </select>
-
                 </div>
               </>
             )}
@@ -403,9 +380,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className={`w-1/3 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                }`}
+                className={`w-1/3 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
               >
                 Cancel
               </button>

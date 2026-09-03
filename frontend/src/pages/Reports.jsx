@@ -2313,11 +2313,11 @@ export const Reports = () => {
       csvContent += makeRow(['Cash in Hand (Physical Drawer)', num(cashInHand), 'Bank Balance (Asset)', num(Math.max(0, bankBalance)), 'Bank Overdraft (Liability)', num(bankOverdraftLiability), 'Net Liquid Position', num(totalLiquidFunds)], COLS);
       csvContent += makeRow(['Total Cash Inflows', num(cashInflows), 'Total Cash Outflows', num(cashTotalOutflows), 'Total Bank Inflows', num(bankInflows), 'Total Bank Outflows', num(bankTotalOutflows)], COLS);
 
-      // Section 1: Itemized Movements Ledger
+      // Section 1: Actual Cash & Bank Transaction Movements
       csvContent += makeSectionHeader('1. ACTUAL CASH & BANK TRANSACTION MOVEMENTS', COLS);
       csvContent += makeRow(['Date', 'Reference / Source', 'Party Name', 'Category', 'Channel', 'Type', 'Amount (Rs.)'], COLS);
 
-      (filteredCashFlowTransactions || []).forEach(tx => {
+      (chronologicalCashFlow || []).forEach(tx => {
         csvContent += makeRow([
           tx.date,
           tx.source,
@@ -2329,7 +2329,7 @@ export const Reports = () => {
         ], COLS);
       });
 
-      csvContent += makeRow(['CLOSING CASH IN HAND', num(cashInHand), 'CLOSING BANK ASSET', num(Math.max(0, bankBalance)), 'BANK OVERDRAFT LIABILITY', num(bankOverdraftLiability), 'TOTAL MOVEMENTS LOGGED', `${filteredCashFlowTransactions.length} Entries`], COLS);
+      csvContent += makeRow(['CLOSING CASH IN HAND', num(cashInHand), 'CLOSING BANK ASSET', num(Math.max(0, bankBalance)), 'BANK OVERDRAFT LIABILITY', num(bankOverdraftLiability), 'TOTAL MOVEMENTS LOGGED', `${(chronologicalCashFlow || []).length} Entries`], COLS);
 
     } else if (reportType === 'Expenses') {
       const COLS = 7;
@@ -2454,35 +2454,7 @@ export const Reports = () => {
         </div>
       </div>
 
-      {/* Quick Report Switcher Bar (Screen Only) */}
-      <div className="no-print flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-200 dark:border-slate-800">
-        {[
-          { type: 'Stock', label: 'Stock Report', icon: Warehouse },
-          { type: 'Sales', label: 'Sales Report', icon: TrendingUp },
-          { type: 'Expenses', label: 'Expense Report', icon: DollarSign },
-          { type: 'ProfitLoss', label: 'Profit & Loss', icon: PieChart },
-          { type: 'BalanceSheet', label: 'Balance Sheet', icon: Building },
-          { type: 'CashFlow', label: 'Cash Flow', icon: Wallet }
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = reportType === tab.type;
-          return (
-            <button
-              key={tab.type}
-              type="button"
-              onClick={() => navigate(`/reports?type=${tab.type}`)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                isActive
-                  ? 'bg-brand-500 text-white shadow-xs font-black'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+
 
 
 
@@ -4546,39 +4518,6 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* Reconciliation Status Alert / Banner */}
-          {cashFlowReconciliation.isReconciled ? (
-            <div className="p-3.5 rounded-2xl border bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
-              <div className="flex items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <div>
-                  <span className="font-black">✓ Cash Flow Statement & Balance Sheet Fully Reconciled:</span>
-                  <span className="ml-1 font-medium text-emerald-800 dark:text-emerald-300">
-                    Cash in Hand (Rs. {cashInHand.toLocaleString()}) = Balance Sheet Asset • Bank Asset (Rs. {Math.max(0, bankBalance).toLocaleString()}) • Bank Overdraft (Rs. {bankOverdraftLiability.toLocaleString()}) = Balance Sheet Liability • Mismatch: Rs. 0
-                  </span>
-                </div>
-              </div>
-              <div className="font-mono font-black text-emerald-700 dark:text-emerald-400 text-right shrink-0">
-                Discrepancy: Rs. 0
-              </div>
-            </div>
-          ) : (
-            <div className="p-3.5 rounded-2xl border bg-rose-50/90 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs flex items-center justify-between gap-3 shadow-md">
-              <div className="flex items-center gap-2.5">
-                <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
-                <div>
-                  <div className="font-black text-rose-700 dark:text-rose-300">⚠ Reconciliation Error Detected!</div>
-                  <div className="text-[11px] font-medium text-rose-600 dark:text-rose-400">
-                    Cash Flow closing funds do not match the Balance Sheet Statement. Cash Diff: Rs. {cashFlowReconciliation.diffCash.toLocaleString()}, Bank Diff: Rs. {cashFlowReconciliation.diffBank.toLocaleString()}, Overdraft Diff: Rs. {cashFlowReconciliation.diffOverdraft.toLocaleString()}.
-                  </div>
-                </div>
-              </div>
-              <div className="font-mono font-black text-rose-700 dark:text-rose-400 text-right shrink-0">
-                Discrepancy: Rs. {cashFlowReconciliation.totalMismatch.toLocaleString()}
-              </div>
-            </div>
-          )}
-
           {/* ========================================================================= */}
           {/* PRINT-ONLY HEADER (Cash Flow) */}
           {/* ========================================================================= */}
@@ -4723,216 +4662,6 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* ========================================================================= */}
-          {/* SECTION 2: COMPREHENSIVE TRANSACTION MOVEMENTS LEDGER */}
-          {/* ========================================================================= */}
-          <div className={`border rounded-2xl p-4 sm:p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3 border-slate-100 dark:border-slate-700">
-              <div>
-                <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-slate-900 dark:text-white">
-                  <Banknote className="w-4 h-4 text-emerald-500" />
-                  <span>2. Itemized Cash & Bank Transaction Ledger ({filteredCashFlowTransactions.length} Movements)</span>
-                </h3>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                  Chronological recording of every cash receipt, payout, settlement, and bank movement
-                </p>
-              </div>
-
-              {/* Channel and Movement Filters */}
-              <div className="no-print flex flex-wrap items-center gap-2 text-xs">
-                {/* Channel Filter Pills */}
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
-                  {['All', 'Cash', 'Bank'].map(ch => (
-                    <button
-                      key={ch}
-                      type="button"
-                      onClick={() => { setCfChannelFilter(ch); setCfPage(1); }}
-                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition cursor-pointer ${cfChannelFilter === ch
-                        ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-2xs font-black'
-                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                        }`}
-                    >
-                      {ch === 'All' ? 'All Channels' : ch === 'Cash' ? 'Cash Drawer' : 'Bank Accounts'}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Type Filter Pills */}
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
-                  {['All', 'Inflow', 'Outflow'].map(tp => (
-                    <button
-                      key={tp}
-                      type="button"
-                      onClick={() => { setCfTypeFilter(tp); setCfPage(1); }}
-                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition cursor-pointer ${cfTypeFilter === tp
-                        ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-2xs font-black'
-                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                        }`}
-                    >
-                      {tp === 'All' ? 'All Types' : tp === 'Inflow' ? '+ Inflows' : '− Outflows'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Filter Search Bar and Category Selector */}
-            <div className="no-print flex flex-col sm:flex-row items-center gap-3">
-              <div className="relative flex-1 w-full">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={cfSearch}
-                  onChange={(e) => { setCfSearch(e.target.value); setCfPage(1); }}
-                  placeholder="Search by reference (#INV, #PUR, #VOU), party name, note..."
-                  className={`w-full pl-8 pr-3 py-2 border rounded-xl text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
-                    }`}
-                />
-              </div>
-
-              <select
-                value={cfCategoryFilter}
-                onChange={(e) => { setCfCategoryFilter(e.target.value); setCfPage(1); }}
-                className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer w-full sm:w-auto ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              >
-                <option value="All">All Categories</option>
-                <option value="POS Sale">POS Counter Sales</option>
-                <option value="Customer Payment">Customer Khata Settlements</option>
-                <option value="Purchase Return">Purchase Return Refunds</option>
-                <option value="Supplier Payment">Supplier Khata Settlements</option>
-                <option value="Direct Purchase">Direct Purchases</option>
-                <option value="Operating Expense">Operating Expenses</option>
-                <option value="Sale Return Cash Refund">Sale Return Cash Refunds</option>
-              </select>
-            </div>
-
-            {/* Transactions Table */}
-            <div className="overflow-x-auto border rounded-xl dark:border-slate-700">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <th className="py-2.5 px-3">Date</th>
-                    <th className="py-2.5 px-3">Reference / Description</th>
-                    <th className="py-2.5 px-3">Party Name</th>
-                    <th className="py-2.5 px-3">Category</th>
-                    <th className="py-2.5 px-3">Channel / Mode</th>
-                    <th className="py-2.5 px-3 text-center">Type</th>
-                    <th className="py-2.5 px-3 text-right">Amount</th>
-                    <th className="py-2.5 px-3 text-right">Running Cash</th>
-                    <th className="py-2.5 px-3 text-right">Running Bank</th>
-                  </tr>
-                </thead>
-                <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                  {paginatedCashFlowTransactions.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="py-8 text-center text-slate-400 font-normal">
-                        No transactions matched the selected filters.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedCashFlowTransactions.map((tx, idx) => (
-                      <tr key={tx.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
-                        <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                          {tx.date}
-                        </td>
-                        <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
-                          {tx.source}
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
-                          {tx.party}
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${tx.category === 'POS Sale' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' :
-                            tx.category === 'Customer Payment' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
-                              tx.category === 'Supplier Payment' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' :
-                                tx.category === 'Operating Expense' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' :
-                                  tx.category === 'Sale Return Cash Refund' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' :
-                                    'bg-slate-500/10 text-slate-600 dark:text-slate-400'
-                            }`}>
-                            {tx.category}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-[11px]">
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{tx.channel}</span>
-                          {tx.mode && tx.mode !== tx.channel && (
-                            <span className="text-slate-400 text-[10px] ml-1">({tx.mode})</span>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-black ${tx.type === 'Inflow'
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                            }`}>
-                            {tx.type === 'Inflow' ? '+ Inflow' : '− Outflow'}
-                          </span>
-                        </td>
-                        <td className={`py-2.5 px-3 text-right font-mono font-bold ${tx.type === 'Inflow' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                          {tx.type === 'Inflow' ? '+' : '−'} Rs. {Number(tx.amount || 0).toLocaleString()}
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-mono text-slate-700 dark:text-slate-300">
-                          Rs. {Number(tx.runningCash || 0).toLocaleString()}
-                        </td>
-                        <td className={`py-2.5 px-3 text-right font-mono ${Number(tx.runningBank || 0) >= 0 ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-400 font-bold'}`}>
-                          Rs. {Number(tx.runningBank || 0).toLocaleString()}
-                          {Number(tx.runningBank || 0) < 0 && (
-                            <span className="text-[9px] text-rose-500 block font-normal">Overdraft</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Controls */}
-            <div className={`p-3 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50/70 border-slate-200 text-slate-500'
-              }`}>
-              <div className="flex items-center gap-3">
-                <span>
-                  Showing {filteredCashFlowTransactions.length === 0 ? 0 : (cfPage - 1) * cfPageSize + 1}–{Math.min(cfPage * cfPageSize, filteredCashFlowTransactions.length)} of {filteredCashFlowTransactions.length} movements
-                </span>
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px]">Rows:</span>
-                  <select
-                    value={cfPageSize}
-                    onChange={(e) => { setCfPageSize(Number(e.target.value)); setCfPage(1); }}
-                    className={`border rounded-lg px-2 py-0.5 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                  >
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                </div>
-              </div>
-
-              {totalCfPages > 1 && (
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCfPage(prev => Math.max(1, prev - 1))}
-                    disabled={cfPage === 1}
-                    className="px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
-                  >
-                    Previous
-                  </button>
-                  <span className="px-2 font-bold font-mono">
-                    {cfPage} / {totalCfPages}
-                  </span>
-                  <button
-                    onClick={() => setCfPage(prev => Math.min(totalCfPages, prev + 1))}
-                    disabled={cfPage === totalCfPages}
-                    className="px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       )}
 
