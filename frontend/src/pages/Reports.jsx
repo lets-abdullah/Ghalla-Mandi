@@ -924,9 +924,11 @@ export const Reports = () => {
 
         txList.push({
           date: p.date || 'Today',
+          created_at: p.created_at || p.createdAt || p.date,
           source: `Customer Payment (${p.ref || 'Receipt'})`,
           party: p.partyName || 'Customer',
           channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
+          mode: p.mode || p.paymentMode || p.paymentMethod || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
           type: 'Inflow',
           amount: res.totalLiquid
         });
@@ -953,9 +955,11 @@ export const Reports = () => {
 
           txList.push({
             date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : 'Today'),
+            created_at: s.created_at || s.createdAt || s.date,
             source: `Sale Counter Receipt (#${s.invoiceNo || s.id || 'N/A'})`,
             party: s.customerName || s.partyName || 'Counter Sale',
             channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
+            mode: s.paymentMode || s.paymentMethod || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
             type: 'Inflow',
             amount: res.totalLiquid
           });
@@ -977,9 +981,11 @@ export const Reports = () => {
 
         txList.push({
           date: r.date || 'Today',
+          created_at: r.created_at || r.createdAt || r.date,
           source: `Purchase Return Refund (#${r.returnNo || r.id || 'N/A'})`,
           party: r.supplierName || 'Supplier',
           channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
+          mode: r.refundMode || (res.channel === 'bank' ? 'Bank Transfer' : 'Cash'),
           type: 'Inflow',
           amount: res.totalLiquid
         });
@@ -1007,9 +1013,11 @@ export const Reports = () => {
 
         txList.push({
           date: p.date || 'Today',
+          created_at: p.created_at || p.createdAt || p.date,
           source: `Supplier Payment Settlement (${p.ref || 'Voucher'})`,
           party: p.partyName || 'Supplier',
           channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
+          mode: p.mode || p.paymentMode || p.paymentMethod || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
           type: 'Outflow',
           amount: res.totalLiquid
         });
@@ -1036,9 +1044,11 @@ export const Reports = () => {
 
           txList.push({
             date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Today'),
+            created_at: p.created_at || p.createdAt || p.date,
             source: `Purchase Direct Voucher (#${p.purchaseNo || p.id || 'N/A'})`,
             party: p.supplierName || p.supplier || 'Supplier',
             channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
+            mode: p.paymentMode || p.paymentMethod || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
             type: 'Outflow',
             amount: res.totalLiquid
           });
@@ -1060,9 +1070,11 @@ export const Reports = () => {
 
         txList.push({
           date: e.date || 'Today',
+          created_at: e.created_at || e.createdAt || e.date,
           source: `Expense: ${e.category || 'Shop'} (${e.desc || ''})`,
           party: e.payee || 'Expense Payee',
           channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
+          mode: e.mode || e.paymentMode || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
           type: 'Outflow',
           amount: res.totalLiquid
         });
@@ -1083,9 +1095,11 @@ export const Reports = () => {
 
         txList.push({
           date: r.date || 'Today',
+          created_at: r.created_at || r.createdAt || r.date,
           source: `Sale Return Cash Refund (${res.refundMode || 'Cash'})`,
           party: r.customerName || 'Customer',
           channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
+          mode: r.refundMode || (res.channel === 'bank' ? 'Bank Transfer' : 'Cash'),
           type: 'Outflow',
           amount: res.totalLiquid
         });
@@ -1111,7 +1125,12 @@ export const Reports = () => {
 
   const cashFlowTableRows = useMemo(() => {
     let running = 0;
-    const list = [...(liquidTransactionsList || [])].reverse();
+    const list = [...(liquidTransactionsList || [])].sort((a, b) => {
+      const da = parseJournalDate(a.date, a.created_at || a.createdAt);
+      const db = parseJournalDate(b.date, b.created_at || b.createdAt);
+      return da - db;
+    });
+
     const computed = list.map(tx => {
       const isIn = tx.type === 'Inflow';
       const cashIn = isIn ? Number(tx.amount || 0) : 0;
@@ -1122,6 +1141,8 @@ export const Reports = () => {
         date: tx.date || 'Today',
         desc: tx.source || (isIn ? 'Cash Inflow' : 'Cash Outflow'),
         ref: tx.party ? `${tx.party}` : '—',
+        channel: tx.channel || 'Cash in Hand',
+        paymentMode: tx.mode || tx.paymentMode || (tx.channel?.includes('Bank') ? 'Bank Transfer' : tx.channel?.includes('Card') ? 'Card' : 'Cash'),
         cashIn,
         cashOut,
         balance: running
@@ -2131,35 +2152,53 @@ export const Reports = () => {
                     <th className="py-3.5 px-4">Date</th>
                     <th className="py-3.5 px-4">Description</th>
                     <th className="py-3.5 px-4">Reference / Party</th>
-                    <th className="py-3.5 px-4 text-right">Cash In</th>
-                    <th className="py-3.5 px-4 text-right">Cash Out</th>
-                    <th className="py-3.5 px-4 text-right">Balance</th>
+                    <th className="py-3.5 px-4 text-center">Payment Method</th>
+                    <th className="py-3.5 px-4 text-right">Money In</th>
+                    <th className="py-3.5 px-4 text-right">Money Out</th>
+                    <th className="py-3.5 px-4 text-right font-black">Running Balance</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60 text-slate-200' : 'divide-slate-100 text-slate-800'}`}>
                   {cashFlowTableRows.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400 font-normal">
+                      <td colSpan={7} className="py-8 text-center text-slate-400 font-normal">
                         No cash flow transactions recorded yet.
                       </td>
                     </tr>
                   ) : (
-                    cashFlowTableRows.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
-                        <td className="py-3 px-4 font-mono text-[11px] text-slate-500 dark:text-slate-400">{row.date}</td>
-                        <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{row.desc}</td>
-                        <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">{row.ref}</td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          {row.cashIn > 0 ? `+Rs. ${row.cashIn.toLocaleString()}` : '—'}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
-                          {row.cashOut > 0 ? `-Rs. ${row.cashOut.toLocaleString()}` : '—'}
-                        </td>
-                        <td className="py-3 px-4 text-right font-mono font-black text-slate-900 dark:text-white">
-                          Rs. {row.balance.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))
+                    cashFlowTableRows.map((row, idx) => {
+                      const isBank = (row.paymentMode || row.channel || '').toLowerCase().includes('bank') || (row.channel || '').toLowerCase().includes('bank');
+                      const isCard = (row.paymentMode || row.channel || '').toLowerCase().includes('card') || (row.channel || '').toLowerCase().includes('card');
+                      const badgeLabel = isBank ? 'Bank Transfer' : isCard ? 'Card Payment' : 'Cash in Hand';
+                      const badgeStyle = isBank
+                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                        : isCard
+                          ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
+                          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+
+                      return (
+                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
+                          <td className="py-3 px-4 font-mono text-[11px] text-slate-500 dark:text-slate-400">{row.date}</td>
+                          <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{row.desc}</td>
+                          <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">{row.ref}</td>
+                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-xl border ${badgeStyle}`}>
+                              <span>{isBank ? '🏦' : isCard ? '💳' : '💵'}</span>
+                              <span>{badgeLabel}</span>
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {row.cashIn > 0 ? `+Rs. ${row.cashIn.toLocaleString()}` : '—'}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
+                            {row.cashOut > 0 ? `-Rs. ${row.cashOut.toLocaleString()}` : '—'}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-black text-slate-900 dark:text-white">
+                            Rs. {row.balance.toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
