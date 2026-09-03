@@ -2444,14 +2444,24 @@ export const ERPProvider = ({ children }) => {
       }
     } else {
       const sup = (suppliers || []).find(s => (partyId && String(s.id) === String(partyId)) || (partyName && s.name && s.name.trim().toLowerCase() === partyName.trim().toLowerCase()));
+      const targetSupplier = sup || { id: partyId, name: partyName };
+      
       let maxSupplierPayable = 0;
-      if (sup) {
-        const fin = computeSupplierKhataBalance(sup, purchases, paymentLogs, purchaseReturns);
-        maxSupplierPayable = Math.max(0, fin.payableDue || 0);
-      } else if (purchaseId) {
+      if (purchaseId) {
         const targetPur = (purchases || []).find(p => String(p.id) === String(purchaseId));
-        const fin = computePurchaseFinancials(targetPur, purchaseReturns, paymentLogs);
-        maxSupplierPayable = Math.max(0, fin.due || 0);
+        if (targetPur) {
+          const fin = computePurchaseFinancials(targetPur, purchaseReturns, paymentLogs);
+          maxSupplierPayable = Math.max(0, fin.due || 0);
+        }
+      }
+
+      if (maxSupplierPayable <= 0 && targetSupplier) {
+        const fin = computeSupplierKhataBalance(targetSupplier, purchases, paymentLogs, purchaseReturns);
+        maxSupplierPayable = Math.max(0, fin.payableDue !== undefined ? fin.payableDue : (Number(targetSupplier.balance) || 0));
+      }
+
+      if (maxSupplierPayable <= 0 && sup) {
+        maxSupplierPayable = Math.max(0, Number(sup.balance) || 0);
       }
 
       if (maxSupplierPayable <= 0) {

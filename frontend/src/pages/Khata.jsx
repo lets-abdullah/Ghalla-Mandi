@@ -455,13 +455,12 @@ export const Khata = () => {
                 <th className="py-3 px-4 text-right">{isCustomer ? 'Total Received' : 'Total Paid Out'}</th>
                 <th className="py-3 px-4 text-right font-black">Khata Due</th>
                 <th className="py-3 px-3 text-center">Status</th>
-                <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
               {filteredKhata.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center">
+                  <td colSpan={6} className="py-12 text-center">
                     <EmptyState
                       icon={CheckCircle2}
                       title={balanceStatusFilter === 'Clear' ? 'No settled accounts found' : 'All accounts settled!'}
@@ -552,44 +551,6 @@ export const Khata = () => {
                       {/* 6. Status */}
                       <td className="py-3 px-3 text-center">
                         <StatusBadge status={currentDue > 0 ? (totalPaid > 0 ? 'PARTIAL' : 'UNPAID') : 'PAID'} />
-                      </td>
-
-                      {/* 7. Actions */}
-                      <td className="py-3 px-4 text-center no-print">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {currentDue > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => openPaymentModal(item)}
-                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs ${
-                                isCustomer
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
-                                  : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
-                              }`}
-                              title={isCustomer ? 'Collect payment from customer' : 'Pay supplier balance'}
-                            >
-                              <DollarSign className="w-3.5 h-3.5" />
-                              <span>{isCustomer ? 'Receive Money' : 'Pay Supplier'}</span>
-                            </button>
-                          )}
-
-                          {/* View Complete Ledger Statement */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (isCustomer) {
-                                navigate(item.isRegistered !== false ? `/ledger?customerId=${item.id}` : `/ledger?customerId=${encodeURIComponent(item.name)}`);
-                              } else {
-                                navigate(`/ledger?type=supplier&customerId=${item.id}`);
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white transition cursor-pointer text-xs font-bold"
-                            title="View full chronological ledger statement"
-                          >
-                            <BookOpen className="w-3.5 h-3.5" />
-                            <span>Statement</span>
-                          </button>
-                        </div>
                       </td>
                     </tr>
                   );
