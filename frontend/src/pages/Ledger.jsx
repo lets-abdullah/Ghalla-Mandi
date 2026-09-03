@@ -1022,19 +1022,10 @@ export const Ledger = () => {
         </div>
       ) : (
         /* ========================================================================= */
-        /* VIEW B: SINGLE CUSTOMER COMPLETE CHRONOLOGICAL LEDGER STATEMENT */
+        /* VIEW B: SINGLE CUSTOMER / SUPPLIER COMPLETE TABLE LEDGER STATEMENT */
         /* ========================================================================= */
         <div className="space-y-4">
-          {statementViewMode === 'timeline' ? (
-            <SupplierLedgerTimeline
-              supplier={activeCustomer}
-              entries={singleCustomerLedger}
-              theme={theme}
-              isSupplier={isSupplier}
-            />
-          ) : (
-            <>
-              {/* Customer Financial Condition Summary Header */}
+          {/* Customer / Supplier Financial Condition Summary Header */}
               <div className={`p-5 rounded-3xl border card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                 }`}>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-700">
@@ -1398,8 +1389,6 @@ export const Ledger = () => {
                   </table>
                 </div>
               </div>
-            </>
-          )}
 
           {/* Print Footer for Statement View */}
           <PrintFooter note={`Official Account Statement • ${activeCustomer?.name || 'Party'} • Ghalla Mandi`} />
