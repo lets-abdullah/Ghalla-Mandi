@@ -346,50 +346,8 @@ export const Customers = () => {
       </div>
 
       {/* Filter Toolbar (Screen Only) */}
-      <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
-        {/* Quick Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-100 dark:border-slate-700/60">
-          <button
-            type="button"
-            onClick={() => setCustomerTypeFilter('All')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-              customerTypeFilter === 'All'
-                ? 'bg-brand-500 text-white shadow-xs'
-                : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            <span>All Customers</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{allCustomers.length}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCustomerTypeFilter('Regular')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-              customerTypeFilter === 'Regular'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            <span>Regular Customers</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{regularCount}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCustomerTypeFilter('Walk-in')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-              customerTypeFilter === 'Walk-in'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            <span>Walk-in Customers</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{walkinCount}</span>
-          </button>
-        </div>
-
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
           {/* 1. Search Customer */}
           <div className="flex-[2] min-w-[200px]">
