@@ -1195,17 +1195,24 @@ export const Reports = () => {
     return totalAssets - totalLiabilities;
   }, [totalAssets, totalLiabilities]);
 
+  // Total cash/liquid refunds paid out to customers on sale returns
+  const totalCustomerRefundsPaid = useMemo(() => {
+    return (cashCustomerRefundOut || 0) + (bankCustomerRefundOut || 0);
+  }, [cashCustomerRefundOut, bankCustomerRefundOut]);
+
   const retainedProfit = useMemo(() => {
-    return totalEquity - ownersCapital;
-  }, [totalEquity, ownersCapital]);
+    return netOperatingProfit - totalCustomerRefundsPaid;
+  }, [netOperatingProfit, totalCustomerRefundsPaid]);
 
   const bsEquityBreakdown = useMemo(() => {
     return {
       ownersCapital,
+      netProfit: netOperatingProfit,
+      cashRefundsOut: totalCustomerRefundsPaid,
       retainedProfit,
       total: totalEquity
     };
-  }, [ownersCapital, retainedProfit, totalEquity]);
+  }, [ownersCapital, netOperatingProfit, totalCustomerRefundsPaid, retainedProfit, totalEquity]);
 
   // Granular Balance Sheet Breakdown Objects
   const bsCashBreakdown = useMemo(() => {
@@ -1267,7 +1274,7 @@ export const Reports = () => {
   // Development-Safe Accounting Integrity & Reconciliation Check
   useEffect(() => {
     const isBalanceSheetBalanced = Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01;
-    const isProfitReconciled = Math.abs(netOperatingProfit - (bsEquityBreakdown.retainedProfit || 0)) < 0.01;
+    const isEquityReconciled = Math.abs((ownersCapital + netOperatingProfit - totalCustomerRefundsPaid) - totalEquity) < 0.01;
     if (!isBalanceSheetBalanced) {
       console.warn('[Balance Sheet Imbalance]: Assets do not match Liabilities + Equity!', {
         totalAssets,
@@ -1276,13 +1283,15 @@ export const Reports = () => {
         diff: totalAssets - (totalLiabilities + totalEquity)
       });
     }
-    if (!isProfitReconciled) {
-      console.warn('[P&L / Retained Profit Discrepancy]:', {
+    if (!isEquityReconciled) {
+      console.warn('[Equity Reconciliation Discrepancy]:', {
+        ownersCapital,
         netOperatingProfit,
-        retainedProfit: bsEquityBreakdown.retainedProfit
+        totalCustomerRefundsPaid,
+        totalEquity
       });
     }
-  }, [totalAssets, totalLiabilities, totalEquity, netOperatingProfit, bsEquityBreakdown]);
+  }, [totalAssets, totalLiabilities, totalEquity, ownersCapital, netOperatingProfit, totalCustomerRefundsPaid]);
 
   // 4. PROFIT & LOSS FINANCIAL STATEMENT JOURNAL & ANALYTICS
   // =========================================================================
@@ -3859,7 +3868,7 @@ export const Reports = () => {
               <div className="text-xl sm:text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400 mt-1">
                 Rs. {totalEquity.toLocaleString()}
               </div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Capital + Profit</div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Assets − Liabilities</div>
             </div>
           </div>
 
@@ -4007,21 +4016,32 @@ export const Reports = () => {
                     B. Owner's Equity & Capital (Rs. {totalEquity.toLocaleString()})
                   </div>
 
-                  <div className={`p-3 rounded-xl border space-y-1.5 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
+                  <div className={`p-3 rounded-xl border space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
                     <div className="flex items-center justify-between font-bold">
-                      <span className="text-slate-800 dark:text-slate-200">• Owner's Opening Capital:</span>
+                      <span className="text-slate-800 dark:text-slate-200">• Opening Capital:</span>
                       <span className="font-mono text-slate-900 dark:text-white">Rs. {ownersCapital.toLocaleString()}</span>
                     </div>
-                    <div className="space-y-0.5 text-[11px] text-slate-600 dark:text-slate-300 pl-2">
-                      <div className="flex justify-between">
-                        <span>Retained Earnings / P&L Balance:</span>
-                        <span className={`font-mono font-bold ${retainedProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                          {retainedProfit >= 0 ? `+ Rs. ${retainedProfit.toLocaleString()}` : `- Rs. ${Math.abs(retainedProfit).toLocaleString()}`}
+
+                    <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300 pl-2">
+                      <div className="flex justify-between items-center">
+                        <span>+ Net Profit (from P&L):</span>
+                        <span className={`font-mono font-bold ${netOperatingProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          {netOperatingProfit >= 0 ? `+ Rs. ${netOperatingProfit.toLocaleString()}` : `- Rs. ${Math.abs(netOperatingProfit).toLocaleString()}`}
                         </span>
                       </div>
+
+                      {totalCustomerRefundsPaid > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span>− Cash Refund Paid:</span>
+                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                            − Rs. {totalCustomerRefundsPaid.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center justify-between font-bold pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
-                      <span className="text-slate-800 dark:text-slate-200">• Total Owner's Equity (Net Worth):</span>
+
+                    <div className="flex items-center justify-between font-bold pt-1.5 border-t border-slate-200/50 dark:border-slate-700/50">
+                      <span className="text-slate-800 dark:text-slate-200">• Net Worth (Owner's Equity):</span>
                       <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalEquity.toLocaleString()}</span>
                     </div>
                   </div>

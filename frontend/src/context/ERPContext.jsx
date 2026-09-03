@@ -81,12 +81,7 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
 
   const channel = isKhataOrCredit ? 'khata' : (isCard ? 'card' : (isBank ? 'bank' : 'cash'));
 
-  // Handle Returns — respect actual refundMode from the return record.
-  // ONLY genuine cash/bank refunds reduce liquid funds (cash drawer or bank account).
-  // 'Credit', 'Khata', 'Ledger' returns are NON-CASH: they reduce what the customer/supplier
-  // owes on their account but do NOT move physical money out of the business.
-  // Treating 'Credit' returns as cash outflows was the root cause of the Rs.13,000
-  // Balance Sheet imbalance: cash assets were reduced by Rs.13,000 without any actual cash leaving.
+  // Handle Returns - Strictly Cash Refunds (Direct cash/bank refund, no Khata adjustment)
   if (txType === 'SaleReturn' || txType === 'PurchaseReturn') {
     const refAmt = Number(
       tx.refundAmount !== undefined ? tx.refundAmount :
@@ -94,45 +89,25 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
       tx.amount !== undefined ? tx.amount : grossAmount
     );
 
-    // Determine the actual refund mode from the transaction record
-    const actualRefundMode = String(
-      tx.refundMode || tx.refundmode || tx.mode || tx.paymentMode || 'Credit'
+    const rawMode = String(
+      tx.refundMode || tx.refundmode || tx.mode || tx.paymentMode || 'Cash'
     ).trim().toLowerCase();
 
-    // Classify as cash/bank only when the refundMode explicitly indicates physical money movement
-    const isRefundCash = !actualRefundMode.includes('credit') &&
-      !actualRefundMode.includes('khata') &&
-      !actualRefundMode.includes('ledger') &&
-      !actualRefundMode.includes('udhaar') &&
-      !actualRefundMode.includes('debit note') &&
-      !actualRefundMode.includes('credit note') &&
-      actualRefundMode !== 'pending' &&
-      actualRefundMode !== 'unpaid';
-
-    const isRefundBank = isRefundCash && (
-      actualRefundMode.includes('bank') ||
-      actualRefundMode.includes('transfer') ||
-      actualRefundMode.includes('online') ||
-      actualRefundMode.includes('raast') ||
-      actualRefundMode.includes('cheque')
-    );
-
-    const isRefundCard = isRefundCash && !isRefundBank && actualRefundMode.includes('card');
-
-    const liquidRefund = isRefundCash ? refAmt : 0;
-    const creditRefund = !isRefundCash ? refAmt : 0;
+    const isBank = rawMode.includes('bank') || rawMode.includes('transfer') || rawMode.includes('raast') || rawMode.includes('online');
+    const isCard = !isBank && rawMode.includes('card');
+    const isCash = !isBank && !isCard;
 
     return {
-      channel: isRefundCash ? (isRefundBank ? 'bank' : isRefundCard ? 'card' : 'cash') : 'khata',
-      isLiquid: isRefundCash,
-      isKhata: !isRefundCash,
-      cashAmount: (isRefundCash && !isRefundBank && !isRefundCard) ? refAmt : 0,
-      bankAmount: isRefundBank ? refAmt : 0,
-      cardAmount: isRefundCard ? refAmt : 0,
-      totalLiquid: liquidRefund,
-      creditAmount: creditRefund,
+      channel: isBank ? 'bank' : (isCard ? 'card' : 'cash'),
+      isLiquid: true,
+      isKhata: false,
+      cashAmount: isCash ? refAmt : 0,
+      bankAmount: isBank ? refAmt : 0,
+      cardAmount: isCard ? refAmt : 0,
+      totalLiquid: refAmt,
+      creditAmount: 0,
       grossAmount: refAmt,
-      refundMode: actualRefundMode,
+      refundMode: 'Cash',
       refundAmount: refAmt
     };
   }
