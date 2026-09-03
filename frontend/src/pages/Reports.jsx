@@ -968,14 +968,9 @@ export const Reports = () => {
       }
     });
 
-    // 2. Sales with upfront cash/bank that are NOT logged in paymentLogs
-    (sales || []).forEach(s => {
-      const hasLog = validCustPaymentLogs.some(p =>
-        (p.saleId && String(p.saleId) === String(s.id)) ||
-        (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
-      );
-
-      if (!hasLog) {
+    // 2. Sales with upfront counter cash/bank ONLY if NO customer payment logs exist
+    if (validCustPaymentLogs.length === 0) {
+      (sales || []).forEach(s => {
         const res = resolveTransactionPayment(s, 'Sale');
         if (res.totalLiquid > 0) {
           cash += res.cashAmount;
@@ -997,31 +992,34 @@ export const Reports = () => {
             amount: res.totalLiquid
           });
         }
-      }
-    });
+      });
+    }
 
     // 3. Purchase Returns Inflow (ONLY actual Cash / Bank refunds received from supplier)
     (purchaseReturns || []).forEach(r => {
-      const res = resolveTransactionPayment(r, 'PurchaseReturn');
-      if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
-        cash += res.cashAmount;
-        bank += res.bankAmount;
-        card += res.cardAmount;
+      const isCreditPr = !r.refundMode || r.refundMode === 'Credit' || r.refundMode === 'Khata';
+      if (!isCreditPr) {
+        const res = resolveTransactionPayment(r, 'PurchaseReturn');
+        if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
+          cash += res.cashAmount;
+          bank += res.bankAmount;
+          card += res.cardAmount;
 
-        cInflow += res.cashAmount;
-        bInflow += res.bankAmount;
-        kInflow += res.cardAmount;
+          cInflow += res.cashAmount;
+          bInflow += res.bankAmount;
+          kInflow += res.cardAmount;
 
-        txList.push({
-          date: r.date || 'Today',
-          created_at: r.created_at || r.createdAt || r.date,
-          source: `Purchase Return Refund (#${r.returnNo || r.id || 'N/A'})`,
-          party: r.supplierName || 'Supplier',
-          channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
-          mode: r.refundMode || (res.channel === 'bank' ? 'Bank Transfer' : 'Cash'),
-          type: 'Inflow',
-          amount: res.totalLiquid
-        });
+          txList.push({
+            date: r.date || 'Today',
+            created_at: r.created_at || r.createdAt || r.date,
+            source: `Purchase Return Refund (#${r.returnNo || r.id || 'N/A'})`,
+            party: r.supplierName || 'Supplier',
+            channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
+            mode: r.refundMode || (res.channel === 'bank' ? 'Bank Transfer' : 'Cash'),
+            type: 'Inflow',
+            amount: res.totalLiquid
+          });
+        }
       }
     });
 
@@ -1057,14 +1055,9 @@ export const Reports = () => {
       }
     });
 
-    // 5. Purchases with upfront cash/bank that are NOT logged in paymentLogs
-    (purchases || []).forEach(p => {
-      const hasLog = validSupPaymentLogs.some(pl =>
-        (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
-        (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
-      );
-
-      if (!hasLog) {
+    // 5. Purchases with upfront cash/bank ONLY if NO supplier payment logs exist
+    if (validSupPaymentLogs.length === 0) {
+      (purchases || []).forEach(p => {
         const res = resolveTransactionPayment(p, 'Purchase');
         if (res.totalLiquid > 0) {
           cash -= res.cashAmount;
@@ -1086,8 +1079,8 @@ export const Reports = () => {
             amount: res.totalLiquid
           });
         }
-      }
-    });
+      });
+    }
 
     // 6. Expenses Outflows (Paid expenses deduct cash/bank/card directly)
     (expenses || []).forEach(e => {
@@ -1114,28 +1107,31 @@ export const Reports = () => {
       }
     });
 
-    // 7. Sale Returns Outflows (Cash / Bank / Card refunds given to customers)
+    // 7. Sale Returns Outflows (ONLY actual Cash / Bank refunds given to customers, never Credit / Khata offsets)
     (saleReturns || []).forEach(r => {
-      const res = resolveTransactionPayment(r, 'SaleReturn');
-      if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
-        cash -= res.cashAmount;
-        bank -= res.bankAmount;
-        card -= res.cardAmount;
+      const isCreditSr = !r.refundMode || r.refundMode === 'Credit' || r.refundMode === 'Khata';
+      if (!isCreditSr) {
+        const res = resolveTransactionPayment(r, 'SaleReturn');
+        if (res.isLiquid && !res.isKhata && res.totalLiquid > 0) {
+          cash -= res.cashAmount;
+          bank -= res.bankAmount;
+          card -= res.cardAmount;
 
-        cOut += res.cashAmount;
-        bOut += res.bankAmount;
-        kOut += res.cardAmount;
+          cOut += res.cashAmount;
+          bOut += res.bankAmount;
+          kOut += res.cardAmount;
 
-        txList.push({
-          date: r.date || 'Today',
-          created_at: r.created_at || r.createdAt || r.date,
-          source: `Sale Return Cash Refund (${res.refundMode || 'Cash'})`,
-          party: r.customerName || 'Customer',
-          channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
-          mode: r.refundMode || (res.channel === 'bank' ? 'Bank Transfer' : 'Cash'),
-          type: 'Outflow',
-          amount: res.totalLiquid
-        });
+          txList.push({
+            date: r.date || 'Today',
+            created_at: r.created_at || r.createdAt || r.date,
+            source: `Sale Return Cash Refund (${res.refundMode || 'Cash'})`,
+            party: r.customerName || 'Customer',
+            channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
+            mode: r.refundMode || (res.channel === 'bank' ? 'Bank Transfer' : 'Cash'),
+            type: 'Outflow',
+            amount: res.totalLiquid
+          });
+        }
       }
     });
 
