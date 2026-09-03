@@ -15,7 +15,39 @@ import { useAuth } from '../context/AuthContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 import { EXPENSE_CATEGORIES } from './Expenses';
-import { StatusBadge } from '../components/StatusBadge';
+// Universal date parsing helper for reports and journals
+const parseJournalDate = (dateVal, createdVal) => {
+  if (createdVal) {
+    const d = new Date(createdVal);
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (!dateVal) return new Date();
+  if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? new Date() : dateVal;
+  if (typeof dateVal === 'string') {
+    if (dateVal.includes('/')) {
+      const parts = dateVal.split('/');
+      if (parts.length === 3) {
+        const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+        if (!isNaN(d.getTime())) return d;
+      }
+    }
+    if (dateVal.includes('-')) {
+      const parts = dateVal.split('-');
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+          if (!isNaN(d.getTime())) return d;
+        } else {
+          const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+          if (!isNaN(d.getTime())) return d;
+        }
+      }
+    }
+    const parsed = new Date(dateVal);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
+};
 
 export const Reports = () => {
   const {
@@ -1240,40 +1272,6 @@ export const Reports = () => {
       });
     }
   }, [totalAssets, totalLiabilities, totalEquity, netOperatingProfit, bsEquityBreakdown]);
-
-  // Helper for universal date parsing in Journal
-  const parseJournalDate = (dateVal, createdVal) => {
-    if (createdVal) {
-      const d = new Date(createdVal);
-      if (!isNaN(d.getTime())) return d;
-    }
-    if (!dateVal) return new Date();
-    if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? new Date() : dateVal;
-    if (typeof dateVal === 'string') {
-      if (dateVal.includes('/')) {
-        const parts = dateVal.split('/');
-        if (parts.length === 3) {
-          const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-          if (!isNaN(d.getTime())) return d;
-        }
-      }
-      if (dateVal.includes('-')) {
-        const parts = dateVal.split('-');
-        if (parts.length === 3) {
-          if (parts[0].length === 4) {
-            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-            if (!isNaN(d.getTime())) return d;
-          } else {
-            const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-            if (!isNaN(d.getTime())) return d;
-          }
-        }
-      }
-      const parsed = new Date(dateVal);
-      if (!isNaN(parsed.getTime())) return parsed;
-    }
-    return new Date();
-  };
 
   // 4. PROFIT & LOSS FINANCIAL STATEMENT JOURNAL & ANALYTICS
   // =========================================================================
