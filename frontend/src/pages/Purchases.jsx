@@ -1183,11 +1183,14 @@ export const Purchases = () => {
                     type="number"
                     required
                     min="0"
-                    step="any"
+                    step="1"
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',') e.preventDefault();
+                    }}
                     value={form.rate}
-                    onChange={(e) => setForm({ ...form, rate: Number(e.target.value) })}
+                    onChange={(e) => setForm({ ...form, rate: parseInt(e.target.value.replace(/[^0-9]/g, ''), 10) || 0 })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
@@ -1574,10 +1577,13 @@ export const Purchases = () => {
                   <input
                     type="number"
                     min="0"
-                    step="any"
+                    step="1"
                     placeholder="0"
                     value={newProductForm.purchasePrice}
-                    onChange={(e) => setNewProductForm({ ...newProductForm, purchasePrice: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',') e.preventDefault();
+                    }}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, purchasePrice: e.target.value.replace(/[^0-9]/g, '') })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
@@ -1590,10 +1596,13 @@ export const Purchases = () => {
                   <input
                     type="number"
                     min="0"
-                    step="any"
+                    step="1"
                     placeholder="0"
                     value={newProductForm.sellingPrice}
-                    onChange={(e) => setNewProductForm({ ...newProductForm, sellingPrice: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',') e.preventDefault();
+                    }}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, sellingPrice: e.target.value.replace(/[^0-9]/g, '') })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
@@ -1821,25 +1830,28 @@ export const Purchases = () => {
                     type="number"
                     required
                     min="1"
-                    max={maxDue}
-                    step="any"
+                    max={maxDue > 0 ? maxDue : 1}
+                    step="1"
                     autoFocus
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
                     value={payForm.amount}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
+                        e.preventDefault();
+                      }
+                    }}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '') {
+                      const raw = e.target.value.replace(/[^0-9]/g, '');
+                      if (raw === '') {
                         setPayForm({ ...payForm, amount: '' });
                         return;
                       }
-                      const num = Number(val);
-                      if (num > maxDue) {
+                      const num = parseInt(raw, 10) || 0;
+                      if (maxDue > 0 && num > maxDue) {
                         setPayForm({ ...payForm, amount: maxDue });
-                      } else if (num < 0) {
-                        setPayForm({ ...payForm, amount: 0 });
                       } else {
-                        setPayForm({ ...payForm, amount: val });
+                        setPayForm({ ...payForm, amount: num });
                       }
                     }}
                     placeholder={`Max Rs. ${maxDue.toLocaleString()}`}

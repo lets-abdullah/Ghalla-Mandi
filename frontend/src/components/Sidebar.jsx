@@ -384,6 +384,7 @@ export const Sidebar = () => {
                   <Link to="/reports?type=Expenses" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/reports', 'Expenses') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Expense Report</Link>
                   <Link to="/reports?type=ProfitLoss" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/reports', 'ProfitLoss') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Profit & Loss</Link>
                   <Link to="/reports?type=BalanceSheet" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/reports', 'BalanceSheet') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Balance Sheet</Link>
+                  <Link to="/reports?type=CashFlow" onClick={handleLinkClick} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${isSubActive('/reports', 'CashFlow') ? 'bg-brand-500 text-white font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>Cash Flow</Link>
                 </div>
               </div>
             </div>
@@ -420,6 +421,9 @@ export const Sidebar = () => {
                   </Link>
                   <Link to="/reports?type=BalanceSheet" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'BalanceSheet') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <span>Balance Sheet</span>
+                  </Link>
+                  <Link to="/reports?type=CashFlow" onClick={handleLinkClick} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isSubActive('/reports', 'CashFlow') ? 'bg-brand-500 text-white shadow-xs font-black' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <span>Cash Flow</span>
                   </Link>
                 </div>
               )}

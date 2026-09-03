@@ -319,8 +319,10 @@ export const Suppliers = () => {
 
   const handleOpenPayModal = (supplier) => {
     const fullSup = processedSuppliers.find(s => s.id === supplier.id) || supplier;
+    const rawBal = Number(fullSup.balance || 0);
+    const bal = rawBal < 1 ? 0 : Math.round(rawBal);
     setPayingSupplier(fullSup);
-    setPayAmount(fullSup.balance > 0 ? fullSup.balance.toString() : '');
+    setPayAmount(bal > 0 ? bal.toString() : '');
     setPayMode('Cash');
     setPayDate(new Date().toISOString().split('T')[0]);
     setPayNote(`Settlement payment to ${fullSup.name}`);
@@ -330,11 +332,12 @@ export const Suppliers = () => {
     e.preventDefault();
     if (!payingSupplier || isProcessingPay) return;
 
-    const amt = Number(payAmount) || 0;
-    const maxDue = Math.max(0, Number(payingSupplier.balance || 0));
+    const amt = parseInt(payAmount, 10) || 0;
+    const rawDue = Number(payingSupplier.balance || 0);
+    const maxDue = rawDue < 1 ? 0 : Math.round(rawDue);
 
     if (amt <= 0) {
-      alert('Please enter a valid payment amount.');
+      alert('Please enter a valid whole payment amount.');
       return;
     }
 
@@ -1930,25 +1933,29 @@ export const Suppliers = () => {
                     type="number"
                     required
                     min="1"
-                    max={Number(payingSupplier.balance || 0) > 0 ? Number(payingSupplier.balance) : undefined}
+                    step="1"
+                    max={Math.max(0, Math.round(Number(payingSupplier.balance || 0))) > 0 ? Math.max(0, Math.round(Number(payingSupplier.balance || 0))) : undefined}
                     value={payAmount}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
+                        e.preventDefault();
+                      }
+                    }}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      const maxPayable = Math.max(0, Number(payingSupplier?.balance || 0));
-                      if (val === '') {
+                      const raw = e.target.value.replace(/[^0-9]/g, '');
+                      const maxPayable = Math.max(0, Math.round(Number(payingSupplier?.balance || 0)));
+                      if (raw === '') {
                         setPayAmount('');
                         return;
                       }
-                      const num = Number(val);
-                      if (num > maxPayable) {
+                      const num = parseInt(raw, 10) || 0;
+                      if (maxPayable > 0 && num > maxPayable) {
                         setPayAmount(maxPayable.toString());
-                      } else if (num < 0) {
-                        setPayAmount('0');
                       } else {
-                        setPayAmount(val);
+                        setPayAmount(num.toString());
                       }
                     }}
-                    placeholder={`e.g. ${Number(payingSupplier.balance || 0)}`}
+                    placeholder={`e.g. ${Math.round(Number(payingSupplier.balance || 0))}`}
                     autoFocus
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(payAmount || 0) >= Number(payingSupplier.balance || 0) && Number(payingSupplier.balance || 0) > 0
                       ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
@@ -2173,10 +2180,13 @@ export const Suppliers = () => {
                   <input
                     type="number"
                     min="0"
-                    step="any"
+                    step="1"
                     placeholder="0"
                     value={newProductForm.purchasePrice}
-                    onChange={(e) => setNewProductForm({ ...newProductForm, purchasePrice: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',') e.preventDefault();
+                    }}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, purchasePrice: e.target.value.replace(/[^0-9]/g, '') })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
@@ -2189,10 +2199,13 @@ export const Suppliers = () => {
                   <input
                     type="number"
                     min="0"
-                    step="any"
+                    step="1"
                     placeholder="0"
                     value={newProductForm.sellingPrice}
-                    onChange={(e) => setNewProductForm({ ...newProductForm, sellingPrice: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',') e.preventDefault();
+                    }}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, sellingPrice: e.target.value.replace(/[^0-9]/g, '') })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />

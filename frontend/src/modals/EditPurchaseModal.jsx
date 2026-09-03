@@ -260,10 +260,13 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
                     <div className="col-span-3 sm:col-span-2">
                       <input
                         type="number"
-                        min="0.1"
-                        step="any"
+                        min="1"
+                        step="1"
                         value={item.qty}
-                        onChange={(e) => handleItemChange(idx, 'qty', e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === '.' || e.key === ',') e.preventDefault();
+                        }}
+                        onChange={(e) => handleItemChange(idx, 'qty', e.target.value.replace(/[^0-9]/g, ''))}
                         placeholder="Qty"
                         className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                           }`}
@@ -275,9 +278,12 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
                       <input
                         type="number"
                         min="0"
-                        step="any"
+                        step="1"
                         value={item.rate}
-                        onChange={(e) => handleItemChange(idx, 'rate', e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === '.' || e.key === ',') e.preventDefault();
+                        }}
+                        onChange={(e) => handleItemChange(idx, 'rate', e.target.value.replace(/[^0-9]/g, ''))}
                         placeholder="Rate"
                         className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none font-mono focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                           }`}

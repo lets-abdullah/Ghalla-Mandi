@@ -295,11 +295,12 @@ export const Sales = () => {
     e.preventDefault();
     if (!paymentModalSale || isSubmitting) return;
 
-    const val = Math.max(1, Number(paymentAmount) || 0);
-    const paid = Number(paymentModalSale.paidAmount || 0);
-    const total = Number(paymentModalSale.amount || 0);
-    const retAmt = Number(paymentModalSale.returnAmount || 0);
-    const due = Math.max(0, total - paid - retAmt);
+    const val = Math.max(1, parseInt(paymentAmount, 10) || 0);
+    const paid = Math.round(Number(paymentModalSale.paidAmount || 0));
+    const total = Math.round(Number(paymentModalSale.amount || 0));
+    const retAmt = Math.round(Number(paymentModalSale.returnAmount || 0));
+    const rawDue = total - paid - retAmt;
+    const due = rawDue < 1 ? 0 : Math.round(rawDue);
 
     if (val > due) {
       toast.error(`Amount exceeds remaining due balance of Rs. ${due.toLocaleString()}`);
@@ -862,26 +863,29 @@ export const Sales = () => {
                   type="number"
                   required
                   min="1"
-                  max={Math.max(0, Number(paymentModalSale?.amount || 0) - Number(paymentModalSale?.paidAmount || 0))}
-                  step="any"
+                  max={Math.max(1, Math.round(Number(paymentModalSale?.amount || 0) - Number(paymentModalSale?.paidAmount || 0)))}
+                  step="1"
                   autoFocus
                   onWheel={(e) => e.target.blur()}
                   onFocus={(e) => e.target.select()}
                   value={paymentAmount}
+                  onKeyDown={(e) => {
+                    if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
+                      e.preventDefault();
+                    }
+                  }}
                   onChange={(e) => {
-                    const val = e.target.value;
-                    const maxDue = Math.max(0, Number(paymentModalSale?.amount || 0) - Number(paymentModalSale?.paidAmount || 0));
-                    if (val === '') {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    const maxDue = Math.max(0, Math.round(Number(paymentModalSale?.amount || 0) - Number(paymentModalSale?.paidAmount || 0)));
+                    if (raw === '') {
                       setPaymentAmount('');
                       return;
                     }
-                    const num = Number(val);
-                    if (num > maxDue) {
+                    const num = parseInt(raw, 10) || 0;
+                    if (maxDue > 0 && num > maxDue) {
                       setPaymentAmount(maxDue.toString());
-                    } else if (num < 0) {
-                      setPaymentAmount('0');
                     } else {
-                      setPaymentAmount(val);
+                      setPaymentAmount(num.toString());
                     }
                   }}
                   placeholder={t('enterPaymentAmount')}

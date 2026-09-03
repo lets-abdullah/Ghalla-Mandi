@@ -174,6 +174,25 @@ export const Reports = () => {
     setBsDateFilter('All Time');
   };
 
+  // Cash Flow Report Filter States
+  const [cfDateFilter, setCfDateFilter] = useState('All Time'); // 'All Time' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
+  const [cfCustomDate, setCfCustomDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [cfChannelFilter, setCfChannelFilter] = useState('All'); // 'All' | 'Cash' | 'Bank'
+  const [cfTypeFilter, setCfTypeFilter] = useState('All'); // 'All' | 'Inflow' | 'Outflow'
+  const [cfCategoryFilter, setCfCategoryFilter] = useState('All');
+  const [cfSearch, setCfSearch] = useState('');
+  const [cfPage, setCfPage] = useState(1);
+  const [cfPageSize, setCfPageSize] = useState(25);
+
+  const handleResetCfFilters = () => {
+    setCfDateFilter('All Time');
+    setCfChannelFilter('All');
+    setCfTypeFilter('All');
+    setCfCategoryFilter('All');
+    setCfSearch('');
+    setCfPage(1);
+  };
+
   // Returns aggregates
   const totalSaleReturnsVal = useMemo(() => (saleReturns || []).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0), [saleReturns]);
   const totalSaleReturnsCash = useMemo(() => (saleReturns || []).filter(r => r.refundMode === 'Cash').reduce((sum, r) => sum + Number(r.refundAmount || 0), 0), [saleReturns]);
@@ -921,7 +940,21 @@ export const Reports = () => {
     bankTotalOutflows,
     cardInflows,
     cardSupplierOut,
-    cardExpenses
+    cardExpenses,
+    cCustInflow,
+    bCustInflow,
+    cPosInflow,
+    bPosInflow,
+    cPRetInflow,
+    bPRetInflow,
+    cSupPayOut,
+    bSupPayOut,
+    cPurDirectOut,
+    bPurDirectOut,
+    cExpOut,
+    bExpOut,
+    cSRetOut,
+    bSRetOut
   } = useMemo(() => {
     let cInflow = 0;
     let cSupOut = 0;
@@ -937,6 +970,15 @@ export const Reports = () => {
     let kSupOut = 0;
     let kCustRefundOut = 0;
     let kExp = 0;
+
+    // Granular Category Accumulators
+    let cCustInflow = 0, bCustInflow = 0;
+    let cPosInflow = 0, bPosInflow = 0;
+    let cPRetInflow = 0, bPRetInflow = 0;
+    let cSupPayOut = 0, bSupPayOut = 0;
+    let cPurDirectOut = 0, bPurDirectOut = 0;
+    let cExpOut = 0, bExpOut = 0;
+    let cSRetOut = 0, bSRetOut = 0;
 
     const txList = [];
 
@@ -979,14 +1021,22 @@ export const Reports = () => {
         bInflow += grossBank;
         kInflow += grossCard;
 
+        cCustInflow += grossCash;
+        bCustInflow += grossBank;
+
         txList.push({
+          id: p.id || `cp-${p.ref || Math.random()}`,
           date: p.date || 'Today',
           created_at: p.created_at || p.createdAt || p.date,
-          source: `Customer Payment (${p.ref || 'Receipt'})`,
+          source: `Customer Khata Settlement (${p.ref || 'Receipt'})`,
           party: p.partyName || 'Customer',
+          category: 'Customer Payment',
           channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
           mode: p.mode || p.paymentMode || p.paymentMethod || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
           type: 'Inflow',
+          cashAmount: grossCash,
+          bankAmount: grossBank,
+          cardAmount: grossCard,
           amount: grossCash + grossBank + grossCard
         });
       }
@@ -1027,14 +1077,22 @@ export const Reports = () => {
           bInflow += grossBank;
           kInflow += grossCard;
 
+          cPosInflow += grossCash;
+          bPosInflow += grossBank;
+
           txList.push({
+            id: s.id || `sale-${s.invoiceNo || Math.random()}`,
             date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : 'Today'),
             created_at: s.created_at || s.createdAt || s.date,
             source: `Sale Counter Receipt (#${s.invoiceNo || s.id || 'N/A'})`,
             party: s.customerName || s.partyName || 'Counter Sale',
+            category: 'POS Sale',
             channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
             mode: s.paymentMode || s.paymentMethod || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
             type: 'Inflow',
+            cashAmount: grossCash,
+            bankAmount: grossBank,
+            cardAmount: grossCard,
             amount: grossCash + grossBank + grossCard
           });
         }
@@ -1049,14 +1107,22 @@ export const Reports = () => {
         bInflow += res.bankAmount;
         kInflow += res.cardAmount;
 
+        cPRetInflow += res.cashAmount;
+        bPRetInflow += res.bankAmount;
+
         txList.push({
+          id: r.id || `pret-${r.returnNo || Math.random()}`,
           date: r.date || 'Today',
           created_at: r.created_at || r.createdAt || r.date,
           source: `Purchase Return Cash Refund (#${r.returnNo || r.id || 'N/A'})`,
           party: r.supplierName || 'Supplier',
+          category: 'Purchase Return',
           channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
           mode: 'Cash',
           type: 'Inflow',
+          cashAmount: res.cashAmount,
+          bankAmount: res.bankAmount,
+          cardAmount: res.cardAmount,
           amount: res.totalLiquid
         });
       }
@@ -1077,14 +1143,22 @@ export const Reports = () => {
         bSupOut += res.bankAmount;
         kSupOut += res.cardAmount;
 
+        cSupPayOut += res.cashAmount;
+        bSupPayOut += res.bankAmount;
+
         txList.push({
+          id: p.id || `sp-${p.ref || Math.random()}`,
           date: p.date || 'Today',
           created_at: p.created_at || p.createdAt || p.date,
-          source: `Supplier Payment Settlement (${p.ref || 'Voucher'})`,
+          source: `Supplier Khata Settlement (${p.ref || 'Voucher'})`,
           party: p.partyName || 'Supplier',
+          category: 'Supplier Payment',
           channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
           mode: p.mode || p.paymentMode || p.paymentMethod || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
           type: 'Outflow',
+          cashAmount: res.cashAmount,
+          bankAmount: res.bankAmount,
+          cardAmount: res.cardAmount,
           amount: res.totalLiquid
         });
       }
@@ -1104,14 +1178,22 @@ export const Reports = () => {
           bSupOut += res.bankAmount;
           kSupOut += res.cardAmount;
 
+          cPurDirectOut += res.cashAmount;
+          bPurDirectOut += res.bankAmount;
+
           txList.push({
+            id: p.id || `pur-${p.purchaseNo || Math.random()}`,
             date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Today'),
             created_at: p.created_at || p.createdAt || p.date,
             source: `Purchase Direct Voucher (#${p.purchaseNo || p.id || 'N/A'})`,
             party: p.supplierName || p.supplier || 'Supplier',
+            category: 'Direct Purchase',
             channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
             mode: p.paymentMode || p.paymentMethod || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
             type: 'Outflow',
+            cashAmount: res.cashAmount,
+            bankAmount: res.bankAmount,
+            cardAmount: res.cardAmount,
             amount: res.totalLiquid
           });
         }
@@ -1126,14 +1208,22 @@ export const Reports = () => {
         bExp += res.bankAmount;
         kExp += res.cardAmount;
 
+        cExpOut += res.cashAmount;
+        bExpOut += res.bankAmount;
+
         txList.push({
+          id: e.id || `exp-${e.ref || Math.random()}`,
           date: e.date || 'Today',
           created_at: e.created_at || e.createdAt || e.date,
-          source: `Expense: ${e.category || 'Shop'} (${e.desc || ''})`,
+          source: `Operating Expense: ${e.category || 'Shop'} (${e.desc || ''})`,
           party: e.payee || 'Expense Payee',
+          category: 'Operating Expense',
           channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
           mode: e.mode || e.paymentMode || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
           type: 'Outflow',
+          cashAmount: res.cashAmount,
+          bankAmount: res.bankAmount,
+          cardAmount: res.cardAmount,
           amount: res.totalLiquid
         });
       }
@@ -1147,14 +1237,22 @@ export const Reports = () => {
         bCustRefundOut += res.bankAmount;
         kCustRefundOut += res.cardAmount;
 
+        cSRetOut += res.cashAmount;
+        bSRetOut += res.bankAmount;
+
         txList.push({
+          id: r.id || `sret-${r.returnNo || Math.random()}`,
           date: r.date || 'Today',
           created_at: r.created_at || r.createdAt || r.date,
           source: `Sale Return Cash Refund (#${r.returnNo || r.id || 'N/A'})`,
           party: r.customerName || 'Customer',
+          category: 'Sale Return Cash Refund',
           channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
           mode: 'Cash',
           type: 'Outflow',
+          cashAmount: res.cashAmount,
+          bankAmount: res.bankAmount,
+          cardAmount: res.cardAmount,
           amount: res.totalLiquid
         });
       }
@@ -1182,7 +1280,22 @@ export const Reports = () => {
       bankTotalOutflows: bSupOut + bCustRefundOut + bExp,
       cardInflows: kInflow,
       cardSupplierOut: kSupOut,
-      cardExpenses: kExp
+      cardExpenses: kExp,
+      // Granular Categories
+      cCustInflow,
+      bCustInflow,
+      cPosInflow,
+      bPosInflow,
+      cPRetInflow,
+      bPRetInflow,
+      cSupPayOut,
+      bSupPayOut,
+      cPurDirectOut,
+      bPurDirectOut,
+      cExpOut,
+      bExpOut,
+      cSRetOut,
+      bSRetOut
     };
   }, [sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns]);
 
@@ -1330,6 +1443,153 @@ export const Reports = () => {
       });
     }
   }, [totalAssets, totalLiabilities, totalEquity, ownersCapital, netOperatingProfit]);
+
+  // -------------------------------------------------------------------------
+  // 3B. CANONICAL CASH FLOW STATEMENT ENGINE & BALANCE SHEET RECONCILIATION
+  // -------------------------------------------------------------------------
+  const chronologicalCashFlow = useMemo(() => {
+    const list = [...(liquidTransactionsList || [])];
+    list.sort((a, b) => {
+      const tA = parseJournalDate(a.date, a.created_at).getTime();
+      const tB = parseJournalDate(b.date, b.created_at).getTime();
+      return tA - tB;
+    });
+
+    let runningCash = 0;
+    let runningBank = 0;
+
+    return list.map((tx, idx) => {
+      if (tx.type === 'Inflow') {
+        runningCash += Number(tx.cashAmount || 0);
+        runningBank += Number(tx.bankAmount || 0);
+      } else {
+        runningCash -= Number(tx.cashAmount || 0);
+        runningBank -= Number(tx.bankAmount || 0);
+      }
+
+      return {
+        ...tx,
+        idx: idx + 1,
+        runningCash,
+        runningBank,
+        runningBankOverdraft: Math.max(0, -runningBank),
+        runningCashDeficit: Math.max(0, -runningCash)
+      };
+    });
+  }, [liquidTransactionsList]);
+
+  // Cash Flow Reconciliation with Balance Sheet
+  const cashFlowReconciliation = useMemo(() => {
+    const cfClosingCash = cashInHand;
+    const cfClosingBank = bankBalance;
+    const cfLiquidCashAsset = Math.max(0, cfClosingCash);
+    const cfLiquidBankAsset = Math.max(0, cfClosingBank);
+    const cfBankOverdraftLiability = Math.abs(Math.min(0, cfClosingBank));
+    const cfCashDeficitLiability = Math.abs(Math.min(0, cfClosingCash));
+
+    const bsCashAsset = liquidCashAsset;
+    const bsBankAsset = liquidBankAsset;
+    const bsOverdraftLiability = bankOverdraftLiability;
+    const bsCashDeficit = cashDeficitLiability;
+
+    const diffCash = Math.abs(cfLiquidCashAsset - bsCashAsset);
+    const diffBank = Math.abs(cfLiquidBankAsset - bsBankAsset);
+    const diffOverdraft = Math.abs(cfBankOverdraftLiability - bsOverdraftLiability);
+    const diffCashDeficit = Math.abs(cfCashDeficitLiability - bsCashDeficit);
+    const totalMismatch = diffCash + diffBank + diffOverdraft + diffCashDeficit;
+
+    return {
+      cfClosingCash,
+      cfClosingBank,
+      cfLiquidCashAsset,
+      cfLiquidBankAsset,
+      cfBankOverdraftLiability,
+      cfCashDeficitLiability,
+      bsCashAsset,
+      bsBankAsset,
+      bsOverdraftLiability,
+      bsCashDeficit,
+      diffCash,
+      diffBank,
+      diffOverdraft,
+      diffCashDeficit,
+      totalMismatch,
+      isReconciled: totalMismatch < 0.01
+    };
+  }, [cashInHand, bankBalance, liquidCashAsset, liquidBankAsset, bankOverdraftLiability, cashDeficitLiability]);
+
+  // Alert on Cash Flow / Balance Sheet Mismatch in console
+  useEffect(() => {
+    if (!cashFlowReconciliation.isReconciled) {
+      console.error('[Cash Flow Discrepancy Error]: Cash Flow closing balances do not reconcile with Balance Sheet!', cashFlowReconciliation);
+    }
+  }, [cashFlowReconciliation]);
+
+  // Filtered Cash Flow Transactions for Table
+  const filteredCashFlowTransactions = useMemo(() => {
+    return chronologicalCashFlow.filter(tx => {
+      // Channel Filter
+      if (cfChannelFilter === 'Cash' && Number(tx.cashAmount || 0) === 0) return false;
+      if (cfChannelFilter === 'Bank' && Number(tx.bankAmount || 0) === 0) return false;
+
+      // Type Filter
+      if (cfTypeFilter === 'Inflow' && tx.type !== 'Inflow') return false;
+      if (cfTypeFilter === 'Outflow' && tx.type !== 'Outflow') return false;
+
+      // Category Filter
+      if (cfCategoryFilter !== 'All' && tx.category !== cfCategoryFilter) return false;
+
+      // Search Filter
+      if (cfSearch.trim()) {
+        const q = cfSearch.toLowerCase();
+        const matchesSource = (tx.source || '').toLowerCase().includes(q);
+        const matchesParty = (tx.party || '').toLowerCase().includes(q);
+        const matchesChannel = (tx.channel || '').toLowerCase().includes(q);
+        const matchesCategory = (tx.category || '').toLowerCase().includes(q);
+        if (!matchesSource && !matchesParty && !matchesChannel && !matchesCategory) return false;
+      }
+
+      // Date Filter
+      if (cfDateFilter !== 'All Time') {
+        const txDate = parseJournalDate(tx.date, tx.created_at);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        if (cfDateFilter === 'Today') {
+          const d = new Date(txDate);
+          d.setHours(0, 0, 0, 0);
+          if (d.getTime() !== now.getTime()) return false;
+        } else if (cfDateFilter === 'Yesterday') {
+          const y = new Date(now);
+          y.setDate(y.getDate() - 1);
+          const d = new Date(txDate);
+          d.setHours(0, 0, 0, 0);
+          if (d.getTime() !== y.getTime()) return false;
+        } else if (cfDateFilter === 'This Week') {
+          const wStart = new Date(now);
+          wStart.setDate(wStart.getDate() - wStart.getDay());
+          if (txDate < wStart) return false;
+        } else if (cfDateFilter === 'This Month') {
+          if (txDate.getMonth() !== now.getMonth() || txDate.getFullYear() !== now.getFullYear()) return false;
+        } else if (cfDateFilter === 'Custom' && cfCustomDate) {
+          const cDate = new Date(cfCustomDate);
+          cDate.setHours(0, 0, 0, 0);
+          const d = new Date(txDate);
+          d.setHours(0, 0, 0, 0);
+          if (d.getTime() !== cDate.getTime()) return false;
+        }
+      }
+
+      return true;
+    }).sort((a, b) => b.idx - a.idx);
+  }, [chronologicalCashFlow, cfChannelFilter, cfTypeFilter, cfCategoryFilter, cfSearch, cfDateFilter, cfCustomDate]);
+
+  const paginatedCashFlowTransactions = useMemo(() => {
+    const start = (cfPage - 1) * cfPageSize;
+    return filteredCashFlowTransactions.slice(start, start + cfPageSize);
+  }, [filteredCashFlowTransactions, cfPage, cfPageSize]);
+
+  const totalCfPages = useMemo(() => Math.max(1, Math.ceil(filteredCashFlowTransactions.length / cfPageSize)), [filteredCashFlowTransactions, cfPageSize]);
 
   // 4. PROFIT & LOSS FINANCIAL STATEMENT JOURNAL & ANALYTICS
   // =========================================================================
@@ -2040,6 +2300,37 @@ export const Reports = () => {
       csvContent += makeRow(['TOTAL OWNER EQUITY', '', '', '', '', num(totalEquity)], COLS);
       csvContent += makeRow(['TOTAL LIABILITIES & EQUITY (BALANCED)', '', '', '', '', num(totalLiabilities + totalEquity)], COLS);
 
+    } else if (reportType === 'CashFlow') {
+      const COLS = 7;
+      csvContent += makeRow([sName], COLS);
+      csvContent += makeRow([sMandi + (sPhone ? ` • Contact: ${sPhone}` : '')], COLS);
+      csvContent += makeRow(['CASH FLOW STATEMENT & LIQUID MOVEMENTS LEDGER'], COLS);
+      csvContent += makeRow([`Statement Period: ${cfDateFilter === 'Custom' ? cfCustomDate : cfDateFilter} | Generated: ${nowStr}`], COLS);
+      csvContent += makeRow([''], COLS);
+
+      // KPI Summary Block
+      csvContent += makeRow(['--- LIQUID BALANCES SUMMARY ---'], COLS);
+      csvContent += makeRow(['Cash in Hand (Physical Drawer)', num(cashInHand), 'Bank Balance (Asset)', num(Math.max(0, bankBalance)), 'Bank Overdraft (Liability)', num(bankOverdraftLiability), 'Net Liquid Position', num(totalLiquidFunds)], COLS);
+      csvContent += makeRow(['Total Cash Inflows', num(cashInflows), 'Total Cash Outflows', num(cashTotalOutflows), 'Total Bank Inflows', num(bankInflows), 'Total Bank Outflows', num(bankTotalOutflows)], COLS);
+
+      // Section 1: Itemized Movements Ledger
+      csvContent += makeSectionHeader('1. ACTUAL CASH & BANK TRANSACTION MOVEMENTS', COLS);
+      csvContent += makeRow(['Date', 'Reference / Source', 'Party Name', 'Category', 'Channel', 'Type', 'Amount (Rs.)'], COLS);
+
+      (filteredCashFlowTransactions || []).forEach(tx => {
+        csvContent += makeRow([
+          tx.date,
+          tx.source,
+          tx.party,
+          tx.category,
+          tx.channel,
+          tx.type,
+          num(tx.amount)
+        ], COLS);
+      });
+
+      csvContent += makeRow(['CLOSING CASH IN HAND', num(cashInHand), 'CLOSING BANK ASSET', num(Math.max(0, bankBalance)), 'BANK OVERDRAFT LIABILITY', num(bankOverdraftLiability), 'TOTAL MOVEMENTS LOGGED', `${filteredCashFlowTransactions.length} Entries`], COLS);
+
     } else if (reportType === 'Expenses') {
       const COLS = 7;
       // Header Info
@@ -2122,12 +2413,14 @@ export const Reports = () => {
             {reportType === 'Expenses' && <DollarSign className="w-6 h-6 text-rose-500" />}
             {reportType === 'ProfitLoss' && <PieChart className="w-6 h-6 text-brand-500" />}
             {reportType === 'BalanceSheet' && <Building className="w-6 h-6 text-indigo-500" />}
+            {reportType === 'CashFlow' && <Wallet className="w-6 h-6 text-emerald-500" />}
             <span>
               {reportType === 'Stock' && 'Stock & Inventory'}
               {reportType === 'Sales' && 'Sales & Revenue Report'}
               {reportType === 'Expenses' && 'Operating Expenses'}
               {reportType === 'ProfitLoss' && 'Profit & Loss Statement'}
               {reportType === 'BalanceSheet' && 'Balance Sheet Statement'}
+              {reportType === 'CashFlow' && 'Cash Flow Statement'}
             </span>
           </h1>
           <p className="text-xs text-slate-400 font-medium mt-0.5">
@@ -2136,6 +2429,7 @@ export const Reports = () => {
             {reportType === 'Expenses' && 'Expense register and financial summary'}
             {reportType === 'ProfitLoss' && 'Income, purchase costs, expenses, and net profit'}
             {reportType === 'BalanceSheet' && 'Summary of assets, liabilities, and net worth'}
+            {reportType === 'CashFlow' && 'Itemized ledger tracking of cash in hand, bank accounts, and overdrafts'}
           </p>
         </div>
 
@@ -2158,6 +2452,36 @@ export const Reports = () => {
             <span>Export CSV</span>
           </button>
         </div>
+      </div>
+
+      {/* Quick Report Switcher Bar (Screen Only) */}
+      <div className="no-print flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-200 dark:border-slate-800">
+        {[
+          { type: 'Stock', label: 'Stock Report', icon: Warehouse },
+          { type: 'Sales', label: 'Sales Report', icon: TrendingUp },
+          { type: 'Expenses', label: 'Expense Report', icon: DollarSign },
+          { type: 'ProfitLoss', label: 'Profit & Loss', icon: PieChart },
+          { type: 'BalanceSheet', label: 'Balance Sheet', icon: Building },
+          { type: 'CashFlow', label: 'Cash Flow', icon: Wallet }
+        ].map(tab => {
+          const Icon = tab.icon;
+          const isActive = reportType === tab.type;
+          return (
+            <button
+              key={tab.type}
+              type="button"
+              onClick={() => navigate(`/reports?type=${tab.type}`)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                isActive
+                  ? 'bg-brand-500 text-white shadow-xs font-black'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
 
@@ -4088,6 +4412,526 @@ export const Reports = () => {
           {/* Clean Balanced Status Pill */}
           <div className="p-3 rounded-xl border text-center text-xs font-bold bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300">
             ✓ Accounting Equation Reconciled: Total Assets (Rs. {totalAssets.toLocaleString()}) = Total Liabilities (Rs. {totalLiabilities.toLocaleString()}) + Total Equity (Rs. {totalEquity.toLocaleString()}) • Imbalance: Rs. 0
+          </div>
+
+          {/* Quick link to Cash Flow */}
+          <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border bg-slate-50/70 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Wallet className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-800 dark:text-white">Cash & Bank Movement Audit</div>
+                <div className="text-[11px] text-slate-400">Track every actual inflow, outflow, refund, and overdraft movement in the full Cash Flow Statement.</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/reports?type=CashFlow')}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0 self-start sm:self-auto"
+            >
+              <span>Open Cash Flow</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------------- */}
+      {/* 6. COMPLETE CASH FLOW STATEMENT & LEDGER MOVEMENTS TRACKER */}
+      {/* ------------------------------------------------------------------------- */}
+      {reportType === 'CashFlow' && (
+        <div className="space-y-5">
+          {/* Top Control Toolbar (Screen Only) */}
+          <div className={`no-print p-3 rounded-2xl border card-shadow flex flex-wrap items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Statement:</span>
+              <span className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-400">
+                As of {cfDateFilter === 'Custom' ? cfCustomDate : cfDateFilter}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Date Filter */}
+              <select
+                value={cfDateFilter}
+                onChange={(e) => { setCfDateFilter(e.target.value); setCfPage(1); }}
+                className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+              >
+                <option value="All Time">All Time</option>
+                <option value="Today">Today</option>
+                <option value="Yesterday">Yesterday</option>
+                <option value="This Week">This Week</option>
+                <option value="This Month">This Month</option>
+                <option value="Custom">Custom Date</option>
+              </select>
+
+              {cfDateFilter === 'Custom' && (
+                <input
+                  type="date"
+                  value={cfCustomDate}
+                  onChange={(e) => { setCfCustomDate(e.target.value); setCfPage(1); }}
+                  className={`border rounded-xl px-2 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                />
+              )}
+
+              {/* Reset Filters */}
+              {(cfDateFilter !== 'All Time' || cfChannelFilter !== 'All' || cfTypeFilter !== 'All' || cfCategoryFilter !== 'All' || cfSearch) && (
+                <button
+                  type="button"
+                  onClick={handleResetCfFilters}
+                  className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-bold text-slate-500 transition cursor-pointer"
+                >
+                  Reset Filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 4 Financial KPI Summary Cards */}
+          <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* 1. CASH IN HAND */}
+            <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <span>Cash in Hand</span>
+                <Wallet className="w-3.5 h-3.5 text-emerald-500" />
+              </div>
+              <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${cashInHand >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                Rs. {cashInHand.toLocaleString()}
+              </div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Physical Counter Drawer</div>
+            </div>
+
+            {/* 2. BANK ACCOUNT BALANCES (ASSET) */}
+            <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <span>Bank Balance (Asset)</span>
+                <Building className="w-3.5 h-3.5 text-blue-500" />
+              </div>
+              <div className="text-xl sm:text-2xl font-black font-mono text-blue-600 dark:text-blue-400 mt-1">
+                Rs. {Math.max(0, bankBalance).toLocaleString()}
+              </div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Liquid Bank Deposits</div>
+            </div>
+
+            {/* 3. BANK OVERDRAFT (LIABILITY) */}
+            <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <span>Bank Overdraft (Liability)</span>
+                <PieChart className="w-3.5 h-3.5 text-rose-500" />
+              </div>
+              <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${bankOverdraftLiability > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'}`}>
+                Rs. {bankOverdraftLiability.toLocaleString()}
+              </div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Negative Bank Facility</div>
+            </div>
+
+            {/* 4. NET LIQUID POSITION */}
+            <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <span>Net Liquid Funds</span>
+                <Banknote className="w-3.5 h-3.5 text-indigo-500" />
+              </div>
+              <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${totalLiquidFunds >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                Rs. {totalLiquidFunds.toLocaleString()}
+              </div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Cash + Bank Net Funds</div>
+            </div>
+          </div>
+
+          {/* Reconciliation Status Alert / Banner */}
+          {cashFlowReconciliation.isReconciled ? (
+            <div className="p-3.5 rounded-2xl border bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <div>
+                  <span className="font-black">✓ Cash Flow Statement & Balance Sheet Fully Reconciled:</span>
+                  <span className="ml-1 font-medium text-emerald-800 dark:text-emerald-300">
+                    Cash in Hand (Rs. {cashInHand.toLocaleString()}) = Balance Sheet Asset • Bank Asset (Rs. {Math.max(0, bankBalance).toLocaleString()}) • Bank Overdraft (Rs. {bankOverdraftLiability.toLocaleString()}) = Balance Sheet Liability • Mismatch: Rs. 0
+                  </span>
+                </div>
+              </div>
+              <div className="font-mono font-black text-emerald-700 dark:text-emerald-400 text-right shrink-0">
+                Discrepancy: Rs. 0
+              </div>
+            </div>
+          ) : (
+            <div className="p-3.5 rounded-2xl border bg-rose-50/90 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs flex items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                <div>
+                  <div className="font-black text-rose-700 dark:text-rose-300">⚠ Reconciliation Error Detected!</div>
+                  <div className="text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                    Cash Flow closing funds do not match the Balance Sheet Statement. Cash Diff: Rs. {cashFlowReconciliation.diffCash.toLocaleString()}, Bank Diff: Rs. {cashFlowReconciliation.diffBank.toLocaleString()}, Overdraft Diff: Rs. {cashFlowReconciliation.diffOverdraft.toLocaleString()}.
+                  </div>
+                </div>
+              </div>
+              <div className="font-mono font-black text-rose-700 dark:text-rose-400 text-right shrink-0">
+                Discrepancy: Rs. {cashFlowReconciliation.totalMismatch.toLocaleString()}
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* PRINT-ONLY HEADER (Cash Flow) */}
+          {/* ========================================================================= */}
+          <PrintHeader
+            title="Cash Flow Statement & Liquid Movements Ledger"
+            filterSummary={`As of: ${cfDateFilter === 'Custom' ? cfCustomDate : cfDateFilter}`}
+            stats={[
+              { label: 'Closing Cash in Hand', value: `Rs. ${cashInHand.toLocaleString()}` },
+              { label: 'Closing Bank Balance', value: `Rs. ${Math.max(0, bankBalance).toLocaleString()}` },
+              { label: 'Bank Overdraft Liability', value: `Rs. ${bankOverdraftLiability.toLocaleString()}` },
+              { label: 'Net Liquid Funds', value: `Rs. ${totalLiquidFunds.toLocaleString()}` }
+            ]}
+          />
+
+          {/* ========================================================================= */}
+          {/* SECTION 1: CASH FLOW SUMMARY MATRIX (Cash vs Bank vs Total) */}
+          {/* ========================================================================= */}
+          <div className={`border rounded-2xl p-4 sm:p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+            <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
+              <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                <Wallet className="w-4 h-4" />
+                <span>1. Cash & Bank Movement Summary (Inflows, Outflows & Balances)</span>
+              </h3>
+              <span className="text-xs font-medium text-slate-400">Derived from Actual Transaction Ledger</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <th className="py-2.5 px-3">Transaction Stream / Particulars</th>
+                    <th className="py-2.5 px-3 text-right">Cash in Hand (PKR)</th>
+                    <th className="py-2.5 px-3 text-right">Bank Accounts (PKR)</th>
+                    <th className="py-2.5 px-3 text-right">Combined Total (PKR)</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                  {/* Opening Balances */}
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                    <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">A. Opening Liquid Balances</td>
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-500">Rs. 0</td>
+                    <td className="py-2.5 px-3 text-right font-mono text-slate-500">Rs. 0</td>
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-500">Rs. 0</td>
+                  </tr>
+
+                  {/* INFLOWS SECTION */}
+                  <tr className="bg-emerald-50/40 dark:bg-emerald-950/10 font-black text-[11px] text-emerald-700 dark:text-emerald-400">
+                    <td colSpan={4} className="py-2 px-3 uppercase tracking-wider">B. Cash & Bank Inflows (+)</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                    <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• POS Counter Sales (Upfront Payments)</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cPosInflow.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bPosInflow.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {(cPosInflow + bPosInflow).toLocaleString()}</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                    <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• Customer Khata Settlements (Recoveries)</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cCustInflow.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bCustInflow.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {(cCustInflow + bCustInflow).toLocaleString()}</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                    <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• Purchase Return Refunds (From Suppliers)</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cPRetInflow.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bPRetInflow.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {(cPRetInflow + bPRetInflow).toLocaleString()}</td>
+                  </tr>
+                  <tr className="bg-emerald-50/70 dark:bg-emerald-950/20 font-bold border-t border-emerald-200/50">
+                    <td className="py-2 px-3 pl-6 text-emerald-800 dark:text-emerald-300">Total Liquid Inflows</td>
+                    <td className="py-2 px-3 text-right font-mono text-emerald-700 dark:text-emerald-400">Rs. {cashInflows.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-emerald-700 dark:text-emerald-400">Rs. {bankInflows.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-black text-emerald-700 dark:text-emerald-400">Rs. {(cashInflows + bankInflows).toLocaleString()}</td>
+                  </tr>
+
+                  {/* OUTFLOWS SECTION */}
+                  <tr className="bg-rose-50/40 dark:bg-rose-950/10 font-black text-[11px] text-rose-700 dark:text-rose-400">
+                    <td colSpan={4} className="py-2 px-3 uppercase tracking-wider">C. Cash & Bank Outflows (−)</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                    <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• Supplier Khata Settlements (Vouchers Paid)</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cSupPayOut.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bSupPayOut.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(cSupPayOut + bSupPayOut).toLocaleString()}</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                    <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• Direct Purchases (Upfront Cash/Bank Paid)</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cPurDirectOut.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bPurDirectOut.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(cPurDirectOut + bPurDirectOut).toLocaleString()}</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                    <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• Operating Expenses (Bills, Rent, Labor, Misc)</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cExpOut.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bExpOut.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(cExpOut + bExpOut).toLocaleString()}</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                    <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">
+                      • Customer Sale Return Cash Refunds <span className="text-[10px] text-slate-400 font-normal">(counted exactly once)</span>
+                    </td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cSRetOut.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bSRetOut.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(cSRetOut + bSRetOut).toLocaleString()}</td>
+                  </tr>
+                  <tr className="bg-rose-50/70 dark:bg-rose-950/20 font-bold border-t border-rose-200/50">
+                    <td className="py-2 px-3 pl-6 text-rose-800 dark:text-rose-300">Total Liquid Outflows</td>
+                    <td className="py-2 px-3 text-right font-mono text-rose-700 dark:text-rose-400">Rs. {cashTotalOutflows.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-rose-700 dark:text-rose-400">Rs. {bankTotalOutflows.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-black text-rose-700 dark:text-rose-400">Rs. {(cashTotalOutflows + bankTotalOutflows).toLocaleString()}</td>
+                  </tr>
+
+                  {/* NET PERIOD CASH FLOW */}
+                  <tr className="border-t-2 font-black text-xs">
+                    <td className="py-3 px-3 uppercase text-slate-900 dark:text-white">D. Net Operating Cash Flow (Inflows − Outflows)</td>
+                    <td className={`py-3 px-3 text-right font-mono ${cashInHand >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      Rs. {cashInHand.toLocaleString()}
+                    </td>
+                    <td className={`py-3 px-3 text-right font-mono ${bankBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      Rs. {bankBalance.toLocaleString()}
+                    </td>
+                    <td className={`py-3 px-3 text-right font-mono ${totalLiquidFunds >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      Rs. {totalLiquidFunds.toLocaleString()}
+                    </td>
+                  </tr>
+
+                  {/* CLOSING BREAKDOWN (SEPARATING CASH, BANK ASSET, BANK OVERDRAFT) */}
+                  <tr className="bg-slate-100/70 dark:bg-slate-900/50 font-black text-xs border-t">
+                    <td className="py-2.5 px-3 uppercase text-slate-800 dark:text-slate-200">E. Closing Balance Sheet Representation:</td>
+                    <td className="py-2.5 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                      Cash in Hand: Rs. {cashInHand.toLocaleString()}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono text-blue-600 dark:text-blue-400">
+                      Bank Asset: Rs. {Math.max(0, bankBalance).toLocaleString()}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono text-rose-600 dark:text-rose-400">
+                      Bank Overdraft Liability: Rs. {bankOverdraftLiability.toLocaleString()}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* SECTION 2: COMPREHENSIVE TRANSACTION MOVEMENTS LEDGER */}
+          {/* ========================================================================= */}
+          <div className={`border rounded-2xl p-4 sm:p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3 border-slate-100 dark:border-slate-700">
+              <div>
+                <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-slate-900 dark:text-white">
+                  <Banknote className="w-4 h-4 text-emerald-500" />
+                  <span>2. Itemized Cash & Bank Transaction Ledger ({filteredCashFlowTransactions.length} Movements)</span>
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                  Chronological recording of every cash receipt, payout, settlement, and bank movement
+                </p>
+              </div>
+
+              {/* Channel and Movement Filters */}
+              <div className="no-print flex flex-wrap items-center gap-2 text-xs">
+                {/* Channel Filter Pills */}
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
+                  {['All', 'Cash', 'Bank'].map(ch => (
+                    <button
+                      key={ch}
+                      type="button"
+                      onClick={() => { setCfChannelFilter(ch); setCfPage(1); }}
+                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition cursor-pointer ${cfChannelFilter === ch
+                        ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-2xs font-black'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                    >
+                      {ch === 'All' ? 'All Channels' : ch === 'Cash' ? 'Cash Drawer' : 'Bank Accounts'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Type Filter Pills */}
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
+                  {['All', 'Inflow', 'Outflow'].map(tp => (
+                    <button
+                      key={tp}
+                      type="button"
+                      onClick={() => { setCfTypeFilter(tp); setCfPage(1); }}
+                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition cursor-pointer ${cfTypeFilter === tp
+                        ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-2xs font-black'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                    >
+                      {tp === 'All' ? 'All Types' : tp === 'Inflow' ? '+ Inflows' : '− Outflows'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Search Bar and Category Selector */}
+            <div className="no-print flex flex-col sm:flex-row items-center gap-3">
+              <div className="relative flex-1 w-full">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={cfSearch}
+                  onChange={(e) => { setCfSearch(e.target.value); setCfPage(1); }}
+                  placeholder="Search by reference (#INV, #PUR, #VOU), party name, note..."
+                  className={`w-full pl-8 pr-3 py-2 border rounded-xl text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                    }`}
+                />
+              </div>
+
+              <select
+                value={cfCategoryFilter}
+                onChange={(e) => { setCfCategoryFilter(e.target.value); setCfPage(1); }}
+                className={`border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer w-full sm:w-auto ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+              >
+                <option value="All">All Categories</option>
+                <option value="POS Sale">POS Counter Sales</option>
+                <option value="Customer Payment">Customer Khata Settlements</option>
+                <option value="Purchase Return">Purchase Return Refunds</option>
+                <option value="Supplier Payment">Supplier Khata Settlements</option>
+                <option value="Direct Purchase">Direct Purchases</option>
+                <option value="Operating Expense">Operating Expenses</option>
+                <option value="Sale Return Cash Refund">Sale Return Cash Refunds</option>
+              </select>
+            </div>
+
+            {/* Transactions Table */}
+            <div className="overflow-x-auto border rounded-xl dark:border-slate-700">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <th className="py-2.5 px-3">Date</th>
+                    <th className="py-2.5 px-3">Reference / Description</th>
+                    <th className="py-2.5 px-3">Party Name</th>
+                    <th className="py-2.5 px-3">Category</th>
+                    <th className="py-2.5 px-3">Channel / Mode</th>
+                    <th className="py-2.5 px-3 text-center">Type</th>
+                    <th className="py-2.5 px-3 text-right">Amount</th>
+                    <th className="py-2.5 px-3 text-right">Running Cash</th>
+                    <th className="py-2.5 px-3 text-right">Running Bank</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                  {paginatedCashFlowTransactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-8 text-center text-slate-400 font-normal">
+                        No transactions matched the selected filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedCashFlowTransactions.map((tx, idx) => (
+                      <tr key={tx.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                        <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                          {tx.date}
+                        </td>
+                        <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
+                          {tx.source}
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
+                          {tx.party}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${tx.category === 'POS Sale' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' :
+                            tx.category === 'Customer Payment' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+                              tx.category === 'Supplier Payment' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' :
+                                tx.category === 'Operating Expense' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' :
+                                  tx.category === 'Sale Return Cash Refund' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' :
+                                    'bg-slate-500/10 text-slate-600 dark:text-slate-400'
+                            }`}>
+                            {tx.category}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-[11px]">
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{tx.channel}</span>
+                          {tx.mode && tx.mode !== tx.channel && (
+                            <span className="text-slate-400 text-[10px] ml-1">({tx.mode})</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black ${tx.type === 'Inflow'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                            }`}>
+                            {tx.type === 'Inflow' ? '+ Inflow' : '− Outflow'}
+                          </span>
+                        </td>
+                        <td className={`py-2.5 px-3 text-right font-mono font-bold ${tx.type === 'Inflow' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          {tx.type === 'Inflow' ? '+' : '−'} Rs. {Number(tx.amount || 0).toLocaleString()}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono text-slate-700 dark:text-slate-300">
+                          Rs. {Number(tx.runningCash || 0).toLocaleString()}
+                        </td>
+                        <td className={`py-2.5 px-3 text-right font-mono ${Number(tx.runningBank || 0) >= 0 ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-400 font-bold'}`}>
+                          Rs. {Number(tx.runningBank || 0).toLocaleString()}
+                          {Number(tx.runningBank || 0) < 0 && (
+                            <span className="text-[9px] text-rose-500 block font-normal">Overdraft</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className={`p-3 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-medium ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50/70 border-slate-200 text-slate-500'
+              }`}>
+              <div className="flex items-center gap-3">
+                <span>
+                  Showing {filteredCashFlowTransactions.length === 0 ? 0 : (cfPage - 1) * cfPageSize + 1}–{Math.min(cfPage * cfPageSize, filteredCashFlowTransactions.length)} of {filteredCashFlowTransactions.length} movements
+                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px]">Rows:</span>
+                  <select
+                    value={cfPageSize}
+                    onChange={(e) => { setCfPageSize(Number(e.target.value)); setCfPage(1); }}
+                    className={`border rounded-lg px-2 py-0.5 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+
+              {totalCfPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCfPage(prev => Math.max(1, prev - 1))}
+                    disabled={cfPage === 1}
+                    className="px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-2 font-bold font-mono">
+                    {cfPage} / {totalCfPages}
+                  </span>
+                  <button
+                    onClick={() => setCfPage(prev => Math.min(totalCfPages, prev + 1))}
+                    disabled={cfPage === totalCfPages}
+                    className="px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

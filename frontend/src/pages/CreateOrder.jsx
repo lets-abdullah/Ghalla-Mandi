@@ -207,7 +207,8 @@ export const CreateOrder = () => {
 
   // Direct manual edit of Selling Price per unit
   const setDirectItemRate = (productId, val) => {
-    const newPrice = Math.max(0, Number(val) || 0);
+    const raw = String(val).replace(/[^0-9]/g, '');
+    const newPrice = Math.max(0, parseInt(raw, 10) || 0);
     setCart(prev => {
       return prev.map(item => {
         if (item.productId === productId) {
@@ -224,7 +225,8 @@ export const CreateOrder = () => {
       setShowRateModal(null);
       return;
     }
-    const newPrice = Math.max(0, Number(tempNewRate) || 0);
+    const raw = String(tempNewRate).replace(/[^0-9]/g, '');
+    const newPrice = Math.max(0, parseInt(raw, 10) || 0);
     setCart(prev => {
       return prev.map(item => {
         if (item.productId === showRateModal.productId) {
@@ -964,11 +966,16 @@ export const CreateOrder = () => {
                             <input
                               type="number"
                               min="0"
-                              step="any"
+                              step="1"
                               value={item.price}
+                              onKeyDown={(e) => {
+                                if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
+                                  e.preventDefault();
+                                }
+                              }}
                               onChange={(e) => setDirectItemRate(item.productId, e.target.value)}
                               className="w-14 text-right bg-transparent outline-none font-black font-mono text-brand-600 dark:text-brand-400 focus:text-brand-500"
-                              title="Manual Selling Price per unit"
+                              title="Manual Selling Price per unit (Integers only)"
                               placeholder="Price"
                             />
                             <span className="text-[10px] text-slate-400 ml-0.5">/{item.unit}</span>
@@ -1203,8 +1210,14 @@ export const CreateOrder = () => {
                   <input
                     type="number"
                     min="0"
+                    step="1"
                     value={amountReceived}
-                    onChange={(e) => setAmountReceived(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => setAmountReceived(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder={netGrandTotal.toString()}
                     className={`w-full border-2 rounded-2xl px-4 py-2.5 text-base font-black outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
@@ -1516,9 +1529,14 @@ export const CreateOrder = () => {
               <input
                 type="number"
                 min="0"
-                step="any"
+                step="1"
                 value={tempNewRate}
-                onChange={(e) => setTempNewRate(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
+                    e.preventDefault();
+                  }
+                }}
+                onChange={(e) => setTempNewRate(e.target.value.replace(/[^0-9]/g, ''))}
                 className={`w-full border rounded-2xl px-3.5 py-2.5 text-sm font-black outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
                 autoFocus

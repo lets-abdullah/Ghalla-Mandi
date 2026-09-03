@@ -351,12 +351,15 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                     </div>
                     <input
                       type="number"
-                      min="0.1"
+                      min="1"
                       max={remainingQty}
-                      step="any"
+                      step="1"
                       placeholder={`Max: ${remainingQty}`}
                       value={returnQty}
-                      onChange={(e) => handleQtyChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === '.' || e.key === ',') e.preventDefault();
+                      }}
+                      onChange={(e) => handleQtyChange(e.target.value.replace(/[^0-9]/g, ''))}
                       className={`w-full border rounded-xl px-3 py-2 text-sm font-bold font-mono outline-none focus:border-brand-500 ${
                         theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'
                       }`}

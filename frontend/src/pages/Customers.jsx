@@ -213,7 +213,8 @@ export const Customers = () => {
   const handleOpenPayModal = (customer) => {
     const fullCust = registeredCustomersList.find(c => c.id === customer.id) ||
       walkinCustomersList.find(c => c.id === customer.id) || customer;
-    const bal = Number(fullCust.balance || fullCust.receivableDue || 0);
+    const rawBal = Number(fullCust.balance || fullCust.receivableDue || 0);
+    const bal = rawBal < 1 ? 0 : Math.round(rawBal);
     setPayingCustomer(fullCust);
     setPayAmount(bal > 0 ? bal.toString() : '');
     setPayMode('Cash');
@@ -225,11 +226,12 @@ export const Customers = () => {
     e.preventDefault();
     if (!payingCustomer || isProcessingPay) return;
 
-    const amt = Number(payAmount) || 0;
-    const maxDue = Math.max(0, Number(payingCustomer.balance || payingCustomer.receivableDue || 0));
+    const amt = parseInt(payAmount, 10) || 0;
+    const rawDue = Number(payingCustomer.balance || payingCustomer.receivableDue || 0);
+    const maxDue = rawDue < 1 ? 0 : Math.round(rawDue);
 
     if (amt <= 0) {
-      toast.warning('Please enter a valid payment amount.');
+      toast.warning('Please enter a valid whole payment amount.');
       return;
     }
 
@@ -481,7 +483,8 @@ export const Customers = () => {
                 </tr>
               ) : (
                 filteredCustomers.map(cust => {
-                  const bal = Number(cust.balance || 0);
+                  const rawBal = Number(cust.balance || 0);
+                  const bal = rawBal < 1 ? 0 : Math.round(rawBal);
                   const isWalkin = (cust.customerType || '').toLowerCase().includes('walk') || !cust.isRegistered;
 
                   return (
@@ -955,8 +958,9 @@ export const Customers = () => {
       {/* 3. RECEIVE PAYMENT MODAL (Receive Money from Customer) */}
       {/* ========================================================================= */}
       {payingCustomer && (() => {
-        const currentDue = Math.max(0, Number(payingCustomer.balance || payingCustomer.receivableDue || 0));
-        const numAmt = Number(payAmount) || 0;
+        const rawDue = Number(payingCustomer.balance || payingCustomer.receivableDue || 0);
+        const currentDue = rawDue < 1 ? 0 : Math.round(rawDue);
+        const numAmt = parseInt(payAmount, 10) || 0;
         const remainingAfter = Math.max(0, currentDue - numAmt);
 
         return (
@@ -1021,23 +1025,28 @@ export const Customers = () => {
                   <input
                     type="number"
                     min="1"
-                    max={currentDue}
-                    step="any"
+                    max={currentDue > 0 ? currentDue : 1}
+                    step="1"
                     required
                     autoFocus
                     value={payAmount}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
+                        e.preventDefault();
+                      }
+                    }}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '') {
+                      const raw = e.target.value.replace(/[^0-9]/g, '');
+                      if (raw === '') {
                         setPayAmount('');
                         return;
                       }
-                      const num = Number(val);
-                      if (num > currentDue) {
+                      const num = parseInt(raw, 10) || 0;
+                      if (currentDue > 0 && num > currentDue) {
                         setPayAmount(currentDue.toString());
                         toast.warning(`Amount capped at total due (Rs. ${currentDue.toLocaleString()})`);
                       } else {
-                        setPayAmount(val);
+                        setPayAmount(num.toString());
                       }
                     }}
                     placeholder={`Max Rs. ${currentDue.toLocaleString()}`}

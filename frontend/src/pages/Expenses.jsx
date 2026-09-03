@@ -354,10 +354,15 @@ export const Expenses = () => {
                 type="number"
                 required
                 min="1"
-                step="any"
-                placeholder="Enter expense amount"
+                step="1"
+                placeholder="Enter expense amount (whole Rs.)"
                 value={form.amount}
-                onChange={(e) => setForm(prev => ({ ...prev, amount: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
+                    e.preventDefault();
+                  }
+                }}
+                onChange={(e) => setForm(prev => ({ ...prev, amount: e.target.value.replace(/[^0-9]/g, '') }))}
                 className={`w-full border rounded-xl px-3 py-2.5 text-sm font-black font-mono outline-none focus:border-rose-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               />

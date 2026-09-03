@@ -489,9 +489,9 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     });
   }
 
-  const grossPaymentsReceived = directPaidLogs + unloggedUpfrontCash;
-  const openingBalance = Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0));
-  const netSales = Math.max(0, totalGrossSale - totalReturnAmount);
+  const grossPaymentsReceived = Math.round(directPaidLogs + unloggedUpfrontCash);
+  const openingBalance = Math.round(Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0)));
+  const netSales = Math.max(0, Math.round(totalGrossSale - totalReturnAmount));
   const totalActualPaymentsReceived = Math.min(grossPaymentsReceived, netSales);
 
   // Canonical Accounting Equations: Sale Returns reduce Net Sales, Customer cannot be creditor
@@ -502,7 +502,8 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   const totalCredits = totalActualPaymentsReceived;
   const netBalance = totalDebits - totalCredits;
 
-  const receivableDue = Math.max(0, netBalance);
+  // STRICT INTEGER ENFORCEMENT: Any fraction less than 1 rupee is zero (no .5, float, or decimal dust)
+  const receivableDue = netBalance < 1 ? 0 : Math.round(netBalance);
   const advanceCredit = 0; // Strictly enforced: customers can never become creditors
   const status = receivableDue > 0 ? 'Due' : 'Settled';
 
@@ -581,12 +582,12 @@ export const computeAllCustomersFinancials = (customers = [], sales = [], paymen
   ];
   const regularList = registeredList.filter(c => !(c.customerType || '').toLowerCase().includes('walk'));
 
-  const totalGrossSales = allCustomers.reduce((sum, c) => sum + Number(c.totalSale || 0), 0);
-  const totalReturns = allCustomers.reduce((sum, c) => sum + Number(c.returnAmount || 0), 0);
-  const totalNetSales = allCustomers.reduce((sum, c) => sum + Number(c.netSale || 0), 0);
-  const totalPaymentsReceived = allCustomers.reduce((sum, c) => sum + Number(c.totalPaid || 0), 0);
-  const totalReceivables = allCustomers.reduce((sum, c) => sum + Number(c.receivableDue || 0), 0);
-  const totalCustomerCredits = allCustomers.reduce((sum, c) => sum + Number(c.advanceCredit || 0), 0);
+  const totalGrossSales = Math.round(allCustomers.reduce((sum, c) => sum + Number(c.totalSale || 0), 0));
+  const totalReturns = Math.round(allCustomers.reduce((sum, c) => sum + Number(c.returnAmount || 0), 0));
+  const totalNetSales = Math.round(allCustomers.reduce((sum, c) => sum + Number(c.netSale || 0), 0));
+  const totalPaymentsReceived = Math.round(allCustomers.reduce((sum, c) => sum + Number(c.totalPaid || 0), 0));
+  const totalReceivables = Math.round(allCustomers.reduce((sum, c) => sum + Number(c.receivableDue || 0), 0));
+  const totalCustomerCredits = 0;
   const settledCount = allCustomers.filter(c => c.status === 'Settled' || c.netBalance === 0).length;
 
   return {
@@ -1106,7 +1107,7 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
 
   const grossPaymentsMade = directPaidLogs + unloggedUpfrontCash;
   const openingBalance = Number(supplier.openingBalance !== undefined ? supplier.openingBalance : (supplier.openingbalance !== undefined ? supplier.openingbalance : 0));
-  const netPurchases = Math.max(0, totalGrossPurchase - totalReturnAmount);
+  const netPurchases = Math.max(0, Math.round(totalGrossPurchase - totalReturnAmount));
   const totalActualPaymentsPaid = Math.min(grossPaymentsMade, netPurchases);
 
   // Canonical Accounting Equations: Purchase Returns reduce Net Purchases, No Supplier Advances
@@ -1117,7 +1118,8 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   const totalDebits = totalActualPaymentsPaid;
   const netBalance = totalCredits - totalDebits;
 
-  const payableDue = Math.max(0, netBalance);
+  // STRICT INTEGER ENFORCEMENT: Any sub-rupee fraction (< 1) is 0
+  const payableDue = netBalance < 1 ? 0 : Math.round(netBalance);
   const advanceCredit = 0; // Strictly enforced: No supplier advances
   const status = payableDue > 0 ? 'Payable' : 'Settled';
 
@@ -1148,11 +1150,11 @@ export const computeAllSuppliersFinancials = (suppliers = [], purchases = [], pa
     };
   });
 
-  const totalGrossPurchases = allSuppliers.reduce((sum, s) => sum + Number(s.totalPurchase || 0), 0);
-  const totalReturns = allSuppliers.reduce((sum, s) => sum + Number(s.returnAmount || 0), 0);
-  const totalNetPurchases = allSuppliers.reduce((sum, s) => sum + Number(s.netPurchase || 0), 0);
-  const totalPaymentsPaid = allSuppliers.reduce((sum, s) => sum + Number(s.totalPaid || 0), 0);
-  const totalPayables = allSuppliers.reduce((sum, s) => sum + Number(s.payableDue || 0), 0);
+  const totalGrossPurchases = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.totalPurchase || 0), 0));
+  const totalReturns = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.returnAmount || 0), 0));
+  const totalNetPurchases = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.netPurchase || 0), 0));
+  const totalPaymentsPaid = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.totalPaid || 0), 0));
+  const totalPayables = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.payableDue || 0), 0));
   const totalSupplierAdvances = 0;
   const settledCount = allSuppliers.filter(s => s.status === 'Settled' || s.payableDue === 0).length;
 
@@ -2378,7 +2380,7 @@ export const ERPProvider = ({ children }) => {
 
   // 9. Record Payment with real-time balance validation and anti-duplicate lock
   const recordPayment = async ({ partyId, partyName, partyType, amount, paymentMode = 'Cash', note = '', saleId = null, purchaseId = null }) => {
-    const amtNum = Number(amount);
+    const amtNum = Math.round(Number(amount));
     if (!amtNum || amtNum <= 0) {
       throw new Error('Valid payment amount greater than zero is required');
     }

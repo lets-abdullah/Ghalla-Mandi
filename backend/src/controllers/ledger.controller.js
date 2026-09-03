@@ -33,7 +33,7 @@ export const getLedgerEntries = async (req, res) => {
 export const recordPayment = async (req, res) => {
   try {
     const { partyId, partyName, partyType, amount, paymentMode = 'Cash', note = '', saleId = null, purchaseId = null } = req.body;
-    const amtNum = Number(amount);
+    const amtNum = Math.round(Number(amount));
 
     if (!amtNum || amtNum <= 0) {
       return res.status(400).json({ success: false, message: 'Valid payment amount is required' });

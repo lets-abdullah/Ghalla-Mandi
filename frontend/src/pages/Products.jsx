@@ -589,11 +589,14 @@ export const Products = () => {
                   <input
                     type="number"
                     min="0"
-                    step="any"
+                    step="1"
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',') e.preventDefault();
+                    }}
                     value={newProduct.purchasePrice}
-                    onChange={(e) => setNewProduct({ ...newProduct, purchasePrice: e.target.value })}
+                    onChange={(e) => setNewProduct({ ...newProduct, purchasePrice: e.target.value.replace(/[^0-9]/g, '') })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
@@ -603,11 +606,14 @@ export const Products = () => {
                   <input
                     type="number"
                     min="0"
-                    step="any"
+                    step="1"
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',') e.preventDefault();
+                    }}
                     value={newProduct.sellingPrice}
-                    onChange={(e) => setNewProduct({ ...newProduct, sellingPrice: e.target.value })}
+                    onChange={(e) => setNewProduct({ ...newProduct, sellingPrice: e.target.value.replace(/[^0-9]/g, '') })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
@@ -771,11 +777,14 @@ export const Products = () => {
                   <input
                     type="number"
                     min="0"
-                    step="any"
+                    step="1"
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',') e.preventDefault();
+                    }}
                     value={editingProduct.purchasePrice ?? editingProduct.purchaseprice ?? 0}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, purchasePrice: Number(e.target.value) })}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, purchasePrice: parseInt(e.target.value.replace(/[^0-9]/g, ''), 10) || 0 })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
@@ -785,11 +794,14 @@ export const Products = () => {
                   <input
                     type="number"
                     min="0"
-                    step="any"
+                    step="1"
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',') e.preventDefault();
+                    }}
                     value={editingProduct.sellingPrice ?? editingProduct.sellingprice ?? 0}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, sellingPrice: Number(e.target.value) })}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, sellingPrice: parseInt(e.target.value.replace(/[^0-9]/g, ''), 10) || 0 })}
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />

@@ -101,7 +101,8 @@ export const syncCustomerBalance = async (customerId, shop_id, dbRun) => {
   const effectivePaymentsReceived = Math.min(totalPayments, netSales);
   const totalDebits = openingBalance + netSales;
   const totalCredits = effectivePaymentsReceived;
-  const canonicalDue = Math.max(0, totalDebits - totalCredits);
+  const rawDue = totalDebits - totalCredits;
+  const canonicalDue = rawDue < 1 ? 0 : Math.round(rawDue);
 
   await dbRun('UPDATE customers SET balance = $1 WHERE id = $2 AND shop_id = $3', [canonicalDue, customerId, shop_id]);
   return canonicalDue;
@@ -147,7 +148,8 @@ export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
   const effectivePaymentsMade = Math.min(totalPayments, netPurchases);
   const totalCredits = openingBalance + netPurchases;
   const totalDebits = effectivePaymentsMade;
-  const canonicalPayable = Math.max(0, totalCredits - totalDebits);
+  const rawPayable = totalCredits - totalDebits;
+  const canonicalPayable = rawPayable < 1 ? 0 : Math.round(rawPayable);
 
   await dbRun('UPDATE suppliers SET balance = $1 WHERE id = $2 AND shop_id = $3', [canonicalPayable, supplierId, shop_id]);
   return canonicalPayable;
