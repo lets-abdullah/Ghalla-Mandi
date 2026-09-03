@@ -288,7 +288,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
       availableGeneralCash -= alloc;
     }
 
-    rawGrossPaid += generalAllocatedToThisSale;
+    rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs + generalAllocatedToThisSale);
   }
 
   const netPaidTowardsInvoice = Math.max(0, rawGrossPaid - cashRefundAmount);
@@ -395,7 +395,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
       availableGeneralCash -= alloc;
     }
 
-    rawGrossPaid += generalAllocatedToThisPurchase;
+    rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs + generalAllocatedToThisPurchase);
   }
 
   const netPaidTowardsPurchase = Math.max(0, rawGrossPaid - cashRefundAmount);

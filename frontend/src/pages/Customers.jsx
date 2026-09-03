@@ -317,9 +317,8 @@ export const Customers = () => {
         {/* 1. Total Customers */}
         <div
           onClick={() => setBalanceFilter('All')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow transition-all cursor-pointer ${
-            balanceFilter === 'All' ? 'ring-2 ring-blue-500' : ''
-          } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow transition-all cursor-pointer ${balanceFilter === 'All' ? 'ring-2 ring-blue-500' : ''
+            } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Users className="w-4 h-4 text-blue-600" />
@@ -333,9 +332,8 @@ export const Customers = () => {
         {/* 2. Total Customer Due */}
         <div
           onClick={() => setBalanceFilter('Due')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow transition-all cursor-pointer ${
-            balanceFilter === 'Due' ? 'ring-2 ring-amber-500' : ''
-          } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow transition-all cursor-pointer ${balanceFilter === 'Due' ? 'ring-2 ring-amber-500' : ''
+            } ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Building2 className="w-4 h-4 text-amber-600" />
@@ -529,23 +527,13 @@ export const Customers = () => {
                               title="Receive Payment from Customer"
                             >
                               <DollarSign className="w-3.5 h-3.5" />
-                              <span>Pay</span>
+                              <span>Receive Payment</span>
                             </button>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
                               <CheckCircle2 className="w-3 h-3" /> Settled
                             </span>
                           )}
-
-                          {/* View Profile */}
-                          <button
-                            type="button"
-                            onClick={() => setViewingCustomer(cust)}
-                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer"
-                            title="View Customer Profile"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
 
                           {/* Edit Customer */}
                           <button
