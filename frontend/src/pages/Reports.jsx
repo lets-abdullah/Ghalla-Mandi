@@ -3895,22 +3895,33 @@ export const Reports = () => {
 
               <div className="space-y-2 text-xs">
                 {/* 1. Cash & Bank Balances */}
-                <div className={`p-3 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
-                  <div className="space-y-0.5">
-                    <div className="font-bold text-slate-800 dark:text-slate-200">Liquid Cash & Bank Balances</div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                      Cash in Hand (Rs. {liquidCashAsset.toLocaleString()}) • Bank (Rs. {liquidBankAsset.toLocaleString()})
-                    </div>
+                <div className={`p-3 rounded-xl border space-y-1.5 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
+                  <div className="flex items-center justify-between font-bold">
+                    <span className="text-slate-800 dark:text-slate-200">1. Liquid Cash & Bank Balances</span>
+                    <span className="font-mono text-sm text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidAssets.toLocaleString()}</span>
                   </div>
-                  <div className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
-                    Rs. {totalLiquidAssets.toLocaleString()}
+                  <div className="space-y-0.5 text-[11px] text-slate-600 dark:text-slate-300">
+                    <div className="flex justify-between">
+                      <span>• Cash in Hand (Physical Drawer):</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {liquidCashAsset.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>• Bank Account Balances:</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {liquidBankAsset.toLocaleString()}</span>
+                    </div>
+                    {totalExpensesAmount > 0 && (
+                      <div className="flex justify-between text-rose-600 dark:text-rose-400 pt-0.5 border-t border-slate-200/50 dark:border-slate-700/50">
+                        <span>• Less: Paid Operating Expenses:</span>
+                        <span className="font-mono font-bold">- Rs. {totalExpensesAmount.toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* 2. Customer Khata Receivables */}
                 <div className={`p-3 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
                   <div className="space-y-0.5">
-                    <div className="font-bold text-slate-800 dark:text-slate-200">Customer Khata Receivables</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">2. Customer Khata Receivables</div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                       Outstanding balance due from customers
                     </div>
@@ -3923,7 +3934,7 @@ export const Reports = () => {
                 {/* 3. Godown Stock Inventory */}
                 <div className={`p-3 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
                   <div className="space-y-0.5">
-                    <div className="font-bold text-slate-800 dark:text-slate-200">Godown Stock Inventory</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">3. Godown Stock Inventory</div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                       Warehouse commodities at purchase cost
                     </div>
@@ -3936,7 +3947,7 @@ export const Reports = () => {
                 {/* 4. Supplier Advances (if any) */}
                 {totalSupplierAdvances > 0 && (
                   <div className={`p-3 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">Supplier Advance Credits</div>
+                    <div className="font-bold text-slate-800 dark:text-slate-200">4. Supplier Advance Credits</div>
                     <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">
                       Rs. {totalSupplierAdvances.toLocaleString()}
                     </div>
@@ -4010,11 +4021,21 @@ export const Reports = () => {
 
                   <div className={`p-3 rounded-xl border space-y-1.5 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
                     <div className="flex items-center justify-between font-bold">
-                      <span className="text-slate-800 dark:text-slate-200">• Owner's Invested Capital</span>
+                      <span className="text-slate-800 dark:text-slate-200">• Owner's Invested Capital:</span>
                       <span className="font-mono text-slate-900 dark:text-white">Rs. {ownersCapital.toLocaleString()}</span>
                     </div>
-                    <div className="flex items-center justify-between font-bold">
-                      <span className="text-slate-800 dark:text-slate-200">• Retained Net Profit (P&L)</span>
+                    <div className="space-y-0.5 text-[11px] text-slate-600 dark:text-slate-300 pl-2">
+                      <div className="flex justify-between">
+                        <span>Gross Operating Profit:</span>
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">+ Rs. {grossOperatingProfit.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-rose-600 dark:text-rose-400">
+                        <span>Operating Expenses Added:</span>
+                        <span className="font-mono font-bold">- Rs. {totalExpensesAmount.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between font-bold pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
+                      <span className="text-slate-800 dark:text-slate-200">• Retained Net Profit (P&L):</span>
                       <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {retainedProfit.toLocaleString()}</span>
                     </div>
                   </div>
@@ -4031,7 +4052,7 @@ export const Reports = () => {
 
           {/* Clean Balanced Status Pill */}
           <div className="p-3 rounded-xl border text-center text-xs font-bold bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300">
-            ✓ Balanced: Total Assets (Rs. {totalAssets.toLocaleString()}) = Total Liabilities & Equity (Rs. {(totalLiabilities + totalEquity).toLocaleString()})
+            ✓ Accounting Equation Reconciled: Total Assets (Rs. {totalAssets.toLocaleString()}) = Total Liabilities (Rs. {totalLiabilities.toLocaleString()}) + Total Equity (Rs. {totalEquity.toLocaleString()}) • Imbalance: Rs. 0
           </div>
         </div>
       )}
