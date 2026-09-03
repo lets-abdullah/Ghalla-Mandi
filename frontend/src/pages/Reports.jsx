@@ -951,9 +951,33 @@ export const Reports = () => {
     validCustPaymentLogs.forEach(p => {
       const res = resolveTransactionPayment(p, 'CustomerPayment');
       if (res.totalLiquid > 0) {
-        cInflow += res.cashAmount;
-        bInflow += res.bankAmount;
-        kInflow += res.cardAmount;
+        let grossCash = res.cashAmount;
+        let grossBank = res.bankAmount;
+        let grossCard = res.cardAmount;
+
+        const targetSale = p.saleId ? (sales || []).find(s => String(s.id) === String(p.saleId)) : null;
+        if (targetSale) {
+          const relatedReturns = (saleReturns || []).filter(r =>
+            (r.saleId && String(r.saleId) === String(targetSale.id)) ||
+            (targetSale.invoiceNo && r.invoiceNo === targetSale.invoiceNo)
+          );
+          const retRefundAmt = relatedReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+          const origGross = Number(targetSale.amount || targetSale.grandTotal || 0);
+
+          if (retRefundAmt > 0 && origGross > 0 && res.totalLiquid < origGross) {
+            if (res.channel === 'cash') {
+              grossCash = Math.min(origGross, res.cashAmount + retRefundAmt);
+            } else if (res.channel === 'bank') {
+              grossBank = Math.min(origGross, res.bankAmount + retRefundAmt);
+            } else if (res.channel === 'card') {
+              grossCard = Math.min(origGross, res.cardAmount + retRefundAmt);
+            }
+          }
+        }
+
+        cInflow += grossCash;
+        bInflow += grossBank;
+        kInflow += grossCard;
 
         txList.push({
           date: p.date || 'Today',
@@ -963,7 +987,7 @@ export const Reports = () => {
           channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
           mode: p.mode || p.paymentMode || p.paymentMethod || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
           type: 'Inflow',
-          amount: res.totalLiquid
+          amount: grossCash + grossBank + grossCard
         });
       }
     });
@@ -978,9 +1002,30 @@ export const Reports = () => {
       if (!hasMatchingLog) {
         const res = resolveTransactionPayment(s, 'Sale');
         if (res.totalLiquid > 0) {
-          cInflow += res.cashAmount;
-          bInflow += res.bankAmount;
-          kInflow += res.cardAmount;
+          const relatedReturns = (saleReturns || []).filter(r =>
+            (r.saleId && String(r.saleId) === String(s.id)) ||
+            (s.invoiceNo && r.invoiceNo === s.invoiceNo)
+          );
+          const retRefundAmt = relatedReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+          const origGross = Number(s.amount || s.grandTotal || 0);
+
+          let grossCash = res.cashAmount;
+          let grossBank = res.bankAmount;
+          let grossCard = res.cardAmount;
+
+          if (retRefundAmt > 0 && origGross > 0) {
+            if (res.channel === 'cash') {
+              grossCash = Math.min(origGross, res.cashAmount + retRefundAmt);
+            } else if (res.channel === 'bank') {
+              grossBank = Math.min(origGross, res.bankAmount + retRefundAmt);
+            } else if (res.channel === 'card') {
+              grossCard = Math.min(origGross, res.cardAmount + retRefundAmt);
+            }
+          }
+
+          cInflow += grossCash;
+          bInflow += grossBank;
+          kInflow += grossCard;
 
           txList.push({
             date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : 'Today'),
@@ -990,7 +1035,7 @@ export const Reports = () => {
             channel: res.channel === 'card' ? 'Card Payment Account' : res.channel === 'bank' ? 'Bank Accounts' : 'Cash in Hand',
             mode: s.paymentMode || s.paymentMethod || (res.channel === 'bank' ? 'Bank Transfer' : res.channel === 'card' ? 'Card' : 'Cash'),
             type: 'Inflow',
-            amount: res.totalLiquid
+            amount: grossCash + grossBank + grossCard
           });
         }
       }
@@ -1192,8 +1237,8 @@ export const Reports = () => {
   }, [totalInitialStockValuation, openingCustomerReceivables, openingSupplierPayables]);
 
   const totalEquity = useMemo(() => {
-    return totalAssets - totalLiabilities;
-  }, [totalAssets, totalLiabilities]);
+    return ownersCapital + netOperatingProfit;
+  }, [ownersCapital, netOperatingProfit]);
 
   const retainedProfit = useMemo(() => {
     return netOperatingProfit;
