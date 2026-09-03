@@ -769,18 +769,6 @@ export const Sales = () => {
                             <span>View</span>
                           </button>
 
-                          {due > 0 && !isFullyReturned && (
-                            <button
-                              type="button"
-                              onClick={() => openPaymentModal(s)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition cursor-pointer text-xs font-bold active:scale-98 shadow-xs"
-                              title="Collect Payment"
-                            >
-                              <DollarSign className="w-3.5 h-3.5" />
-                              <span>Pay</span>
-                            </button>
-                          )}
-
                           {!isFullyReturned && (
                             <button
                               type="button"
