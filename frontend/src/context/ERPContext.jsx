@@ -484,13 +484,11 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   const grossPaymentsReceived = directPaidLogs + unloggedUpfrontCash;
   const openingBalance = Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0));
   const netSales = Math.max(0, totalGrossSale - totalReturnAmount);
-  // Returns are immediate cash refunds: cash paid back reduces retained payments
-  const netPaymentsRetained = Math.max(0, grossPaymentsReceived - totalReturnAmount);
-  const totalActualPaymentsReceived = Math.min(netPaymentsRetained, netSales);
+  const totalActualPaymentsReceived = Math.min(grossPaymentsReceived, netSales);
 
-  // Canonical Accounting Equations (Rules 2 & 3: Sale Returns reduce Sales, Customer cannot be creditor)
+  // Canonical Accounting Equations: Sale Returns reduce Net Sales, Customer cannot be creditor
   // Total Debits = Opening Balance (Receivable) + Net Sales Invoiced
-  // Total Credits = Net Payments Retained
+  // Total Credits = Net Payments Received
   // Receivable Due = max(0, Debits - Credits)
   const totalDebits = openingBalance + netSales;
   const totalCredits = totalActualPaymentsReceived;
@@ -1096,11 +1094,9 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   const grossPaymentsMade = directPaidLogs + unloggedUpfrontCash;
   const openingBalance = Number(supplier.openingBalance !== undefined ? supplier.openingBalance : (supplier.openingbalance !== undefined ? supplier.openingbalance : 0));
   const netPurchases = Math.max(0, totalGrossPurchase - totalReturnAmount);
-  // Returns are immediate cash refunds: cash received back reduces retained payments made
-  const netPaymentsRetained = Math.max(0, grossPaymentsMade - totalReturnAmount);
-  const totalActualPaymentsPaid = Math.min(netPaymentsRetained, netPurchases);
+  const totalActualPaymentsPaid = Math.min(grossPaymentsMade, netPurchases);
 
-  // Canonical Accounting Equations (Rules 4 & 5: Purchase Returns reduce Purchases, No Supplier Advances)
+  // Canonical Accounting Equations: Purchase Returns reduce Net Purchases, No Supplier Advances
   // Credits (Payable Liability) = Opening Balance + Net Purchases Billed
   // Debits = Net Payments Made
   // Payable Due = max(0, Credits - Debits)

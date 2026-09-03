@@ -98,8 +98,7 @@ export const syncCustomerBalance = async (customerId, shop_id, dbRun) => {
   });
 
   const totalPayments = directPaidLogs + unloggedUpfrontCash;
-  const netPaymentsRetained = Math.max(0, totalPayments - totalReturns);
-  const effectivePaymentsReceived = Math.min(netPaymentsRetained, netSales);
+  const effectivePaymentsReceived = Math.min(totalPayments, netSales);
   const totalDebits = openingBalance + netSales;
   const totalCredits = effectivePaymentsReceived;
   const canonicalDue = Math.max(0, totalDebits - totalCredits);
@@ -145,8 +144,7 @@ export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
   });
 
   const totalPayments = directPaidLogs + unloggedUpfrontCash;
-  const netPaymentsRetained = Math.max(0, totalPayments - totalReturns);
-  const effectivePaymentsMade = Math.min(netPaymentsRetained, netPurchases);
+  const effectivePaymentsMade = Math.min(totalPayments, netPurchases);
   const totalCredits = openingBalance + netPurchases;
   const totalDebits = effectivePaymentsMade;
   const canonicalPayable = Math.max(0, totalCredits - totalDebits);
