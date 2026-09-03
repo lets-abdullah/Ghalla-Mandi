@@ -1382,8 +1382,8 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         notes: historyNote
       });
 
-      // If this sale had upfront counter payment but has NO corresponding entry in paymentLogs
-      if (!salesWithPaymentLogs.has(String(s.id))) {
+      // If NO payment logs exist at all for this customer, fallback to upfront counter payment recorded on sale
+      if (partyPayments.length === 0) {
         const upfrontPaid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.cashReceived || 0));
         if (upfrontPaid > 0) {
           entries.push({
@@ -1584,7 +1584,8 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         notes: historyNote
       });
 
-      if (!purchasesWithPaymentLogs.has(String(p.id))) {
+      // If NO payment logs exist at all for this supplier, fallback to upfront payment recorded on bill
+      if (partyPayments.length === 0) {
         const upfrontPaid = Number(p.paidAmount !== undefined ? p.paidAmount : (p.cashPaid || 0));
         if (upfrontPaid > 0) {
           entries.push({

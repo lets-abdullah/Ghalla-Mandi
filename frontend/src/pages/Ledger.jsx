@@ -1233,11 +1233,21 @@ export const Ledger = () => {
 
                       // Method styling
                       const rawMethod = entry.paymentMethod || 'Cash';
-                      const isCash = rawMethod.toLowerCase().includes('cash');
-                      const isAdj = rawMethod.toLowerCase().includes('khata') || rawMethod.toLowerCase().includes('debit') || rawMethod.toLowerCase().includes('credit');
-                      const isBank = rawMethod.toLowerCase().includes('bank');
+                      const rawLower = rawMethod.toLowerCase();
+                      const isCash = rawLower.includes('cash');
+                      const isBank = rawLower.includes('bank') || rawLower.includes('transfer');
+                      const isCard = rawLower.includes('card');
+                      const isReturn = entry.txType === 'Returns' || entry.txType === 'Return';
 
-                      const methodLabel = isAdj ? 'Khata Adjustment' : isCash ? 'Cash' : isBank ? 'Bank Transfer' : rawMethod;
+                      const methodLabel = isReturn
+                        ? 'Return Adjustment'
+                        : isBank
+                          ? 'Bank Transfer'
+                          : isCard
+                            ? 'Card Payment'
+                            : isCash
+                              ? 'Cash'
+                              : rawMethod;
 
                       return (
                         <tr
@@ -1306,7 +1316,7 @@ export const Ledger = () => {
                           <td className="py-3.5 px-3 text-center whitespace-nowrap">
                             <span className={`inline-block px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${isCash
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                              : isAdj
+                              : isReturn
                                 ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
                                 : isBank
                                   ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
@@ -1324,11 +1334,11 @@ export const Ledger = () => {
                               </span>
                             ) : isBalPos ? (
                               <span className="text-amber-600 dark:text-amber-400">
-                                {isSupplier ? 'Payable:' : 'Due:'} Rs. {entry.runningBalance.toLocaleString()}
+                                {isSupplier ? 'Payable: ' : 'Due: '}Rs. {entry.runningBalance.toLocaleString()}
                               </span>
                             ) : (
-                              <span className="text-emerald-600 dark:text-emerald-400">
-                                Advance: Rs. {Math.abs(entry.runningBalance).toLocaleString()}
+                              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                                ✓ Rs. 0 (Settled)
                               </span>
                             )}
                           </td>
