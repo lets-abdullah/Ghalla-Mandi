@@ -92,8 +92,8 @@ export const Customers = () => {
   }, [customers, sales, paymentLogs, saleReturns]);
 
   // Aggregate stats (Party Khata Receivables vs Walk-in Counter Dues)
-  const totalCustomers = registeredCustomersList.length;
-  const regularCount = registeredCustomersList.filter(c => (c.customerType || '').toLowerCase().includes('regular')).length;
+  const totalCustomers = allCustomers.length;
+  const regularCount = registeredCustomersList.length;
   const walkinCount = walkinCustomersList.length;
 
   const totalOverallSales = totalGrossSales;
@@ -102,16 +102,16 @@ export const Customers = () => {
 
   // Filtered Customers Array
   const filteredCustomers = useMemo(() => {
-    let baseList = [];
+    let baseList = allCustomers;
     const filter = (customerTypeFilter || 'All').toLowerCase();
 
-    if (filter.includes('walk-in')) {
+    if (filter.includes('walk-in') || filter === 'walkin') {
       baseList = walkinCustomersList;
     } else if (filter.includes('regular')) {
       baseList = registeredCustomersList;
     } else {
-      // 'All' -> Display both Regular and Walk-in customers!
-      baseList = [...registeredCustomersList, ...walkinCustomersList];
+      // 'All' -> Display ALL customers (both Regular and Walk-in)!
+      baseList = allCustomers;
     }
 
     return baseList.filter(c => {
@@ -132,7 +132,7 @@ export const Customers = () => {
 
       return true;
     }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-  }, [registeredCustomersList, walkinCustomersList, customerTypeFilter, balanceFilter, searchTerm]);
+  }, [allCustomers, registeredCustomersList, walkinCustomersList, customerTypeFilter, balanceFilter, searchTerm]);
 
   const isAnyFilterActive = (
     searchTerm.trim() !== '' ||
@@ -346,8 +346,50 @@ export const Customers = () => {
       </div>
 
       {/* Filter Toolbar (Screen Only) */}
-      <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+      <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow space-y-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
+        {/* Quick Filter Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-100 dark:border-slate-700/60">
+          <button
+            type="button"
+            onClick={() => setCustomerTypeFilter('All')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              customerTypeFilter === 'All'
+                ? 'bg-brand-500 text-white shadow-xs'
+                : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+          >
+            <span>All Customers</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{allCustomers.length}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCustomerTypeFilter('Regular')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              customerTypeFilter === 'Regular'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+          >
+            <span>Regular Customers</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{regularCount}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCustomerTypeFilter('Walk-in')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              customerTypeFilter === 'Walk-in'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+          >
+            <span>Walk-in Customers</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/10">{walkinCount}</span>
+          </button>
+        </div>
+
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
           {/* 1. Search Customer */}
           <div className="flex-[2] min-w-[200px]">
@@ -452,6 +494,7 @@ export const Customers = () => {
                 }`}>
                 <th className="py-3 px-4">Customer</th>
                 <th className="py-3 px-3">Phone</th>
+                <th className="py-3 px-3 text-center">Type</th>
                 <th className="py-3 px-4 text-right">Balance</th>
                 <th className="py-3 px-4 text-center no-print">Action</th>
               </tr>
@@ -481,6 +524,7 @@ export const Customers = () => {
               ) : (
                 filteredCustomers.map(cust => {
                   const bal = Number(cust.balance || 0);
+                  const isWalkin = (cust.customerType || '').toLowerCase().includes('walk') || !cust.isRegistered;
 
                   return (
                     <tr
@@ -489,8 +533,10 @@ export const Customers = () => {
                     >
                       {/* 1. Customer Name + City */}
                       <td className="py-3 px-4">
-                        <div className="font-extrabold text-slate-900 dark:text-white">
-                          {cust.name}
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-slate-900 dark:text-white">
+                            {cust.name}
+                          </span>
                         </div>
                         {(cust.city || cust.businessName || cust.shopName) && (
                           <div className="text-[10px] text-slate-400 font-medium">
@@ -502,6 +548,19 @@ export const Customers = () => {
                       {/* 2. Phone */}
                       <td className="py-3 px-3 font-mono text-slate-600 dark:text-slate-300">
                         {cust.phone && cust.phone !== 'N/A' ? cust.phone : '-'}
+                      </td>
+
+                      {/* 3. Type Badge */}
+                      <td className="py-3 px-3 text-center">
+                        {isWalkin ? (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            Walk-in
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                            Regular
+                          </span>
+                        )}
                       </td>
 
                       {/* 4. Balance */}
