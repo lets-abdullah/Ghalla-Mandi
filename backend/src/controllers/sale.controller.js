@@ -64,9 +64,15 @@ export const createSale = async (req, res) => {
         const unitProfit = rate - Number(product.purchasePrice || 0);
         totalProfit += unitProfit * qty;
 
-        const itemUnit = item.unitName || item.unit || product.unit || 'KG';
+        const expectedUnit = product.unit || 'KG';
+        const providedUnit = item.unit || item.unitName;
+        if (providedUnit && providedUnit.trim().toLowerCase() !== expectedUnit.trim().toLowerCase()) {
+          throw new Error(`Product "${product.name}" has fixed unit "${expectedUnit}". Transaction unit "${providedUnit}" does not match. Unit cannot be changed.`);
+        }
+
+        const itemUnit = expectedUnit;
         const qtyInKg = convertToKg(qty, itemUnit);
-        const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
+        const baseProductFactor = convertToKg(1, expectedUnit) || 1;
         const baseQtyDeducted = qtyInKg / baseProductFactor;
 
         // Update product stock in base unit
@@ -88,7 +94,8 @@ export const createSale = async (req, res) => {
           name: product.name,
           qty,
           rate,
-          unitName: product.unit || 'KG',
+          unit: expectedUnit,
+          unitName: expectedUnit,
           totalAmount: itemTotal
         });
       }

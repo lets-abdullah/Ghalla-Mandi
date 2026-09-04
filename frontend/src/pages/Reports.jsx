@@ -1631,8 +1631,10 @@ export const Reports = () => {
         return pObj?.category || 'General';
       });
       const primaryCat = pCategories[0] || 'General';
+      const firstItem = cart[0] || {};
+      const firstItemProd = (products || []).find(p => String(p.id) === String(firstItem.productId || firstItem.id) || (p.name && firstItem.name && p.name.toLowerCase() === firstItem.name.toLowerCase()));
       const totalQty = cart.reduce((sum, it) => sum + Number(it.qty || it.enteredQty || 1), 0);
-      const unit = cart[0]?.unit || s.unit || 'KG';
+      const unit = firstItemProd?.unit || firstItem.unit || firstItem.unitName || s.unit || 'KG';
       const grossAmt = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : (s.netAmt || 0)));
       let saleCogs = 0;
       cart.forEach(it => {
@@ -1678,8 +1680,10 @@ export const Reports = () => {
         return pObj?.category || 'General';
       });
       const primaryCat = pCategories[0] || 'General';
+      const firstItem = cart[0] || {};
+      const firstItemProd = (products || []).find(prod => String(prod.id) === String(firstItem.productId || firstItem.id) || (prod.name && firstItem.name && prod.name.toLowerCase() === firstItem.name.toLowerCase()));
       const totalQty = cart.reduce((sum, it) => sum + Number(it.qty || it.enteredQty || 1), 0);
-      const unit = cart[0]?.unit || p.unit || 'KG';
+      const unit = firstItemProd?.unit || firstItem.unit || firstItem.unitName || p.unit || 'KG';
       const grossAmt = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.netAmt || 0)));
       const pPay = resolveTransactionPayment(p, 'Purchase');
 
@@ -1726,7 +1730,19 @@ export const Reports = () => {
     (saleReturns || []).forEach(r => {
       const rDateObj = parseJournalDate(r.date, r.created_at);
       const it = (r.items || [])[0] || {};
-      const refAmt = Number(r.refundAmount || 0);
+      const itProd = (products || []).find(p => String(p.id) === String(it.productId || it.id) || (p.name && it.name && p.name.toLowerCase() === it.name.toLowerCase()));
+      const returnUnit = itProd?.unit || it.unit || it.unitName || 'KG';
+
+      let merchandiseVal = 0;
+      (r.items || []).forEach(item => {
+        const itQty = Number(item.qty || item.enteredQty || 1);
+        const itRate = Number(item.rate || item.price || 0);
+        const lineTotal = Number(item.totalAmount || item.total || (itQty * itRate));
+        merchandiseVal += lineTotal;
+      });
+      if (merchandiseVal <= 0) {
+        merchandiseVal = Number(r.refundAmount || r.amount || 0);
+      }
       const srPay = resolveTransactionPayment(r, 'SaleReturn');
 
       let returnCogs = 0;
@@ -1753,11 +1769,11 @@ export const Reports = () => {
         category: 'Sale Return',
         type: srPay.isLiquid ? 'Sale Return (Cash Refund)' : 'Sale Return (Credit Note)',
         isIncome: false,
-        qty: it.qty ? `${it.qty} ${it.unit || 'KG'}` : '—',
+        qty: it.qty ? `${it.qty} ${returnUnit}` : '—',
         rawQty: Number(it.qty || 0),
-        amount: -Math.round(refAmt),
+        amount: -Math.round(merchandiseVal),
         cogs: Math.round(returnCogs),
-        grossProfit: -Math.round(refAmt - returnCogs),
+        grossProfit: -Math.round(merchandiseVal - returnCogs),
         party: r.customerName || 'Customer Party',
         mode: srPay.isLiquid ? (srPay.channel === 'bank' ? 'Bank' : srPay.channel === 'wallet' ? 'Mobile Wallet' : 'Cash') : 'Credit Note'
       });
@@ -1767,7 +1783,19 @@ export const Reports = () => {
     (purchaseReturns || []).forEach(r => {
       const rDateObj = parseJournalDate(r.date, r.created_at);
       const it = (r.items || [])[0] || {};
-      const refAmt = Number(r.refundAmount || 0);
+      const itProd = (products || []).find(p => String(p.id) === String(it.productId || it.id) || (p.name && it.name && p.name.toLowerCase() === it.name.toLowerCase()));
+      const returnUnit = itProd?.unit || it.unit || it.unitName || 'KG';
+
+      let merchandiseVal = 0;
+      (r.items || []).forEach(item => {
+        const itQty = Number(item.qty || item.enteredQty || 1);
+        const itRate = Number(item.rate || item.price || 0);
+        const lineTotal = Number(item.totalAmount || item.total || (itQty * itRate));
+        merchandiseVal += lineTotal;
+      });
+      if (merchandiseVal <= 0) {
+        merchandiseVal = Number(r.refundAmount || r.amount || 0);
+      }
       const prPay = resolveTransactionPayment(r, 'PurchaseReturn');
 
       journal.push({
@@ -1779,9 +1807,9 @@ export const Reports = () => {
         category: 'Purchase Return',
         type: prPay.isLiquid ? 'Purchase Return (Cash Refund)' : 'Purchase Return (Debit Note)',
         isIncome: true,
-        qty: it.qty ? `${it.qty} ${it.unit || 'KG'}` : '—',
+        qty: it.qty ? `${it.qty} ${returnUnit}` : '—',
         rawQty: Number(it.qty || 0),
-        amount: Math.round(refAmt),
+        amount: Math.round(merchandiseVal),
         party: r.supplierName || 'Supplier Firm',
         mode: prPay.isLiquid ? (prPay.channel === 'bank' ? 'Bank' : prPay.channel === 'wallet' ? 'Mobile Wallet' : 'Cash') : 'Debit Note'
       });
@@ -1966,17 +1994,18 @@ export const Reports = () => {
       const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : [{ name: s.productName || 'Commodity', qty: s.qty || 1, total: s.grossAmt }]);
       cart.forEach(it => {
         const key = (it.name || '').toLowerCase();
+        const pObj = (products || []).find(p => String(p.id) === String(it.productId || it.id) || (p.name && p.name.toLowerCase() === key));
         const qty = Number(it.qty || it.enteredQty || 1);
         const rev = Number(it.total || it.totalAmount || (qty * (it.price || it.rate || 0)));
 
         if (!map[key]) {
           map[key] = {
-            name: it.name || 'Commodity',
-            category: 'General',
+            name: pObj?.name || it.name || 'Commodity',
+            category: pObj?.category || 'General',
             unitsSold: 0,
-            unit: it.unit || 'KG',
+            unit: pObj?.unit || it.unit || it.unitName || 'KG',
             salesRevenue: 0,
-            purchasePrice: 0,
+            purchasePrice: Number(pObj?.purchasePrice || 0),
             cogs: 0,
             grossProfit: 0,
             margin: '0.0'
@@ -1984,6 +2013,20 @@ export const Reports = () => {
         }
         map[key].unitsSold += qty;
         map[key].salesRevenue += rev;
+      });
+    });
+
+    (saleReturns || []).forEach(r => {
+      const items = Array.isArray(r.items) && r.items.length > 0 ? r.items : (Array.isArray(r.cart) ? r.cart : []);
+      items.forEach(it => {
+        const key = (it.name || '').toLowerCase();
+        const qty = Number(it.qty || it.enteredQty || 0);
+        const rate = Number(it.rate || it.price || 0);
+        const rev = Number(it.totalAmount || it.total || (qty * rate));
+        if (map[key]) {
+          map[key].unitsSold = Math.max(0, map[key].unitsSold - qty);
+          map[key].salesRevenue = Math.max(0, map[key].salesRevenue - rev);
+        }
       });
     });
 
@@ -2000,7 +2043,7 @@ export const Reports = () => {
         margin
       };
     }).sort((a, b) => b.grossProfit - a.grossProfit);
-  }, [products, filteredSalesList]);
+  }, [products, filteredSalesList, saleReturns]);
 
   // Category-Wise P&L Analysis (Accurate COGS & Gross Profit per Category)
   const categoryWisePnLData = useMemo(() => {
@@ -3024,7 +3067,11 @@ export const Reports = () => {
                     ) : (
                       filteredSalesList.map((s, idx) => {
                         const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : [{ name: s.productName || 'Item', qty: s.qty || 1, unit: s.unit || 'KG' }]);
-                        const itemsSummary = cart.map(it => `${it.name || it.productName || 'Item'} (${it.qty || it.enteredQty || 1} ${it.unit || it.unitName || 'KG'})`).join(', ');
+                        const itemsSummary = cart.map(it => {
+                          const pObj = (products || []).find(p => String(p.id) === String(it.productId || it.id) || (p.name && it.name && p.name.toLowerCase() === it.name.toLowerCase()));
+                          const u = pObj?.unit || it.unit || it.unitName || 'KG';
+                          return `${it.name || it.productName || 'Item'} (${it.qty || it.enteredQty || 1} ${u})`;
+                        }).join(', ');
 
                         return (
                           <tr key={s.id || idx} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}>

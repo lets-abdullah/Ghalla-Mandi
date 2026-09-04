@@ -60,9 +60,15 @@ export const createPurchase = async (req, res) => {
         const itemTotal = qty * rate;
         totalGrand += itemTotal;
 
-        const itemUnit = item.unit || item.unitName || item.enteredUnit || product.unit || product.baseUnit || 'KG';
+        const expectedUnit = product.unit || 'KG';
+        const providedUnit = item.unit || item.unitName || item.enteredUnit;
+        if (providedUnit && providedUnit.trim().toLowerCase() !== expectedUnit.trim().toLowerCase()) {
+          throw new Error(`Product "${product.name}" has fixed unit "${expectedUnit}". Transaction unit "${providedUnit}" does not match. Unit cannot be changed.`);
+        }
+
+        const itemUnit = expectedUnit;
         const qtyInKg = convertToKg(qty, itemUnit);
-        const baseProductFactor = convertToKg(1, product.unit || 'KG') || 1;
+        const baseProductFactor = convertToKg(1, expectedUnit) || 1;
         const baseQtyAdded = qtyInKg / baseProductFactor;
 
         // Update product stock and moving weighted average purchase price
@@ -93,9 +99,9 @@ export const createPurchase = async (req, res) => {
           productId: product.id,
           name: product.name,
           productName: product.name,
-          unit: itemUnit,
-          unitName: itemUnit,
-          enteredUnit: itemUnit,
+          unit: expectedUnit,
+          unitName: expectedUnit,
+          enteredUnit: expectedUnit,
           qty: qty,
           enteredQty: qty,
           rate: rate,

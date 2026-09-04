@@ -41,7 +41,8 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
           name: it.name || it.productName || prod.name || 'Commodity Item',
           qty: Number(it.qty || it.enteredQty || 1),
           rate: Number(it.rate || it.ratePerEnteredUnit || it.price || prod.purchasePrice || 0),
-          unitName: it.unitName || it.unit || prod.unit || 'KG'
+          unit: prod.unit || it.unit || it.unitName || 'KG',
+          unitName: prod.unit || it.unitName || it.unit || 'KG'
         };
       });
 
@@ -50,6 +51,7 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
         name: products[0]?.name || '',
         qty: 1,
         rate: Number(products[0]?.purchasePrice || 0),
+        unit: products[0]?.unit || 'KG',
         unitName: products[0]?.unit || 'KG'
       }]);
 
@@ -70,6 +72,7 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
         name: firstProd.name,
         qty: 1,
         rate: Number(firstProd.purchasePrice || 0),
+        unit: firstProd.unit || 'KG',
         unitName: firstProd.unit || 'KG'
       }
     ]);
@@ -93,6 +96,7 @@ export const EditPurchaseModal = ({ isOpen, onClose, purchase }) => {
           productId: prod.id,
           name: prod.name,
           rate: Number(prod.purchasePrice || 0),
+          unit: prod.unit || 'KG',
           unitName: prod.unit || 'KG'
         };
       }

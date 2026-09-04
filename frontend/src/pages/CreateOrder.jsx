@@ -482,6 +482,7 @@ export const CreateOrder = () => {
           name: item.name,
           qty: item.qty,
           rate: item.price,
+          unit: item.unit,
           unitName: item.unit
         })),
         saleNote,

@@ -1521,7 +1521,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       }
 
       const sItems = Array.isArray(s.cart) && s.cart.length > 0
-        ? s.cart.map(i => `${i.name || 'Commodity'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
+        ? s.cart.map(i => `${i.name || 'Commodity'} (${i.qty || 1} ${resolveProductMasterUnit(i, i.unitName || i.unit || 'KG')})`).join(', ')
         : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
 
       const descText = sReturn > 0
@@ -1816,7 +1816,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       }
 
       const pItems = Array.isArray(p.items) && p.items.length > 0
-        ? p.items.map(i => `${i.name || 'Produce'} (${i.qty || i.enteredQty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
+        ? p.items.map(i => `${i.name || 'Produce'} (${i.qty || i.enteredQty || 1} ${resolveProductMasterUnit(i, i.unitName || i.unit || 'KG')})`).join(', ')
         : (typeof p.cart === 'string' ? p.cart : 'Commodity Procurement');
 
       const descText = pReturn > 0
@@ -2112,6 +2112,32 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
   };
 };
 
+const globalProductsUnitMap = new Map();
+
+export const registerProductUnits = (prods = []) => {
+  if (!Array.isArray(prods)) return;
+  prods.forEach(p => {
+    if (!p) return;
+    const u = p.unit || p.baseUnit || 'KG';
+    if (p.id) globalProductsUnitMap.set(String(p.id).toLowerCase(), u);
+    if (p.name) globalProductsUnitMap.set(String(p.name).trim().toLowerCase(), u);
+    if (p.code) globalProductsUnitMap.set(String(p.code).trim().toLowerCase(), u);
+  });
+};
+
+export const resolveProductMasterUnit = (itemOrProd, fallback = 'KG') => {
+  if (!itemOrProd) return fallback;
+  const idKey = itemOrProd.productId || itemOrProd.id;
+  if (idKey && globalProductsUnitMap.has(String(idKey).toLowerCase())) {
+    return globalProductsUnitMap.get(String(idKey).toLowerCase());
+  }
+  const nameKey = itemOrProd.name || itemOrProd.productName;
+  if (nameKey && globalProductsUnitMap.has(String(nameKey).trim().toLowerCase())) {
+    return globalProductsUnitMap.get(String(nameKey).trim().toLowerCase());
+  }
+  return itemOrProd.unit || itemOrProd.unitName || itemOrProd.baseUnit || fallback;
+};
+
 const normalizePurchase = (p) => {
   if (!p) return null;
   const grandTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
@@ -2123,7 +2149,16 @@ const normalizePurchase = (p) => {
   const isReturned = (p.status === 'Returned' || p.paymentStatus === 'Returned') || (returnAmount >= grandTotal && grandTotal > 0);
   const status = isReturned ? 'Returned' : (p.paymentStatus || p.status || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending'));
   const date = p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
-  const items = Array.isArray(p.items) ? p.items : (Array.isArray(p.cart) ? p.cart : []);
+  const rawItems = Array.isArray(p.items) ? p.items : (Array.isArray(p.cart) ? p.cart : []);
+  const items = rawItems.map(it => {
+    const u = resolveProductMasterUnit(it, it.unit || it.unitName || 'KG');
+    return {
+      ...it,
+      unit: u,
+      unitName: u,
+      enteredUnit: u
+    };
+  });
   const paymentMode = p.paymentMode || p.paymentmode || p.paymentMethod || p.paymentmethod || (paidAmount > 0 ? 'Cash' : 'Supplier Khata');
 
   return {
@@ -2150,7 +2185,7 @@ const normalizePurchase = (p) => {
     paymentStatus: status,
     date,
     items,
-    cart: p.cart || items
+    cart: items
   };
 };
 
@@ -2166,7 +2201,15 @@ const normalizeSale = (s) => {
   const status = isReturned ? 'Returned' : (s.status || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending'));
   const date = s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
   const profit = Number(s.profit !== undefined ? s.profit : 0);
-  const cart = Array.isArray(s.cart) ? s.cart : (Array.isArray(s.items) ? s.items : []);
+  const rawCart = Array.isArray(s.cart) ? s.cart : (Array.isArray(s.items) ? s.items : []);
+  const cart = rawCart.map(it => {
+    const u = resolveProductMasterUnit(it, it.unit || it.unitName || 'KG');
+    return {
+      ...it,
+      unit: u,
+      unitName: u
+    };
+  });
   const paymentMode = s.paymentMode || s.paymentmode || s.paymentMethod || s.paymentmethod || (paidAmount > 0 ? 'Cash' : 'Khata (Udhaar)');
 
   return {
@@ -2192,7 +2235,7 @@ const normalizeSale = (s) => {
     profit,
     date,
     cart,
-    items: s.items || cart
+    items: cart
   };
 };
 
@@ -2203,6 +2246,8 @@ const normalizeProduct = (p) => {
   const stockQty = Number(p.stockQty !== undefined ? p.stockQty : (p.stockqty !== undefined ? p.stockqty : 0));
   const minStock = Number(p.minStock !== undefined ? p.minStock : (p.minstock !== undefined ? p.minstock : (p.minStockThreshold !== undefined ? p.minStockThreshold : 10)));
   const unit = p.unit || p.baseUnit || 'KG';
+
+  registerProductUnits([p]);
 
   return {
     ...p,
@@ -2300,7 +2345,15 @@ const normalizePaymentLog = (p) => {
 const normalizeSaleReturn = (r) => {
   if (!r) return null;
   const refundAmount = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : 0));
-  const items = Array.isArray(r.items) ? r.items : (Array.isArray(r.itemsJson) ? r.itemsJson : []);
+  const rawItems = Array.isArray(r.items) ? r.items : (Array.isArray(r.itemsJson) ? r.itemsJson : []);
+  const items = rawItems.map(it => {
+    const u = resolveProductMasterUnit(it, it.unit || it.unitName || 'KG');
+    return {
+      ...it,
+      unit: u,
+      unitName: u
+    };
+  });
   return {
     ...r,
     id: r.id,
@@ -2323,7 +2376,15 @@ const normalizeSaleReturn = (r) => {
 const normalizePurchaseReturn = (r) => {
   if (!r) return null;
   const refundAmount = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : 0));
-  const items = Array.isArray(r.items) ? r.items : (Array.isArray(r.itemsJson) ? r.itemsJson : []);
+  const rawItems = Array.isArray(r.items) ? r.items : (Array.isArray(r.itemsJson) ? r.itemsJson : []);
+  const items = rawItems.map(it => {
+    const u = resolveProductMasterUnit(it, it.unit || it.unitName || 'KG');
+    return {
+      ...it,
+      unit: u,
+      unitName: u
+    };
+  });
   return {
     ...r,
     id: r.id,
@@ -2430,7 +2491,10 @@ export const ERPProvider = ({ children }) => {
       });
 
       if (catRes.success) setCategories(catRes.categories || []);
-      if (prodRes.success) setProducts(sortDesc((prodRes.products || []).map(normalizeProduct)));
+      if (prodRes.success) {
+        registerProductUnits(prodRes.products || []);
+        setProducts(sortDesc((prodRes.products || []).map(normalizeProduct)));
+      }
       if (custRes.success) setCustomers(sortDesc((custRes.customers || []).map(normalizeCustomer)));
       if (supRes.success) setSuppliers(sortDesc((supRes.suppliers || []).map(normalizeSupplier)));
       if (saleRes.success) setSales(sortDesc((saleRes.sales || []).map(normalizeSale)));
@@ -2893,26 +2957,30 @@ export const ERPProvider = ({ children }) => {
       productId: purchaseData.productId,
       name: purchaseData.productName || purchaseData.name,
       productName: purchaseData.productName || purchaseData.name,
-      unit: purchaseData.unit || purchaseData.unitName || 'KG',
-      unitName: purchaseData.unitName || purchaseData.unit || 'KG',
+      unit: resolveProductMasterUnit(purchaseData, purchaseData.unit || purchaseData.unitName || 'KG'),
+      unitName: resolveProductMasterUnit(purchaseData, purchaseData.unitName || purchaseData.unit || 'KG'),
       qty: Number(purchaseData.qtyKg || purchaseData.qty) || 1,
       rate: Number(purchaseData.rate) || 0,
       total: (Number(purchaseData.qtyKg || purchaseData.qty) || 1) * (Number(purchaseData.rate) || 0)
     }] : []);
 
-    const items = rawItems.map(item => ({
-      productId: item.productId || item.id,
-      name: item.name || item.productName || 'Product',
-      productName: item.productName || item.name || 'Product',
-      unit: item.unit || item.unitName || item.enteredUnit || 'KG',
-      unitName: item.unitName || item.unit || item.enteredUnit || 'KG',
-      qty: Number(item.qty || item.enteredQty) || 1,
-      enteredQty: Number(item.qty || item.enteredQty) || 1,
-      rate: Number(item.rate || item.price || item.ratePerEnteredUnit) || 0,
-      ratePerEnteredUnit: Number(item.rate || item.price || item.ratePerEnteredUnit) || 0,
-      total: Number(item.total || item.totalAmount) || ((Number(item.qty || 1)) * (Number(item.rate || 0))),
-      totalAmount: Number(item.total || item.totalAmount) || ((Number(item.qty || 1)) * (Number(item.rate || 0)))
-    }));
+    const items = rawItems.map(item => {
+      const u = resolveProductMasterUnit(item, item.unit || item.unitName || item.enteredUnit || 'KG');
+      return {
+        productId: item.productId || item.id,
+        name: item.name || item.productName || 'Product',
+        productName: item.productName || item.name || 'Product',
+        unit: u,
+        unitName: u,
+        enteredUnit: u,
+        qty: Number(item.qty || item.enteredQty) || 1,
+        enteredQty: Number(item.qty || item.enteredQty) || 1,
+        rate: Number(item.rate || item.price || item.ratePerEnteredUnit) || 0,
+        ratePerEnteredUnit: Number(item.rate || item.price || item.ratePerEnteredUnit) || 0,
+        total: Number(item.total || item.totalAmount) || ((Number(item.qty || 1)) * (Number(item.rate || 0))),
+        totalAmount: Number(item.total || item.totalAmount) || ((Number(item.qty || 1)) * (Number(item.rate || 0)))
+      };
+    });
 
     const payload = {
       supplierName: purchaseData.supplierName || purchaseData.supplier || '',
@@ -2974,13 +3042,17 @@ export const ERPProvider = ({ children }) => {
 
   // 11. Create Sale POS Invoice with anti-duplicate lock
   const createSale = async (saleData) => {
-    const items = (saleData.cart || []).map(item => ({
-      productId: item.productId || item.id,
-      name: item.name,
-      qty: Number(item.qty) || 1,
-      rate: Number(item.rate) || 0,
-      unitName: item.unitName || item.unit || 'KG'
-    }));
+    const items = (saleData.cart || []).map(item => {
+      const u = resolveProductMasterUnit(item, item.unit || item.unitName || 'KG');
+      return {
+        productId: item.productId || item.id,
+        name: item.name,
+        qty: Number(item.qty) || 1,
+        rate: Number(item.rate) || 0,
+        unit: u,
+        unitName: u
+      };
+    });
 
     const payload = {
       customerName: saleData.customerName || 'Walk-in Customer',
@@ -3043,9 +3115,20 @@ export const ERPProvider = ({ children }) => {
   // 12. Record Sale Return (Restocks inventory, adjusts customer khata, logs return via backend API)
   const recordSaleReturn = async (returnData) => {
     try {
+      const sanitizedItems = (returnData.items || []).map(it => {
+        const u = resolveProductMasterUnit(it, it.unit || it.unitName || 'KG');
+        return {
+          ...it,
+          unit: u,
+          unitName: u
+        };
+      });
       const res = await authFetch('/api/returns/sales', {
         method: 'POST',
-        body: returnData
+        body: {
+          ...returnData,
+          items: sanitizedItems
+        }
       });
 
       if (res.success && (res.saleReturn || res.return)) {
@@ -3146,9 +3229,20 @@ export const ERPProvider = ({ children }) => {
         }
       }
 
+      const sanitizedItems = (returnData.items || []).map(it => {
+        const u = resolveProductMasterUnit(it, it.unit || it.unitName || 'KG');
+        return {
+          ...it,
+          unit: u,
+          unitName: u
+        };
+      });
       const res = await authFetch('/api/returns/purchases', {
         method: 'POST',
-        body: returnData
+        body: {
+          ...returnData,
+          items: sanitizedItems
+        }
       });
 
       if (res.success && (res.purchaseReturn || res.return)) {

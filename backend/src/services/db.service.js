@@ -303,6 +303,121 @@ const createTables = async () => {
 
   const p = getPool();
   await p.query(schema);
+
+  // Sanitize cartJson and itemsJson units to match product master units
+  try {
+    const prodRows = await p.query('SELECT id, name, unit FROM products');
+    if (prodRows && prodRows.rows.length > 0) {
+      const prodUnitMap = new Map();
+      prodRows.rows.forEach(r => {
+        const u = r.unit || 'KG';
+        if (r.id) prodUnitMap.set(String(r.id).toLowerCase(), u);
+        if (r.name) prodUnitMap.set(String(r.name).trim().toLowerCase(), u);
+      });
+
+      // 1. Sanitize sales.cartJson
+      const salesRows = await p.query('SELECT id, cartJson FROM sales WHERE cartJson IS NOT NULL');
+      for (const s of salesRows.rows) {
+        if (!s.cartjson) continue;
+        try {
+          const cart = JSON.parse(s.cartjson);
+          if (Array.isArray(cart)) {
+            let changed = false;
+            const updatedCart = cart.map(it => {
+              const pId = it.productId || it.id;
+              const pName = (it.name || it.productName || '').trim().toLowerCase();
+              const correctUnit = prodUnitMap.get(String(pId).toLowerCase()) || prodUnitMap.get(pName);
+              if (correctUnit && (it.unit !== correctUnit || it.unitName !== correctUnit)) {
+                changed = true;
+                return { ...it, unit: correctUnit, unitName: correctUnit };
+              }
+              return it;
+            });
+            if (changed) {
+              await p.query('UPDATE sales SET cartJson = $1 WHERE id = $2', [JSON.stringify(updatedCart), s.id]);
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 2. Sanitize purchases.itemsJson
+      const purRows = await p.query('SELECT id, itemsJson FROM purchases WHERE itemsJson IS NOT NULL');
+      for (const pr of purRows.rows) {
+        if (!pr.itemsjson) continue;
+        try {
+          const items = JSON.parse(pr.itemsjson);
+          if (Array.isArray(items)) {
+            let changed = false;
+            const updatedItems = items.map(it => {
+              const pId = it.productId || it.id;
+              const pName = (it.name || it.productName || '').trim().toLowerCase();
+              const correctUnit = prodUnitMap.get(String(pId).toLowerCase()) || prodUnitMap.get(pName);
+              if (correctUnit && (it.unit !== correctUnit || it.unitName !== correctUnit || it.enteredUnit !== correctUnit)) {
+                changed = true;
+                return { ...it, unit: correctUnit, unitName: correctUnit, enteredUnit: correctUnit };
+              }
+              return it;
+            });
+            if (changed) {
+              await p.query('UPDATE purchases SET itemsJson = $1 WHERE id = $2', [JSON.stringify(updatedItems), pr.id]);
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 3. Sanitize sale_returns.itemsJson
+      const srRows = await p.query('SELECT id, itemsJson FROM sale_returns WHERE itemsJson IS NOT NULL');
+      for (const sr of srRows.rows) {
+        if (!sr.itemsjson) continue;
+        try {
+          const items = JSON.parse(sr.itemsjson);
+          if (Array.isArray(items)) {
+            let changed = false;
+            const updatedItems = items.map(it => {
+              const pId = it.productId || it.id;
+              const pName = (it.name || it.productName || '').trim().toLowerCase();
+              const correctUnit = prodUnitMap.get(String(pId).toLowerCase()) || prodUnitMap.get(pName);
+              if (correctUnit && (it.unit !== correctUnit || it.unitName !== correctUnit)) {
+                changed = true;
+                return { ...it, unit: correctUnit, unitName: correctUnit };
+              }
+              return it;
+            });
+            if (changed) {
+              await p.query('UPDATE sale_returns SET itemsJson = $1 WHERE id = $2', [JSON.stringify(updatedItems), sr.id]);
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 4. Sanitize purchase_returns.itemsJson
+      const prRows = await p.query('SELECT id, itemsJson FROM purchase_returns WHERE itemsJson IS NOT NULL');
+      for (const pr of prRows.rows) {
+        if (!pr.itemsjson) continue;
+        try {
+          const items = JSON.parse(pr.itemsjson);
+          if (Array.isArray(items)) {
+            let changed = false;
+            const updatedItems = items.map(it => {
+              const pId = it.productId || it.id;
+              const pName = (it.name || it.productName || '').trim().toLowerCase();
+              const correctUnit = prodUnitMap.get(String(pId).toLowerCase()) || prodUnitMap.get(pName);
+              if (correctUnit && (it.unit !== correctUnit || it.unitName !== correctUnit)) {
+                changed = true;
+                return { ...it, unit: correctUnit, unitName: correctUnit };
+              }
+              return it;
+            });
+            if (changed) {
+              await p.query('UPDATE purchase_returns SET itemsJson = $1 WHERE id = $2', [JSON.stringify(updatedItems), pr.id]);
+            }
+          }
+        } catch (e) {}
+      }
+    }
+  } catch (err) {
+    console.warn('[DB Sanitization Note]:', err.message);
+  }
 };
 
 // Async Query Helper Functions (Auto-ensures tables exist)

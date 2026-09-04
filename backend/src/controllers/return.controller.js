@@ -78,18 +78,25 @@ export const createSaleReturn = async (req, res) => {
         const itemTotal = rQty * lineRate;
         approvedTotal += itemTotal;
 
+        const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
+        const expectedUnit = prod?.unit || 'KG';
+        const providedUnit = item.unit || item.unitName;
+        if (providedUnit && providedUnit.trim().toLowerCase() !== expectedUnit.trim().toLowerCase()) {
+          throw new Error(`Product "${prod?.name || item.name}" has fixed unit "${expectedUnit}". Return unit "${providedUnit}" does not match. Unit cannot be changed.`);
+        }
+
         processedItems.push({
           productId: pId,
           id: pId,
-          name: item.name || item.productName || 'Returned Product',
+          name: item.name || item.productName || prod?.name || 'Returned Product',
           qty: rQty,
           rate: lineRate,
-          unit: item.unit || 'KG',
+          unit: expectedUnit,
+          unitName: expectedUnit,
           totalAmount: itemTotal
         });
 
         // 1. Restock products in inventory
-        const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
         if (prod) {
           const newStock = Number(prod.stockQty || 0) + rQty;
           await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
@@ -97,7 +104,7 @@ export const createSaleReturn = async (req, res) => {
             shop_id: req.shop_id,
             product: prod.name,
             type: 'IN (Sale Return)',
-            qty: `${rQty} ${prod.unit || 'KG'}`,
+            qty: `${rQty} ${expectedUnit}`,
             ref: `Sale Return #${returnNo}`,
             date: dateStr
           });
@@ -346,22 +353,29 @@ export const createPurchaseReturn = async (req, res) => {
         const itemTotal = rQty * lineRate;
         approvedTotal += itemTotal;
 
+        const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
+        const expectedUnit = prod?.unit || 'KG';
+        const providedUnit = item.unit || item.unitName;
+        if (providedUnit && providedUnit.trim().toLowerCase() !== expectedUnit.trim().toLowerCase()) {
+          throw new Error(`Product "${prod?.name || item.name}" has fixed unit "${expectedUnit}". Return unit "${providedUnit}" does not match. Unit cannot be changed.`);
+        }
+
         processedItems.push({
           productId: pId,
           id: pId,
-          name: item.name || item.productName || 'Returned Product',
+          name: item.name || item.productName || prod?.name || 'Returned Product',
           qty: rQty,
           rate: lineRate,
-          unit: item.unit || 'KG',
+          unit: expectedUnit,
+          unitName: expectedUnit,
           totalAmount: itemTotal
         });
 
         // 1. Deduct products from inventory
-        const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
         if (prod) {
           const availableStock = Number(prod.stockQty || 0);
           if (rQty > availableStock) {
-            throw new Error(`Insufficient Stock — Available: ${availableStock} ${prod.unit || 'KG'}. Maximum returnable quantity: ${availableStock} ${prod.unit || 'KG'}.`);
+            throw new Error(`Insufficient Stock — Available: ${availableStock} ${expectedUnit}. Maximum returnable quantity: ${availableStock} ${expectedUnit}.`);
           }
           const newStock = availableStock - rQty;
           await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
@@ -369,7 +383,7 @@ export const createPurchaseReturn = async (req, res) => {
             shop_id: req.shop_id,
             product: prod.name,
             type: 'OUT (Purchase Return)',
-            qty: `${rQty} ${prod.unit || 'KG'}`,
+            qty: `${rQty} ${expectedUnit}`,
             ref: `Purchase Return #${returnNo}`,
             date: dateStr
           });

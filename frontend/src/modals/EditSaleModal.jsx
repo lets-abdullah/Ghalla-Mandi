@@ -45,7 +45,8 @@ export const EditSaleModal = ({ isOpen, onClose, sale }) => {
           name: it.name || it.productName || prod.name || 'Commodity Item',
           qty: Number(it.qty || it.enteredQty || 1),
           rate: Number(it.rate || it.price || prod.sellingPrice || 0),
-          unitName: it.unitName || it.unit || prod.unit || 'KG'
+          unit: prod.unit || it.unit || it.unitName || 'KG',
+          unitName: prod.unit || it.unitName || it.unit || 'KG'
         };
       });
 
@@ -54,6 +55,7 @@ export const EditSaleModal = ({ isOpen, onClose, sale }) => {
         name: products[0]?.name || '',
         qty: 1,
         rate: Number(products[0]?.sellingPrice || 0),
+        unit: products[0]?.unit || 'KG',
         unitName: products[0]?.unit || 'KG'
       }]);
 
@@ -75,6 +77,7 @@ export const EditSaleModal = ({ isOpen, onClose, sale }) => {
         name: firstProd.name,
         qty: 1,
         rate: Number(firstProd.sellingPrice || 0),
+        unit: firstProd.unit || 'KG',
         unitName: firstProd.unit || 'KG'
       }
     ]);
@@ -98,6 +101,7 @@ export const EditSaleModal = ({ isOpen, onClose, sale }) => {
           productId: prod.id,
           name: prod.name,
           rate: Number(prod.sellingPrice || 0),
+          unit: prod.unit || 'KG',
           unitName: prod.unit || 'KG'
         };
       }

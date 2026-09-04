@@ -382,6 +382,7 @@ export const Purchases = () => {
           {
             productId: selectedProduct.id,
             name: selectedProduct.name,
+            unit: productUnit,
             unitName: productUnit,
             qty: qtyVal,
             rate: rateVal,
