@@ -189,12 +189,30 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
   };
 };
 
+export const extractMerchandiseReturnValue = (r) => {
+  if (!r) return 0;
+  if (Array.isArray(r.items) && r.items.length > 0) {
+    const itemsVal = r.items.reduce((sum, it) => sum + Number(it.totalAmount || it.total || ((it.qty || 0) * (it.rate || 0))), 0);
+    if (itemsVal > 0) return itemsVal;
+  }
+  if (r.itemsJson) {
+    try {
+      const itms = typeof r.itemsJson === 'string' ? JSON.parse(r.itemsJson) : r.itemsJson;
+      if (Array.isArray(itms) && itms.length > 0) {
+        const itemsVal = itms.reduce((sum, it) => sum + Number(it.totalAmount || it.total || ((it.qty || 0) * (it.rate || 0))), 0);
+        if (itemsVal > 0) return itemsVal;
+      }
+    } catch (e) {}
+  }
+  return Number(r.totalGoodsValue || r.refundAmount || 0);
+};
+
 export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], allSales = []) => {
   if (!sale) return { total: 0, grossTotal: 0, netTotal: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false, isFullyReturned: false, isPartiallyReturned: false };
   const total = Number(sale.amount !== undefined ? sale.amount : (sale.grandTotal !== undefined ? sale.grandTotal : (sale.grandtotal !== undefined ? sale.grandtotal : 0)));
 
   const returns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(sale.id)) || (r.invoiceNo && r.invoiceNo === sale.invoiceNo));
-  const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(sale.returnAmount || 0);
+  const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0) : Number(sale.returnAmount || 0);
   const cashRefundAmount = returns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
   const netDueableTotal = Math.max(0, total - returnAmount);
 
@@ -270,7 +288,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
       if (availableGeneralCash <= 0) break;
       const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
       const sReturns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(s.id)) || (r.invoiceNo && r.invoiceNo === s.invoiceNo));
-      const sRetAmt = sReturns.length > 0 ? sReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(s.returnAmount || 0);
+      const sRetAmt = sReturns.length > 0 ? sReturns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0) : Number(s.returnAmount || 0);
       const sNetTotal = Math.max(0, sTotal - sRetAmt);
 
       const sMatchingLogs = (paymentLogs || []).filter(pl =>
@@ -323,7 +341,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const total = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : (purchase.grandtotal !== undefined ? purchase.grandtotal : 0)));
 
   const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
-  const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(purchase.returnAmount || 0);
+  const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0) : Number(purchase.returnAmount || 0);
   const netDueableTotal = Math.max(0, total - returnAmount);
 
   // Categorize specific payment logs for this purchase
@@ -391,7 +409,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
       if (availableGeneralCash <= 0) break;
       const pTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
       const pReturns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(p.id)) || (r.purchaseNo && r.purchaseNo === p.purchaseNo));
-      const pRetAmt = pReturns.length > 0 ? pReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(p.returnAmount || 0);
+      const pRetAmt = pReturns.length > 0 ? pReturns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0) : Number(p.returnAmount || 0);
       const pNetTotal = Math.max(0, pTotal - pRetAmt);
 
       const pMatchingLogs = (paymentLogs || []).filter(pl => {
@@ -509,7 +527,7 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     return (!rCustId || rCustId === custId) && isGenericWalkinName(rCustName);
   });
 
-  const totalReturnAmount = custReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const totalReturnAmount = custReturns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0);
 
   // Customer Payment Transactions in paymentLogs (excluding Opening Balance and Credit Notes)
   const custPayments = (paymentLogs || []).filter(p => {
@@ -1150,7 +1168,7 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
     return (supId && rSupId && rSupId === supId) || (supName && rSupName === supName);
   });
 
-  const totalReturnAmount = supReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const totalReturnAmount = supReturns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0);
 
   // Supplier Payment Transactions recorded in paymentLogs (excluding Opening Balance and Debit Notes)
   const supPayments = (paymentLogs || []).filter(p => {

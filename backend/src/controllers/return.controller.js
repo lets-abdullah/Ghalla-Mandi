@@ -102,9 +102,23 @@ export const createSaleReturn = async (req, res) => {
             date: dateStr
           });
         }
+      let maxEligibleCashRefund = approvedTotal;
+      if (targetSale) {
+        const saleTotal = Number(targetSale.amount || targetSale.grandTotal || 0);
+        const salePaid = Number(targetSale.paidAmount !== undefined ? targetSale.paidAmount : (targetSale.paid || 0));
+        const priorReturns = existingReturns || [];
+        const priorCashRefunds = priorReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+        const priorMerchandiseValue = priorReturns.reduce((sum, r) => {
+          const itemsVal = Array.isArray(r.items) ? r.items.reduce((s, it) => s + Number(it.totalAmount || it.total || ((it.qty || 0) * (it.rate || 0))), 0) : 0;
+          return sum + (itemsVal > 0 ? itemsVal : Number(r.refundAmount || 0));
+        }, 0);
+        const newNetSale = Math.max(0, saleTotal - (priorMerchandiseValue + approvedTotal));
+        maxEligibleCashRefund = Math.max(0, Math.min(approvedTotal, salePaid - newNetSale - priorCashRefunds));
       }
 
-      const finalRefundAmount = req.body.refundAmount !== undefined ? Number(req.body.refundAmount) : approvedTotal;
+      const finalRefundAmount = req.body.refundAmount !== undefined
+        ? Math.min(Number(req.body.refundAmount), maxEligibleCashRefund)
+        : maxEligibleCashRefund;
 
       // 2. Create Sale Return Record (refundMode is strictly Cash under canonical rules)
       const createdReturn = await SaleReturn.create({
@@ -358,9 +372,23 @@ export const createPurchaseReturn = async (req, res) => {
             date: dateStr
           });
         }
+      let maxEligibleCashRefund = approvedTotal;
+      if (targetPurchase) {
+        const purTotal = Number(targetPurchase.grandTotal || targetPurchase.amount || 0);
+        const purPaid = Number(targetPurchase.paidAmount !== undefined ? targetPurchase.paidAmount : (targetPurchase.paid || 0));
+        const priorReturns = existingReturns || [];
+        const priorCashRefunds = priorReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+        const priorMerchandiseValue = priorReturns.reduce((sum, r) => {
+          const itemsVal = Array.isArray(r.items) ? r.items.reduce((s, it) => s + Number(it.totalAmount || it.total || ((it.qty || 0) * (it.rate || 0))), 0) : 0;
+          return sum + (itemsVal > 0 ? itemsVal : Number(r.refundAmount || 0));
+        }, 0);
+        const newNetPur = Math.max(0, purTotal - (priorMerchandiseValue + approvedTotal));
+        maxEligibleCashRefund = Math.max(0, Math.min(approvedTotal, purPaid - newNetPur - priorCashRefunds));
       }
 
-      const finalRefundAmount = req.body.refundAmount !== undefined ? Number(req.body.refundAmount) : approvedTotal;
+      const finalRefundAmount = req.body.refundAmount !== undefined
+        ? Math.min(Number(req.body.refundAmount), maxEligibleCashRefund)
+        : maxEligibleCashRefund;
 
       // 2. Create Purchase Return Record (refundMode is strictly Cash)
       const createdReturn = await PurchaseReturn.create({

@@ -39,15 +39,14 @@ export const generateReturnReceiptHtml = (returnData, type = 'SaleReturn', paper
   const partyPhone = returnData.customerPhone || returnData.supplierPhone || returnData.phone || '';
   const partyCity = returnData.customerCity || returnData.supplierCity || returnData.city || '';
   const refInvoiceNo = returnData.invoiceNo || returnData.invoiceno || returnData.purchaseNo || returnData.purchaseno || returnData.saleNo || 'Direct Return';
-  const refundMode = returnData.refundMode || returnData.paymentMode || 'Cash';
-  const refundAmount = Number(returnData.refundAmount || returnData.totalAmount || returnData.amount || 0);
+  const refundAmount = Number(returnData.refundAmount !== undefined ? returnData.refundAmount : (returnData.totalAmount || returnData.amount || 0));
   const reason = returnData.reason || returnData.note || returnData.notes || 'Goods Return / Quality Adjustment';
 
   const items = Array.isArray(returnData.items) && returnData.items.length > 0
     ? returnData.items.map(it => {
         const qty = Number(it.qty || it.returnQty || it.quantity || 1);
-        const rate = Number(it.rate || it.price || it.refundRate || (refundAmount / Math.max(1, qty)));
-        const total = Number(it.totalAmount || it.total || (qty * rate) || refundAmount);
+        const rate = Number(it.rate !== undefined ? it.rate : (it.price || it.refundRate || (refundAmount > 0 ? refundAmount / Math.max(1, qty) : 0)));
+        const total = Number(it.total !== undefined ? it.total : (it.totalAmount !== undefined ? it.totalAmount : ((qty * rate) || refundAmount)));
         return {
           name: it.name || it.productName || 'Produce Item',
           qty,
@@ -60,9 +59,13 @@ export const generateReturnReceiptHtml = (returnData, type = 'SaleReturn', paper
         name: returnData.productName || 'Returned Produce',
         qty: Number(returnData.qty || returnData.quantity || 1),
         unit: returnData.unit || 'KG',
-        rate: refundAmount / Math.max(1, Number(returnData.qty || returnData.quantity || 1)),
-        total: refundAmount
+        rate: Number(returnData.rate || (returnData.totalGoodsValue ? Number(returnData.totalGoodsValue) / Math.max(1, Number(returnData.qty || 1)) : (refundAmount / Math.max(1, Number(returnData.qty || 1))))),
+        total: Number(returnData.totalGoodsValue || returnData.total || (refundAmount > 0 ? refundAmount : 0))
       }];
+
+  const totalGoodsValue = Number(returnData.totalGoodsValue || returnData.merchandiseValue || items.reduce((s, it) => s + (it.total || it.qty * it.rate), 0));
+  const dueCleared = Number(returnData.dueCleared !== undefined ? returnData.dueCleared : Math.max(0, totalGoodsValue - refundAmount));
+  const refundMode = returnData.refundMode || returnData.paymentMode || (refundAmount > 0 ? 'Cash' : 'Khata Credit');
 
   const shopTitle = (shop?.shopName || shop?.name || 'GHALLA MANDI COMMISSION AGENT').toUpperCase();
   const shopPhone = shop?.phone || shop?.contact || '';
@@ -169,15 +172,25 @@ export const generateReturnReceiptHtml = (returnData, type = 'SaleReturn', paper
                   Official computerized return voucher. Stock inventory and ledger balances have been updated.
                 </div>
               </div>
-              <div style="width: 250px;">
+              <div style="width: 260px;">
                 <table style="margin-bottom: 0;">
+                  <tr>
+                    <td style="padding: 5px 10px; font-size: 11px; color: #475569; font-weight: 700;">Produce Return Value:</td>
+                    <td style="padding: 5px 10px; text-align: right; font-family: monospace; font-size: 12px; font-weight: 800; color: #0f172a;">Rs. ${Math.round(totalGoodsValue).toLocaleString()}</td>
+                  </tr>
+                  ${dueCleared > 0 ? `
+                  <tr style="color: #b45309; background: #fffbeb;">
+                    <td style="padding: 5px 10px; font-size: 11px; font-weight: 700;">Khata Due Cancelled:</td>
+                    <td style="padding: 5px 10px; text-align: right; font-family: monospace; font-size: 12px; font-weight: 800;">- Rs. ${Math.round(dueCleared).toLocaleString()}</td>
+                  </tr>
+                  ` : ''}
                   <tr style="border-top: 2px solid #059669; background: #ecfdf5;">
-                    <td style="padding: 8px 10px; font-weight: 900; font-size: 13px; color: #064e3b;">TOTAL REFUND:</td>
-                    <td style="padding: 8px 10px; text-align: right; font-family: monospace; font-weight: 900; font-size: 15px; color: #064e3b;">Rs. ${Math.round(refundAmount).toLocaleString()}</td>
+                    <td style="padding: 8px 10px; font-weight: 900; font-size: 12px; color: #064e3b;">${refundAmount > 0 ? (isSale ? 'CASH REFUND PAID:' : 'CASH REFUND RECD:') : 'KHATA SETTLED:'}</td>
+                    <td style="padding: 8px 10px; text-align: right; font-family: monospace; font-weight: 900; font-size: 14px; color: #064e3b;">Rs. ${Math.round(refundAmount).toLocaleString()}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 5px 10px; font-size: 11px; color: #475569; font-weight: 700;">Status:</td>
-                    <td style="padding: 5px 10px; text-align: right; font-size: 11px; font-weight: 900; color: #059669;">SETTLED (${refundMode})</td>
+                    <td style="padding: 5px 10px; font-size: 10px; color: #475569; font-weight: 700;">Settlement Mode:</td>
+                    <td style="padding: 5px 10px; text-align: right; font-size: 10px; font-weight: 900; color: #059669;">${refundMode.toUpperCase()}</td>
                   </tr>
                 </table>
               </div>
@@ -299,15 +312,26 @@ export const generateReturnReceiptHtml = (returnData, type = 'SaleReturn', paper
         <div class="double-sep"></div>
 
         <div style="padding: 2px 0;">
-          <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: ${is58 ? '12px' : '14px'}; font-family: monospace;">
-            <span>TOTAL REFUND:</span>
-            <span>Rs. ${refundAmount.toLocaleString()}</span>
+          <div style="display: flex; justify-content: space-between; font-size: ${is58 ? '10px' : '11px'};">
+            <span>Produce Value:</span>
+            <span style="font-weight: bold; font-family: monospace;">Rs. ${Math.round(totalGoodsValue).toLocaleString()}</span>
           </div>
-          <div style="display: flex; justify-content: space-between; font-size: 10px; margin-top: 3px;">
-            <span>Refund Mode:</span>
+          ${dueCleared > 0 ? `
+          <div style="display: flex; justify-content: space-between; font-size: ${is58 ? '9.5px' : '10.5px'}; color: #333;">
+            <span>Due Cancelled:</span>
+            <span style="font-weight: bold; font-family: monospace;">- Rs. ${Math.round(dueCleared).toLocaleString()}</span>
+          </div>
+          ` : ''}
+          <div style="border-top: 1px dashed #000; margin: 3px 0 2px 0;"></div>
+          <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: ${is58 ? '11px' : '13px'}; font-family: monospace;">
+            <span>${refundAmount > 0 ? (isSale ? 'CASH REFUND:' : 'CASH RECD:') : 'KHATA SETTLED:'}</span>
+            <span>Rs. ${Math.round(refundAmount).toLocaleString()}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 9.5px; margin-top: 2px;">
+            <span>Settlement Mode:</span>
             <span style="font-weight: bold; text-transform: uppercase;">${refundMode}</span>
           </div>
-          <div style="font-size: 9.5px; margin-top: 3px; font-style: italic;">
+          <div style="font-size: 9px; margin-top: 3px; font-style: italic;">
             Note: ${reason}
           </div>
         </div>
@@ -396,15 +420,14 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
   const partyPhone = returnData.customerPhone || returnData.supplierPhone || returnData.phone || '';
   const partyCity = returnData.customerCity || returnData.supplierCity || returnData.city || '';
   const refInvoiceNo = returnData.invoiceNo || returnData.invoiceno || returnData.purchaseNo || returnData.purchaseno || returnData.saleNo || 'Direct Return';
-  const refundMode = returnData.refundMode || returnData.paymentMode || 'Cash';
-  const refundAmount = Number(returnData.refundAmount || returnData.totalAmount || returnData.amount || 0);
+  const refundAmount = Number(returnData.refundAmount !== undefined ? returnData.refundAmount : (returnData.totalAmount || returnData.amount || 0));
   const reason = returnData.reason || returnData.note || returnData.notes || 'Goods Return / Quality Adjustment';
 
   const items = Array.isArray(returnData.items) && returnData.items.length > 0
     ? returnData.items.map(it => {
         const qty = Number(it.qty || it.returnQty || it.quantity || 1);
-        const rate = Number(it.rate || it.price || it.refundRate || (refundAmount / Math.max(1, qty)));
-        const total = Number(it.totalAmount || it.total || (qty * rate) || refundAmount);
+        const rate = Number(it.rate !== undefined ? it.rate : (it.price || it.refundRate || (refundAmount > 0 ? refundAmount / Math.max(1, qty) : 0)));
+        const total = Number(it.total !== undefined ? it.total : (it.totalAmount !== undefined ? it.totalAmount : ((qty * rate) || refundAmount)));
         return {
           name: it.name || it.productName || 'Produce Item',
           qty,
@@ -417,9 +440,13 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
         name: returnData.productName || 'Returned Produce',
         qty: Number(returnData.qty || returnData.quantity || 1),
         unit: returnData.unit || 'KG',
-        rate: refundAmount / Math.max(1, Number(returnData.qty || returnData.quantity || 1)),
-        total: refundAmount
+        rate: Number(returnData.rate || (returnData.totalGoodsValue ? Number(returnData.totalGoodsValue) / Math.max(1, Number(returnData.qty || 1)) : (refundAmount / Math.max(1, Number(returnData.qty || 1))))),
+        total: Number(returnData.totalGoodsValue || returnData.total || (refundAmount > 0 ? refundAmount : 0))
       }];
+
+  const totalGoodsValue = Number(returnData.totalGoodsValue || returnData.merchandiseValue || items.reduce((s, it) => s + (it.total || it.qty * it.rate), 0));
+  const dueCleared = Number(returnData.dueCleared !== undefined ? returnData.dueCleared : Math.max(0, totalGoodsValue - refundAmount));
+  const refundMode = returnData.refundMode || returnData.paymentMode || (refundAmount > 0 ? 'Cash' : 'Khata Credit');
 
   const shopTitle = (shop?.shopName || shop?.name || 'GHALLA MANDI COMMISSION AGENT').toUpperCase();
   const shopPhone = shop?.phone || shop?.contact || '';
@@ -699,16 +726,32 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
                   </p>
                 </div>
 
-                <div className="w-full sm:w-64 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2 text-xs">
+                <div className="w-full sm:w-72 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2 text-xs">
                   <div className="flex justify-between items-center text-slate-600">
-                    <span>Payment Mode:</span>
-                    <span className="font-bold text-slate-900">{refundMode}</span>
+                    <span>Produce Return Value:</span>
+                    <span className="font-bold font-mono text-slate-900">
+                      Rs. {Math.round(totalGoodsValue).toLocaleString()}
+                    </span>
                   </div>
+                  {dueCleared > 0 && (
+                    <div className="flex justify-between items-center text-amber-600 font-medium">
+                      <span>Khata Due Cancelled:</span>
+                      <span className="font-bold font-mono">
+                        - Rs. {Math.round(dueCleared).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                   <div className="border-t border-dashed border-slate-300 pt-2 flex justify-between items-center">
-                    <span className="font-black text-slate-900 uppercase">TOTAL REFUND:</span>
+                    <span className="font-black text-slate-900 uppercase">
+                      {refundAmount > 0 ? (isSale ? 'CASH REFUND PAID:' : 'CASH REFUND RECD:') : 'KHATA SETTLED:'}
+                    </span>
                     <span className="font-mono text-base font-black text-emerald-700">
                       Rs. {Math.round(refundAmount).toLocaleString()}
                     </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                    <span>Settlement Mode:</span>
+                    <span className="font-bold text-slate-700 uppercase">{refundMode}</span>
                   </div>
                 </div>
               </div>
@@ -800,9 +843,20 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
 
               {/* Grand Refund */}
               <div className="space-y-1">
+                <div className="flex justify-between items-center text-[10px] text-slate-700">
+                  <span>Produce Value:</span>
+                  <span className="font-bold">Rs. {Math.round(totalGoodsValue).toLocaleString()}</span>
+                </div>
+                {dueCleared > 0 && (
+                  <div className="flex justify-between items-center text-[10px] text-amber-800">
+                    <span>Due Cancelled:</span>
+                    <span className="font-bold">- Rs. {Math.round(dueCleared).toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="border-t border-dashed border-slate-400 my-0.5" />
                 <div className="flex justify-between items-center font-black text-sm text-slate-950">
-                  <span>TOTAL REFUND:</span>
-                  <span>Rs. {refundAmount.toLocaleString()}</span>
+                  <span>{refundAmount > 0 ? (isSale ? 'CASH REFUND:' : 'CASH RECD:') : 'KHATA SETTLED:'}</span>
+                  <span>Rs. {Math.round(refundAmount).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-slate-800">
                   <span>Payment Method:</span>

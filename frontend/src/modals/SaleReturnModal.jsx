@@ -12,9 +12,11 @@ import {
   FileText,
   AlertTriangle,
   ArrowRight,
-  Receipt
+  Receipt,
+  Wallet,
+  Check
 } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeSaleFinancials } from '../context/ERPContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
@@ -23,7 +25,7 @@ import { ReturnReceiptModal, printReturnReceipt } from './ReturnReceiptModal';
 
 export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
   const toast = useToast();
-  const { sales = [], saleReturns = [], recordSaleReturn } = useERP();
+  const { sales = [], saleReturns = [], paymentLogs = [], recordSaleReturn } = useERP();
   const { shop } = useAuth();
   const { theme } = useTheme();
   const { t } = useLocale();
@@ -33,6 +35,31 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
     if (!selectedSale) return sales[0] || null;
     return sales.find(s => s.id === selectedSale.id || s.invoiceNo === selectedSale.invoiceNo) || selectedSale;
   }, [sales, selectedSale]);
+
+  // Compute canonical financial status of active sale (total, paid, due)
+  const saleFin = useMemo(() => {
+    if (!activeSale) return { total: 0, paid: 0, due: 0, returnAmount: 0 };
+    return computeSaleFinancials(activeSale, saleReturns, paymentLogs, sales);
+  }, [activeSale, saleReturns, paymentLogs, sales]);
+
+  const saleTotal = Number(saleFin.grossTotal || saleFin.total || 0);
+  const salePaid = Number(saleFin.paid || 0);
+  const saleDue = Number(saleFin.due || 0);
+
+  // Sum of prior cash/liquid refunds already given on this invoice
+  const priorCashRefunds = useMemo(() => {
+    if (!activeSale) return 0;
+    return (saleReturns || [])
+      .filter(r => (r.saleId === activeSale.id || r.invoiceNo === activeSale.invoiceNo))
+      .reduce((sum, r) => {
+        const m = String(r.refundMode || '').trim().toLowerCase();
+        const isLiquid = m === 'cash' || m === 'bank account' || m === 'bank' || m === 'card';
+        return sum + (isLiquid ? Number(r.refundAmount || 0) : 0);
+      }, 0);
+  }, [activeSale, saleReturns]);
+
+  // Maximum cash refund cannot exceed what customer historically paid minus prior cash refunds
+  const maxCashRefundable = Math.max(0, salePaid - priorCashRefunds);
 
   // Extract products in this sale
   const saleItems = useMemo(() => {
@@ -123,8 +150,23 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
   const itemUnit = currentItem.unit || 'KG';
 
   const numReturnQty = parseFloat(returnQty) || 0;
-  const refundAmount = Math.max(0, numReturnQty * itemRate);
   const isFullyReturned = remainingQty <= 0;
+
+  // --------------------------------------------------------------------------
+  // CANONICAL FINANCIAL RETURN RECONCILIATION:
+  // Total Goods Value = Quantity * Rate
+  // Cash Refund Payout = Strictly capped at customer's actual paid amount
+  // Due Cleared = Unpaid debt cancelled from Khata
+  // --------------------------------------------------------------------------
+  const currentGoodsValue = Math.max(0, numReturnQty * itemRate);
+  const priorMerchandiseValue = Number(saleFin.returnAmount || 0);
+  const newNetSale = Math.max(0, saleTotal - (priorMerchandiseValue + currentGoodsValue));
+  
+  // Exact cash refundable to customer
+  const cashRefundAmount = Math.max(0, Math.min(currentGoodsValue, salePaid - newNetSale - priorCashRefunds));
+  
+  // Unpaid debt cancelled / waived from customer's khata
+  const dueCancelled = Math.min(saleDue, Math.max(0, currentGoodsValue - cashRefundAmount));
 
   const handleItemSelect = (idx) => {
     setSelectedItemIdx(idx);
@@ -161,6 +203,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
 
     setIsSubmitting(true);
     try {
+      const activeRefundMode = cashRefundAmount > 0 ? refundMode : 'Khata Credit';
       const returnRecord = await recordSaleReturn({
         saleId: activeSale.id,
         invoiceNo: activeSale.invoiceNo || 'Direct Sale Return',
@@ -172,10 +215,12 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
           qty: numReturnQty,
           unit: itemUnit,
           rate: itemRate,
-          total: refundAmount
+          total: currentGoodsValue
         }],
-        refundAmount: refundAmount,
-        refundMode: refundMode,
+        totalGoodsValue: currentGoodsValue,
+        refundAmount: cashRefundAmount, // Strictly capped at historical paid amount!
+        dueCleared: dueCancelled,
+        refundMode: activeRefundMode,
         reason: reason.trim() || 'Sale Return',
         date: new Date().toLocaleDateString('en-GB')
       });
@@ -188,8 +233,12 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
         remainingAfter: Math.max(0, remainingQty - numReturnQty),
         unit: itemUnit,
         productName: currentItem.name,
-        refundMode: refundMode,
-        refundAmount: refundAmount,
+        totalGoodsValue: currentGoodsValue,
+        refundMode: activeRefundMode,
+        refundAmount: cashRefundAmount,
+        dueCleared: dueCancelled,
+        salePaid: salePaid,
+        saleDue: saleDue,
         reason: reason.trim() || 'Sale Return'
       });
     } catch (err) {
@@ -242,6 +291,28 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
             </button>
           </div>
 
+          {/* Bill Financial Status Bar */}
+          <div className="mt-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs">
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Bill</span>
+              <span className="font-mono font-black text-slate-900 dark:text-white text-sm">
+                Rs. {saleTotal.toLocaleString()}
+              </span>
+            </div>
+            <div className="text-center">
+              <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Customer Paid</span>
+              <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                Rs. {salePaid.toLocaleString()}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block">Unpaid Due (Khata)</span>
+              <span className="font-mono font-black text-amber-600 dark:text-amber-400 text-sm">
+                Rs. {saleDue.toLocaleString()}
+              </span>
+            </div>
+          </div>
+
           {completedReturn ? (
             /* ========================================================================= */
             /* SUCCESS COMPLETION SCREEN */
@@ -280,21 +351,24 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-medium">Remaining on Invoice:</span>
-                  <span className="font-bold font-mono text-slate-700 dark:text-slate-300">
-                    {completedReturn.remainingAfter} {completedReturn.unit}
+                  <span className="text-slate-400 font-medium">Total Produce Value:</span>
+                  <span className="font-bold font-mono text-slate-800 dark:text-slate-200">
+                    Rs. {Number(completedReturn.totalGoodsValue || currentGoodsValue).toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-medium">Payment Mode:</span>
-                  <span className="font-extrabold text-orange-600 dark:text-orange-400 uppercase">
-                    {completedReturn.refundMode}
-                  </span>
-                </div>
+                {dueCancelled > 0 && (
+                  <div className="flex justify-between items-center text-amber-600 dark:text-amber-400">
+                    <span className="font-medium">Unpaid Due Cancelled:</span>
+                    <span className="font-bold font-mono">- Rs. {dueCancelled.toLocaleString()} (Khata Cleared)</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 font-black">
-                  <span className="text-slate-700 dark:text-slate-300">Total Refund / Credit:</span>
+                  <span className="text-slate-700 dark:text-slate-300">
+                    {cashRefundAmount > 0 ? 'Cash Refund Paid:' : 'Cash Refund Paid:'}
+                  </span>
                   <span className="font-mono text-base text-emerald-600 dark:text-emerald-400">
-                    Rs. {refundAmount.toLocaleString()}
+                    Rs. {cashRefundAmount.toLocaleString()}
+                    {cashRefundAmount === 0 && <span className="text-xs font-semibold text-slate-400 ml-1.5">(0 Paid, Due Cleared)</span>}
                   </span>
                 </div>
               </div>
@@ -341,7 +415,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
             /* ========================================================================= */
             /* RETURN ENTRY FORM */
             /* ========================================================================= */
-            <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+            <form onSubmit={handleSubmit} className="space-y-4 pt-2">
               {/* Multi-item selector tabs */}
               {saleItems.length > 1 && (
                 <div>
@@ -413,11 +487,11 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
               ) : (
                 <>
                   {/* Return Quantity & Refund Amount Inputs */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-3">
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Return Qty ({itemUnit}) *
+                          Return Quantity ({itemUnit}) *
                         </label>
                         <button
                           type="button"
@@ -448,50 +522,87 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                       />
                     </div>
 
-                    <div>
-                      <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5">
-                        Refund / Credit Total
-                      </label>
-                      <div className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold flex items-center justify-between h-[42px] ${
-                        theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-emerald-400' : 'bg-emerald-50/80 border-emerald-200 text-emerald-800'
-                      }`}>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold">Total:</span>
-                        <span className="text-base font-black">Rs. {refundAmount.toLocaleString()}</span>
+                    {/* Accurate Financial Calculation Breakdown */}
+                    {numReturnQty > 0 && (
+                      <div className="p-3.5 rounded-2xl border bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                        <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                          <span>Total Goods Value ({numReturnQty} {itemUnit} × Rs. {itemRate}):</span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">
+                            Rs. {currentGoodsValue.toLocaleString()}
+                          </span>
+                        </div>
+
+                        {dueCancelled > 0 && (
+                          <div className="flex justify-between items-center text-amber-600 dark:text-amber-400">
+                            <span>Unpaid Due Cancelled (Udhar Khatam):</span>
+                            <span className="font-mono font-extrabold">- Rs. {dueCancelled.toLocaleString()}</span>
+                          </div>
+                        )}
+
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                          <div>
+                            <span className="font-black text-slate-900 dark:text-white uppercase block text-xs">
+                              Actual Cash Refund to Customer:
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-semibold">
+                              Strictly capped at customer's paid amount (Rs. {salePaid.toLocaleString()})
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400">
+                              Rs. {cashRefundAmount.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {cashRefundAmount === 0 && (
+                          <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] font-semibold flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                            <span>Customer paid Rs. 0 or bill has remaining due. Full return value is adjusted against Khata due (0 cash payout).</span>
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Payment Method Selector */}
-                  <div className="space-y-1.5 pt-1">
-                    <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                      Payment / Settlement Mode *
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'Cash', label: 'Cash', icon: Banknote },
-                        { id: 'Bank Account', label: 'Bank Account', icon: Landmark },
-                        { id: 'Card', label: 'Card', icon: CreditCard }
-                      ].map((mode) => {
-                        const Icon = mode.icon;
-                        const isSelected = refundMode === mode.id || (mode.id === 'Bank Account' && refundMode === 'Bank');
-                        return (
-                          <button
-                            key={mode.id}
-                            type="button"
-                            onClick={() => setRefundMode(mode.id)}
-                            className={`py-2.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${
-                              isSelected
-                                ? 'bg-orange-500/10 border-orange-500 text-orange-600 dark:text-orange-400 shadow-2xs font-extrabold ring-1 ring-orange-500/30'
-                                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
-                            }`}
-                          >
-                            <Icon className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">{mode.label}</span>
-                          </button>
-                        );
-                      })}
+                  {/* Payment Method Selector (Only active if there is cash to refund) */}
+                  {cashRefundAmount > 0 ? (
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                        Refund Payment Method *
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: 'Cash', label: 'Cash', icon: Banknote },
+                          { id: 'Bank Account', label: 'Bank Account', icon: Landmark },
+                          { id: 'Card', label: 'Card', icon: CreditCard }
+                        ].map((mode) => {
+                          const Icon = mode.icon;
+                          const isSelected = refundMode === mode.id || (mode.id === 'Bank Account' && refundMode === 'Bank');
+                          return (
+                            <button
+                              key={mode.id}
+                              type="button"
+                              onClick={() => setRefundMode(mode.id)}
+                              className={`py-2.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${
+                                isSelected
+                                  ? 'bg-orange-500/10 border-orange-500 text-orange-600 dark:text-orange-400 shadow-2xs font-extrabold ring-1 ring-orange-500/30'
+                                  : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                              }`}
+                            >
+                              <Icon className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{mode.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold flex items-center gap-2">
+                      <Wallet className="w-4 h-4 text-slate-500" />
+                      <span>Settlement Mode: Khata Credit / Due Adjustment</span>
+                    </div>
+                  )}
 
                   {/* Return Reason & Quick Chips */}
                   <div className="space-y-1.5 pt-1">

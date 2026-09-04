@@ -40,8 +40,26 @@ export const computeInvoiceFinancials = ({
 };
 
 
+export const extractReturnMerchandiseValue = (r) => {
+  if (!r) return 0;
+  if (Array.isArray(r.items) && r.items.length > 0) {
+    const itemsVal = r.items.reduce((sum, it) => sum + Number(it.totalAmount || it.total || ((it.qty || 0) * (it.rate || 0))), 0);
+    if (itemsVal > 0) return itemsVal;
+  }
+  if (r.itemsjson) {
+    try {
+      const itms = typeof r.itemsjson === 'string' ? JSON.parse(r.itemsjson) : r.itemsjson;
+      if (Array.isArray(itms) && itms.length > 0) {
+        const itemsVal = itms.reduce((sum, it) => sum + Number(it.totalAmount || it.total || ((it.qty || 0) * (it.rate || 0))), 0);
+        if (itemsVal > 0) return itemsVal;
+      }
+    } catch (e) {}
+  }
+  return Number(r.totalGoodsValue || r.refundAmount || 0);
+};
+
 export const computeSaleInvoiceFromReturns = (sale, relatedReturns = []) => {
-  const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + extractReturnMerchandiseValue(r), 0);
   return computeInvoiceFinancials({
     grossAmount: sale.amount || sale.grandTotal || 0,
     returnAmount: totalReturnAmt,
@@ -51,7 +69,7 @@ export const computeSaleInvoiceFromReturns = (sale, relatedReturns = []) => {
 };
 
 export const computePurchaseInvoiceFromReturns = (purchase, relatedReturns = []) => {
-  const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + extractReturnMerchandiseValue(r), 0);
   return computeInvoiceFinancials({
     grossAmount: purchase.grandTotal || purchase.amount || 0,
     returnAmount: totalReturnAmt,
@@ -72,7 +90,7 @@ export const syncCustomerBalance = async (customerId, shop_id, dbRun) => {
   const grossSales = salesRows.reduce((acc, s) => acc + Number(s.amount || s.grandtotal || 0), 0);
 
   const returnsRows = await dbRun('SELECT * FROM sale_returns WHERE shop_id = $1 AND customerId = $2', [shop_id, customerId]);
-  const totalReturns = returnsRows.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const totalReturns = returnsRows.reduce((acc, r) => acc + extractReturnMerchandiseValue(r), 0);
   const netSales = Math.max(0, grossSales - totalReturns);
 
   const paymentRows = await dbRun(
@@ -120,7 +138,7 @@ export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
   const grossPurchases = purchaseRows.reduce((acc, p) => acc + Number(p.grandTotal || p.amount || 0), 0);
 
   const returnsRows = await dbRun('SELECT * FROM purchase_returns WHERE shop_id = $1 AND supplierId = $2', [shop_id, supplierId]);
-  const totalReturns = returnsRows.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+  const totalReturns = returnsRows.reduce((acc, r) => acc + extractReturnMerchandiseValue(r), 0);
   const netPurchases = Math.max(0, grossPurchases - totalReturns);
 
   const paymentRows = await dbRun(
