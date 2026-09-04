@@ -10,12 +10,15 @@ import {
   Info,
   Banknote,
   Landmark,
-  CreditCard
+  CreditCard,
+  Receipt
 } from 'lucide-react';
 import { useERP, computeProductValuation } from '../context/ERPContext';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useToast } from '../components/Toast';
+import { ReturnReceiptModal, printReturnReceipt } from './ReturnReceiptModal';
 
 export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, selectedPurchase = null }) => {
   const toast = useToast();
@@ -28,30 +31,55 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
     stockMovements = [],
     recordPurchaseReturn
   } = useERP();
+  const { shop } = useAuth();
   const { theme } = useTheme();
   const { t } = useLocale();
 
-  const purchase = initialPurchase || selectedPurchase || purchases[0] || null;
+  const purchase = initialPurchase || selectedPurchase;
 
-  // Extract purchase items and compute exact purchased qty, bill remaining, and current available on-hand stock
+  // Helper: Match line item with product to compute current available stock
+  const getMatchedProduct = (productId, productName) => {
+    if (!productId && !productName) return null;
+    return (products || []).find(p =>
+      (productId && (String(p.id) === String(productId) || String(p._id) === String(productId))) ||
+      (productName && (p.name || '').trim().toLowerCase() === String(productName).trim().toLowerCase())
+    );
+  };
+
+  const computeAvailableStock = (matchedProd, remainingBillQty) => {
+    if (!matchedProd) {
+      return remainingBillQty > 0 ? remainingBillQty : 0;
+    }
+    const val = computeProductValuation(
+      matchedProd,
+      purchases,
+      sales,
+      saleReturns,
+      purchaseReturns,
+      stockMovements
+    );
+    return Math.max(0, val.qty !== undefined ? val.qty : Number(matchedProd.stockQty || 0));
+  };
+
+  // Build items array with exact stock tracking & validation
   const purchaseItems = useMemo(() => {
     if (!purchase) return [];
 
-    const getMatchedProduct = (pId, name) => {
-      return (products || []).find(p =>
-        (pId && (String(p.id) === String(pId) || String(p._id) === String(pId))) ||
-        (name && (p.name || '').trim().toLowerCase() === (name || '').trim().toLowerCase())
-      );
-    };
+    let parsedCart = [];
+    if (purchase.itemsJson && typeof purchase.itemsJson === 'string') {
+      try {
+        parsedCart = JSON.parse(purchase.itemsJson);
+      } catch (e) {
+        parsedCart = [];
+      }
+    } else if (Array.isArray(purchase.items) && purchase.items.length > 0) {
+      parsedCart = purchase.items;
+    } else if (Array.isArray(purchase.cart) && purchase.cart.length > 0) {
+      parsedCart = purchase.cart;
+    }
 
-    const computeAvailableStock = (prod, fallbackQty = 0) => {
-      if (!prod) return fallbackQty;
-      const val = computeProductValuation(prod, purchases, sales, saleReturns, purchaseReturns, stockMovements);
-      return Math.max(0, val.qty !== undefined ? val.qty : Number(prod.stockQty || 0));
-    };
-
-    if (Array.isArray(purchase.cart) && purchase.cart.length > 0) {
-      return purchase.cart.map((it, idx) => {
+    if (parsedCart.length > 0) {
+      return parsedCart.map((it, idx) => {
         const origQty = Number(it.qty || it.enteredQty || 1);
         const matchingReturnsQty = (purchaseReturns || [])
           .filter(r => (r.purchaseId === purchase.id || r.purchaseNo === purchase.purchaseNo))
@@ -65,17 +93,16 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
 
         const alreadyRet = Math.max(Number(it.returnedQty || 0), matchingReturnsQty);
         const remainingBillQty = Math.max(0, origQty - alreadyRet);
-        const rate = Number(it.rate || it.price || it.ratePerEnteredUnit || (it.total / (origQty || 1)) || 0);
-
         const matchedProd = getMatchedProduct(it.productId || it.id, it.name);
         const availableStock = computeAvailableStock(matchedProd, remainingBillQty);
         const maxReturnableQty = Math.min(remainingBillQty, availableStock);
+        const rate = Number(it.rate || it.price || (origQty > 0 ? (Number(it.total || 0) / origQty) : 0));
 
         return {
-          id: it.id || `item-${idx}`,
+          id: it.id || `pur-item-${idx}`,
           productId: it.productId || it.id || null,
-          name: it.name || 'Commodity Item',
-          unit: it.unit || it.unitName || purchase.unit || 'KG',
+          name: it.name || 'Purchased Commodity',
+          unit: it.unitName || it.unit || 'KG',
           originalQty: origQty,
           alreadyReturnedQty: alreadyRet,
           remainingQty: remainingBillQty,
@@ -86,7 +113,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
       });
     }
 
-    // Flat purchase
+    // Flat commodity purchase
     const origQty = Number(purchase.qty || purchase.weight || purchase.itemsCount || 1);
     const matchingReturnsQty = (purchaseReturns || [])
       .filter(r => (r.purchaseId === purchase.id || r.purchaseNo === purchase.purchaseNo))
@@ -121,9 +148,11 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
 
   const [selectedItemIdx, setSelectedItemIdx] = useState(0);
   const [returnQty, setReturnQty] = useState('');
-  const [refundMode, setRefundMode] = useState('Cash'); // Strictly Cash
+  const [refundMode, setRefundMode] = useState('Cash');
+  const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedReturn, setCompletedReturn] = useState(null);
+  const [showFullReceiptModal, setShowFullReceiptModal] = useState(false);
 
   // Sync state whenever purchase or items change
   useEffect(() => {
@@ -131,18 +160,20 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
       const it = purchaseItems[selectedItemIdx] || purchaseItems[0];
       setSelectedItemIdx(0);
       setReturnQty(it.maxReturnableQty > 0 ? it.maxReturnableQty : '');
+      setReason('');
       setCompletedReturn(null);
+      setShowFullReceiptModal(false);
     }
   }, [purchase, purchaseItems.length]);
 
   if (!isOpen || !purchase) return null;
 
   const currentItem = purchaseItems[selectedItemIdx] || purchaseItems[0] || {};
-  const origQty = Number(currentItem.originalQty || 0); // Humne itna stock purchase kia tha
+  const origQty = Number(currentItem.originalQty || 0);
   const alreadyReturned = Number(currentItem.alreadyReturnedQty || 0);
-  const remainingBillQty = Number(currentItem.remainingQty || 0); // Bill remaining
-  const currentAvailableStock = Number(currentItem.availableStock !== undefined ? currentItem.availableStock : 0); // Current on-hand stock
-  const maxReturnableQty = Number(currentItem.maxReturnableQty !== undefined ? currentItem.maxReturnableQty : Math.min(remainingBillQty, currentAvailableStock)); // Is se zyada return nahi ho sakta
+  const remainingBillQty = Number(currentItem.remainingQty || 0);
+  const currentAvailableStock = Number(currentItem.availableStock !== undefined ? currentItem.availableStock : 0);
+  const maxReturnableQty = Number(currentItem.maxReturnableQty !== undefined ? currentItem.maxReturnableQty : Math.min(remainingBillQty, currentAvailableStock));
   const itemRate = Number(currentItem.rate || 0);
   const itemUnit = currentItem.unit || 'KG';
 
@@ -158,9 +189,9 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
 
   let validationErrorMessage = '';
   if (isExceedingStock) {
-    validationErrorMessage = `Insufficient Stock — Available: ${currentAvailableStock} ${itemUnit}. Maximum returnable quantity: ${maxReturnableQty} ${itemUnit}.`;
+    validationErrorMessage = `Insufficient Stock — Available: ${currentAvailableStock} ${itemUnit}. Maximum returnable: ${maxReturnableQty} ${itemUnit}.`;
   } else if (isExceedingBill) {
-    validationErrorMessage = `Return quantity cannot exceed remaining purchase quantity (${remainingBillQty} ${itemUnit}).`;
+    validationErrorMessage = `Return quantity cannot exceed remaining purchase bill quantity (${remainingBillQty} ${itemUnit}).`;
   }
 
   const handleItemSelect = (idx) => {
@@ -184,13 +215,14 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
     setReturnQty(parsed.toString());
   };
 
+  const quickReasons = ['Quality Issue', 'Weight Shortage', 'Damaged Goods', 'Supplier Return'];
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting || numReturnQty <= 0 || isFullyReturned || isOutOfStock) return;
 
-    // Strict validation check before saving
     if (numReturnQty > currentAvailableStock) {
-      toast.error(`Insufficient Stock — Available: ${currentAvailableStock} ${itemUnit}. Maximum returnable quantity: ${maxReturnableQty} ${itemUnit}.`);
+      toast.error(`Insufficient Stock — Available: ${currentAvailableStock} ${itemUnit}. Maximum returnable: ${maxReturnableQty} ${itemUnit}.`);
       return;
     }
 
@@ -219,18 +251,22 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
         }],
         refundAmount: refundAmount,
         refundMode: refundMode,
-        reason: 'Purchase Return',
+        reason: reason.trim() || 'Purchase Return',
         date: new Date().toLocaleDateString('en-GB')
       });
 
       toast.success(`Purchase return of ${numReturnQty} ${itemUnit} recorded successfully.`);
       setCompletedReturn({
         ...returnRecord,
+        supplierName: supName,
+        purchaseNo: purchase.purchaseNo || 'Direct Return',
         remainingAfter: Math.max(0, remainingBillQty - numReturnQty),
         stockAfter: Math.max(0, currentAvailableStock - numReturnQty),
         unit: itemUnit,
         productName: currentItem.name,
-        supplierName: supName
+        refundMode: refundMode,
+        refundAmount: refundAmount,
+        reason: reason.trim() || 'Purchase Return'
       });
     } catch (err) {
       console.error('Failed to process purchase return:', err);
@@ -240,216 +276,249 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
     }
   };
 
+  const handleDirectPrint = () => {
+    if (!completedReturn) return;
+    printReturnReceipt(completedReturn, 'PurchaseReturn', 'thermal-80', shop);
+  };
+
   return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget && !completedReturn) onClose(); }}
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
-    >
-      <div className={`rounded-3xl max-w-lg w-full p-6 space-y-4 card-shadow border my-6 transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+    <>
+      <div
+        onClick={(e) => { if (e.target === e.currentTarget && !completedReturn) onClose(); }}
+        className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      >
+        <div className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 card-shadow border my-auto transition-all ${
+          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
         }`}>
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold">
-              <RotateCcw className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-extrabold">Process Purchase Return</h3>
-              <p className="text-[11px] text-slate-400 font-bold">
-                {purchase.purchaseNo ? `Purchase #${purchase.purchaseNo}` : 'Purchase Return'} • {purchase.supplierName || purchase.supplier || 'Supplier'}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {completedReturn ? (
-          /* Success Screen */
-          <div className="space-y-4 text-center py-2">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-7 h-7" />
-            </div>
-            <div>
-              <h4 className="text-base font-black text-slate-900 dark:text-white">Purchase Return Recorded</h4>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Purchase Return <span className="font-mono font-bold text-brand-500">#{completedReturn.returnNo}</span> has been processed.
-              </p>
-            </div>
-
-            {/* Clean Summary */}
-            <div className={`border rounded-2xl p-4 text-left space-y-2.5 text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-              }`}>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Supplier:</span>
-                <span className="font-bold">{completedReturn.supplierName}</span>
+          {/* Header */}
+          <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black border border-amber-500/20">
+                <RotateCcw className="w-5 h-5" />
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Returned Item:</span>
-                <span className="font-bold">{completedReturn.productName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Returned Quantity:</span>
-                <span className="font-bold text-rose-500 font-mono">{numReturnQty} {completedReturn.unit}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Remaining On Purchase Bill:</span>
-                <span className="font-bold text-blue-600 dark:text-blue-400 font-mono">{completedReturn.remainingAfter} {completedReturn.unit}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Remaining Available Stock:</span>
-                <span className={`font-bold font-mono ${completedReturn.stockAfter === 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                  {completedReturn.stockAfter} {completedReturn.unit} {completedReturn.stockAfter === 0 ? '(Stock Depleted to 0)' : ''}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Refund Method:</span>
-                <span className="font-bold text-amber-600 dark:text-amber-400">{refundMode}</span>
-              </div>
-              <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
-                <span className="font-bold text-slate-700 dark:text-slate-300">Total Refund / Debit:</span>
-                <span className="font-black text-sm font-mono text-purple-600 dark:text-purple-400">Rs. {refundAmount.toLocaleString()}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print Return Voucher</span>
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition cursor-pointer shadow-md"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* Simplified Return Form with Complete Stock Validation */
-          <form onSubmit={handleSubmit} className="space-y-4">
-
-            {/* Multi-item selector if purchase has more than 1 item */}
-            {purchaseItems.length > 1 && (
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Select Item to Return</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {purchaseItems.map((it, idx) => (
-                    <button
-                      key={it.id}
-                      type="button"
-                      onClick={() => handleItemSelect(idx)}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${selectedItemIdx === idx
-                        ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
-                        : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-500'
-                        }`}
-                    >
-                      {it.name} (Max: {it.maxReturnableQty} {it.unit})
-                    </button>
-                  ))}
+                <h3 className="text-base font-black tracking-tight text-slate-900 dark:text-white">
+                  Process Purchase Return
+                </h3>
+                <p className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mt-0.5">
+                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                    {purchase.purchaseNo ? `Bill #${purchase.purchaseNo}` : 'Procurement Return'}
+                  </span>
+                  <span>•</span>
+                  <span className="truncate max-w-[170px]">{purchase.supplierName || purchase.supplier || 'Supplier'}</span>
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {completedReturn ? (
+            /* ========================================================================= */
+            /* SUCCESS COMPLETION SCREEN */
+            /* ========================================================================= */
+            <div className="space-y-4 py-3 text-center animate-in fade-in zoom-in-95">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-sm">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+
+              <div>
+                <h4 className="text-lg font-black text-slate-900 dark:text-white">
+                  Purchase Return Recorded
+                </h4>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-1 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-mono font-black text-xs">
+                  <span>Voucher #:</span>
+                  <span>{completedReturn.returnNo || 'Recorded'}</span>
                 </div>
               </div>
-            )}
 
-            {/* Transparent Stock Audit & Clarity Card */}
-            <div className={`p-4 rounded-2xl border space-y-2.5 ${theme === 'dark' ? 'bg-slate-900/70 border-slate-700' : 'bg-slate-50 border-slate-200'
+              {/* Clean Summary Card */}
+              <div className={`border rounded-2xl p-4 text-left space-y-2.5 text-xs ${
+                theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
               }`}>
-              <div className="flex items-center justify-between border-b pb-2 border-slate-200 dark:border-slate-700/60">
-                <div className="flex items-center gap-1.5">
-                  <Package className="w-4 h-4 text-brand-500" />
-                  <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">{currentItem.name}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Supplier Firm:</span>
+                  <span className="font-extrabold text-slate-800 dark:text-slate-200">{completedReturn.supplierName}</span>
                 </div>
-                <span className="font-mono text-xs font-bold text-slate-500">
-                  Rate: Rs. {itemRate.toLocaleString()}/{itemUnit}
-                </span>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Returned Item:</span>
+                  <span className="font-extrabold text-slate-800 dark:text-slate-200">{completedReturn.productName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Returned Quantity:</span>
+                  <span className="font-black text-rose-600 dark:text-rose-400 font-mono">
+                    {numReturnQty} {completedReturn.unit} (Deducted)
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Remaining Bill Qty:</span>
+                  <span className="font-bold font-mono text-slate-700 dark:text-slate-300">
+                    {completedReturn.remainingAfter} {completedReturn.unit}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Remaining Warehouse Stock:</span>
+                  <span className={`font-mono font-black ${completedReturn.stockAfter === 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {completedReturn.stockAfter} {completedReturn.unit} {completedReturn.stockAfter === 0 ? '(0 Stock)' : ''}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Payment Mode:</span>
+                  <span className="font-extrabold text-amber-600 dark:text-amber-400 uppercase">
+                    {completedReturn.refundMode}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 font-black">
+                  <span className="text-slate-700 dark:text-slate-300">Total Refund / Debit:</span>
+                  <span className="font-mono text-base text-emerald-600 dark:text-emerald-400">
+                    Rs. {refundAmount.toLocaleString()}
+                  </span>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
-                <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 block uppercase">1. Purchased Qty</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block font-mono text-sm">
-                    {origQty} {itemUnit}
-                  </span>
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDirectPrint}
+                    className="flex-1 py-3 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md shadow-brand-600/20 transition cursor-pointer active:scale-98"
+                    title="Print Receipt immediately (Thermal 80mm)"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Print Receipt</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowFullReceiptModal(true)}
+                    className={`flex-1 py-3 px-3 rounded-xl border font-extrabold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
+                      theme === 'dark'
+                        ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
+                        : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <Receipt className="w-4 h-4" />
+                    <span>All Sizes / A4 / A5</span>
+                  </button>
                 </div>
-
-                <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 block uppercase">2. Available Stock</span>
-                  <span className={`font-black block font-mono text-sm ${currentAvailableStock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'
-                    }`}>
-                    {currentAvailableStock} {itemUnit}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 block uppercase">3. Max Return Limit</span>
-                  <span className="font-black font-mono text-sm text-purple-600 dark:text-purple-400 block">
-                    {maxReturnableQty} {itemUnit}
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className={`w-full py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
+                    theme === 'dark'
+                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  Close
+                </button>
               </div>
-
-              {alreadyReturned > 0 && (
-                <div className="pt-1.5 border-t border-slate-200 dark:border-slate-700/60 text-[11px] text-slate-400 flex justify-between">
-                  <span>Previously returned from this purchase:</span>
-                  <span className="font-bold text-purple-600 dark:text-purple-400 font-mono">{alreadyReturned} {itemUnit}</span>
+            </div>
+          ) : (
+            /* ========================================================================= */
+            /* RETURN ENTRY FORM */
+            /* ========================================================================= */
+            <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+              {/* Multi-item selector tabs */}
+              {purchaseItems.length > 1 && (
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">
+                    Select Purchased Item
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {purchaseItems.map((it, idx) => (
+                      <button
+                        key={it.id}
+                        type="button"
+                        onClick={() => handleItemSelect(idx)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                          selectedItemIdx === idx
+                            ? 'bg-amber-500 text-white border-amber-500 shadow-xs font-black'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-500'
+                        }`}
+                      >
+                        {it.name} (Max: {it.maxReturnableQty} {it.unit})
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
-
-            </div>
-
-            {isFullyReturned ? (
-              <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-xs font-bold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>This purchase has already been 100% fully returned.</span>
-              </div>
-            ) : isOutOfStock ? (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>Insufficient Stock — Available: 0 {itemUnit}. Maximum returnable quantity: 0 {itemUnit}.</span>
-              </div>
-            ) : (
-              <>
-                {/* Return Quantity Input with Stock Label beside it */}
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center justify-between gap-1">
-                    <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                      Return Qty ({itemUnit}) *
-                    </label>
-
-                    {/* Stock Indicator beside Quantity Field */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400">
-                        Available: <b className="text-emerald-600 dark:text-emerald-400 font-extrabold">{currentAvailableStock} {itemUnit}</b> | Max Return: <b className="text-purple-600 dark:text-purple-400 font-extrabold">{maxReturnableQty} {itemUnit}</b>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleSetMaxQty}
-                        className="text-[11px] font-black text-brand-600 dark:text-brand-400 hover:underline cursor-pointer bg-brand-500/10 px-2 py-0.5 rounded-md"
-                        title="Set to maximum returnable quantity"
-                      >
-                        Max ({maxReturnableQty})
-                      </button>
-                    </div>
+              {/* Single Clean Summary Card */}
+              <div className={`p-4 rounded-2xl border space-y-3 ${
+                theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex items-center justify-between border-b pb-2.5 border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                      {currentItem.name}
+                    </span>
                   </div>
+                  <span className="font-mono text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-200/60 dark:bg-slate-700 px-2 py-0.5 rounded-md">
+                    Rs. {itemRate.toLocaleString()}/{itemUnit}
+                  </span>
+                </div>
 
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Purchased</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 font-mono mt-0.5 block">
+                      {origQty} {itemUnit}
+                    </span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Warehouse Stock</span>
+                    <span className={`font-mono font-bold mt-0.5 block ${currentAvailableStock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                      {currentAvailableStock} {itemUnit}
+                    </span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60">
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Max Returnable</span>
+                    <span className="font-black text-amber-600 dark:text-amber-400 font-mono mt-0.5 block">
+                      {maxReturnableQty} {itemUnit}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {isFullyReturned ? (
+                <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>This purchase bill has already been 100% fully returned.</span>
+                </div>
+              ) : isOutOfStock ? (
+                <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>Insufficient Warehouse Stock — Available: 0 {itemUnit}. Cannot return goods already sold out.</span>
+                </div>
+              ) : (
+                <>
+                  {/* Return Quantity & Refund Amount Inputs */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                          Return Qty ({itemUnit}) *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleSetMaxQty}
+                          className="text-[11px] font-black text-brand-600 dark:text-brand-400 hover:underline cursor-pointer bg-brand-500/10 px-2 py-0.5 rounded-md"
+                        >
+                          MAX ({maxReturnableQty})
+                        </button>
+                      </div>
                       <input
                         type="text"
                         inputMode="numeric"
                         pattern="[0-9]*"
-                        placeholder={`Max: ${maxReturnableQty} ${itemUnit}`}
+                        placeholder={`Max: ${maxReturnableQty}`}
                         value={returnQty}
                         onWheel={(e) => e.target.blur()}
                         onFocus={(e) => e.target.select()}
@@ -457,21 +526,26 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                           if (e.key === '.' || e.key === ',') e.preventDefault();
                         }}
                         onChange={(e) => handleQtyChange(e.target.value)}
-                        className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-black font-mono outline-none transition ${hasValidationError
-                          ? 'border-rose-500 bg-rose-500/10 text-rose-600 focus:ring-2 focus:ring-rose-500/20'
-                          : theme === 'dark'
-                            ? 'bg-slate-900 border-slate-700 text-white focus:border-brand-500'
-                            : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-brand-500'
-                          }`}
+                        className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-black font-mono outline-none transition ${
+                          hasValidationError
+                            ? 'border-rose-500 bg-rose-500/10 text-rose-600 focus:ring-2 focus:ring-rose-500/20'
+                            : theme === 'dark'
+                              ? 'bg-slate-800 border-slate-700 text-white focus:border-brand-500'
+                              : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-brand-500'
+                        }`}
                         required
                       />
                     </div>
 
                     <div>
-                      <div className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold flex items-center justify-between h-[42px] ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-amber-400' : 'bg-amber-50/60 border-amber-200 text-amber-700'
-                        }`}>
-                        <span className="text-[10px] text-slate-400 uppercase">Refund Amount:</span>
-                        <span className="text-sm font-black">Rs. {refundAmount.toLocaleString()}</span>
+                      <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5">
+                        Refund / Debit Total
+                      </label>
+                      <div className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold flex items-center justify-between h-[42px] ${
+                        theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-amber-400' : 'bg-amber-50/80 border-amber-200 text-amber-800'
+                      }`}>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold">Total:</span>
+                        <span className="text-base font-black">Rs. {refundAmount.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -484,20 +558,10 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                     </div>
                   )}
 
-                  {/* Real-time remaining stock preview */}
-                  {!hasValidationError && numReturnQty > 0 && numReturnQty <= maxReturnableQty && (
-                    <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 pt-0.5 flex justify-between items-center">
-                      <span>Stock after this return:</span>
-                      <span className={`font-mono font-black ${currentAvailableStock - numReturnQty === 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'
-                        }`}>
-                        {currentAvailableStock - numReturnQty} {itemUnit} {currentAvailableStock === numReturnQty ? '(Stock will be exactly 0 KG)' : ''}
-                      </span>
-                    </div>
-                  )}
-                  {/* Payment Method / Refund Mode Selector */}
+                  {/* Payment Method Selector */}
                   <div className="space-y-1.5 pt-1">
                     <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                      Payment Method *
+                      Payment / Settlement Mode *
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
@@ -512,10 +576,11 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                             key={mode.id}
                             type="button"
                             onClick={() => setRefundMode(mode.id)}
-                            className={`py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${isSelected
+                            className={`py-2.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${
+                              isSelected
                                 ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400 shadow-2xs font-extrabold ring-1 ring-amber-500/30'
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
-                              }`}
+                                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                            }`}
                           >
                             <Icon className="w-3.5 h-3.5 shrink-0" />
                             <span className="truncate">{mode.label}</span>
@@ -524,39 +589,94 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                       })}
                     </div>
                   </div>
-                </div>
-              </>
-            )}
 
-            {/* Footer Buttons */}
-            <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-              <button
-                type="button"
-                onClick={onClose}
-                className={`w-1/3 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  {/* Return Reason & Quick Chips */}
+                  <div className="space-y-1.5 pt-1">
+                    <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                      Return Reason / Notes (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Substandard grain, Weight mismatch, Moisture content"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      className={`w-full border rounded-xl px-3.5 py-2 text-xs font-semibold outline-none transition ${
+                        theme === 'dark'
+                          ? 'bg-slate-800 border-slate-700 text-white focus:border-brand-500'
+                          : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-brand-500'
+                      }`}
+                    />
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {quickReasons.map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setReason(r)}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition cursor-pointer ${
+                            reason === r
+                              ? 'bg-amber-500 text-white border-amber-500'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Live Stock Impact Note */}
+                  {!hasValidationError && numReturnQty > 0 && numReturnQty <= maxReturnableQty && (
+                    <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 pt-0.5 flex justify-between items-center">
+                      <span>Warehouse stock after return:</span>
+                      <span className={`font-mono font-black ${currentAvailableStock - numReturnQty === 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                        {currentAvailableStock - numReturnQty} {itemUnit}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Footer Actions */}
+              <div className="flex gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className={`w-1/3 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                   }`}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting || numReturnQty <= 0 || isFullyReturned || isOutOfStock || hasValidationError}
-                className="w-2/3 py-2.5 rounded-xl font-extrabold text-xs bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20 transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <span>Processing...</span>
-                ) : (
-                  <>
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Confirm Return ({numReturnQty} {itemUnit})</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        )}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || numReturnQty <= 0 || isFullyReturned || isOutOfStock || hasValidationError}
+                  className="w-2/3 py-2.5 rounded-xl font-black text-xs bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20 transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed active:scale-98"
+                >
+                  {isSubmitting ? (
+                    <span>Processing Return...</span>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Confirm Return ({numReturnQty} {itemUnit})</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Full Receipt Modal for switching sizes or downloading PDF */}
+      {showFullReceiptModal && completedReturn && (
+        <ReturnReceiptModal
+          isOpen={showFullReceiptModal}
+          onClose={() => setShowFullReceiptModal(false)}
+          returnData={completedReturn}
+          type="PurchaseReturn"
+        />
+      )}
+    </>
   );
 };
 

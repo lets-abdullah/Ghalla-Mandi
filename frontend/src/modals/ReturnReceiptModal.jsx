@@ -14,12 +14,357 @@ import {
   Building2,
   MapPin,
   Tag,
-  Receipt
+  Receipt,
+  Check,
+  Package
 } from 'lucide-react';
 import { exportReceiptToPDF } from '../utils/pdfExport';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
+/**
+ * Isolated Pure Print HTML Generator for Return Receipt Vouchers.
+ * Formatted specifically for standard Pakistani Ghalla Mandi trade records.
+ */
+export const generateReturnReceiptHtml = (returnData, type = 'SaleReturn', paperSize = 'thermal-80', shop = null) => {
+  const isSale = type === 'SaleReturn';
+  const isA4 = paperSize === 'a4';
+  const isA5 = paperSize === 'a5';
+  const is58 = paperSize === 'thermal-58';
+  const isFullSheet = isA4 || isA5;
+
+  const returnNo = returnData.returnNo || returnData.returnno || (isSale ? `SR-${returnData.id || '001'}` : `PR-${returnData.id || '001'}`);
+  const dateStr = returnData.date || (returnData.created_at ? new Date(returnData.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
+  const partyName = returnData.customerName || returnData.supplierName || returnData.partyName || returnData.customer || returnData.supplier || (isSale ? 'Walk-in Customer' : 'General Supplier');
+  const partyPhone = returnData.customerPhone || returnData.supplierPhone || returnData.phone || '';
+  const partyCity = returnData.customerCity || returnData.supplierCity || returnData.city || '';
+  const refInvoiceNo = returnData.invoiceNo || returnData.invoiceno || returnData.purchaseNo || returnData.purchaseno || returnData.saleNo || 'Direct Return';
+  const refundMode = returnData.refundMode || returnData.paymentMode || 'Cash';
+  const refundAmount = Number(returnData.refundAmount || returnData.totalAmount || returnData.amount || 0);
+  const reason = returnData.reason || returnData.note || returnData.notes || 'Goods Return / Quality Adjustment';
+
+  const items = Array.isArray(returnData.items) && returnData.items.length > 0
+    ? returnData.items.map(it => {
+        const qty = Number(it.qty || it.returnQty || it.quantity || 1);
+        const rate = Number(it.rate || it.price || it.refundRate || (refundAmount / Math.max(1, qty)));
+        const total = Number(it.totalAmount || it.total || (qty * rate) || refundAmount);
+        return {
+          name: it.name || it.productName || 'Produce Item',
+          qty,
+          unit: it.unit || it.unitName || 'KG',
+          rate,
+          total
+        };
+      })
+    : [{
+        name: returnData.productName || 'Returned Produce',
+        qty: Number(returnData.qty || returnData.quantity || 1),
+        unit: returnData.unit || 'KG',
+        rate: refundAmount / Math.max(1, Number(returnData.qty || returnData.quantity || 1)),
+        total: refundAmount
+      }];
+
+  const shopTitle = (shop?.shopName || shop?.name || 'GHALLA MANDI COMMISSION AGENT').toUpperCase();
+  const shopPhone = shop?.phone || shop?.contact || '';
+  const shopAddress = shop?.address || shop?.location || shop?.city || 'Main Grain Market • Ghalla Mandi';
+
+  const voucherTitle = isSale ? 'SALE RETURN VOUCHER' : 'PURCHASE RETURN VOUCHER';
+  const partyLabel = isSale ? 'Customer' : 'Supplier';
+  const refDocLabel = isSale ? 'Original Sale Inv #' : 'Original Purchase Bill #';
+
+  // 1. Full Sheet (A4 & A5) Template
+  if (isFullSheet) {
+    const pageSizeCss = isA4
+      ? '@page { size: A4 portrait; margin: 10mm 12mm; }'
+      : '@page { size: A5 portrait; margin: 8mm 10mm; }';
+
+    const rowsHtml = items.map((item, idx) => {
+      const lineTotal = item.total || (item.qty * item.rate);
+      return `
+        <tr style="border-bottom: 1px solid #e2e8f0; font-size: ${isA4 ? '12px' : '11px'};">
+          <td style="padding: 7px 8px; text-align: center; color: #64748b; font-weight: 700;">${idx + 1}</td>
+          <td style="padding: 7px 8px; font-weight: 800; color: #0f172a;">${item.name}</td>
+          <td style="padding: 7px 8px; text-align: center; font-weight: 800; color: #1e293b;">${item.qty} <span style="font-size: 10px; color: #64748b; font-weight: 600;">${item.unit}</span></td>
+          <td style="padding: 7px 8px; text-align: right; font-family: monospace; color: #334155; font-weight: 700;">Rs. ${Math.round(item.rate).toLocaleString()}</td>
+          <td style="padding: 7px 8px; text-align: right; font-weight: 900; font-family: monospace; color: #0f172a;">Rs. ${Math.round(lineTotal).toLocaleString()}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${voucherTitle} - ${returnNo}</title>
+          <style>
+            ${pageSizeCss}
+            * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { background: #ffffff; color: #0f172a; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: ${isA4 ? '12px' : '11px'}; line-height: 1.4; }
+            .invoice-container { width: 100%; margin: 0 auto; padding: ${isA4 ? '12px' : '8px'}; }
+            .bismillah { text-align: center; font-size: 14px; font-weight: 700; color: #064e3b; margin-bottom: 6px; font-family: 'Scheherazade New', serif; }
+            .header-grid { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #059669; padding-bottom: 10px; margin-bottom: 12px; }
+            .info-box { display: flex; justify-content: space-between; margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+            th { background: #ecfdf5; border-bottom: 2px solid #059669; color: #064e3b; padding: 8px 10px; font-weight: 900; font-size: ${isA4 ? '11px' : '10px'}; text-transform: uppercase; letter-spacing: 0.5px; }
+            .totals-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 10px; }
+            .signatures { display: flex; justify-content: space-between; margin-top: 36px; padding-top: 8px; }
+            .sig-line { width: 180px; text-align: center; border-top: 1.5px solid #64748b; font-size: 11px; font-weight: 800; color: #334155; padding-top: 4px; }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-container">
+            <div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+            <div class="header-grid">
+              <div>
+                <div style="font-size: ${isA4 ? '20px' : '17px'}; font-weight: 900; color: #064e3b; text-transform: uppercase; letter-spacing: 0.5px;">${shopTitle}</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${shopAddress}</div>
+                ${shopPhone ? `<div style="font-size: 11px; color: #334155; font-weight: 700; margin-top: 2px;">📞 Contact: ${shopPhone}</div>` : ''}
+              </div>
+              <div style="text-align: right;">
+                <div style="display: inline-block; background: #064e3b; color: #ffffff; font-weight: 900; font-size: 11px; padding: 4px 14px; border-radius: 4px; letter-spacing: 0.8px; text-transform: uppercase;">
+                  ${voucherTitle}
+                </div>
+                <div style="font-family: monospace; font-size: 13px; font-weight: 900; color: #0f172a; margin-top: 5px;">Voucher #: ${returnNo}</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Date: ${dateStr}</div>
+              </div>
+            </div>
+
+            <div class="info-box">
+              <div>
+                <div style="font-size: 10px; font-weight: 900; color: #059669; text-transform: uppercase; letter-spacing: 0.5px;">${partyLabel} Details:</div>
+                <div style="font-size: 14px; font-weight: 900; color: #0f172a; margin-top: 2px;">${partyName}</div>
+                ${partyPhone ? `<div style="font-size: 11px; color: #475569; font-weight: 600; margin-top: 1px;">📞 ${partyPhone}</div>` : ''}
+                ${partyCity ? `<div style="font-size: 11px; color: #64748b;">📍 ${partyCity}</div>` : ''}
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 10px; font-weight: 900; color: #059669; text-transform: uppercase; letter-spacing: 0.5px;">Reference & Payment:</div>
+                <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px;">${refDocLabel}: <span style="font-family: monospace; color: #0284c7; font-weight: 900;">${refInvoiceNo}</span></div>
+                <div style="font-size: 11px; color: #334155; font-weight: 700; margin-top: 2px;">Refund Mode: <b style="color: #059669; font-weight: 900;">${refundMode}</b></div>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 36px; text-align: center;">#</th>
+                  <th style="text-align: left;">Returned Produce / Description</th>
+                  <th style="width: 90px; text-align: center;">Return Qty</th>
+                  <th style="width: 110px; text-align: right;">Return Rate</th>
+                  <th style="width: 120px; text-align: right;">Refund Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+
+            <div class="totals-section">
+              <div style="max-width: 55%; padding-right: 20px;">
+                <div style="font-size: 11px; font-weight: 800; color: #334155; margin-bottom: 4px;">Return Reason / Condition Notes:</div>
+                <div style="font-size: 11px; color: #475569; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #059669; font-weight: 600;">
+                  ${reason}
+                </div>
+                <div style="font-size: 10px; color: #94a3b8; margin-top: 6px; font-style: italic;">
+                  Official computerized return voucher. Stock inventory and ledger balances have been updated.
+                </div>
+              </div>
+              <div style="width: 250px;">
+                <table style="margin-bottom: 0;">
+                  <tr style="border-top: 2px solid #059669; background: #ecfdf5;">
+                    <td style="padding: 8px 10px; font-weight: 900; font-size: 13px; color: #064e3b;">TOTAL REFUND:</td>
+                    <td style="padding: 8px 10px; text-align: right; font-family: monospace; font-weight: 900; font-size: 15px; color: #064e3b;">Rs. ${Math.round(refundAmount).toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 5px 10px; font-size: 11px; color: #475569; font-weight: 700;">Status:</td>
+                    <td style="padding: 5px 10px; text-align: right; font-size: 11px; font-weight: 900; color: #059669;">SETTLED (${refundMode})</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+
+            <div class="signatures">
+              <div class="sig-line">${partyLabel} Signature</div>
+              <div class="sig-line">Authorized Mandi Stamp</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  // 2. Thermal POS (80mm & 58mm) Template
+  // Strict black & white monochrome styling with zero margin overflow
+  const thermalWidth = is58 ? '52mm' : '72mm';
+  const thermalPageMargin = is58 ? '1mm' : '2mm';
+
+  const thermalRows = items.map((item) => {
+    const lineTotal = item.total || (item.qty * item.rate);
+    return `
+      <tr style="border-bottom: 1px dotted #000000; font-size: ${is58 ? '10px' : '11px'}; font-family: monospace;">
+        <td style="padding: 3px 0; text-align: left; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.name}</td>
+        <td style="padding: 3px 0; text-align: center; font-weight: bold;">${item.qty} ${item.unit}</td>
+        <td style="padding: 3px 0; text-align: right;">${Math.round(item.rate).toLocaleString()}</td>
+        <td style="padding: 3px 0; text-align: right; font-weight: bold;">${Math.round(lineTotal).toLocaleString()}</td>
+      </tr>
+    `;
+  }).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${voucherTitle} - ${returnNo}</title>
+        <style>
+          @page {
+            size: ${is58 ? '58mm auto' : '80mm auto'};
+            margin: 0;
+          }
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          body {
+            background: #ffffff;
+            color: #000000;
+            width: ${thermalWidth};
+            max-width: ${thermalWidth};
+            margin: 0 auto;
+            padding: ${thermalPageMargin};
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", Courier, monospace;
+            font-size: ${is58 ? '10px' : '11.5px'};
+            line-height: 1.25;
+          }
+          .dashed-sep {
+            border-top: 1.2px dashed #000000;
+            margin: 5px 0;
+          }
+          .double-sep {
+            border-top: 2px solid #000000;
+            margin: 5px 0;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+          }
+        </style>
+      </head>
+      <body>
+        <div style="text-align: center;">
+          <div style="font-size: 11px; font-weight: bold; margin-bottom: 2px;">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+          <div style="font-size: ${is58 ? '13px' : '15px'}; font-weight: 900; text-transform: uppercase;">${shopTitle}</div>
+          <div style="font-size: 9.5px; margin-top: 1px;">${shopAddress}</div>
+          ${shopPhone ? `<div style="font-size: 9.5px; font-weight: bold;">📞 ${shopPhone}</div>` : ''}
+          <div style="margin-top: 4px; display: inline-block; border: 1.5px solid #000000; padding: 2px 8px; font-weight: 900; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+            ${voucherTitle}
+          </div>
+        </div>
+
+        <div class="dashed-sep"></div>
+
+        <div style="display: flex; justify-content: space-between; font-size: ${is58 ? '9.5px' : '10.5px'}; font-weight: bold;">
+          <span>Voucher #: <b>${returnNo}</b></span>
+          <span>${dateStr}</span>
+        </div>
+
+        <div class="dashed-sep"></div>
+
+        <div style="font-size: ${is58 ? '10px' : '11px'};">
+          <div>${partyLabel}: <b style="font-size: ${is58 ? '11px' : '12px'};">${partyName}</b></div>
+          ${partyPhone ? `<div>Phone: ${partyPhone}</div>` : ''}
+          <div>${refDocLabel}: <b>${refInvoiceNo}</b></div>
+        </div>
+
+        <div class="dashed-sep"></div>
+
+        <table>
+          <thead>
+            <tr style="border-bottom: 1.2px solid #000000; font-size: ${is58 ? '9px' : '10px'}; font-weight: 900; text-transform: uppercase;">
+              <th style="width: 42%; text-align: left; padding: 2px 0;">Item</th>
+              <th style="width: 18%; text-align: center; padding: 2px 0;">Qty</th>
+              <th style="width: 20%; text-align: right; padding: 2px 0;">Rate</th>
+              <th style="width: 20%; text-align: right; padding: 2px 0;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${thermalRows}
+          </tbody>
+        </table>
+
+        <div class="double-sep"></div>
+
+        <div style="padding: 2px 0;">
+          <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: ${is58 ? '12px' : '14px'}; font-family: monospace;">
+            <span>TOTAL REFUND:</span>
+            <span>Rs. ${refundAmount.toLocaleString()}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 10px; margin-top: 3px;">
+            <span>Refund Mode:</span>
+            <span style="font-weight: bold; text-transform: uppercase;">${refundMode}</span>
+          </div>
+          <div style="font-size: 9.5px; margin-top: 3px; font-style: italic;">
+            Note: ${reason}
+          </div>
+        </div>
+
+        <div class="dashed-sep"></div>
+
+        <div style="text-align: center; margin-top: 4px; font-size: 9px;">
+          <div>✓ Official Return Verified & Settled</div>
+          <div style="font-family: monospace; letter-spacing: 2px; margin-top: 3px; font-weight: bold;">*${returnNo}*</div>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
+/**
+ * Universal Print Execution Helper via Isolated Iframe.
+ * Avoids modal/background clutter and prints directly to system printer dialog.
+ */
+export const printReturnReceipt = (returnData, type = 'SaleReturn', paperSize = 'thermal-80', shop = null) => {
+  try {
+    const existingFrame = document.getElementById('return-receipt-print-frame');
+    if (existingFrame) existingFrame.remove();
+
+    const printFrame = document.createElement('iframe');
+    printFrame.id = 'return-receipt-print-frame';
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = '0';
+    document.body.appendChild(printFrame);
+
+    const doc = printFrame.contentWindow.document;
+    doc.open();
+    doc.write(generateReturnReceiptHtml(returnData, type, paperSize, shop));
+    doc.close();
+
+    setTimeout(() => {
+      printFrame.contentWindow.focus();
+      printFrame.contentWindow.print();
+      setTimeout(() => {
+        if (document.body.contains(printFrame)) {
+          document.body.removeChild(printFrame);
+        }
+      }, 3000);
+    }, 250);
+  } catch (err) {
+    console.error('Print return receipt error:', err);
+    window.print();
+  }
+};
+
+/**
+ * High-End Return Receipt Modal Component
+ */
 export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleReturn' }) => {
   const { theme } = useTheme();
   const { shop } = useAuth();
@@ -41,7 +386,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, paperSize]);
+  }, [isOpen, paperSize, returnData]);
 
   if (!isOpen || !returnData) return null;
 
@@ -50,7 +395,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
   const partyName = returnData.customerName || returnData.supplierName || returnData.partyName || returnData.customer || returnData.supplier || (isSale ? 'Walk-in Customer' : 'General Supplier');
   const partyPhone = returnData.customerPhone || returnData.supplierPhone || returnData.phone || '';
   const partyCity = returnData.customerCity || returnData.supplierCity || returnData.city || '';
-  const refInvoiceNo = returnData.invoiceNo || returnData.invoiceno || returnData.purchaseNo || returnData.purchaseno || returnData.saleNo || 'N/A';
+  const refInvoiceNo = returnData.invoiceNo || returnData.invoiceno || returnData.purchaseNo || returnData.purchaseno || returnData.saleNo || 'Direct Return';
   const refundMode = returnData.refundMode || returnData.paymentMode || 'Cash';
   const refundAmount = Number(returnData.refundAmount || returnData.totalAmount || returnData.amount || 0);
   const reason = returnData.reason || returnData.note || returnData.notes || 'Goods Return / Quality Adjustment';
@@ -59,7 +404,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
     ? returnData.items.map(it => {
         const qty = Number(it.qty || it.returnQty || it.quantity || 1);
         const rate = Number(it.rate || it.price || it.refundRate || (refundAmount / Math.max(1, qty)));
-        const total = Number(it.total || (qty * rate) || refundAmount);
+        const total = Number(it.totalAmount || it.total || (qty * rate) || refundAmount);
         return {
           name: it.name || it.productName || 'Produce Item',
           qty,
@@ -76,279 +421,17 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
         total: refundAmount
       }];
 
-  const shopTitle = (shop?.shopName || shop?.name || 'GHALLA MANDI COMMISSION SHOP').toUpperCase();
+  const shopTitle = (shop?.shopName || shop?.name || 'GHALLA MANDI COMMISSION AGENT').toUpperCase();
   const shopPhone = shop?.phone || shop?.contact || '';
-  const shopAddress = shop?.address || shop?.location || shop?.city || 'Main Grain Market • Ghalla Mandi, Punjab';
+  const shopAddress = shop?.address || shop?.location || shop?.city || 'Main Grain Market • Ghalla Mandi';
 
-  // Generate Isolated Print HTML for the exact chosen paper size
-  const generatePrintHtml = () => {
-    const isA4 = paperSize === 'a4';
-    const isA5 = paperSize === 'a5';
-    const is58 = paperSize === 'thermal-58';
-    const isFullSheet = isA4 || isA5;
-
-    const pageSizeCss = isA4
-      ? '@page { size: A4 portrait; margin: 10mm 12mm; }'
-      : isA5
-        ? '@page { size: A5 portrait; margin: 8mm 10mm; }'
-        : is58
-          ? '@page { size: 58mm auto; margin: 1.5mm; }'
-          : '@page { size: 80mm auto; margin: 2.5mm; }';
-
-    const baseContainerWidth = isA4 ? '100%' : isA5 ? '100%' : is58 ? '48mm' : '72mm';
-    const voucherTitle = isSale ? 'SALE RETURN VOUCHER' : 'PURCHASE RETURN VOUCHER';
-    const partyLabel = isSale ? 'Customer' : 'Supplier';
-    const refDocLabel = isSale ? 'Original Sale Inv #' : 'Original Purchase Bill #';
-
-    const rowsHtml = items.map((item, idx) => {
-      const lineTotal = item.total || (item.qty * item.rate);
-
-      if (isFullSheet) {
-        return `
-          <tr style="border-bottom: 1px solid #e2e8f0; font-size: ${isA4 ? '12px' : '11px'};">
-            <td style="padding: 8px 10px; text-align: center; color: #64748b; font-weight: 600;">${idx + 1}</td>
-            <td style="padding: 8px 10px; font-weight: 700; color: #0f172a;">${item.name}</td>
-            <td style="padding: 8px 10px; text-align: center; font-weight: 800; color: #334155;">${item.qty} <span style="font-size: 10px; color: #64748b;">${item.unit}</span></td>
-            <td style="padding: 8px 10px; text-align: right; font-family: monospace; color: #475569;">Rs. ${Math.round(item.rate).toLocaleString()}</td>
-            <td style="padding: 8px 10px; text-align: right; font-weight: 800; font-family: monospace; color: #0f172a;">Rs. ${Math.round(lineTotal).toLocaleString()}</td>
-          </tr>
-        `;
-      }
-
-      return `
-        <tr style="border-bottom: 1px dashed #cbd5e1; font-size: ${is58 ? '9.5px' : '11px'};">
-          <td style="padding: 4px 2px; font-weight: 700; color: #0f172a; text-align: left;">${item.name}</td>
-          <td style="padding: 4px 2px; text-align: center; font-weight: 800; color: #334155;">${item.qty}</td>
-          <td style="padding: 4px 2px; text-align: right; font-family: monospace; color: #475569;">${Math.round(item.rate).toLocaleString()}</td>
-          <td style="padding: 4px 2px; text-align: right; font-weight: 800; font-family: monospace; color: #0f172a;">${Math.round(lineTotal).toLocaleString()}</td>
-        </tr>
-      `;
-    }).join('');
-
-    // Full Sheet (A4 / A5) HTML Template
-    if (isFullSheet) {
-      return `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8" />
-            <title>${voucherTitle} - ${returnNo}</title>
-            <style>
-              ${pageSizeCss}
-              * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              body { background: #ffffff; color: #0f172a; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: ${isA4 ? '12px' : '11px'}; line-height: 1.4; }
-              .invoice-container { width: 100%; margin: 0 auto; padding: ${isA4 ? '15px' : '10px'}; }
-              .bismillah { text-align: center; font-size: 14px; font-weight: 700; color: #064e3b; margin-bottom: 4px; font-family: 'Scheherazade New', serif; }
-              .header-grid { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #059669; padding-bottom: 12px; margin-bottom: 14px; }
-              .info-box { display: flex; justify-content: space-between; margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; }
-              table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-              th { background: #ecfdf5; border-bottom: 2px solid #059669; color: #064e3b; padding: 8px 10px; font-weight: 800; font-size: ${isA4 ? '11px' : '10px'}; text-transform: uppercase; }
-              .totals-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 10px; }
-              .signatures { display: flex; justify-content: space-between; margin-top: 40px; padding-top: 10px; }
-              .sig-line { width: 160px; text-align: center; border-top: 1px solid #94a3b8; font-size: 11px; font-weight: 700; color: #475569; padding-top: 4px; }
-            </style>
-          </head>
-          <body>
-            <div class="invoice-container">
-              <div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
-              <div class="header-grid">
-                <div>
-                  <div style="font-size: ${isA4 ? '22px' : '18px'}; font-weight: 900; color: #064e3b; text-transform: uppercase; letter-spacing: 0.5px;">${shopTitle}</div>
-                  <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${shopAddress}</div>
-                  ${shopPhone ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">📞 Phone / WhatsApp: ${shopPhone}</div>` : ''}
-                </div>
-                <div style="text-align: right;">
-                  <div style="display: inline-block; background: #064e3b; color: #ffffff; font-weight: 900; font-size: 11px; padding: 3px 12px; border-radius: 4px; letter-spacing: 0.5px; text-transform: uppercase;">
-                    ${voucherTitle}
-                  </div>
-                  <div style="font-family: monospace; font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 6px;">Voucher #: ${returnNo}</div>
-                  <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Date: ${dateStr}</div>
-                </div>
-              </div>
-
-              <div class="info-box">
-                <div>
-                  <div style="font-size: 10px; font-weight: 800; color: #059669; text-transform: uppercase;">${partyLabel} Details:</div>
-                  <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px;">${partyName}</div>
-                  ${partyPhone ? `<div style="font-size: 11px; color: #475569; margin-top: 2px;">Phone: ${partyPhone}</div>` : ''}
-                  ${partyCity ? `<div style="font-size: 11px; color: #64748b;">City / Market: ${partyCity}</div>` : ''}
-                </div>
-                <div style="text-align: right;">
-                  <div style="font-size: 10px; font-weight: 800; color: #059669; text-transform: uppercase;">Reference Details:</div>
-                  <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 2px;">${refDocLabel}: <span style="font-family: monospace; color: #0284c7;">${refInvoiceNo}</span></div>
-                  <div style="font-size: 11px; color: #475569; margin-top: 2px;">Refund Mode: <b style="color: #059669;">${refundMode}</b></div>
-                </div>
-              </div>
-
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width: 40px; text-align: center;">#</th>
-                    <th style="text-align: left;">Returned Item / Description</th>
-                    <th style="width: 90px; text-align: center;">Return Qty</th>
-                    <th style="width: 110px; text-align: right;">Return Rate</th>
-                    <th style="width: 120px; text-align: right;">Refund Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${rowsHtml}
-                </tbody>
-              </table>
-
-              <div class="totals-section">
-                <div style="max-width: 55%; padding-right: 20px;">
-                  <div style="font-size: 11px; font-weight: 700; color: #334155; margin-bottom: 4px;">Return Reason / Notes:</div>
-                  <div style="font-size: 11px; color: #64748b; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #059669;">
-                    ${reason}
-                  </div>
-                  <div style="font-size: 10px; color: #94a3b8; margin-top: 8px; font-style: italic;">
-                    Official computer-generated Ghalla Mandi return voucher. Stock and financials adjusted accordingly.
-                  </div>
-                </div>
-                <div style="width: 260px;">
-                  <table style="margin-bottom: 0;">
-                    <tr style="border-top: 2px solid #059669; background: #f0fdf4;">
-                      <td style="padding: 8px 10px; font-weight: 900; font-size: 13px; color: #064e3b;">TOTAL REFUND:</td>
-                      <td style="padding: 8px 10px; text-align: right; font-family: monospace; font-weight: 900; font-size: 15px; color: #064e3b;">Rs. ${Math.round(refundAmount).toLocaleString()}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 6px 10px; font-size: 11px; color: #475569; font-weight: 600;">Refund Status:</td>
-                      <td style="padding: 6px 10px; text-align: right; font-size: 11px; font-weight: 800; color: #059669;">PROCESSED (${refundMode})</td>
-                    </tr>
-                  </table>
-                </div>
-              </div>
-
-              <div class="signatures">
-                <div class="sig-line">${partyLabel} Signature</div>
-                <div class="sig-line">Authorized Signatory / Stamp</div>
-              </div>
-            </div>
-          </body>
-        </html>
-      `;
-    }
-
-    // Thermal (80mm / 58mm) HTML Template
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>${voucherTitle} - ${returnNo}</title>
-          <style>
-            ${pageSizeCss}
-            * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            body { background: #ffffff; color: #0f172a; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: ${is58 ? '10px' : '11px'}; }
-            .receipt-card { width: ${baseContainerWidth}; margin: 0 auto; padding: ${is58 ? '4px' : '8px 10px'}; }
-            .dashed-sep { border-top: 1px dashed #94a3b8; margin: 6px 0; }
-          </style>
-        </head>
-        <body>
-          <div class="receipt-card">
-            <div style="text-align: center;">
-              <div style="font-size: 12px; font-weight: 700; color: #064e3b; margin-bottom: 2px;">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
-              <div style="font-size: ${is58 ? '14px' : '16px'}; font-weight: 900; color: #0f172a; text-transform: uppercase;">${shopTitle}</div>
-              <div style="font-size: 9px; color: #64748b; margin-top: 1px;">${shopAddress}</div>
-              ${shopPhone ? `<div style="font-size: 9px; color: #475569;">📞 ${shopPhone}</div>` : ''}
-              <div style="display: inline-block; background: #064e3b; color: #ffffff; font-size: 9.5px; font-weight: 900; padding: 2px 10px; border-radius: 2px; margin-top: 4px; letter-spacing: 0.5px;">
-                ${voucherTitle}
-              </div>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 10px;">
-              <div><b>Voucher #:</b> <span style="font-family: monospace;">${returnNo}</span></div>
-              <div style="color: #475569;">${dateStr}</div>
-            </div>
-
-            <div class="dashed-sep"></div>
-
-            <div>
-              <div style="font-size: 9px; font-weight: 800; color: #059669; text-transform: uppercase;">${partyLabel}:</div>
-              <div style="font-size: 12px; font-weight: 800; color: #0f172a;">${partyName}</div>
-              ${partyPhone ? `<div style="font-size: 9.5px; color: #475569;">Phone: ${partyPhone}</div>` : ''}
-              <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">
-                ${refDocLabel}: <span style="font-family: monospace; font-weight: 700; color: #0f172a;">${refInvoiceNo}</span>
-              </div>
-            </div>
-
-            <div class="dashed-sep"></div>
-
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 4px;">
-              <thead>
-                <tr style="border-bottom: 1px solid #cbd5e1; font-size: 9px; font-weight: 800; color: #064e3b; text-transform: uppercase;">
-                  <th style="padding: 2px 0; text-align: left;">Item</th>
-                  <th style="padding: 2px 0; text-align: center;">Qty</th>
-                  <th style="padding: 2px 0; text-align: right;">Rate</th>
-                  <th style="padding: 2px 0; text-align: right;">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rowsHtml}
-              </tbody>
-            </table>
-
-            <div class="dashed-sep"></div>
-
-            <div style="font-size: 11px;">
-              <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: ${is58 ? '11px' : '13px'}; color: #064e3b; padding: 4px 0;">
-                <span>TOTAL REFUND:</span>
-                <span style="font-family: monospace;">Rs. ${refundAmount.toLocaleString()}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #475569; padding: 1px 0;">
-                <span>Refund Mode:</span>
-                <span style="font-weight: 700; color: #059669;">${refundMode}</span>
-              </div>
-              <div style="font-size: 9px; color: #64748b; margin-top: 4px; padding-top: 4px; border-top: 1px dotted #cbd5e1;">
-                <b>Reason:</b> ${reason}
-              </div>
-            </div>
-
-            <div class="dashed-sep"></div>
-
-            <div style="text-align: center; margin-top: 6px; font-size: 8.5px; color: #64748b;">
-              <div>Official Ghalla Mandi Return Record</div>
-              <div style="margin-top: 4px; font-family: monospace; letter-spacing: 2px; font-size: 9px;">*${returnNo}*</div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-  };
+  const isFullSheet = paperSize === 'a4' || paperSize === 'a5';
+  const voucherTitle = isSale ? 'SALE RETURN VOUCHER' : 'PURCHASE RETURN VOUCHER';
+  const partyLabel = isSale ? 'Customer' : 'Supplier';
+  const refDocLabel = isSale ? 'Sale Invoice #' : 'Purchase Bill #';
 
   const handlePrint = () => {
-    try {
-      const existingFrame = document.getElementById('return-receipt-print-frame');
-      if (existingFrame) existingFrame.remove();
-
-      const printFrame = document.createElement('iframe');
-      printFrame.id = 'return-receipt-print-frame';
-      printFrame.style.position = 'fixed';
-      printFrame.style.right = '0';
-      printFrame.style.bottom = '0';
-      printFrame.style.width = '0';
-      printFrame.style.height = '0';
-      printFrame.style.border = '0';
-      document.body.appendChild(printFrame);
-
-      const doc = printFrame.contentWindow.document;
-      doc.open();
-      doc.write(generatePrintHtml());
-      doc.close();
-
-      setTimeout(() => {
-        printFrame.contentWindow.focus();
-        printFrame.contentWindow.print();
-        setTimeout(() => {
-          if (document.body.contains(printFrame)) {
-            document.body.removeChild(printFrame);
-          }
-        }, 3000);
-      }, 250);
-    } catch (err) {
-      console.error('Print error:', err);
-      window.print();
-    }
+    printReturnReceipt(returnData, type, paperSize, shop);
   };
 
   const handleDownloadPdf = async () => {
@@ -357,7 +440,8 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
       const targetElement = receiptRef.current || document.getElementById('return-receipt-card');
       if (!targetElement) throw new Error('Printable element not found in DOM.');
 
-      const filename = `${returnNo.replace(/[^a-zA-Z0-9_-]/g, '')}_Voucher_${paperSize}.pdf`;
+      const cleanNum = returnNo.replace(/[^a-zA-Z0-9_-]/g, '');
+      const filename = `${cleanNum}_Return_Voucher_${paperSize}.pdf`;
       await exportReceiptToPDF(targetElement, filename, paperSize);
     } catch (err) {
       console.error('Download PDF error:', err);
@@ -367,30 +451,24 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
     }
   };
 
-  const isFullSheet = paperSize === 'a4' || paperSize === 'a5';
-  const voucherTitle = isSale ? 'SALE RETURN VOUCHER' : 'PURCHASE RETURN VOUCHER';
-  const partyLabel = isSale ? 'Customer' : 'Supplier';
-  const refDocLabel = isSale ? 'Sale Invoice #' : 'Purchase Bill #';
-
   return (
     <div
       onClick={onClose}
       className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-hidden print:p-0 print:bg-white print:static"
     >
-      {/* Modal Container */}
       <div
         onClick={(e) => e.stopPropagation()}
         className={`w-full max-w-4xl max-h-[94vh] rounded-3xl shadow-2xl border overflow-hidden flex flex-col my-auto transition-all ${
           theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
         }`}
       >
-        {/* Modal Top Control Bar */}
+        {/* Top Control Bar */}
         <div className={`px-4 py-3 border-b flex flex-wrap items-center justify-between gap-3 shrink-0 ${
-          theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+          theme === 'dark' ? 'bg-slate-800/90 border-slate-700' : 'bg-slate-50 border-slate-200'
         }`}>
           {/* Title & Document Badge */}
-          <div className="flex items-center gap-2 min-w-0">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black shrink-0 border ${
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0 border ${
               isSale
                 ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20'
                 : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
@@ -399,15 +477,15 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-black text-sm text-slate-900 dark:text-white leading-tight">
+                <h3 className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">
                   {isSale ? 'Sale Return Voucher' : 'Purchase Return Voucher'}
                 </h3>
-                <span className="text-xs font-mono font-bold text-brand-600 dark:text-brand-400">
+                <span className="text-xs font-mono font-black text-brand-600 dark:text-brand-400">
                   • {returnNo}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-bold leading-tight">
-                Preview & print formatted for any paper size
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-tight">
+                {partyLabel}: <span className="font-bold text-slate-800 dark:text-slate-200">{partyName}</span>
               </p>
             </div>
           </div>
@@ -417,7 +495,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
             <button
               type="button"
               onClick={() => setPaperSize('thermal-80')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
                 paperSize === 'thermal-80'
                   ? 'bg-brand-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -428,7 +506,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
             <button
               type="button"
               onClick={() => setPaperSize('thermal-58')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
                 paperSize === 'thermal-58'
                   ? 'bg-brand-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -439,7 +517,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
             <button
               type="button"
               onClick={() => setPaperSize('a5')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
                 paperSize === 'a5'
                   ? 'bg-brand-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -450,7 +528,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
             <button
               type="button"
               onClick={() => setPaperSize('a4')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
                 paperSize === 'a4'
                   ? 'bg-brand-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -465,7 +543,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
             <button
               type="button"
               onClick={handlePrint}
-              className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-black transition shadow-sm flex items-center gap-2 cursor-pointer active:scale-98"
+              className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-extrabold transition shadow-sm flex items-center gap-2 cursor-pointer active:scale-98"
               title="Print Voucher (Ctrl + P)"
             >
               <Printer className="w-4 h-4" />
@@ -490,7 +568,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
           </div>
         </div>
 
-        {/* Modal Body: Responsive Preview Screen */}
+        {/* Modal Body: High Fidelity Preview Screen */}
         <div className="p-3 sm:p-6 bg-slate-100 dark:bg-slate-950 flex justify-center items-start flex-1 overflow-y-auto min-h-0">
           {/* ========================================================================= */}
           {/* 1. FULL SHEET PREVIEW (A4 & A5 Layout) */}
@@ -500,7 +578,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
               ref={receiptRef}
               id="return-receipt-card"
               data-receipt-printable="true"
-              className={`w-full bg-white text-slate-900 shadow-xl rounded-2xl border border-slate-200/90 p-5 sm:p-8 space-y-4 my-auto transition-all ${
+              className={`w-full bg-white text-slate-900 shadow-xl rounded-2xl border border-slate-200/90 p-6 sm:p-8 space-y-4 my-auto transition-all ${
                 paperSize === 'a4' ? 'max-w-[760px]' : 'max-w-[620px]'
               }`}
             >
@@ -649,125 +727,101 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
               ref={receiptRef}
               id="return-receipt-card"
               data-receipt-printable="true"
-              className={`w-full bg-white text-slate-900 shadow-xl rounded-2xl border border-slate-200/90 p-4 space-y-3 my-auto transition-all ${
-                paperSize === 'thermal-58' ? 'max-w-[280px] text-[11px]' : 'max-w-[360px] text-xs'
+              className={`w-full bg-white text-slate-950 shadow-2xl rounded-sm border border-slate-300 p-4 space-y-2.5 my-auto transition-all ${
+                paperSize === 'thermal-58' ? 'max-w-[280px] text-[10.5px]' : 'max-w-[340px] text-xs'
               }`}
+              style={{ fontFamily: 'monospace' }}
             >
-              {/* Logo & Header */}
+              {/* Header */}
               <div className="text-center">
-                <div className="text-[11px] font-bold text-emerald-800 font-serif mb-1">
+                <div className="text-[11px] font-bold text-slate-800 font-serif mb-0.5">
                   بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                 </div>
-                <div className="w-9 h-9 mx-auto rounded-full border-2 border-emerald-600/30 bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-2xs">
-                  <RotateCcw className="w-4 h-4" />
-                </div>
-                <h1 className="text-base font-black uppercase text-slate-900 tracking-wider text-center mt-1.5 leading-tight">
+                <h1 className="text-sm sm:text-base font-black uppercase text-slate-950 tracking-wider text-center leading-tight">
                   {shopTitle}
                 </h1>
-                <p className="text-[10px] text-slate-500 font-medium">{shopAddress}</p>
-                {shopPhone && <p className="text-[10px] text-slate-600 font-bold">📞 {shopPhone}</p>}
-                <div className="inline-block bg-[#064e3b] text-white font-black text-[10px] uppercase tracking-widest px-4 py-0.5 rounded-xs mt-1.5 shadow-2xs">
+                <p className="text-[9.5px] text-slate-600 font-medium">{shopAddress}</p>
+                {shopPhone && <p className="text-[9.5px] text-slate-800 font-bold">📞 {shopPhone}</p>}
+                <div className="inline-block border-2 border-slate-950 text-slate-950 font-black text-[9.5px] uppercase tracking-wider px-3 py-0.5 mt-1.5">
                   {voucherTitle}
                 </div>
               </div>
 
+              <div className="border-t border-dashed border-slate-900 my-1" />
+
               {/* Meta Bar */}
-              <div className="flex items-center justify-between text-[11px] pt-1">
-                <div>
-                  <div className="text-[9px] font-black uppercase text-slate-400 leading-tight">Voucher #</div>
-                  <div className="font-mono font-black text-slate-900 leading-tight">{returnNo}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[9px] font-black uppercase text-slate-400 leading-tight">Date</div>
-                  <div className="font-bold text-slate-800 leading-tight">{dateStr}</div>
-                </div>
+              <div className="flex items-center justify-between text-[10.5px]">
+                <div><b>Voucher #:</b> {returnNo}</div>
+                <div>{dateStr}</div>
               </div>
 
-              <div className="border-t border-dashed border-slate-300 my-1" />
+              <div className="border-t border-dashed border-slate-900 my-1" />
 
               {/* Party Details */}
-              <div className="space-y-0.5">
-                <div className="text-[10px] font-black uppercase text-emerald-700 flex items-center gap-1">
-                  <User className="w-3 h-3" />
-                  <span>{partyLabel.toUpperCase()}</span>
-                </div>
-                <div className="font-black text-slate-900 text-xs sm:text-sm pl-3.5">
-                  {partyName}
-                </div>
-                {partyPhone && (
-                  <div className="text-[10px] text-slate-600 font-medium pl-3.5">📞 {partyPhone}</div>
-                )}
-                <div className="text-[10px] text-slate-500 font-medium pl-3.5">
-                  {refDocLabel}: <span className="font-mono font-bold text-slate-800">{refInvoiceNo}</span>
-                </div>
+              <div className="space-y-0.5 text-[10.5px]">
+                <div>{partyLabel}: <b className="text-[11.5px]">{partyName}</b></div>
+                {partyPhone && <div>Phone: {partyPhone}</div>}
+                <div>{refDocLabel}: <b>{refInvoiceNo}</b></div>
               </div>
 
-              <div className="border-t border-dashed border-slate-300 my-1" />
+              <div className="border-t border-dashed border-slate-900 my-1" />
 
               {/* Items Table */}
-              <div>
-                <table className="w-full text-left border-collapse text-[11px]">
-                  <thead>
-                    <tr className="border-b border-slate-300 text-emerald-800 text-[9.5px] font-black uppercase">
-                      <th className="py-1 px-1 text-left">Item</th>
-                      <th className="py-1 px-1 text-center">Qty</th>
-                      <th className="py-1 px-1 text-right">Rate</th>
-                      <th className="py-1 px-1 text-right">Total</th>
+              <table className="w-full text-left border-collapse text-[10.5px]">
+                <thead>
+                  <tr className="border-b border-slate-900 font-black uppercase">
+                    <th className="py-1 text-left w-[42%]">Item</th>
+                    <th className="py-1 text-center w-[18%]">Qty</th>
+                    <th className="py-1 text-right w-[20%]">Rate</th>
+                    <th className="py-1 text-right w-[20%]">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-300">
+                  {items.map((it, idx) => (
+                    <tr key={idx}>
+                      <td className="py-1 font-bold text-slate-950 truncate max-w-[110px]">
+                        {it.name}
+                      </td>
+                      <td className="py-1 text-center font-bold text-slate-900">
+                        {it.qty} {it.unit}
+                      </td>
+                      <td className="py-1 text-right text-slate-800">
+                        {Math.round(it.rate).toLocaleString()}
+                      </td>
+                      <td className="py-1 text-right font-black text-slate-950">
+                        {Math.round(it.total).toLocaleString()}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {items.map((it, idx) => (
-                      <tr key={idx} className={idx % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'}>
-                        <td className="py-1 px-1 font-bold text-slate-900 truncate max-w-[110px]">
-                          {it.name}
-                        </td>
-                        <td className="py-1 px-1 text-center font-black text-slate-700">
-                          {it.qty}
-                        </td>
-                        <td className="py-1 px-1 text-right font-mono text-slate-600 font-semibold">
-                          {it.rate.toLocaleString()}
-                        </td>
-                        <td className="py-1 px-1 text-right font-mono font-black text-slate-900">
-                          {it.total.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  ))}
+                </tbody>
+              </table>
 
-                {/* Grand Refund */}
-                <div className="bg-[#064e3b] text-white px-2.5 py-1.5 rounded-sm flex justify-between items-center mt-2 shadow-2xs">
-                  <span className="text-[10px] font-black uppercase tracking-wider">TOTAL REFUND</span>
-                  <span className="font-mono text-sm font-black">
-                    Rs. {refundAmount.toLocaleString()}
-                  </span>
-                </div>
-              </div>
+              <div className="border-t-2 border-slate-900 my-1" />
 
-              <div className="border-t border-dashed border-slate-300 my-1" />
-
-              {/* Refund Info */}
+              {/* Grand Refund */}
               <div className="space-y-1">
-                <div className="flex justify-between items-center text-[10.5px] font-bold text-slate-600 px-0.5">
-                  <span>Refund Mode:</span>
-                  <span className="font-bold text-slate-900">{refundMode}</span>
+                <div className="flex justify-between items-center font-black text-sm text-slate-950">
+                  <span>TOTAL REFUND:</span>
+                  <span>Rs. {refundAmount.toLocaleString()}</span>
                 </div>
-                <div className="text-[10px] text-slate-500 pt-0.5 px-0.5">
-                  <b>Reason:</b> {reason}
+                <div className="flex justify-between items-center text-[10px] text-slate-800">
+                  <span>Payment Method:</span>
+                  <span className="font-bold uppercase">{refundMode}</span>
                 </div>
-                <div className="bg-[#f0fdf4] border border-emerald-200 text-emerald-800 rounded-md py-1 px-2 flex items-center justify-center gap-1 text-center font-black text-[10px] tracking-wide mt-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                  <span>REFUND VERIFIED & PROCESSED</span>
+                <div className="text-[9.5px] text-slate-700 italic pt-0.5">
+                  Reason: {reason}
                 </div>
               </div>
+
+              <div className="border-t border-dashed border-slate-900 my-1" />
 
               {/* Barcode & Footer */}
-              <div className="text-center pt-2 space-y-1">
-                <div className="font-mono text-[9px] tracking-widest text-slate-600 font-bold">
+              <div className="text-center pt-1 space-y-0.5">
+                <div className="font-mono text-[9px] tracking-widest text-slate-800 font-bold">
                   *{returnNo}*
                 </div>
-                <p className="text-[8.5px] text-slate-400 font-medium">
-                  Official Ghalla Mandi Return Voucher
+                <p className="text-[8.5px] text-slate-600">
+                  Official Ghalla Mandi Return Record
                 </p>
               </div>
             </div>
@@ -777,3 +831,5 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
     </div>
   );
 };
+
+export default ReturnReceiptModal;
