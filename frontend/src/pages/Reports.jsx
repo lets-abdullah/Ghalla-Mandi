@@ -4709,13 +4709,6 @@ export const Reports = () => {
                     <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(cSupPayOut + bSupPayOut + kSupPayOut).toLocaleString()}</td>
                   </tr>
                   <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                    <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• Direct Purchases (Upfront Cash/Bank/Card Paid)</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cPurDirectOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bPurDirectOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {kPurDirectOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(cPurDirectOut + bPurDirectOut + kPurDirectOut).toLocaleString()}</td>
-                  </tr>
-                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                     <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• Operating Expenses (Bills, Rent, Labor, Misc)</td>
                     <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cExpOut.toLocaleString()}</td>
                     <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bExpOut.toLocaleString()}</td>

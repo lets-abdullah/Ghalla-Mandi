@@ -922,7 +922,6 @@ export const Purchases = () => {
                 <th className="py-3 px-4 text-right">Returned</th>
                 <th className="py-3 px-4 text-right">Payable</th>
                 <th className="py-3 px-4 text-center">Status</th>
-                <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
@@ -1019,25 +1018,6 @@ export const Purchases = () => {
                             <Eye className="w-3.5 h-3.5 text-slate-500" />
                             <span>View</span>
                           </button>
-
-                          {!isFullyReturned && due > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPayModalPurchase(p);
-                                setPayForm({
-                                  amount: due,
-                                  paymentMode: 'Cash',
-                                  note: `Payment for purchase ${p.purchaseNo || ''}`
-                                });
-                              }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
-                              title="Pay Purchase Balance"
-                            >
-                              <DollarSign className="w-3.5 h-3.5" />
-                              <span>Pay</span>
-                            </button>
-                          )}
 
                           {!isFullyReturned && (
                             <button

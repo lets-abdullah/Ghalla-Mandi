@@ -7,7 +7,7 @@ const ERPContext = createContext();
 /**
  * Single Canonical Accounting Resolution for Transaction Payments, Inflows, Outflows, and Khata allocations.
  * Precedence Rules:
- * 1. Explicit Mode Check (e.g. 'Supplier Khata', 'Khata', 'Credit', 'Ledger', 'Debit Note', 'Credit Note' vs 'Cash', 'Bank', 'JazzCash', etc.)
+ * 1. Explicit Mode Check (e.g. 'Supplier Khata', 'Khata', 'Credit', 'Ledger', 'Debit Note', 'Credit Note' vs 'Cash', 'Bank', etc.)
  * 2. If Khata/Credit/Debit Note: liquid paid is 0, credit amount is gross amount.
  * 3. If Cash/Bank/Wallet:
  *    - If tx has paidAmount explicitly specified (> 0), liquid paid is paidAmount.
@@ -37,10 +37,10 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
 
   const grossAmount = Number(
     tx.amount !== undefined ? tx.amount :
-    tx.grandTotal !== undefined ? tx.grandTotal :
-    tx.grandtotal !== undefined ? tx.grandtotal :
-    tx.refundAmount !== undefined ? tx.refundAmount :
-    tx.refundamount !== undefined ? tx.refundamount : 0
+      tx.grandTotal !== undefined ? tx.grandTotal :
+        tx.grandtotal !== undefined ? tx.grandtotal :
+          tx.refundAmount !== undefined ? tx.refundAmount :
+            tx.refundamount !== undefined ? tx.refundamount : 0
   );
 
   const rawMode = String(
@@ -52,7 +52,7 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
   const modeLower = rawMode.toLowerCase();
 
   // Identify channel category
-  const isKhataOrCredit = 
+  const isKhataOrCredit =
     modeLower.includes('khata') ||
     modeLower.includes('credit') ||
     modeLower.includes('ledger') ||
@@ -85,8 +85,8 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
   if (txType === 'SaleReturn' || txType === 'PurchaseReturn') {
     const refAmt = Number(
       tx.refundAmount !== undefined ? tx.refundAmount :
-      tx.refundamount !== undefined ? tx.refundamount :
-      tx.amount !== undefined ? tx.amount : grossAmount
+        tx.refundamount !== undefined ? tx.refundamount :
+          tx.amount !== undefined ? tx.amount : grossAmount
     );
 
     const rawMode = String(
@@ -149,9 +149,9 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
   // Handle Sales / Purchases / Payments
   const rawPaid = Number(
     tx.paidAmount !== undefined ? tx.paidAmount :
-    tx.paidamount !== undefined ? tx.paidamount :
-    tx.cashReceived !== undefined ? tx.cashReceived :
-    tx.cashPaid !== undefined ? tx.cashPaid : -1
+      tx.paidamount !== undefined ? tx.paidamount :
+        tx.cashReceived !== undefined ? tx.cashReceived :
+          tx.cashPaid !== undefined ? tx.cashPaid : -1
   );
 
   const isMarkedPaid = tx.status === 'Paid' || tx.paymentStatus === 'Paid';
@@ -248,19 +248,19 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   if (totalUnlinkedCash > 0) {
     const relevantSales = (allSales && allSales.length > 0)
       ? (allSales || []).filter(s => {
-          const sCustId = s.customerId ? String(s.customerId) : null;
-          const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
-          if (isRegularCust) {
-            return (custId && sCustId && sCustId === custId) ||
-              (partyName && sPartyName === partyName && !sPartyName.includes('walk-in'));
-          } else {
-            return (custId && sCustId && sCustId === custId) || (partyName && sPartyName === partyName);
-          }
-        }).sort((a, b) => {
-          const timeA = new Date(a.created_at || a.createdAt || a.date || 0).getTime() || Number(a.id) || 0;
-          const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
-          return timeA - timeB;
-        })
+        const sCustId = s.customerId ? String(s.customerId) : null;
+        const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
+        if (isRegularCust) {
+          return (custId && sCustId && sCustId === custId) ||
+            (partyName && sPartyName === partyName && !sPartyName.includes('walk-in'));
+        } else {
+          return (custId && sCustId && sCustId === custId) || (partyName && sPartyName === partyName);
+        }
+      }).sort((a, b) => {
+        const timeA = new Date(a.created_at || a.createdAt || a.date || 0).getTime() || Number(a.id) || 0;
+        const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
+        return timeA - timeB;
+      })
       : [sale];
 
     let availableGeneralCash = totalUnlinkedCash;
@@ -373,14 +373,14 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   } else if (totalUnlinkedCash > 0) {
     const relevantPurchases = (allPurchases && allPurchases.length > 0)
       ? (allPurchases || []).filter(p => {
-          const pSupId = p.supplierId ? String(p.supplierId) : null;
-          const pSupName = (p.supplier || p.supplierName || '').trim().toLowerCase();
-          return (supId && pSupId && pSupId === supId) || (supName && pSupName === supName);
-        }).sort((a, b) => {
-          const timeA = new Date(a.created_at || a.createdAt || a.date || 0).getTime() || Number(a.id) || 0;
-          const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
-          return timeA - timeB;
-        })
+        const pSupId = p.supplierId ? String(p.supplierId) : null;
+        const pSupName = (p.supplier || p.supplierName || '').trim().toLowerCase();
+        return (supId && pSupId && pSupId === supId) || (supName && pSupName === supName);
+      }).sort((a, b) => {
+        const timeA = new Date(a.created_at || a.createdAt || a.date || 0).getTime() || Number(a.id) || 0;
+        const timeB = new Date(b.created_at || b.createdAt || b.date || 0).getTime() || Number(b.id) || 0;
+        return timeA - timeB;
+      })
       : [purchase];
 
     let availableGeneralCash = totalUnlinkedCash;
@@ -2615,7 +2615,7 @@ export const ERPProvider = ({ children }) => {
     } else {
       const sup = (suppliers || []).find(s => (partyId && String(s.id) === String(partyId)) || (partyName && s.name && s.name.trim().toLowerCase() === partyName.trim().toLowerCase()));
       const targetSupplier = sup || { id: partyId, name: partyName };
-      
+
       let maxSupplierPayable = 0;
       if (purchaseId) {
         const targetPur = (purchases || []).find(p => String(p.id) === String(purchaseId));

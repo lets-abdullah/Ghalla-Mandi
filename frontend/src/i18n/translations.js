@@ -119,8 +119,6 @@ export const translations = {
     cash: "Cash",
     cashOnCounter: "Cash on Counter",
     bankTransfer: "Bank Transfer",
-    onlineTransfer: "Online / EasyPaisa / JazzCash",
-    cheque: "Cheque Payment",
     mandiLedger: "Cash / Mandi Ledger",
     debitCard: "Debit / Credit Card",
     eWallet: "E-Wallet / Online",

@@ -468,11 +468,6 @@ export const Sales = () => {
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalFilteredOutstandingDue.toLocaleString()}
           </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
-            {selectedCustomerId !== 'All'
-              ? 'Customer Ledger Khata balance'
-              : `Regular Customer: Rs. ${totalPartyKhataReceivables.toLocaleString()} • Walk-in Customer: Rs. ${totalWalkinUncollected.toLocaleString()}`}
-          </div>
         </div>
       </div>
 
@@ -546,27 +541,6 @@ export const Sales = () => {
               <option value="All">All Customer Types</option>
               <option value="Regular Party">Regular Customers</option>
               <option value="Walk-in Customer">Walk-in Customers</option>
-            </select>
-          </div>
-
-          {/* 3. Select Customer */}
-          <div className="flex-1 min-w-[140px]">
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <User className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Select Customer</span>
-            </label>
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-            >
-              <option value="All">All Customers</option>
-              {customers.map(cust => (
-                <option key={cust.id} value={cust.id}>
-                  {cust.name} {cust.city ? `(${cust.city})` : ''}
-                </option>
-              ))}
             </select>
           </div>
 

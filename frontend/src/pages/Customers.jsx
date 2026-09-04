@@ -1080,7 +1080,6 @@ export const Customers = () => {
                       <option value="Cash">Cash on Counter</option>
                       <option value="Bank Transfer">Bank Transfer</option>
                       <option value="Card">Card</option>
-                      <option value="Wallet">Wallet / EasyPaisa</option>
                     </select>
                   </div>
 
