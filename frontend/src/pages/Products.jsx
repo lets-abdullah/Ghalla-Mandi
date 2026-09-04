@@ -12,7 +12,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export const Products = () => {
   const toast = useToast();
-  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, purchases = [], sales = [], saleReturns = [], purchaseReturns = [] } = useERP();
+  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, deleteCategory, purchases = [], sales = [], saleReturns = [], purchaseReturns = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
 
@@ -24,6 +24,7 @@ export const Products = () => {
   const [viewingHistoryProduct, setViewingHistoryProduct] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState(null);
+  const [deletingCategory, setDeletingCategory] = useState(null);
 
   // Keyboard Esc Listener for closing active modals or history view
   useEffect(() => {
@@ -82,18 +83,40 @@ export const Products = () => {
 
       if (showAddModal) {
         setNewProduct(prev => ({ ...prev, category: createdCat?.name || catName }));
+        setShowAddCategoryModal(false);
       }
       if (editingProduct) {
         setEditingProduct(prev => ({ ...prev, category: createdCat?.name || catName }));
+        setShowAddCategoryModal(false);
       }
 
       toast.success(`Category "${catName}" created!`);
       setNewCatData({ name: '', description: '' });
-      setShowAddCategoryModal(false);
     } catch (err) {
       toast.error(err.message || 'Failed to create category');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!deletingCategory) return;
+    try {
+      await deleteCategory(deletingCategory.id);
+      toast.success(`Category "${deletingCategory.name}" deleted successfully.`);
+      if (categoryFilter === deletingCategory.name) {
+        setCategoryFilter('All');
+      }
+      if (newProduct.category === deletingCategory.name) {
+        setNewProduct(prev => ({ ...prev, category: '' }));
+      }
+      if (editingProduct?.category === deletingCategory.name) {
+        setEditingProduct(prev => ({ ...prev, category: '' }));
+      }
+    } catch (err) {
+      toast.error(err.message || 'Error deleting category');
+    } finally {
+      setDeletingCategory(null);
     }
   };
 
@@ -208,7 +231,7 @@ export const Products = () => {
               }`}
           >
             <FolderPlus className="w-4 h-4 text-emerald-600" />
-            <span>{t('addCategory')}</span>
+            <span>{t('manageCategories') || 'Categories'}</span>
           </button>
 
           <button
@@ -846,18 +869,21 @@ export const Products = () => {
         </div>
       )}
 
-      {/* Add Category Modal (Quick Drawer/Modal on Products Page) */}
+      {/* Manage / Add Category Modal (Quick Drawer/Modal on Products Page) */}
       {showAddCategoryModal && (
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowAddCategoryModal(false); }}
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         >
-          <div className={`rounded-3xl max-w-sm w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
             <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-2">
                 <FolderPlus className="w-5 h-5 text-emerald-500" />
-                <h3 className="text-base font-extrabold">{t('addCategory')}</h3>
+                <div>
+                  <h3 className="text-base font-extrabold">{t('manageCategories') || 'Manage Categories'}</h3>
+                  <p className="text-[11px] text-slate-400">Add, view, and delete commodity categories</p>
+                </div>
               </div>
               <button
                 type="button"
@@ -869,56 +895,126 @@ export const Products = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateCategorySubmit} className="space-y-3">
+            {/* Add Category Form */}
+            <form onSubmit={handleCreateCategorySubmit} className={`p-3.5 rounded-2xl border space-y-3 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Plus className="w-3.5 h-3.5 text-emerald-500" />
+                <span>{t('addCategory')}</span>
+              </div>
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">
-                  {t('categoryName')} *
-                </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Pulses, Grains"
+                  placeholder={`${t('categoryName')} * (e.g. Pulses, Grains)`}
                   value={newCatData.name}
                   onChange={(e) => setNewCatData({ ...newCatData, name: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                     }`}
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">
-                  {t('categoryDescription')} ({t('optional')})
-                </label>
                 <textarea
                   rows={2}
-                  placeholder="Description..."
+                  placeholder={`${t('categoryDescription')} (${t('optional') || 'Optional'})...`}
                   value={newCatData.description}
                   onChange={(e) => setNewCatData({ ...newCatData, description: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                     }`}
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddCategoryModal(false)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
-                >
-                  {t('cancel')}
-                </button>
+              <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer"
+                  disabled={isSubmitting || !newCatData.name.trim()}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer flex items-center gap-1.5"
                 >
-                  {t('save')}
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t('save') || 'Add Category'}</span>
                 </button>
               </div>
             </form>
+
+            {/* Existing Categories List */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 px-1">
+                <span>{t('categories') || 'Existing Categories'} ({categories.length})</span>
+              </div>
+
+              {categories.length === 0 ? (
+                <div className="text-center py-6 text-xs text-slate-400 border border-dashed rounded-xl border-slate-200 dark:border-slate-700">
+                  No categories found. Add your first category above.
+                </div>
+              ) : (
+                <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {categories.map((cat) => {
+                    const count = products.filter(p => p.category === cat.name).length;
+                    return (
+                      <div
+                        key={cat.id || cat._id || cat.name}
+                        className={`pt-2 first:pt-0 flex items-center justify-between p-2 rounded-xl transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'
+                          }`}
+                      >
+                        <div className="min-w-0 flex-1 pr-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                              {cat.name}
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">
+                              {count} {count === 1 ? 'item' : 'items'}
+                            </span>
+                          </div>
+                          {cat.description && (
+                            <p className="text-[11px] text-slate-400 dark:text-slate-400 truncate mt-0.5">
+                              {cat.description}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingCategory(cat)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer shrink-0"
+                          title={`${t('deleteCategory') || 'Delete Category'} (${cat.name})`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowAddCategoryModal(false)}
+                className={`px-4 py-2 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+              >
+                {t('close')}
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Delete Category Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingCategory)}
+        title="Delete Category"
+        message={
+          deletingCategory
+            ? products.some(p => p.category === deletingCategory.name)
+              ? `Category "${deletingCategory.name}" has ${products.filter(p => p.category === deletingCategory.name).length} product(s) linked to it. Are you sure you want to delete this category?`
+              : `Are you sure you want to delete category "${deletingCategory.name}"?`
+            : ''
+        }
+        confirmLabel="Delete Category"
+        onConfirm={handleDeleteCategory}
+        onCancel={() => setDeletingCategory(null)}
+      />
 
       {/* Delete Product Confirmation Modal */}
       <ConfirmDialog

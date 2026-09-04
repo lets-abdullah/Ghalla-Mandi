@@ -315,6 +315,10 @@ export const translations = {
     lowStock: "Low Stock",
     categoryDescription: "Category Description",
     categoryCreatedSuccess: "Category created successfully!",
+    deleteCategory: "Delete Category",
+    manageCategories: "Manage Categories",
+    categoryDeletedSuccess: "Category deleted successfully!",
+    confirmDeleteCategory: "Are you sure you want to delete this category?",
 
     // Inventory & Stock Adjustments
     stockAndInventory: "Stock & Inventory",

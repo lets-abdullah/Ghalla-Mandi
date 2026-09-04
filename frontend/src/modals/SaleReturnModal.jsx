@@ -4,7 +4,10 @@ import {
   X,
   CheckCircle2,
   Printer,
-  ShoppingBag
+  ShoppingBag,
+  Banknote,
+  Landmark,
+  CreditCard
 } from 'lucide-react';
 import { useERP } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -240,6 +243,10 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                 <span className="text-slate-400 font-medium">Remaining Returnable:</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">{completedReturn.remainingAfter} {completedReturn.unit}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">Refund Method:</span>
+                <span className="font-bold text-rose-500">{refundMode}</span>
+              </div>
               <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
                 <span className="font-bold text-slate-700 dark:text-slate-300">Refund / Credit Amount:</span>
                 <span className="font-black text-sm font-mono text-brand-500">Rs. {refundAmount.toLocaleString()}</span>
@@ -371,6 +378,37 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                       <span className="text-[10px] text-slate-400 uppercase">Total:</span>
                       <span className="text-sm font-black">Rs. {refundAmount.toLocaleString()}</span>
                     </div>
+                  </div>
+                </div>
+                {/* Payment Method / Refund Mode Selector */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                    Payment Method *
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'Cash', label: 'Cash', icon: Banknote },
+                      { id: 'Bank Account', label: 'Bank Account', icon: Landmark },
+                      { id: 'Card', label: 'Card', icon: CreditCard }
+                    ].map((mode) => {
+                      const Icon = mode.icon;
+                      const isSelected = refundMode === mode.id || (mode.id === 'Bank Account' && refundMode === 'Bank');
+                      return (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => setRefundMode(mode.id)}
+                          className={`py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${
+                            isSelected
+                              ? 'bg-rose-500/10 border-rose-500 text-rose-600 dark:text-rose-400 shadow-2xs font-extrabold ring-1 ring-rose-500/30'
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{mode.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </>

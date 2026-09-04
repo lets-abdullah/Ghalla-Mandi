@@ -242,9 +242,8 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
       onClick={(e) => { if (e.target === e.currentTarget && !completedReturn) onClose(); }}
       className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
     >
-      <div className={`rounded-3xl max-w-lg w-full p-6 space-y-4 card-shadow border my-6 transition-all ${
-        theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-      }`}>
+      <div className={`rounded-3xl max-w-lg w-full p-6 space-y-4 card-shadow border my-6 transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        }`}>
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-2.5">
@@ -281,9 +280,8 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
             </div>
 
             {/* Clean Summary */}
-            <div className={`border rounded-2xl p-4 text-left space-y-2.5 text-xs ${
-              theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-            }`}>
+            <div className={`border rounded-2xl p-4 text-left space-y-2.5 text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
               <div className="flex justify-between">
                 <span className="text-slate-400 font-medium">Supplier:</span>
                 <span className="font-bold">{completedReturn.supplierName}</span>
@@ -305,6 +303,10 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 <span className={`font-bold font-mono ${completedReturn.stockAfter === 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
                   {completedReturn.stockAfter} {completedReturn.unit} {completedReturn.stockAfter === 0 ? '(Stock Depleted to 0)' : ''}
                 </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">Refund Method:</span>
+                <span className="font-bold text-amber-600 dark:text-amber-400">{refundMode}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
                 <span className="font-bold text-slate-700 dark:text-slate-300">Total Refund / Debit:</span>
@@ -344,11 +346,10 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                       key={it.id}
                       type="button"
                       onClick={() => handleItemSelect(idx)}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
-                        selectedItemIdx === idx
-                          ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
-                          : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-500'
-                      }`}
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${selectedItemIdx === idx
+                        ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
+                        : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-500'
+                        }`}
                     >
                       {it.name} (Max: {it.maxReturnableQty} {it.unit})
                     </button>
@@ -358,9 +359,8 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
             )}
 
             {/* Transparent Stock Audit & Clarity Card */}
-            <div className={`p-4 rounded-2xl border space-y-2.5 ${
-              theme === 'dark' ? 'bg-slate-900/70 border-slate-700' : 'bg-slate-50 border-slate-200'
-            }`}>
+            <div className={`p-4 rounded-2xl border space-y-2.5 ${theme === 'dark' ? 'bg-slate-900/70 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
               <div className="flex items-center justify-between border-b pb-2 border-slate-200 dark:border-slate-700/60">
                 <div className="flex items-center gap-1.5">
                   <Package className="w-4 h-4 text-brand-500" />
@@ -380,23 +380,15 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 </div>
 
                 <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 block uppercase">2. Bill Remaining</span>
-                  <span className="font-bold text-blue-600 dark:text-blue-400 block font-mono text-sm">
-                    {remainingBillQty} {itemUnit}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 block uppercase">3. Available Stock</span>
-                  <span className={`font-black block font-mono text-sm ${
-                    currentAvailableStock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'
-                  }`}>
+                  <span className="text-[10px] font-extrabold text-slate-400 block uppercase">2. Available Stock</span>
+                  <span className={`font-black block font-mono text-sm ${currentAvailableStock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'
+                    }`}>
                     {currentAvailableStock} {itemUnit}
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-[10px] font-extrabold text-slate-400 block uppercase">4. Max Return Limit</span>
+                  <span className="text-[10px] font-extrabold text-slate-400 block uppercase">3. Max Return Limit</span>
                   <span className="font-black font-mono text-sm text-purple-600 dark:text-purple-400 block">
                     {maxReturnableQty} {itemUnit}
                   </span>
@@ -410,31 +402,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 </div>
               )}
 
-              {/* Clear Informative Message for Stock Policy */}
-              <div className="pt-2 border-t border-dashed border-slate-200 dark:border-slate-700/60 text-[11px] leading-relaxed">
-                {isOutOfStock ? (
-                  <div className="flex items-start gap-1.5 text-rose-600 dark:text-rose-400 font-bold">
-                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    <span>
-                      Zero Stock: Current warehouse/shop stock is 0 {itemUnit}. You cannot return goods because stock is exhausted.
-                    </span>
-                  </div>
-                ) : currentAvailableStock < remainingBillQty ? (
-                  <div className="flex items-start gap-1.5 text-amber-600 dark:text-amber-400 font-semibold">
-                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    <span>
-                      Hamne {origQty} {itemUnit} purchase kia tha (bill remaining: {remainingBillQty} {itemUnit}), lekin shop/warehouse mein ab sirf {currentAvailableStock} {itemUnit} stock available hay. Is liye {maxReturnableQty} {itemUnit} se zyada return nahi ho sakta.
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-1.5 text-slate-600 dark:text-slate-300 font-medium">
-                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    <span>
-                      Hamne {origQty} {itemUnit} purchase kia tha. Bill remaining {remainingBillQty} {itemUnit} hay aur available stock {currentAvailableStock} {itemUnit} hay. Maximum return limit: {maxReturnableQty} {itemUnit}.
-                    </span>
-                  </div>
-                )}
-              </div>
+
             </div>
 
             {isFullyReturned ? (
@@ -486,21 +454,19 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                           if (e.key === '.' || e.key === ',') e.preventDefault();
                         }}
                         onChange={(e) => handleQtyChange(e.target.value)}
-                        className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-black font-mono outline-none transition ${
-                          hasValidationError
-                            ? 'border-rose-500 bg-rose-500/10 text-rose-600 focus:ring-2 focus:ring-rose-500/20'
-                            : theme === 'dark'
-                              ? 'bg-slate-900 border-slate-700 text-white focus:border-brand-500'
-                              : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-brand-500'
-                        }`}
+                        className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-black font-mono outline-none transition ${hasValidationError
+                          ? 'border-rose-500 bg-rose-500/10 text-rose-600 focus:ring-2 focus:ring-rose-500/20'
+                          : theme === 'dark'
+                            ? 'bg-slate-900 border-slate-700 text-white focus:border-brand-500'
+                            : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-brand-500'
+                          }`}
                         required
                       />
                     </div>
 
                     <div>
-                      <div className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold flex items-center justify-between h-[42px] ${
-                        theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-amber-400' : 'bg-amber-50/60 border-amber-200 text-amber-700'
-                      }`}>
+                      <div className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold flex items-center justify-between h-[42px] ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-amber-400' : 'bg-amber-50/60 border-amber-200 text-amber-700'
+                        }`}>
                         <span className="text-[10px] text-slate-400 uppercase">Refund Amount:</span>
                         <span className="text-sm font-black">Rs. {refundAmount.toLocaleString()}</span>
                       </div>
@@ -519,13 +485,42 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                   {!hasValidationError && numReturnQty > 0 && numReturnQty <= maxReturnableQty && (
                     <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 pt-0.5 flex justify-between items-center">
                       <span>Stock after this return:</span>
-                      <span className={`font-mono font-black ${
-                        currentAvailableStock - numReturnQty === 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'
-                      }`}>
+                      <span className={`font-mono font-black ${currentAvailableStock - numReturnQty === 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'
+                        }`}>
                         {currentAvailableStock - numReturnQty} {itemUnit} {currentAvailableStock === numReturnQty ? '(Stock will be exactly 0 KG)' : ''}
                       </span>
                     </div>
                   )}
+                  {/* Payment Method / Refund Mode Selector */}
+                  <div className="space-y-1.5 pt-1">
+                    <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                      Payment Method *
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'Cash', label: 'Cash', icon: Banknote },
+                        { id: 'Bank Account', label: 'Bank Account', icon: Landmark },
+                        { id: 'Card', label: 'Card', icon: CreditCard }
+                      ].map((mode) => {
+                        const Icon = mode.icon;
+                        const isSelected = refundMode === mode.id || (mode.id === 'Bank Account' && refundMode === 'Bank');
+                        return (
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() => setRefundMode(mode.id)}
+                            className={`py-2.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${isSelected
+                                ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400 shadow-2xs font-extrabold ring-1 ring-amber-500/30'
+                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                              }`}
+                          >
+                            <Icon className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{mode.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </>
             )}
@@ -535,9 +530,8 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
               <button
                 type="button"
                 onClick={onClose}
-                className={`w-1/3 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
-                  theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                }`}
+                className={`w-1/3 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
               >
                 Cancel
               </button>

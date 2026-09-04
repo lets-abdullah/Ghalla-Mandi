@@ -459,7 +459,7 @@ export const Purchases = () => {
   };
 
   const openPayModal = (purchase) => {
-    const fin = computePurchaseFinancials(purchase, purchaseReturns, paymentLogs);
+    const fin = computePurchaseFinancials(purchase, purchaseReturns, paymentLogs, purchases);
     setPayModalPurchase(purchase);
     setPayForm({
       amount: fin.due,
@@ -472,7 +472,7 @@ export const Purchases = () => {
     e.preventDefault();
     if (!payModalPurchase || isSubmitting) return;
 
-    const fin = computePurchaseFinancials(payModalPurchase, purchaseReturns, paymentLogs);
+    const fin = computePurchaseFinancials(payModalPurchase, purchaseReturns, paymentLogs, purchases);
     const payVal = Math.max(1, Number(payForm.amount) || 0);
 
     if (payVal > fin.due) {
@@ -1223,25 +1223,6 @@ export const Purchases = () => {
                 </div>
               </div>
 
-              {/* Auto Move to Supplier Khata Banner */}
-              <div className={`p-3.5 rounded-2xl border flex items-center justify-between ${theme === 'dark' ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50/80 border-amber-200'
-                }`}>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                    <Landmark className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
-                      <span>Supplier Khata</span>
-                      <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 rounded-md">Auto Credit</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Yeh purchase direct supplier ke khata mein payable ke tor par darj hogi.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               {/* Calculated Volume */}
               <div className={`p-3 rounded-xl border space-y-1 ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'
                 }`}>
@@ -1798,7 +1779,7 @@ export const Purchases = () => {
 
       {/* Pay Balance Modal (Symmetrical with Sales Received Modal) */}
       {payModalPurchase && (() => {
-        const fin = computePurchaseFinancials(payModalPurchase, purchaseReturns, paymentLogs);
+        const fin = computePurchaseFinancials(payModalPurchase, purchaseReturns, paymentLogs, purchases);
         const maxDue = Math.max(0, Number(fin.due || 0));
         const currentPayAmt = Number(payForm.amount) || 0;
         const remainingAfterPayment = Math.max(0, maxDue - currentPayAmt);

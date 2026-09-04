@@ -1118,10 +1118,11 @@ export const CreateOrder = () => {
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    min="0"
-                    step="1"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={amountReceived}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onKeyDown={(e) => {
                       if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
                         e.preventDefault();

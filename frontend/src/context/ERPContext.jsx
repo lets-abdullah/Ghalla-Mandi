@@ -107,7 +107,7 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
       totalLiquid: refAmt,
       creditAmount: 0,
       grossAmount: refAmt,
-      refundMode: 'Cash',
+      refundMode: isBank ? 'Bank Account' : (isCard ? 'Card' : 'Cash'),
       refundAmount: refAmt
     };
   }
@@ -327,54 +327,55 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const netDueableTotal = Math.max(0, total - returnAmount);
 
   // Categorize specific payment logs for this purchase
-  const matchingLogs = (paymentLogs || []).filter(pl =>
-    (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
-    (
+  const matchingLogs = (paymentLogs || []).filter(pl => {
+    const isSup = String(pl.type || '').trim().toLowerCase() === 'supplier' || String(pl.partyType || '').trim().toLowerCase() === 'supplier';
+    if (!isSup) return false;
+    const pMode = String(pl.mode || '').trim().toLowerCase();
+    if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+
+    return (
       (pl.purchaseId && String(pl.purchaseId) === String(purchase.id)) ||
+      (pl.purchaseid && String(pl.purchaseid) === String(purchase.id)) ||
       (purchase.purchaseNo && pl.ref && pl.ref.includes(purchase.purchaseNo))
-    ) &&
-    pl.mode !== 'Opening Balance' &&
-    pl.mode !== 'Debit Note'
-  );
+    );
+  });
 
   const res = resolveTransactionPayment(purchase, 'Purchase');
   const upfrontPaid = res.totalLiquid;
   const totalMatchingLogs = matchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-  let rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs);
+  const isKhataPurchase = (purchase.paymentMode === 'Supplier Khata' || purchase.paymentmode === 'Supplier Khata') || (Number(purchase.paidAmount || purchase.paidamount || 0) === 0);
+  const baseUpfront = isKhataPurchase ? 0 : upfrontPaid;
+  let rawGrossPaid = Math.max(baseUpfront, totalMatchingLogs);
 
   // Unlinked general supplier settlement payments allocation
-  const supId = purchase.supplierId ? String(purchase.supplierId) : null;
-  const supName = (purchase.supplier || purchase.supplierName || '').trim().toLowerCase();
+  const supId = purchase.supplierId ? String(purchase.supplierId) : (purchase.supplierid ? String(purchase.supplierid) : null);
+  const supName = (purchase.supplier || purchase.supplierName || purchase.suppliername || '').trim().toLowerCase();
 
   const unlinkedGeneralLogs = (paymentLogs || []).filter(pl => {
-    const isSup = pl.type === 'Supplier' || pl.partyType === 'Supplier';
+    const isSup = String(pl.type || '').trim().toLowerCase() === 'supplier' || String(pl.partyType || '').trim().toLowerCase() === 'supplier';
     if (!isSup) return false;
     const pMode = String(pl.mode || '').trim().toLowerCase();
     if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
 
     const hasSpecificPurchase = Boolean(
       pl.purchaseId ||
+      pl.purchaseid ||
       (pl.ref && (pl.ref.includes('PUR-') || pl.ref.includes('BILL-')))
     );
     if (hasSpecificPurchase) return false;
 
-    const pPartyId = pl.partyId ? String(pl.partyId) : null;
-    const pPartyName = (pl.partyName || '').trim().toLowerCase();
+    const pPartyId = pl.partyId ? String(pl.partyId) : (pl.partyid ? String(pl.partyid) : null);
+    const pPartyName = (pl.partyName || pl.partyname || '').trim().toLowerCase();
     return (supId && pPartyId && pPartyId === supId) || (supName && pPartyName === supName);
   });
 
   const totalUnlinkedCash = unlinkedGeneralLogs.reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
 
-  const isKhataPurchase = (purchase.paymentMode === 'Supplier Khata' || purchase.paymentmode === 'Supplier Khata') || (Number(purchase.paidAmount || purchase.paidamount || 0) === 0);
-
-  if (isKhataPurchase && matchingLogs.length === 0) {
-    // A purchase recorded on Supplier Khata without specific payments stays on Khata (Pending/Due)
-    rawGrossPaid = 0;
-  } else if (totalUnlinkedCash > 0) {
+  if (totalUnlinkedCash > 0) {
     const relevantPurchases = (allPurchases && allPurchases.length > 0)
       ? (allPurchases || []).filter(p => {
-        const pSupId = p.supplierId ? String(p.supplierId) : null;
-        const pSupName = (p.supplier || p.supplierName || '').trim().toLowerCase();
+        const pSupId = p.supplierId ? String(p.supplierId) : (p.supplierid ? String(p.supplierid) : null);
+        const pSupName = (p.supplier || p.supplierName || p.suppliername || '').trim().toLowerCase();
         return (supId && pSupId && pSupId === supId) || (supName && pSupName === supName);
       }).sort((a, b) => {
         const timeA = new Date(a.created_at || a.createdAt || a.date || 0).getTime() || Number(a.id) || 0;
@@ -393,16 +394,20 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
       const pRetAmt = pReturns.length > 0 ? pReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0) : Number(p.returnAmount || 0);
       const pNetTotal = Math.max(0, pTotal - pRetAmt);
 
-      const pMatchingLogs = (paymentLogs || []).filter(pl =>
-        (pl.type === 'Supplier' || pl.partyType === 'Supplier') &&
-        (
+      const pMatchingLogs = (paymentLogs || []).filter(pl => {
+        const isSup = String(pl.type || '').trim().toLowerCase() === 'supplier' || String(pl.partyType || '').trim().toLowerCase() === 'supplier';
+        if (!isSup) return false;
+        const pMode = String(pl.mode || '').trim().toLowerCase();
+        if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+
+        return (
           (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+          (pl.purchaseid && String(pl.purchaseid) === String(p.id)) ||
           (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
-        ) &&
-        pl.mode !== 'Opening Balance' &&
-        pl.mode !== 'Debit Note'
-      );
-      const pUpfront = resolveTransactionPayment(p, 'Purchase').totalLiquid;
+        );
+      });
+      const pIsKhata = (p.paymentMode === 'Supplier Khata' || p.paymentmode === 'Supplier Khata') || (Number(p.paidAmount || p.paidamount || 0) === 0);
+      const pUpfront = pIsKhata ? 0 : resolveTransactionPayment(p, 'Purchase').totalLiquid;
       const pSpecificPaid = Math.max(pUpfront, pMatchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0));
       const pRemainingDue = Math.max(0, pNetTotal - pSpecificPaid);
 
@@ -414,7 +419,9 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
       availableGeneralCash -= alloc;
     }
 
-    rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs + generalAllocatedToThisPurchase);
+    rawGrossPaid = Math.max(baseUpfront, totalMatchingLogs + generalAllocatedToThisPurchase);
+  } else if (isKhataPurchase && totalMatchingLogs === 0) {
+    rawGrossPaid = 0;
   }
 
   const paid = Math.min(netDueableTotal, rawGrossPaid);
@@ -2350,7 +2357,25 @@ export const ERPProvider = ({ children }) => {
     }
   };
 
-  // 3. Add Product
+  // 3. Delete Category
+  const deleteCategory = async (id) => {
+    try {
+      const res = await authFetch(`/api/products/categories/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (res.success) {
+        setCategories(prev => prev.filter(c => c.id !== id && String(c.id) !== String(id)));
+        return true;
+      }
+      throw new Error(res.message || 'Failed to delete category');
+    } catch (err) {
+      console.error('deleteCategory error:', err);
+      throw err;
+    }
+  };
+
+  // 4. Add Product
   const addProduct = async (productData) => {
     try {
       const payload = {
@@ -3241,6 +3266,7 @@ export const ERPProvider = ({ children }) => {
       refreshData: fetchAllData,
       addCategory,
       updateCategory,
+      deleteCategory,
       addProduct,
       updateProduct,
       deleteProduct,

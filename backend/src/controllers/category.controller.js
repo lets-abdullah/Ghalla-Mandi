@@ -49,7 +49,7 @@ export const updateCategory = async (req, res) => {
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const category = await Category.findByIdAndDelete(id);
+    const category = await Category.findByIdAndDelete(id, req.shop_id);
     if (!category) {
       return res.status(404).json({ success: false, message: 'Category not found' });
     }
