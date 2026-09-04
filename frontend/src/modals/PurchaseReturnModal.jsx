@@ -171,14 +171,14 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
   };
 
   const handleQtyChange = (val) => {
-    if (val === '') {
+    const clean = String(val).replace(/[^0-9]/g, '').replace(/^0+/, '');
+    if (clean === '') {
       setReturnQty('');
       return;
     }
-    let parsed = parseFloat(val);
+    let parsed = parseInt(clean, 10);
     if (isNaN(parsed)) parsed = 0;
-    if (parsed < 0) parsed = 0;
-    setReturnQty(parsed);
+    setReturnQty(parsed.toString());
   };
 
   const handleSubmit = async (e) => {
@@ -475,16 +475,17 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <input
-                        type="number"
-                        min="1"
-                        max={maxReturnableQty}
-                        step="1"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         placeholder={`Max: ${maxReturnableQty} ${itemUnit}`}
                         value={returnQty}
+                        onWheel={(e) => e.target.blur()}
+                        onFocus={(e) => e.target.select()}
                         onKeyDown={(e) => {
                           if (e.key === '.' || e.key === ',') e.preventDefault();
                         }}
-                        onChange={(e) => handleQtyChange(e.target.value.replace(/[^0-9]/g, ''))}
+                        onChange={(e) => handleQtyChange(e.target.value)}
                         className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-black font-mono outline-none transition ${
                           hasValidationError
                             ? 'border-rose-500 bg-rose-500/10 text-rose-600 focus:ring-2 focus:ring-rose-500/20'

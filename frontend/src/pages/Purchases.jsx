@@ -1193,37 +1193,57 @@ export const Purchases = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">
-                    {t('qtyWithUnit', { unit: productUnit })} *
+                    {t('qtyWithUnit', { unit: productUnit }).replace(/\s*\*+\s*$/, '')} *
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     required
-                    min="1"
-                    step="1"
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
                     value={form.enteredQty}
-                    onChange={(e) => setForm({ ...form, enteredQty: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '');
+                      e.target.value = clean;
+                      setForm({ ...form, enteredQty: clean });
+                    }}
+                    onBlur={() => {
+                      if (!form.enteredQty || Number(form.enteredQty) <= 0) {
+                        setForm(prev => ({ ...prev, enteredQty: '1' }));
+                      }
+                    }}
+                    placeholder="1"
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">
-                    {t('rateWithUnit', { unit: productUnit })} *
+                    {t('rateWithUnit', { unit: productUnit }).replace(/\s*\*+\s*$/, '')} *
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     required
-                    min="0"
-                    step="1"
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
                     onKeyDown={(e) => {
                       if (e.key === '.' || e.key === ',') e.preventDefault();
                     }}
                     value={form.rate}
-                    onChange={(e) => setForm({ ...form, rate: parseInt(e.target.value.replace(/[^0-9]/g, ''), 10) || 0 })}
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+                      e.target.value = clean;
+                      setForm({ ...form, rate: clean });
+                    }}
+                    onBlur={() => {
+                      if (form.rate === '') {
+                        setForm(prev => ({ ...prev, rate: '0' }));
+                      }
+                    }}
+                    placeholder="0"
                     className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
@@ -1300,14 +1320,18 @@ export const Purchases = () => {
                           Amount Paid (Rs.) *
                         </label>
                         <input
-                          type="number"
-                          min="1"
-                          max={calculatedTotal}
-                          step="1"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           onWheel={(e) => e.target.blur()}
                           onFocus={(e) => e.target.select()}
                           value={form.paidAmount !== undefined && form.paidAmount !== '' ? form.paidAmount : calculatedTotal}
-                          onChange={(e) => setForm(prev => ({ ...prev, paidAmount: Math.min(calculatedTotal, Math.max(0, parseInt(e.target.value.replace(/[^0-9]/g, ''), 10) || 0)) }))}
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '');
+                            const num = clean === '' ? '' : Math.min(calculatedTotal, parseInt(clean, 10));
+                            setForm(prev => ({ ...prev, paidAmount: num }));
+                          }}
+                          placeholder={calculatedTotal.toString()}
                           className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                             }`}
                         />

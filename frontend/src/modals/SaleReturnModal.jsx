@@ -123,15 +123,15 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
   };
 
   const handleQtyChange = (val) => {
-    if (val === '') {
+    const clean = String(val).replace(/[^0-9]/g, '').replace(/^0+/, '');
+    if (clean === '') {
       setReturnQty('');
       return;
     }
-    let parsed = parseFloat(val);
+    let parsed = parseInt(clean, 10);
     if (isNaN(parsed)) parsed = 0;
-    if (parsed < 0) parsed = 0;
     if (parsed > remainingQty) parsed = remainingQty;
-    setReturnQty(parsed);
+    setReturnQty(parsed.toString());
   };
 
   const handleSubmit = async (e) => {
@@ -345,16 +345,17 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                       </button>
                     </div>
                     <input
-                      type="number"
-                      min="1"
-                      max={remainingQty}
-                      step="1"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       placeholder={`Max: ${remainingQty}`}
                       value={returnQty}
+                      onWheel={(e) => e.target.blur()}
+                      onFocus={(e) => e.target.select()}
                       onKeyDown={(e) => {
                         if (e.key === '.' || e.key === ',') e.preventDefault();
                       }}
-                      onChange={(e) => handleQtyChange(e.target.value.replace(/[^0-9]/g, ''))}
+                      onChange={(e) => handleQtyChange(e.target.value)}
                       className={`w-full border rounded-xl px-3 py-2 text-sm font-bold font-mono outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'
                         }`}
                       required
