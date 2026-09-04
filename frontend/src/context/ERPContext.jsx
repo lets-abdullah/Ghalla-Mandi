@@ -161,12 +161,12 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
   let liquidPaid = 0;
   if (rawPaid > 0) {
     liquidPaid = Math.min(grossAmount, rawPaid);
+  } else if (isKhataOrCredit || isMarkedPending || rawPaid === 0) {
+    liquidPaid = 0;
   } else if (isMarkedPaid) {
     liquidPaid = grossAmount;
   } else if (isMarkedPartial && rawPaid > 0) {
     liquidPaid = Math.min(grossAmount, rawPaid);
-  } else if (isKhataOrCredit || isMarkedPending) {
-    liquidPaid = 0;
   } else if (!isKhataOrCredit && rawPaid === -1) {
     // Default cash sale without explicit status/paidAmount is paid
     liquidPaid = grossAmount;
@@ -352,9 +352,12 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     return (supId && pPartyId && pPartyId === supId) || (supName && pPartyName === supName);
   });
 
-  const totalUnlinkedCash = unlinkedGeneralLogs.reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
+  const isKhataPurchase = (purchase.paymentMode === 'Supplier Khata' || purchase.paymentmode === 'Supplier Khata') || (Number(purchase.paidAmount || purchase.paidamount || 0) === 0);
 
-  if (totalUnlinkedCash > 0) {
+  if (isKhataPurchase && matchingLogs.length === 0) {
+    // A purchase recorded on Supplier Khata without specific payments stays on Khata (Pending/Due)
+    rawGrossPaid = 0;
+  } else if (totalUnlinkedCash > 0) {
     const relevantPurchases = (allPurchases && allPurchases.length > 0)
       ? (allPurchases || []).filter(p => {
           const pSupId = p.supplierId ? String(p.supplierId) : null;
@@ -2727,6 +2730,8 @@ export const ERPProvider = ({ children }) => {
       supplierName: purchaseData.supplierName || purchaseData.supplier || '',
       supplierId: purchaseData.supplierId || null,
       paidAmount: Number(purchaseData.paidAmount) || 0,
+      paymentMode: purchaseData.paymentMode || purchaseData.paymentMethod || 'Supplier Khata',
+      paymentStatus: purchaseData.paymentStatus,
       notes: purchaseData.notes || '',
       items
     };

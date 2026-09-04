@@ -106,8 +106,11 @@ export const createPurchase = async (req, res) => {
         });
       }
 
-      const paid = Number(paidAmount) || 0;
-      const paymentStatus = paid >= totalGrand ? 'Paid' : paid > 0 ? 'Partial' : 'Pending';
+      const paid = Math.max(0, Number(paidAmount) || 0);
+      const rawMode = String(req.body.paymentMode || req.body.paymentMethod || '').trim();
+      const isKhataMode = rawMode.toLowerCase().includes('khata') || (!rawMode && paid === 0);
+      const effectivePaymentMode = isKhataMode ? 'Supplier Khata' : (rawMode || (paid >= totalGrand ? 'Cash' : 'Supplier Khata'));
+      const paymentStatus = req.body.paymentStatus || (isKhataMode && paid === 0 ? 'Pending' : (paid >= totalGrand && totalGrand > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending'));
 
       const count = await Purchase.countDocuments({ shop_id: req.shop_id });
       const purchaseNo = `PUR-2026-${String(count + 1).padStart(4, '0')}`;
@@ -115,6 +118,15 @@ export const createPurchase = async (req, res) => {
 
       let activeSupplierName = supplierName || 'Supplier';
       let targetSupId = supplierId || null;
+
+      if (!targetSupId && supplierName) {
+        const allSuppliers = await Supplier.find({ shop_id: req.shop_id });
+        const matched = allSuppliers.find(s => s.name.trim().toLowerCase() === String(supplierName).trim().toLowerCase());
+        if (matched) {
+          targetSupId = matched.id;
+          activeSupplierName = matched.name;
+        }
+      }
 
       const purchase = await Purchase.create({
         shop_id: req.shop_id,
@@ -126,7 +138,7 @@ export const createPurchase = async (req, res) => {
         returnAmount: 0,
         netAmount: totalGrand,
         paymentStatus,
-        paymentMode: req.body.paymentMode || req.body.paymentMethod || (paid >= totalGrand ? 'Cash' : paid > 0 ? 'Cash / Supplier Khata' : 'Supplier Khata'),
+        paymentMode: effectivePaymentMode,
         notes,
         items: processedItems
       });
@@ -143,10 +155,10 @@ export const createPurchase = async (req, res) => {
               partyType: 'Supplier',
               partyName: sup.name,
               amount: paid,
-              mode: req.body.paymentMode || req.body.paymentMethod || 'Cash',
+              mode: effectivePaymentMode,
               date: dateStr,
               ref: `PAY-${purchaseNo.split('-').pop()}`,
-              note: `Payment made on Purchase (${purchaseNo})`,
+              note: `Payment made on Purchase (${purchaseNo}) via ${effectivePaymentMode}`,
               purchaseId: purchase.id
             });
           }
