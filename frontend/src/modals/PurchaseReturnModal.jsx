@@ -173,10 +173,15 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
     }];
   }, [purchase, purchaseReturns, products, purchases, sales, saleReturns, stockMovements]);
 
+  const defaultRefundMode = useMemo(() => {
+    const origMode = String(purchase?.paymentMode || purchase?.paymentmode || '').toLowerCase();
+    if (origMode.includes('bank') || origMode.includes('transfer')) return 'Bank Account';
+    return 'Cash';
+  }, [purchase]);
+
   const [selectedItemIdx, setSelectedItemIdx] = useState(0);
   const [returnQty, setReturnQty] = useState('');
-  const [refundMode, setRefundMode] = useState('Supplier Refund Due');
-  const [reason, setReason] = useState('');
+  const [refundMode, setRefundMode] = useState('Cash');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedReturn, setCompletedReturn] = useState(null);
   const [showFullReceiptModal, setShowFullReceiptModal] = useState(false);
@@ -187,11 +192,11 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
       const it = purchaseItems[selectedItemIdx] || purchaseItems[0];
       setSelectedItemIdx(0);
       setReturnQty(it.maxReturnableQty > 0 ? it.maxReturnableQty : '');
-      setReason('');
+      setRefundMode(defaultRefundMode);
       setCompletedReturn(null);
       setShowFullReceiptModal(false);
     }
-  }, [purchase, purchaseItems.length]);
+  }, [purchase, purchaseItems.length, defaultRefundMode]);
 
   if (!isOpen || !purchase) return null;
 
@@ -208,14 +213,14 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
   const isFullyReturned = remainingBillQty <= 0;
   const isOutOfStock = currentAvailableStock <= 0;
 
-  // Validation state
+  // Validation state: strictly capped by warehouse stock
   const isExceedingStock = numReturnQty > currentAvailableStock;
   const isExceedingBill = numReturnQty > remainingBillQty;
   const hasValidationError = isExceedingStock || isExceedingBill;
 
   let validationErrorMessage = '';
   if (isExceedingStock) {
-    validationErrorMessage = `Insufficient Stock — Available: ${currentAvailableStock} ${itemUnit}. Maximum returnable: ${maxReturnableQty} ${itemUnit}.`;
+    validationErrorMessage = `Insufficient Warehouse Stock — Available: ${currentAvailableStock} ${itemUnit}. Maximum returnable: ${maxReturnableQty} ${itemUnit}.`;
   } else if (isExceedingBill) {
     validationErrorMessage = `Return quantity cannot exceed remaining purchase bill quantity (${remainingBillQty} ${itemUnit}).`;
   }
@@ -223,14 +228,14 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
   // --------------------------------------------------------------------------
   // CANONICAL FINANCIAL RETURN RECONCILIATION FOR PURCHASES:
   // Total Goods Value = Quantity * Rate
-  // Cash Received from Supplier = Strictly capped at shop's paid amount
-  // Payable Due Cleared = Unpaid purchase bill debt cancelled
+  // Cash Returned to You = Strictly capped at shop's prior payments (Auto Cash/Bank back)
+  // Payable Debt Cleared = Unpaid purchase bill debt cancelled from Khata
   // --------------------------------------------------------------------------
   const currentGoodsValue = Math.max(0, numReturnQty * itemRate);
   const priorMerchandiseValue = Number(purchaseFin.returnAmount || 0);
   const newNetPur = Math.max(0, purTotal - (priorMerchandiseValue + currentGoodsValue));
 
-  // Exact cash refund we get from supplier
+  // Exact cash refund received back from supplier
   const cashRefundAmount = Math.max(0, Math.min(currentGoodsValue, purPaid - newNetPur - priorCashRefunds));
 
   // Payable debt to supplier cancelled from khata
@@ -246,6 +251,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
     setReturnQty(maxReturnableQty);
   };
 
+  // Auto-clamp strictly to available stock so user cannot exceed warehouse stock
   const handleQtyChange = (val) => {
     const clean = String(val).replace(/[^0-9]/g, '').replace(/^0+/, '');
     if (clean === '') {
@@ -254,17 +260,18 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
     }
     let parsed = parseInt(clean, 10);
     if (isNaN(parsed)) parsed = 0;
+    if (parsed > maxReturnableQty) {
+      parsed = maxReturnableQty;
+    }
     setReturnQty(parsed.toString());
   };
-
-  const quickReasons = ['Quality Issue', 'Weight Shortage', 'Damaged Goods', 'Supplier Return'];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting || numReturnQty <= 0 || isFullyReturned || isOutOfStock) return;
 
     if (numReturnQty > currentAvailableStock) {
-      toast.error(`Insufficient Stock — Available: ${currentAvailableStock} ${itemUnit}. Maximum returnable: ${maxReturnableQty} ${itemUnit}.`);
+      toast.error(`Insufficient Warehouse Stock — Available: ${currentAvailableStock} ${itemUnit}. Maximum returnable: ${maxReturnableQty} ${itemUnit}.`);
       return;
     }
 
@@ -278,7 +285,11 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
 
     setIsSubmitting(true);
     try {
-      const activeRefundMode = cashRefundAmount > 0 ? refundMode : 'Khata Credit';
+      // Auto return cash/bank if payment was made, else Khata credit
+      const activeRefundMode = cashRefundAmount > 0
+        ? (refundMode === 'Bank Account' || refundMode === 'Bank' ? 'Bank' : 'Cash')
+        : 'Khata Credit';
+
       const returnRecord = await recordPurchaseReturn({
         purchaseId: purchase.id,
         purchaseNo: purchase.purchaseNo || 'Direct Purchase Return',
@@ -293,10 +304,10 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
           total: currentGoodsValue
         }],
         totalGoodsValue: currentGoodsValue,
-        refundAmount: cashRefundAmount, // Strictly capped at historical paid amount!
+        refundAmount: cashRefundAmount, // Auto returned back!
         dueCleared: dueCancelled,
         refundMode: activeRefundMode,
-        reason: reason.trim() || 'Purchase Return',
+        reason: 'Purchase Return',
         date: new Date().toLocaleDateString('en-GB')
       });
 
@@ -315,7 +326,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
         dueCleared: dueCancelled,
         purPaid: purPaid,
         purDue: purDue,
-        reason: reason.trim() || 'Purchase Return'
+        reason: 'Purchase Return'
       });
     } catch (err) {
       console.error('Failed to process purchase return:', err);
@@ -438,11 +449,12 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 )}
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 font-black">
                   <span className="text-slate-700 dark:text-slate-300">
-                    Supplier Refund Due:
+                    {cashRefundAmount > 0 ? 'Refund Received Back:' : 'Supplier Khata Cleared:'}
                   </span>
                   <span className="font-mono text-base text-emerald-600 dark:text-emerald-400">
-                    Rs. {cashRefundAmount.toLocaleString()}
-                    {cashRefundAmount === 0 && <span className="text-xs font-semibold text-slate-400 ml-1.5">(0 Cash, Dues Adjusted)</span>}
+                    {cashRefundAmount > 0
+                      ? `Rs. ${cashRefundAmount.toLocaleString()} (${completedReturn.refundMode || 'Cash'})`
+                      : `Rs. ${dueCancelled.toLocaleString()} (0 Cash)`}
                   </span>
                 </div>
               </div>
@@ -453,30 +465,29 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                   <button
                     type="button"
                     onClick={handleDirectPrint}
-                    className="flex-1 py-3 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md shadow-brand-600/20 transition cursor-pointer active:scale-98"
-                    title="Print Receipt immediately (Thermal 80mm)"
+                    className="flex-1 py-3 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition cursor-pointer"
                   >
                     <Printer className="w-4 h-4" />
-                    <span>Print Receipt</span>
+                    <span>Print Voucher</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowFullReceiptModal(true)}
                     className={`flex-1 py-3 px-3 rounded-xl border font-extrabold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${theme === 'dark'
-                        ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
-                        : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
+                      ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
+                      : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
                       }`}
                   >
                     <Receipt className="w-4 h-4" />
-                    <span>All Sizes / A4 / A5</span>
+                    <span>All Sizes / A4</span>
                   </button>
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
                   className={`w-full py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
-                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-400'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                     }`}
                 >
                   Close
@@ -487,35 +498,32 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
             /* ========================================================================= */
             /* RETURN ENTRY FORM */
             /* ========================================================================= */
-            <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-              {/* Multi-item selector tabs */}
-              {purchaseItems.length > 1 && (
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">
-                    Select Purchased Item
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
+            <form onSubmit={handleSubmit} className="space-y-4 py-3">
+              {/* Product Info & Stock Status */}
+              <div className={`p-4 rounded-2xl border space-y-3 ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+                }`}>
+                {purchaseItems.length > 1 && (
+                  <div className="flex items-center gap-2 flex-wrap pb-2 border-b border-slate-200 dark:border-slate-700">
+                    <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
+                      Select Item:
+                    </span>
                     {purchaseItems.map((it, idx) => (
                       <button
                         key={it.id}
                         type="button"
                         onClick={() => handleItemSelect(idx)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${selectedItemIdx === idx
-                            ? 'bg-amber-500 text-white border-amber-500 shadow-xs font-black'
-                            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-500'
+                          ? 'bg-amber-500 text-white border-amber-500 shadow-xs font-black'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-500'
                           }`}
                       >
                         {it.name} (Max: {it.maxReturnableQty} {it.unit})
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Single Clean Summary Card */}
-              <div className={`p-4 rounded-2xl border space-y-3 ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
-                }`}>
-                <div className="flex items-center justify-between border-b pb-2.5 border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-amber-500" />
                     <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
@@ -589,10 +597,10 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                         }}
                         onChange={(e) => handleQtyChange(e.target.value)}
                         className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-black font-mono outline-none transition ${hasValidationError
-                            ? 'border-rose-500 bg-rose-500/10 text-rose-600 focus:ring-2 focus:ring-rose-500/20'
-                            : theme === 'dark'
-                              ? 'bg-slate-800 border-slate-700 text-white focus:border-brand-500'
-                              : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-brand-500'
+                          ? 'border-rose-500 bg-rose-500/10 text-rose-600 focus:ring-2 focus:ring-rose-500/20'
+                          : theme === 'dark'
+                            ? 'bg-slate-800 border-slate-700 text-white focus:border-brand-500'
+                            : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-brand-500'
                           }`}
                         required
                       />
@@ -618,12 +626,12 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                         <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                           <div>
                             <span className="font-black text-slate-900 dark:text-white uppercase block text-xs">
-                              Supplier Refund Due:
+                              {cashRefundAmount > 0 ? 'Auto Cash Refund to You:' : 'Supplier Khata Cleared:'}
                             </span>
                             <span className="text-[10px] text-slate-400 font-semibold">
                               {cashRefundAmount > 0
-                                ? `Paid Amount (Rs. ${purPaid.toLocaleString()}) − Net Payable After Return`
-                                : 'Return reduces payable debt first (0 excess paid)'}
+                                ? 'Auto refunded back from supplier • Not kept in Khata'
+                                : 'Return amount adjusted against unpaid purchase due'}
                             </span>
                           </div>
                           <div className="text-right">
@@ -636,7 +644,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                         {cashRefundAmount === 0 && (
                           <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] font-semibold flex items-center gap-1.5">
                             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                            <span>Bill has remaining payable dues. Full return value is adjusted against supplier khata (0 cash payout).</span>
+                            <span>This purchase had Rs. 0 upfront payment. Entire return amount of Rs. {dueCancelled.toLocaleString()} is cleared from Supplier Khata payable debt.</span>
                           </div>
                         )}
                       </div>
@@ -651,18 +659,16 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                     </div>
                   )}
 
-                  {/* Payment Method Selector */}
+                  {/* Payment Method Selector (Only shown if cash was paid previously) */}
                   {cashRefundAmount > 0 ? (
                     <div className="space-y-1.5 pt-1">
                       <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                        Refund Settlement Method *
+                        Refund Receiving Method (Auto Back to You) *
                       </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         {[
-                          { id: 'Supplier Refund Due', label: 'Supplier Refund Due', icon: Wallet },
-                          { id: 'Cash', label: 'Cash Refund', icon: Banknote },
-                          { id: 'Bank Account', label: 'Bank Transfer', icon: Landmark },
-                          { id: 'Card', label: 'Card Refund', icon: CreditCard }
+                          { id: 'Cash', label: 'Cash Drawer', icon: Banknote },
+                          { id: 'Bank Account', label: 'Bank Account', icon: Landmark }
                         ].map((mode) => {
                           const Icon = mode.icon;
                           const isSelected = refundMode === mode.id || (mode.id === 'Bank Account' && refundMode === 'Bank');
@@ -671,12 +677,12 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                               key={mode.id}
                               type="button"
                               onClick={() => setRefundMode(mode.id)}
-                              className={`py-2.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${isSelected
-                                  ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400 shadow-2xs font-extrabold ring-1 ring-amber-500/30'
-                                  : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                              className={`py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border ${isSelected
+                                ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400 shadow-2xs font-extrabold ring-1 ring-amber-500/30'
+                                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
                                 }`}
                             >
-                              <Icon className="w-3.5 h-3.5 shrink-0" />
+                              <Icon className="w-4 h-4 shrink-0" />
                               <span className="truncate">{mode.label}</span>
                             </button>
                           );
@@ -686,41 +692,9 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                   ) : (
                     <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold flex items-center gap-2">
                       <Wallet className="w-4 h-4 text-slate-500" />
-                      <span>Settlement Mode: Supplier Khata Credit / Due Adjustment</span>
+                      <span>Settlement Mode: Automatically adjusted against Supplier Khata Payable Due</span>
                     </div>
                   )}
-
-                  {/* Return Reason & Quick Chips */}
-                  <div className="space-y-1.5 pt-1">
-                    <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                      Return Reason / Notes (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Substandard grain, Weight mismatch, Moisture content"
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      className={`w-full border rounded-xl px-3.5 py-2 text-xs font-semibold outline-none transition ${theme === 'dark'
-                          ? 'bg-slate-800 border-slate-700 text-white focus:border-brand-500'
-                          : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-brand-500'
-                        }`}
-                    />
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {quickReasons.map((r) => (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => setReason(r)}
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition cursor-pointer ${reason === r
-                              ? 'bg-amber-500 text-white border-amber-500'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'
-                            }`}
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
                   {/* Live Stock Impact Note */}
                   {!hasValidationError && numReturnQty > 0 && numReturnQty <= maxReturnableQty && (

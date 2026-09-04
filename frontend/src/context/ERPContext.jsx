@@ -3135,7 +3135,13 @@ export const ERPProvider = ({ children }) => {
         if (prodRes.success) setProducts((prodRes.products || []).map(normalizeProduct));
         if (supRes.success) setSuppliers((supRes.suppliers || []).map(normalizeSupplier));
         if (purRes.success) setPurchases((purRes.purchases || []).map(normalizePurchase));
-        if (ledgerRes.success) setPaymentLogs((ledgerRes.entries || []).map(normalizePaymentLog));
+        if (ledgerRes.success) {
+          const cleanLogs = (ledgerRes.entries || []).filter(e => {
+            const m = String(e.mode || '').trim().toLowerCase();
+            return m !== 'supplier khata' && m !== 'purchase' && m !== 'bill' && !m.includes('khata credit');
+          });
+          setPaymentLogs(cleanLogs.map(normalizePaymentLog));
+        }
         if (movRes.success) setStockMovements(movRes.movements || []);
 
         return norm;

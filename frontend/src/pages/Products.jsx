@@ -385,9 +385,6 @@ export const Products = () => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right font-mono">
-                        <div className="font-black text-slate-700 dark:text-slate-200">
-                          Avg: Rs. {Math.round(val.avgCost).toLocaleString()} / {unit}
-                        </div>
                         <div className="text-[10px] text-slate-400 font-bold">
                           Latest: Rs. {Math.round(val.latestPurchaseRate || val.avgCost).toLocaleString()}
                         </div>
