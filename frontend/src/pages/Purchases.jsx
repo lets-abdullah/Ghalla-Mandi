@@ -21,7 +21,6 @@ import {
   Landmark,
   Hash,
   Edit3,
-  CreditCard,
   Receipt,
   Eye
 } from 'lucide-react';
@@ -114,16 +113,13 @@ export const Purchases = () => {
     description: ''
   });
 
-  // Form for New Purchase
+  // Form for New Purchase (Auto-moves to Supplier Khata)
   const [form, setForm] = useState({
     supplierId: suppliers[0]?.id || '',
     supplierName: suppliers[0]?.name || '',
     productId: products[0]?.id || '',
-    enteredQty: 1,
-    rate: products[0]?.purchasePrice || 0,
-    paymentType: 'khata', // 'khata' (Supplier Khata) | 'pay_now' (Direct Payment)
-    paymentMode: 'Cash', // 'Cash' | 'Bank Transfer' | 'Card'
-    paidAmount: ''
+    enteredQty: '1',
+    rate: products[0]?.purchasePrice || 0
   });
 
   // Form for Pay Balance
@@ -363,10 +359,10 @@ export const Purchases = () => {
     const qtyVal = Math.max(1, Math.floor(Number(form.enteredQty) || 1));
     const rateVal = Math.max(0, Number(form.rate) || 0);
 
-    const isPaidNow = form.paymentType === 'pay_now';
-    const actualPaid = isPaidNow ? Math.min(calculatedTotal, Math.max(0, Number(form.paidAmount !== undefined && form.paidAmount !== '' ? form.paidAmount : calculatedTotal))) : 0;
-    const paymentModeVal = isPaidNow ? (form.paymentMode || 'Cash') : 'Supplier Khata';
-    const paymentStatusVal = isPaidNow ? (actualPaid >= calculatedTotal ? 'Paid' : actualPaid > 0 ? 'Partial' : 'Pending') : 'Pending';
+    // All purchases automatically move to Supplier Khata by default (Payable / Credit)
+    const actualPaid = 0;
+    const paymentModeVal = 'Supplier Khata';
+    const paymentStatusVal = 'Pending';
 
     setIsSubmitting(true);
     try {
@@ -399,11 +395,8 @@ export const Purchases = () => {
         supplierId: suppliers[0]?.id || '',
         supplierName: suppliers[0]?.name || '',
         productId: products[0]?.id || '',
-        enteredQty: 1,
-        rate: products[0]?.purchasePrice || 0,
-        paymentType: 'khata',
-        paymentMode: 'Cash',
-        paidAmount: ''
+        enteredQty: '1',
+        rate: products[0]?.purchasePrice || 0
       });
 
       // Automatically generate & display Purchase Receipt Voucher
@@ -421,12 +414,12 @@ export const Purchases = () => {
           total: calculatedTotal
         }],
         totalAmount: calculatedTotal,
-        paidAmount: actualPaid,
-        paymentMode: paymentModeVal,
-        supplierBalance: (Number(supplierObj.balance) || 0) + (calculatedTotal - actualPaid),
-        note: isPaidNow ? `Paid via ${paymentModeVal}` : 'Added to Supplier Khata (Credit Payable)'
+        paidAmount: 0,
+        paymentMode: 'Supplier Khata',
+        supplierBalance: (Number(supplierObj.balance) || 0) + calculatedTotal,
+        note: 'Added to Supplier Khata (Credit Payable)'
       });
-      toast.success(isPaidNow ? `Purchase recorded and paid via ${paymentModeVal}!` : `Purchase added to ${supplierObj.name}'s Khata!`);
+      toast.success(`Purchase recorded! Added Rs. ${calculatedTotal.toLocaleString()} to ${supplierObj.name}'s Khata.`);
     } catch (err) {
       console.error(err);
       toast.error(err.message || "Error saving purchase entry.");
@@ -1250,101 +1243,23 @@ export const Purchases = () => {
                 </div>
               </div>
 
-              {/* Settlement & Payment Method Section */}
-              <div className={`p-3.5 rounded-2xl border space-y-3 ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              {/* Auto Move to Supplier Khata Banner */}
+              <div className={`p-3.5 rounded-2xl border flex items-center justify-between ${theme === 'dark' ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50/80 border-amber-200'
                 }`}>
-                <label className="text-[11px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider block">
-                  Payment & Settlement Method *
-                </label>
-
-                {/* Radio Cards: Supplier Khata (Default) vs Pay Now */}
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, paymentType: 'khata', paidAmount: 0 }))}
-                    className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col gap-1 ${form.paymentType === 'khata'
-                      ? 'border-brand-500 bg-brand-500/10 text-brand-600 dark:text-brand-400 ring-2 ring-brand-500/20'
-                      : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
-                  >
-                    <div className="flex items-center gap-1.5 font-bold text-xs">
-                      <Landmark className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <Landmark className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
                       <span>Supplier Khata</span>
+                      <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 rounded-md">Auto Credit</span>
                     </div>
-                    <span className="text-[10px] text-slate-400">Credit / Payable (Pay Later)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, paymentType: 'pay_now', paidAmount: calculatedTotal }))}
-                    className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col gap-1 ${form.paymentType === 'pay_now'
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20'
-                      : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
-                  >
-                    <div className="flex items-center gap-1.5 font-bold text-xs">
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span>Pay Now</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400">Cash / Bank / Card</span>
-                  </button>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Yeh purchase direct supplier ke khata mein payable ke tor par darj hogi.
+                    </p>
+                  </div>
                 </div>
-
-                {/* If Supplier Khata */}
-                {form.paymentType === 'khata' ? (
-                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-semibold flex items-center gap-2">
-                    <Clock className="w-4 h-4 shrink-0" />
-                    <span>Bill of Rs. {calculatedTotal.toLocaleString()} will be posted to Supplier Khata as pending payable. You can pay it manually later.</span>
-                  </div>
-                ) : (
-                  /* If Pay Now */
-                  <div className="space-y-2.5 pt-1">
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">
-                          Payment Mode *
-                        </label>
-                        <select
-                          value={form.paymentMode}
-                          onChange={(e) => setForm(prev => ({ ...prev, paymentMode: e.target.value }))}
-                          className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                            }`}
-                        >
-                          <option value="Cash">Cash</option>
-                          <option value="Bank Transfer">Bank Transfer</option>
-                          <option value="Card">Card</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">
-                          Amount Paid (Rs.) *
-                        </label>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          onWheel={(e) => e.target.blur()}
-                          onFocus={(e) => e.target.select()}
-                          value={form.paidAmount !== undefined && form.paidAmount !== '' ? form.paidAmount : calculatedTotal}
-                          onChange={(e) => {
-                            const clean = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '');
-                            const num = clean === '' ? '' : Math.min(calculatedTotal, parseInt(clean, 10));
-                            setForm(prev => ({ ...prev, paidAmount: num }));
-                          }}
-                          placeholder={calculatedTotal.toString()}
-                          className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                            }`}
-                        />
-                      </div>
-                    </div>
-                    {Number(form.paidAmount !== undefined && form.paidAmount !== '' ? form.paidAmount : calculatedTotal) < calculatedTotal && (
-                      <div className="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex justify-between px-1">
-                        <span>Remaining Due to Khata:</span>
-                        <span>Rs. {(calculatedTotal - Number(form.paidAmount || 0)).toLocaleString()}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Calculated Volume */}
