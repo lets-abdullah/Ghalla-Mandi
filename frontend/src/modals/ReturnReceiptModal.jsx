@@ -185,7 +185,7 @@ export const generateReturnReceiptHtml = (returnData, type = 'SaleReturn', paper
                   </tr>
                   ` : ''}
                   <tr style="border-top: 2px solid #059669; background: #ecfdf5;">
-                    <td style="padding: 8px 10px; font-weight: 900; font-size: 12px; color: #064e3b;">${refundAmount > 0 ? (isSale ? 'CASH REFUND PAID:' : 'CASH REFUND RECD:') : 'KHATA SETTLED:'}</td>
+                    <td style="padding: 8px 10px; font-weight: 900; font-size: 12px; color: #064e3b;">${refundAmount > 0 ? (isSale ? 'CASH REFUND PAID:' : 'SUPPLIER REFUND DUE:') : 'KHATA SETTLED:'}</td>
                     <td style="padding: 8px 10px; text-align: right; font-family: monospace; font-weight: 900; font-size: 14px; color: #064e3b;">Rs. ${Math.round(refundAmount).toLocaleString()}</td>
                   </tr>
                   <tr>
@@ -324,7 +324,7 @@ export const generateReturnReceiptHtml = (returnData, type = 'SaleReturn', paper
           ` : ''}
           <div style="border-top: 1px dashed #000; margin: 3px 0 2px 0;"></div>
           <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: ${is58 ? '11px' : '13px'}; font-family: monospace;">
-            <span>${refundAmount > 0 ? (isSale ? 'CASH REFUND:' : 'CASH RECD:') : 'KHATA SETTLED:'}</span>
+            <span>${refundAmount > 0 ? (isSale ? 'CASH REFUND:' : 'SUPPLIER REFUND:') : 'KHATA SETTLED:'}</span>
             <span>Rs. ${Math.round(refundAmount).toLocaleString()}</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 9.5px; margin-top: 2px;">
@@ -743,7 +743,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
                   )}
                   <div className="border-t border-dashed border-slate-300 pt-2 flex justify-between items-center">
                     <span className="font-black text-slate-900 uppercase">
-                      {refundAmount > 0 ? (isSale ? 'CASH REFUND PAID:' : 'CASH REFUND RECD:') : 'KHATA SETTLED:'}
+                      {refundAmount > 0 ? (isSale ? 'CASH REFUND PAID:' : 'SUPPLIER REFUND DUE:') : 'KHATA SETTLED:'}
                     </span>
                     <span className="font-mono text-base font-black text-emerald-700">
                       Rs. {Math.round(refundAmount).toLocaleString()}
@@ -855,7 +855,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
                 )}
                 <div className="border-t border-dashed border-slate-400 my-0.5" />
                 <div className="flex justify-between items-center font-black text-sm text-slate-950">
-                  <span>{refundAmount > 0 ? (isSale ? 'CASH REFUND:' : 'CASH RECD:') : 'KHATA SETTLED:'}</span>
+                  <span>{refundAmount > 0 ? (isSale ? 'CASH REFUND:' : 'SUPPLIER REFUND:') : 'KHATA SETTLED:'}</span>
                   <span>Rs. {Math.round(refundAmount).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-slate-800">

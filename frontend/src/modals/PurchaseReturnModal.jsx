@@ -440,11 +440,11 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 )}
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 font-black">
                   <span className="text-slate-700 dark:text-slate-300">
-                    {cashRefundAmount > 0 ? 'Cash Refund Received:' : 'Cash Refund Received:'}
+                    Supplier Refund Due:
                   </span>
                   <span className="font-mono text-base text-emerald-600 dark:text-emerald-400">
                     Rs. {cashRefundAmount.toLocaleString()}
-                    {cashRefundAmount === 0 && <span className="text-xs font-semibold text-slate-400 ml-1.5">(0 Paid, Dues Adjusted)</span>}
+                    {cashRefundAmount === 0 && <span className="text-xs font-semibold text-slate-400 ml-1.5">(0 Cash, Dues Adjusted)</span>}
                   </span>
                 </div>
               </div>
@@ -625,10 +625,12 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                         <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                           <div>
                             <span className="font-black text-slate-900 dark:text-white uppercase block text-xs">
-                              Cash Refund from Supplier:
+                              Supplier Refund Due:
                             </span>
                             <span className="text-[10px] text-slate-400 font-semibold">
-                              Strictly capped at shop's paid amount (Rs. {purPaid.toLocaleString()})
+                              {cashRefundAmount > 0
+                                ? `Paid Amount (Rs. ${purPaid.toLocaleString()}) − Net Payable After Return`
+                                : 'Return reduces payable debt first (0 excess paid)'}
                             </span>
                           </div>
                           <div className="text-right">
