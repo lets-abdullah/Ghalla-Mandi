@@ -347,11 +347,25 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const netDueableTotal = Math.max(0, total - returnAmount);
 
   // Categorize specific payment logs for this purchase
-  const matchingLogs = (paymentLogs || []).filter(pl => {
+  const isExcludedSupplierLog = (pl) => {
     const isSup = String(pl.type || '').trim().toLowerCase() === 'supplier' || String(pl.partyType || '').trim().toLowerCase() === 'supplier';
-    if (!isSup) return false;
+    if (!isSup) return true;
     const pMode = String(pl.mode || '').trim().toLowerCase();
-    if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+    return (
+      pMode === 'opening balance' ||
+      pMode === 'credit note' ||
+      pMode === 'debit note' ||
+      pMode === 'supplier khata' ||
+      pMode.includes('khata') ||
+      pMode === 'purchase' ||
+      pMode === 'bill' ||
+      pMode === 'purchase return'
+    );
+  };
+
+  // Categorize specific payment logs for this purchase
+  const matchingLogs = (paymentLogs || []).filter(pl => {
+    if (isExcludedSupplierLog(pl)) return false;
 
     return (
       (pl.purchaseId && String(pl.purchaseId) === String(purchase.id)) ||
@@ -372,10 +386,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const supName = (purchase.supplier || purchase.supplierName || purchase.suppliername || '').trim().toLowerCase();
 
   const unlinkedGeneralLogs = (paymentLogs || []).filter(pl => {
-    const isSup = String(pl.type || '').trim().toLowerCase() === 'supplier' || String(pl.partyType || '').trim().toLowerCase() === 'supplier';
-    if (!isSup) return false;
-    const pMode = String(pl.mode || '').trim().toLowerCase();
-    if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+    if (isExcludedSupplierLog(pl)) return false;
 
     const hasSpecificPurchase = Boolean(
       pl.purchaseId ||
@@ -415,10 +426,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
       const pNetTotal = Math.max(0, pTotal - pRetAmt);
 
       const pMatchingLogs = (paymentLogs || []).filter(pl => {
-        const isSup = String(pl.type || '').trim().toLowerCase() === 'supplier' || String(pl.partyType || '').trim().toLowerCase() === 'supplier';
-        if (!isSup) return false;
-        const pMode = String(pl.mode || '').trim().toLowerCase();
-        if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+        if (isExcludedSupplierLog(pl)) return false;
 
         return (
           (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
@@ -1177,7 +1185,16 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
     const isSupplier = p.type === 'Supplier' || p.partyType === 'Supplier';
     if (!isSupplier) return false;
     const pMode = String(p.mode || '').trim().toLowerCase();
-    if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note' || pMode === 'purchase return' || pMode === 'supplier khata') return false;
+    if (
+      pMode === 'opening balance' ||
+      pMode === 'credit note' ||
+      pMode === 'debit note' ||
+      pMode === 'purchase return' ||
+      pMode === 'supplier khata' ||
+      pMode.includes('khata') ||
+      pMode === 'purchase' ||
+      pMode === 'bill'
+    ) return false;
 
     const pPartyId = p.partyId ? String(p.partyId) : null;
     const pPartyName = (p.partyName || '').trim().toLowerCase();
@@ -1195,6 +1212,8 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   let unloggedUpfrontCash = 0;
   if (supPayments.length === 0) {
     supPurchases.forEach(p => {
+      const isKhata = (p.paymentMode === 'Supplier Khata' || p.paymentmode === 'Supplier Khata') || (Number(p.paidAmount || p.paidamount || 0) === 0);
+      if (isKhata) return;
       const pTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
       const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
       const pPaid = isMarkedPaid ? pTotal : Number(p.cashPaid !== undefined ? p.cashPaid : (p.paidAmount || 0));
@@ -1202,6 +1221,8 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
     });
   } else {
     supPurchases.forEach(p => {
+      const isKhata = (p.paymentMode === 'Supplier Khata' || p.paymentmode === 'Supplier Khata') || (Number(p.paidAmount || p.paidamount || 0) === 0);
+      if (isKhata) return;
       const hasMatchingLog = supPayments.some(pl =>
         (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
         (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
@@ -1717,7 +1738,16 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       const isSup = p.type === 'Supplier' || p.partyType === 'Supplier';
       if (!isSup) return false;
       const pMode = String(p.mode || '').trim().toLowerCase();
-      if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+      if (
+        pMode === 'opening balance' ||
+        pMode === 'credit note' ||
+        pMode === 'debit note' ||
+        pMode === 'purchase return' ||
+        pMode === 'supplier khata' ||
+        pMode.includes('khata') ||
+        pMode === 'purchase' ||
+        pMode === 'bill'
+      ) return false;
 
       const pPartyId = p.partyId ? String(p.partyId) : null;
       const pPartyName = (p.partyName || '').trim().toLowerCase();
@@ -2373,7 +2403,13 @@ export const ERPProvider = ({ children }) => {
       if (supRes.success) setSuppliers(sortDesc((supRes.suppliers || []).map(normalizeSupplier)));
       if (saleRes.success) setSales(sortDesc((saleRes.sales || []).map(normalizeSale)));
       if (purRes.success) setPurchases(sortDesc((purRes.purchases || []).map(normalizePurchase)));
-      if (ledgerRes.success) setPaymentLogs(sortDesc((ledgerRes.entries || []).map(normalizePaymentLog)));
+      if (ledgerRes.success) {
+        const cleanLogs = (ledgerRes.entries || []).filter(e => {
+          const m = String(e.mode || '').trim().toLowerCase();
+          return m !== 'supplier khata' && m !== 'purchase' && m !== 'bill' && !m.includes('khata credit');
+        });
+        setPaymentLogs(sortDesc(cleanLogs.map(normalizePaymentLog)));
+      }
       if (movRes.success) setStockMovements(sortDesc(movRes.movements || []));
       if (expRes.success) setExpenses(sortDesc((expRes.expenses || []).map(normalizeExpense)));
       if (sRetRes.success) setSaleReturns(sortDesc((sRetRes.saleReturns || sRetRes.returns || []).map(normalizeSaleReturn)));

@@ -226,6 +226,8 @@ const createTables = async () => {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    DELETE FROM payment_logs WHERE LOWER(mode) = 'supplier khata' OR LOWER(mode) = 'purchase' OR LOWER(mode) = 'bill';
+
     -- Stock Movements Table
     CREATE TABLE IF NOT EXISTS stock_movements (
       id TEXT PRIMARY KEY,

@@ -159,21 +159,7 @@ export const createPurchase = async (req, res) => {
         if (sup) {
           activeSupplierName = sup.name;
 
-          // 1. Record full purchase bill in Supplier Khata
-          await Ledger.create({
-            shop_id: req.shop_id,
-            partyId: sup.id,
-            partyType: 'Supplier',
-            partyName: sup.name,
-            amount: totalGrand,
-            mode: 'Supplier Khata',
-            date: dateStr,
-            ref: purchaseNo,
-            note: `Purchase Bill #${purchaseNo}`,
-            purchaseId: purchase.id
-          });
-
-          // 2. Record upfront payment as distinct Payment transaction
+          // Record upfront payment as distinct Payment transaction only if paid > 0
           if (paid > 0) {
             await Ledger.create({
               shop_id: req.shop_id,
