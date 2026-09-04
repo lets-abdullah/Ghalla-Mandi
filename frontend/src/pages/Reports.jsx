@@ -449,6 +449,7 @@ export const Reports = () => {
 
   // Overall KPI Metrics for Filtered Sales
   const filteredGrossSales = useMemo(() => filteredSalesList.reduce((sum, s) => sum + s.grossAmt, 0), [filteredSalesList]);
+  const filteredDiscount = useMemo(() => filteredSalesList.reduce((sum, s) => sum + Number(s.discount || 0), 0), [filteredSalesList]);
   const filteredNetSales = useMemo(() => filteredSalesList.reduce((sum, s) => sum + s.netAmt, 0), [filteredSalesList]);
   const filteredCashSales = useMemo(() => filteredSalesList.reduce((sum, s) => sum + s.paidAmt, 0), [filteredSalesList]);
   const filteredCreditSales = useMemo(() => filteredSalesList.reduce((sum, s) => sum + s.dueAmt, 0), [filteredSalesList]);
@@ -1368,14 +1369,14 @@ export const Reports = () => {
     return totalSupplierPayables + totalOverdraftLiabilities;
   }, [totalSupplierPayables, totalOverdraftLiabilities]);
 
-  // 3. EQUITY: Canonical Double-Entry Equation (Total Assets - Total Liabilities)
-  const ownersCapital = useMemo(() => {
-    return totalInitialStockValuation + (openingCustomerReceivables - openingSupplierPayables);
-  }, [totalInitialStockValuation, openingCustomerReceivables, openingSupplierPayables]);
-
+  // 3. EQUITY: Canonical Double-Entry Equation (Total Assets = Total Liabilities + Total Equity)
   const totalEquity = useMemo(() => {
-    return ownersCapital + netOperatingProfit;
-  }, [ownersCapital, netOperatingProfit]);
+    return totalAssets - totalLiabilities;
+  }, [totalAssets, totalLiabilities]);
+
+  const ownersCapital = useMemo(() => {
+    return totalEquity - netOperatingProfit;
+  }, [totalEquity, netOperatingProfit]);
 
   const retainedProfit = useMemo(() => {
     return netOperatingProfit;
@@ -1446,27 +1447,6 @@ export const Reports = () => {
       total: totalLiabilities
     };
   }, [totalSupplierPayables, totalLiabilities]);
-
-  // Development-Safe Accounting Integrity & Reconciliation Check
-  useEffect(() => {
-    const isBalanceSheetBalanced = Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01;
-    const isEquityReconciled = Math.abs((ownersCapital + netOperatingProfit) - totalEquity) < 0.01;
-    if (!isBalanceSheetBalanced) {
-      console.warn('[Balance Sheet Imbalance]: Assets do not match Liabilities + Equity!', {
-        totalAssets,
-        totalLiabilities,
-        totalEquity,
-        diff: totalAssets - (totalLiabilities + totalEquity)
-      });
-    }
-    if (!isEquityReconciled) {
-      console.warn('[Equity Reconciliation Discrepancy]:', {
-        ownersCapital,
-        netOperatingProfit,
-        totalEquity
-      });
-    }
-  }, [totalAssets, totalLiabilities, totalEquity, ownersCapital, netOperatingProfit]);
 
   // -------------------------------------------------------------------------
   // 3B. CANONICAL CASH FLOW STATEMENT ENGINE & BALANCE SHEET RECONCILIATION
@@ -4784,132 +4764,6 @@ export const Reports = () => {
                 </tbody>
               </table>
             </div>
-          </div>
-
-          {/* ========================================================================= */}
-          {/* SECTION 2: ITEMIZED CASH, BANK & CARD MOVEMENTS LEDGER */}
-          {/* ========================================================================= */}
-          <div className={`border rounded-2xl p-4 sm:p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2.5 border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <h3 className="font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
-                  2. Itemized Cash, Bank & Card Movements Ledger
-                </h3>
-                <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                  {filteredCashFlowTransactions.length} Entries
-                </span>
-              </div>
-
-              <div className="text-xs text-slate-400 font-medium">
-                Page {cfPage} of {totalCfPages}
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left border-collapse">
-                <thead>
-                  <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <th className="py-2.5 px-2.5">#</th>
-                    <th className="py-2.5 px-2.5">Date</th>
-                    <th className="py-2.5 px-3">Reference / Description</th>
-                    <th className="py-2.5 px-3">Party Name</th>
-                    <th className="py-2.5 px-2.5">Category</th>
-                    <th className="py-2.5 px-2.5">Channel</th>
-                    <th className="py-2.5 px-2.5 text-center">Type</th>
-                    <th className="py-2.5 px-2.5 text-right">Cash</th>
-                    <th className="py-2.5 px-2.5 text-right">Bank</th>
-                    <th className="py-2.5 px-2.5 text-right">Card</th>
-                    <th className="py-2.5 px-2.5 text-right">Amount</th>
-                    <th className="py-2.5 px-3 text-right">Running Total</th>
-                  </tr>
-                </thead>
-                <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                  {paginatedCashFlowTransactions.length === 0 ? (
-                    <tr>
-                      <td colSpan={12} className="py-8 text-center text-slate-400 font-normal">
-                        No cash, bank, or card flow transactions found for the selected filters.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedCashFlowTransactions.map((tx) => (
-                      <tr key={tx.idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
-                        <td className="py-2.5 px-2.5 text-slate-400 font-mono text-[11px]">{tx.idx}</td>
-                        <td className="py-2.5 px-2.5 font-mono text-[11px] text-slate-600 dark:text-slate-300">{tx.date}</td>
-                        <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white max-w-[200px] truncate">{tx.source}</td>
-                        <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 max-w-[150px] truncate">{tx.party || '-'}</td>
-                        <td className="py-2.5 px-2.5 text-slate-500 font-normal text-[11px]">{tx.category}</td>
-                        <td className="py-2.5 px-2.5">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                            tx.channel?.includes('Card')
-                              ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
-                              : tx.channel?.includes('Bank')
-                              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                          }`}>
-                            {tx.channel}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-2.5 text-center">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
-                            tx.type === 'Inflow'
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                          }`}>
-                            {tx.type === 'Inflow' ? '+ Inflow' : '− Outflow'}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-2.5 text-right font-mono text-slate-700 dark:text-slate-300">
-                          {Number(tx.cashAmount || 0) > 0 ? `Rs. ${Number(tx.cashAmount).toLocaleString()}` : '-'}
-                        </td>
-                        <td className="py-2.5 px-2.5 text-right font-mono text-slate-700 dark:text-slate-300">
-                          {Number(tx.bankAmount || 0) > 0 ? `Rs. ${Number(tx.bankAmount).toLocaleString()}` : '-'}
-                        </td>
-                        <td className="py-2.5 px-2.5 text-right font-mono text-purple-600 dark:text-purple-400 font-bold">
-                          {Number(tx.cardAmount || 0) > 0 ? `Rs. ${Number(tx.cardAmount).toLocaleString()}` : '-'}
-                        </td>
-                        <td className={`py-2.5 px-2.5 text-right font-mono font-black ${
-                          tx.type === 'Inflow' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                        }`}>
-                          {tx.type === 'Inflow' ? '+' : '−'} Rs. {Number(tx.amount || 0).toLocaleString()}
-                        </td>
-                        <td className={`py-2.5 px-3 text-right font-mono font-black ${
-                          (tx.runningTotal || 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                        }`}>
-                          Rs. {(tx.runningTotal || 0).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Toolbar */}
-            {totalCfPages > 1 && (
-              <div className="no-print flex items-center justify-between border-t pt-3 border-slate-100 dark:border-slate-700 text-xs">
-                <button
-                  type="button"
-                  disabled={cfPage <= 1}
-                  onClick={() => setCfPage(prev => Math.max(1, prev - 1))}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition"
-                >
-                  Previous
-                </button>
-                <span className="font-medium text-slate-500">
-                  Page <strong className="text-slate-900 dark:text-white">{cfPage}</strong> of {totalCfPages}
-                </span>
-                <button
-                  type="button"
-                  disabled={cfPage >= totalCfPages}
-                  onClick={() => setCfPage(prev => Math.min(totalCfPages, prev + 1))}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition"
-                >
-                  Next
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}

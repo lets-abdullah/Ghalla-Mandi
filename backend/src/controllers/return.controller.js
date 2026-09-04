@@ -343,7 +343,11 @@ export const createPurchaseReturn = async (req, res) => {
         // 1. Deduct products from inventory
         const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
         if (prod) {
-          const newStock = Math.max(0, Number(prod.stockQty || 0) - rQty);
+          const availableStock = Number(prod.stockQty || 0);
+          if (rQty > availableStock) {
+            throw new Error(`Insufficient Stock — Available: ${availableStock} ${prod.unit || 'KG'}. Maximum returnable quantity: ${availableStock} ${prod.unit || 'KG'}.`);
+          }
+          const newStock = availableStock - rQty;
           await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
           await AuditLog.create({
             shop_id: req.shop_id,

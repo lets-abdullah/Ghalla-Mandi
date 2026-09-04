@@ -2934,6 +2934,25 @@ export const ERPProvider = ({ children }) => {
   // 13. Record Purchase Return (Deducts stock, adjusts supplier khata, logs return via backend API)
   const recordPurchaseReturn = async (returnData) => {
     try {
+      // Validate available stock before initiating return
+      for (const it of (returnData.items || [])) {
+        const pId = it.productId || it.id;
+        const rQty = Number(it.qty || it.enteredQty || 0);
+        if (rQty > 0) {
+          const matchedProd = (products || []).find(p =>
+            (pId && (String(p.id) === String(pId) || String(p._id) === String(pId))) ||
+            (it.name && (p.name || '').trim().toLowerCase() === (it.name || '').trim().toLowerCase())
+          );
+          if (matchedProd) {
+            const val = computeProductValuation(matchedProd, purchases, sales, saleReturns, purchaseReturns, stockMovements);
+            const availableStock = Math.max(0, val.qty !== undefined ? val.qty : Number(matchedProd.stockQty || 0));
+            if (rQty > availableStock) {
+              throw new Error(`Insufficient Stock — Available: ${availableStock} ${it.unit || matchedProd.unit || 'KG'}. Maximum returnable quantity: ${availableStock} ${it.unit || matchedProd.unit || 'KG'}.`);
+            }
+          }
+        }
+      }
+
       const res = await authFetch('/api/returns/purchases', {
         method: 'POST',
         body: returnData
