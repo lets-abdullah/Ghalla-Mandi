@@ -102,6 +102,8 @@ export const createSaleReturn = async (req, res) => {
             date: dateStr
           });
         }
+      }
+
       let maxEligibleCashRefund = approvedTotal;
       if (targetSale) {
         const saleTotal = Number(targetSale.amount || targetSale.grandTotal || 0);
@@ -372,6 +374,8 @@ export const createPurchaseReturn = async (req, res) => {
             date: dateStr
           });
         }
+      }
+
       let maxEligibleCashRefund = approvedTotal;
       if (targetPurchase) {
         const purTotal = Number(targetPurchase.grandTotal || targetPurchase.amount || 0);
