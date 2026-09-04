@@ -109,8 +109,8 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
             <td style="padding: 8px 10px; text-align: center; color: #64748b; font-weight: 600;">${idx + 1}</td>
             <td style="padding: 8px 10px; font-weight: 700; color: #0f172a;">${item.name}</td>
             <td style="padding: 8px 10px; text-align: center; font-weight: 800; color: #334155;">${item.qty} <span style="font-size: 10px; color: #64748b;">${item.unit}</span></td>
-            <td style="padding: 8px 10px; text-align: right; font-family: monospace; color: #475569;">Rs. ${item.rate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            <td style="padding: 8px 10px; text-align: right; font-weight: 800; font-family: monospace; color: #0f172a;">Rs. ${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="padding: 8px 10px; text-align: right; font-family: monospace; color: #475569;">Rs. ${Math.round(item.rate).toLocaleString()}</td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: 800; font-family: monospace; color: #0f172a;">Rs. ${Math.round(lineTotal).toLocaleString()}</td>
           </tr>
         `;
       }
@@ -119,8 +119,8 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
         <tr style="border-bottom: 1px dashed #cbd5e1; font-size: ${is58 ? '9.5px' : '11px'};">
           <td style="padding: 4px 2px; font-weight: 700; color: #0f172a; text-align: left;">${item.name}</td>
           <td style="padding: 4px 2px; text-align: center; font-weight: 800; color: #334155;">${item.qty}</td>
-          <td style="padding: 4px 2px; text-align: right; font-family: monospace; color: #475569;">${item.rate.toLocaleString()}</td>
-          <td style="padding: 4px 2px; text-align: right; font-weight: 800; font-family: monospace; color: #0f172a;">${lineTotal.toLocaleString()}</td>
+          <td style="padding: 4px 2px; text-align: right; font-family: monospace; color: #475569;">${Math.round(item.rate).toLocaleString()}</td>
+          <td style="padding: 4px 2px; text-align: right; font-weight: 800; font-family: monospace; color: #0f172a;">${Math.round(lineTotal).toLocaleString()}</td>
         </tr>
       `;
     }).join('');
@@ -209,7 +209,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
                   <table style="margin-bottom: 0;">
                     <tr style="border-top: 2px solid #059669; background: #f0fdf4;">
                       <td style="padding: 8px 10px; font-weight: 900; font-size: 13px; color: #064e3b;">TOTAL REFUND:</td>
-                      <td style="padding: 8px 10px; text-align: right; font-family: monospace; font-weight: 900; font-size: 15px; color: #064e3b;">Rs. ${refundAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style="padding: 8px 10px; text-align: right; font-family: monospace; font-weight: 900; font-size: 15px; color: #064e3b;">Rs. ${Math.round(refundAmount).toLocaleString()}</td>
                     </tr>
                     <tr>
                       <td style="padding: 6px 10px; font-size: 11px; color: #475569; font-weight: 600;">Refund Status:</td>
@@ -596,10 +596,10 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
                           {it.qty} <span className="text-[10px] text-slate-500 font-normal">{it.unit}</span>
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono text-slate-600">
-                          Rs. {it.rate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          Rs. {Math.round(it.rate).toLocaleString()}
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono font-black text-slate-900">
-                          Rs. {it.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          Rs. {Math.round(it.total).toLocaleString()}
                         </td>
                       </tr>
                     ))}
@@ -629,7 +629,7 @@ export const ReturnReceiptModal = ({ isOpen, onClose, returnData, type = 'SaleRe
                   <div className="border-t border-dashed border-slate-300 pt-2 flex justify-between items-center">
                     <span className="font-black text-slate-900 uppercase">TOTAL REFUND:</span>
                     <span className="font-mono text-base font-black text-emerald-700">
-                      Rs. {refundAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Rs. {Math.round(refundAmount).toLocaleString()}
                     </span>
                   </div>
                 </div>

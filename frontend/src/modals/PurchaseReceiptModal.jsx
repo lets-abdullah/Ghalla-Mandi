@@ -102,8 +102,8 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
             <td style="padding: 8px 10px; text-align: center; color: #64748b; font-weight: 600;">${idx + 1}</td>
             <td style="padding: 8px 10px; font-weight: 700; color: #0f172a;">${item.name || item.productName || 'Procured Commodity'}</td>
             <td style="padding: 8px 10px; text-align: center; font-weight: 800; color: #334155;">${itemQty} <span style="font-size: 10px; color: #64748b;">${itemUnit}</span></td>
-            <td style="padding: 8px 10px; text-align: right; font-family: monospace; color: #475569;">Rs. ${itemPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            <td style="padding: 8px 10px; text-align: right; font-weight: 800; font-family: monospace; color: #0f172a;">Rs. ${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="padding: 8px 10px; text-align: right; font-family: monospace; color: #475569;">Rs. ${Math.round(itemPrice).toLocaleString()}</td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: 800; font-family: monospace; color: #0f172a;">Rs. ${Math.round(lineTotal).toLocaleString()}</td>
           </tr>
         `;
       }
@@ -203,25 +203,25 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                   <table style="margin-bottom: 0;">
                     <tr>
                       <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Subtotal:</td>
-                      <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 700;">Rs. ${calculatedSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 700;">Rs. ${Math.round(calculatedSubtotal).toLocaleString()}</td>
                     </tr>
                     ${adjustmentNum > 0 ? `
                       <tr>
                         <td style="padding: 4px 8px; color: #059669; font-weight: 600;">Adjustment / Disc:</td>
-                        <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 700; color: #059669;">- Rs. ${adjustmentNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 700; color: #059669;">- Rs. ${Math.round(adjustmentNum).toLocaleString()}</td>
                       </tr>
                     ` : ''}
                     <tr style="background: #064e3b; color: #ffffff;">
                       <td style="padding: 6px 8px; font-weight: 900; font-size: 13px;">Total Amount:</td>
-                      <td style="padding: 6px 8px; text-align: right; font-family: monospace; font-weight: 900; font-size: 14px;">Rs. ${grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style="padding: 6px 8px; text-align: right; font-family: monospace; font-weight: 900; font-size: 14px;">Rs. ${Math.round(grandTotalNum).toLocaleString()}</td>
                     </tr>
                     <tr>
                       <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Total Paid:</td>
-                      <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 800; color: #059669;">Rs. ${paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 800; color: #059669;">Rs. ${Math.round(paidNum).toLocaleString()}</td>
                     </tr>
                     <tr>
                       <td style="padding: 4px 8px; color: #475569; font-weight: 600;">Remaining Due:</td>
-                      <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 800; color: ${dueRemaining > 0 ? '#b45309' : '#0f172a'};">Rs. ${dueRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style="padding: 4px 8px; text-align: right; font-family: monospace; font-weight: 800; color: ${dueRemaining > 0 ? '#b45309' : '#0f172a'};">Rs. ${Math.round(dueRemaining).toLocaleString()}</td>
                     </tr>
                   </table>
                 </div>
@@ -544,10 +544,10 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                     Mode: <span className="font-extrabold text-slate-900">{paymentMode}</span>
                   </div>
                   <div className="font-mono font-black text-sm mt-0.5 text-emerald-700">
-                    Paid: Rs. {paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    Paid: Rs. {Math.round(paidNum).toLocaleString()}
                   </div>
                   <div className={`font-mono font-black text-xs ${dueRemaining > 0 ? 'text-amber-600' : 'text-slate-500'}`}>
-                    {dueRemaining > 0 ? `Supplier dues deducted: Rs. ${dueRemaining.toLocaleString()}` : 'Payment Status: Settled'}
+                    {dueRemaining > 0 ? `Supplier dues deducted: Rs. ${Math.round(dueRemaining).toLocaleString()}` : 'Payment Status: Settled'}
                   </div>
                 </div>
               </div>
@@ -580,10 +580,10 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                             {itemQty} <span className="text-[10px] text-slate-500 font-medium">{item.unit || 'KG'}</span>
                           </td>
                           <td className="py-2 px-3 text-right font-mono font-bold text-slate-600">
-                            {itemPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            Rs. {Math.round(itemPrice).toLocaleString()}
                           </td>
                           <td className="py-2 px-3 text-right font-mono font-black text-slate-900">
-                            {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            Rs. {Math.round(lineTotal).toLocaleString()}
                           </td>
                         </tr>
                       );
@@ -609,33 +609,33 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                   <div className="flex justify-between items-center text-slate-600 px-1">
                     <span>Subtotal:</span>
                     <span className="font-mono text-slate-900">
-                      Rs. {calculatedSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Rs. {Math.round(calculatedSubtotal).toLocaleString()}
                     </span>
                   </div>
                   {adjustmentNum > 0 && (
                     <div className="flex justify-between items-center text-emerald-700 px-1">
                       <span>Adjustment / Disc:</span>
                       <span className="font-mono">
-                        - Rs. {adjustmentNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        - Rs. {Math.round(adjustmentNum).toLocaleString()}
                       </span>
                     </div>
                   )}
                   <div className="bg-[#064e3b] text-white p-2.5 rounded-lg flex justify-between items-center shadow-xs">
                     <span className="text-xs font-black uppercase tracking-wider">Total Amount</span>
                     <span className="font-mono text-base font-black">
-                      Rs. {grandTotalNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Rs. {Math.round(grandTotalNum).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-600 px-1 pt-0.5">
                     <span>Total Paid:</span>
                     <span className="font-mono text-emerald-700 font-black">
-                      Rs. {paidNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Rs. {Math.round(paidNum).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-600 px-1">
                     <span>Remaining Due:</span>
                     <span className={`font-mono font-black ${dueRemaining > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
-                      Rs. {dueRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Rs. {Math.round(dueRemaining).toLocaleString()}
                     </span>
                   </div>
                 </div>

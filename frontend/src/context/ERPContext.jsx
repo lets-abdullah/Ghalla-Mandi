@@ -304,7 +304,18 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   const due = Math.max(0, netDueableTotal - paid);
   const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
 
-  return { total, grossTotal: total, netTotal: netDueableTotal, paid, returnAmount, due, status, isReturned, isFullyReturned, isPartiallyReturned };
+  return {
+    total: Math.round(total),
+    grossTotal: Math.round(total),
+    netTotal: Math.round(netDueableTotal),
+    paid: Math.round(paid),
+    returnAmount: Math.round(returnAmount),
+    due: Math.round(due),
+    status,
+    isReturned,
+    isFullyReturned,
+    isPartiallyReturned
+  };
 };
 
 export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymentLogs = [], allPurchases = []) => {
@@ -411,7 +422,18 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const due = Math.max(0, netDueableTotal - paid);
   const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
 
-  return { total, grossTotal: total, netTotal: netDueableTotal, paid, returnAmount, due, status, isReturned, isFullyReturned, isPartiallyReturned };
+  return {
+    total: Math.round(total),
+    grossTotal: Math.round(total),
+    netTotal: Math.round(netDueableTotal),
+    paid: Math.round(paid),
+    returnAmount: Math.round(returnAmount),
+    due: Math.round(due),
+    status,
+    isReturned,
+    isFullyReturned,
+    isPartiallyReturned
+  };
 };
 
 export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = [], saleReturns = []) => {
@@ -899,11 +921,11 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
     const currentStock = safeQty(product.stockQty !== undefined ? product.stockQty : (product.stockqty !== undefined ? product.stockqty : 0));
     return {
       qty: currentStock,
-      avgCost: initialRate,
-      stockValue: currentStock * initialRate,
-      sellingRate,
-      purchaseRate: initialRate,
-      latestPurchaseRate: initialRate,
+      avgCost: Math.round(initialRate),
+      stockValue: Math.round(currentStock * initialRate),
+      sellingRate: Math.round(sellingRate),
+      purchaseRate: Math.round(initialRate),
+      latestPurchaseRate: Math.round(initialRate),
       totalInflowQty: currentStock,
       totalOutflowQty: 0,
       batches: currentStock > 0 ? [{
@@ -1075,11 +1097,11 @@ export const computeProductValuation = (product, purchases = [], sales = [], sal
 
   return {
     qty: isNaN(totalCurrentStock) ? 0 : totalCurrentStock,
-    avgCost: isNaN(averageCost) ? 0 : averageCost,
-    stockValue: isNaN(totalStockValue) ? 0 : totalStockValue,
-    sellingRate: isNaN(sellingRate) ? 0 : sellingRate,
-    purchaseRate: isNaN(averageCost) ? 0 : averageCost,
-    latestPurchaseRate: isNaN(latestPurchaseRate) ? (isNaN(initialRate) ? 0 : initialRate) : latestPurchaseRate,
+    avgCost: isNaN(averageCost) ? 0 : Math.round(averageCost),
+    stockValue: isNaN(totalStockValue) ? 0 : Math.round(totalStockValue),
+    sellingRate: isNaN(sellingRate) ? 0 : Math.round(sellingRate),
+    purchaseRate: isNaN(averageCost) ? 0 : Math.round(averageCost),
+    latestPurchaseRate: isNaN(latestPurchaseRate) ? (isNaN(initialRate) ? 0 : Math.round(initialRate)) : Math.round(latestPurchaseRate),
     totalInflowQty: isNaN(totalInflowQty) ? 0 : totalInflowQty,
     totalOutflowQty: isNaN(totalOutflowQty) ? 0 : totalOutflowQty,
     batches,

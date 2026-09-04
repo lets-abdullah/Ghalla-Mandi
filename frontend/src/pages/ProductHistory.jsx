@@ -233,8 +233,8 @@ export const ProductHistory = ({ product, onBack }) => {
         filterSummary={`Category: ${product?.category || 'General'} | Code: ${product?.code || 'N/A'} | Unit: ${unit}`}
         stats={[
           { label: 'Total Purchased', value: `${totalPurchasedQty.toLocaleString()} ${unit}` },
-          { label: 'Total Purchase Cost', value: `Rs. ${totalPurchaseCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}` },
-          { label: 'Average Purchase Rate', value: `Rs. ${averagePurchaseRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} / ${unit}` },
+          { label: 'Total Purchase Cost', value: `Rs. ${Math.round(totalPurchaseCost).toLocaleString()}` },
+          { label: 'Average Purchase Rate', value: `Rs. ${Math.round(averagePurchaseRate).toLocaleString()} / ${unit}` },
           { label: 'Current On-Hand Stock', value: `${valuation.qty.toLocaleString()} ${unit}` }
         ]}
       />
@@ -280,7 +280,7 @@ export const ProductHistory = ({ product, onBack }) => {
           </div>
           <div className="mt-2">
             <span className="text-2xl font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
-              Rs. {valuation.stockValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              Rs. {Math.round(valuation.stockValue).toLocaleString()}
             </span>
           </div>
         </div>
@@ -296,7 +296,7 @@ export const ProductHistory = ({ product, onBack }) => {
           </div>
           <div className="mt-2">
             <span className="text-2xl font-black font-mono tracking-tight text-amber-600 dark:text-amber-400">
-              Rs. {(valuation.latestPurchaseRate || valuation.avgCost).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              Rs. {Math.round(valuation.latestPurchaseRate || valuation.avgCost).toLocaleString()}
             </span>
           </div>
         </div>
@@ -396,7 +396,7 @@ export const ProductHistory = ({ product, onBack }) => {
                       Rs. {item.rate.toLocaleString()} / {unit}
                     </td>
                     <td className="py-3 px-4 sm:px-5 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
-                      Rs. {item.totalCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      Rs. {Math.round(item.totalCost).toLocaleString()}
                     </td>
                   </tr>
                 ))
@@ -423,7 +423,7 @@ export const ProductHistory = ({ product, onBack }) => {
             <div className="flex items-center gap-1.5">
               <span className="text-slate-400 uppercase text-[10px] tracking-wider font-sans font-bold">Total Purchase Cost:</span>
               <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">
-                Rs. {totalPurchaseCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                Rs. {Math.round(totalPurchaseCost).toLocaleString()}
               </span>
             </div>
           </div>

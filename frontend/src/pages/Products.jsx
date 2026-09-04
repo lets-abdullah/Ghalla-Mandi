@@ -358,15 +358,15 @@ export const Products = () => {
                           </span>
                         </div>
                         <div className="text-[10px] font-bold text-slate-400 font-mono">
-                          Value: Rs. {val.stockValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          Value: Rs. {Math.round(val.stockValue).toLocaleString()}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right font-mono">
                         <div className="font-black text-slate-700 dark:text-slate-200">
-                          Avg: Rs. {val.avgCost.toLocaleString(undefined, { maximumFractionDigits: 2 })} / {unit}
+                          Avg: Rs. {Math.round(val.avgCost).toLocaleString()} / {unit}
                         </div>
                         <div className="text-[10px] text-slate-400 font-bold">
-                          Latest: Rs. {(val.latestPurchaseRate || val.avgCost).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          Latest: Rs. {Math.round(val.latestPurchaseRate || val.avgCost).toLocaleString()}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right text-brand-500 font-extrabold font-mono">

@@ -814,7 +814,7 @@ export const Reports = () => {
         if (unitCost <= 0) {
           unitCost = Number(it.costPrice ?? it.purchasePrice ?? prod?.purchasePrice ?? prod?.purchaseprice ?? 0);
         }
-        sum += (itQty * unitCost);
+        sum += Math.round(itQty * unitCost);
       });
     });
     (saleReturns || []).forEach(r => {
@@ -830,15 +830,15 @@ export const Reports = () => {
         if (unitCost <= 0) {
           unitCost = Number(it.costPrice ?? it.purchasePrice ?? prod?.purchasePrice ?? prod?.purchaseprice ?? 0);
         }
-        sum -= (itQty * unitCost);
+        sum -= Math.round(itQty * unitCost);
       });
     });
-    return Math.max(0, sum);
+    return Math.round(Math.max(0, sum));
   }, [sales, saleReturns, products, purchases, purchaseReturns]);
 
-  const cogs = totalSalesCOGS;
-  const grossOperatingProfit = useMemo(() => totalNetSales - cogs, [totalNetSales, cogs]);
-  const netOperatingProfit = useMemo(() => grossOperatingProfit - totalExpensesAmount, [grossOperatingProfit, totalExpensesAmount]);
+  const cogs = Math.round(totalSalesCOGS);
+  const grossOperatingProfit = useMemo(() => Math.round(totalNetSales - cogs), [totalNetSales, cogs]);
+  const netOperatingProfit = useMemo(() => Math.round(grossOperatingProfit - totalExpensesAmount), [grossOperatingProfit, totalExpensesAmount]);
 
   // Combined Customer Receivables List (Regular + Walk-in Customers) for Balance Sheet
   const allCustomerReceivablesList = useMemo(() => {
@@ -1356,7 +1356,7 @@ export const Reports = () => {
   const totalLiquidAssets = liquidCashAsset + liquidBankAsset + liquidCardAsset;
 
   const totalAssets = useMemo(() => {
-    return totalLiquidAssets + totalCustomerReceivables + totalStockValuation + totalSupplierAdvances;
+    return Math.round(totalLiquidAssets + totalCustomerReceivables + totalStockValuation + totalSupplierAdvances);
   }, [totalLiquidAssets, totalCustomerReceivables, totalStockValuation, totalSupplierAdvances]);
 
   // 2. LIABILITIES: Supplier Payables + Cash Overdraft/Deficit + Bank Overdraft
@@ -1366,20 +1366,20 @@ export const Reports = () => {
   const totalOverdraftLiabilities = cashDeficitLiability + bankOverdraftLiability + cardDeficitLiability;
 
   const totalLiabilities = useMemo(() => {
-    return totalSupplierPayables + totalOverdraftLiabilities;
+    return Math.round(totalSupplierPayables + totalOverdraftLiabilities);
   }, [totalSupplierPayables, totalOverdraftLiabilities]);
 
   // 3. EQUITY: Canonical Double-Entry Equation (Total Assets = Total Liabilities + Total Equity)
   const totalEquity = useMemo(() => {
-    return totalAssets - totalLiabilities;
+    return Math.round(totalAssets - totalLiabilities);
   }, [totalAssets, totalLiabilities]);
 
   const ownersCapital = useMemo(() => {
-    return totalEquity - netOperatingProfit;
+    return Math.round(totalEquity - netOperatingProfit);
   }, [totalEquity, netOperatingProfit]);
 
   const retainedProfit = useMemo(() => {
-    return netOperatingProfit;
+    return Math.round(netOperatingProfit);
   }, [netOperatingProfit]);
 
   const bsEquityBreakdown = useMemo(() => {
@@ -1646,7 +1646,7 @@ export const Reports = () => {
         if (unitCost <= 0) {
           unitCost = Number(it.costPrice ?? it.purchasePrice ?? pObj?.purchasePrice ?? pObj?.purchaseprice ?? 0);
         }
-        saleCogs += (itQty * unitCost);
+        saleCogs += Math.round(itQty * unitCost);
       });
 
       journal.push({
@@ -1660,9 +1660,9 @@ export const Reports = () => {
         isIncome: true,
         qty: `${totalQty} ${unit}`,
         rawQty: totalQty,
-        amount: grossAmt,
-        cogs: saleCogs,
-        grossProfit: grossAmt - saleCogs,
+        amount: Math.round(grossAmt),
+        cogs: Math.round(saleCogs),
+        grossProfit: Math.round(grossAmt - saleCogs),
         party: s.partyName || s.customerName || 'Customer Party',
         mode: resolveTransactionPayment(s, 'Sale').channel === 'khata' ? 'Khata (Credit)' : resolveTransactionPayment(s, 'Sale').channel === 'bank' ? 'Bank' : resolveTransactionPayment(s, 'Sale').channel === 'wallet' ? 'Mobile Wallet' : 'Cash'
       });
@@ -1694,7 +1694,7 @@ export const Reports = () => {
         isIncome: false,
         qty: `${totalQty} ${unit}`,
         rawQty: totalQty,
-        amount: -grossAmt,
+        amount: -Math.round(grossAmt),
         party: p.supplierName || p.supplier || 'Supplier Firm',
         mode: pPay.channel === 'khata' ? 'Supplier Khata' : (pPay.channel === 'bank' ? 'Bank' : (pPay.channel === 'wallet' ? 'Mobile Wallet' : 'Cash'))
       });
@@ -1716,7 +1716,7 @@ export const Reports = () => {
         isIncome: false,
         qty: '—',
         rawQty: 0,
-        amount: -Number(e.amount || 0),
+        amount: -Math.round(Number(e.amount || 0)),
         party: 'Shop Operations',
         mode: ePay.channel === 'khata' ? 'Payable (Due)' : (ePay.channel === 'bank' ? 'Bank' : (ePay.channel === 'wallet' ? 'Mobile Wallet' : 'Cash'))
       });
@@ -1741,7 +1741,7 @@ export const Reports = () => {
         if (unitCost <= 0) {
           unitCost = Number(item.costPrice ?? item.purchasePrice ?? pObj?.purchasePrice ?? pObj?.purchaseprice ?? 0);
         }
-        returnCogs += (itQty * unitCost);
+        returnCogs += Math.round(itQty * unitCost);
       });
 
       journal.push({
@@ -1755,9 +1755,9 @@ export const Reports = () => {
         isIncome: false,
         qty: it.qty ? `${it.qty} ${it.unit || 'KG'}` : '—',
         rawQty: Number(it.qty || 0),
-        amount: -refAmt,
-        cogs: returnCogs,
-        grossProfit: -(refAmt - returnCogs),
+        amount: -Math.round(refAmt),
+        cogs: Math.round(returnCogs),
+        grossProfit: -Math.round(refAmt - returnCogs),
         party: r.customerName || 'Customer Party',
         mode: srPay.isLiquid ? (srPay.channel === 'bank' ? 'Bank' : srPay.channel === 'wallet' ? 'Mobile Wallet' : 'Cash') : 'Credit Note'
       });
@@ -1781,7 +1781,7 @@ export const Reports = () => {
         isIncome: true,
         qty: it.qty ? `${it.qty} ${it.unit || 'KG'}` : '—',
         rawQty: Number(it.qty || 0),
-        amount: refAmt,
+        amount: Math.round(refAmt),
         party: r.supplierName || 'Supplier Firm',
         mode: prPay.isLiquid ? (prPay.channel === 'bank' ? 'Bank' : prPay.channel === 'wallet' ? 'Mobile Wallet' : 'Cash') : 'Debit Note'
       });
@@ -1803,7 +1803,8 @@ export const Reports = () => {
         // Purchases and Purchase Returns are inventory balance-sheet movements; unsold stock remains in warehouse inventory
         profitImpact = 0;
       }
-      running += profitImpact;
+      profitImpact = Math.round(profitImpact);
+      running = Math.round(running + profitImpact);
       item.profitImpact = profitImpact;
       item.runningPnL = running;
     });
@@ -1899,43 +1900,43 @@ export const Reports = () => {
   const plTotalRevenue = useMemo(() => {
     const grossSales = filteredPlJournal.filter(t => t.type === 'Sale').reduce((sum, t) => sum + Math.abs(t.amount), 0);
     const saleReturnsVal = filteredPlJournal.filter(t => t.category === 'Sale Return' || (t.type && t.type.includes('Sale Return'))).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    return Math.max(0, grossSales - saleReturnsVal);
+    return Math.round(Math.max(0, grossSales - saleReturnsVal));
   }, [filteredPlJournal]);
 
   const plTotalSalesIncome = useMemo(() => {
-    return filteredPlJournal.filter(t => t.type === 'Sale').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    return Math.round(filteredPlJournal.filter(t => t.type === 'Sale').reduce((sum, t) => sum + Math.abs(t.amount), 0));
   }, [filteredPlJournal]);
 
   const plTotalReturns = useMemo(() => {
-    return filteredPlJournal.filter(t => t.category === 'Sale Return' || (t.type && t.type.includes('Sale Return'))).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    return Math.round(filteredPlJournal.filter(t => t.category === 'Sale Return' || (t.type && t.type.includes('Sale Return'))).reduce((sum, t) => sum + Math.abs(t.amount), 0));
   }, [filteredPlJournal]);
 
   // Cost of Goods Sold (COGS): Actual purchase cost of items sold in this period
   const plTotalCOGS = useMemo(() => {
     const soldCogs = filteredPlJournal.filter(t => t.type === 'Sale').reduce((sum, t) => sum + (Number(t.cogs) || 0), 0);
     const returnCogs = filteredPlJournal.filter(t => t.category === 'Sale Return' || (t.type && t.type.includes('Sale Return'))).reduce((sum, t) => sum + (Number(t.cogs) || 0), 0);
-    return Math.max(0, soldCogs - returnCogs);
+    return Math.round(Math.max(0, soldCogs - returnCogs));
   }, [filteredPlJournal]);
 
   // Total Procurement Purchases (Separate Operational Metric for Inventory Addition)
   const plTotalPurchases = useMemo(() => {
     const grossPur = filteredPlJournal.filter(t => t.type === 'Purchase').reduce((sum, t) => sum + Math.abs(t.amount), 0);
     const purReturnsVal = filteredPlJournal.filter(t => t.category === 'Purchase Return' || (t.type && t.type.includes('Purchase Return'))).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    return Math.max(0, grossPur - purReturnsVal);
+    return Math.round(Math.max(0, grossPur - purReturnsVal));
   }, [filteredPlJournal]);
 
-  const plGrossProfit = useMemo(() => plTotalRevenue - plTotalCOGS, [plTotalRevenue, plTotalCOGS]);
-  const plGrossMargin = useMemo(() => plTotalRevenue > 0 ? ((plGrossProfit / plTotalRevenue) * 100).toFixed(2) : '0.00', [plGrossProfit, plTotalRevenue]);
+  const plGrossProfit = useMemo(() => Math.round(plTotalRevenue - plTotalCOGS), [plTotalRevenue, plTotalCOGS]);
+  const plGrossMargin = useMemo(() => plTotalRevenue > 0 ? String(Math.round((plGrossProfit / plTotalRevenue) * 100)) : '0', [plGrossProfit, plTotalRevenue]);
 
   const plTotalExpenses = useMemo(() => {
-    return filteredPlJournal.filter(t => t.type === 'Expense').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    return Math.round(filteredPlJournal.filter(t => t.type === 'Expense').reduce((sum, t) => sum + Math.abs(t.amount), 0));
   }, [filteredPlJournal]);
 
-  const plNetProfit = useMemo(() => plGrossProfit - plTotalExpenses, [plGrossProfit, plTotalExpenses]);
-  const plNetMargin = useMemo(() => plTotalRevenue > 0 ? ((plNetProfit / plTotalRevenue) * 100).toFixed(2) : '0.00', [plNetProfit, plTotalRevenue]);
+  const plNetProfit = useMemo(() => Math.round(plGrossProfit - plTotalExpenses), [plGrossProfit, plTotalExpenses]);
+  const plNetMargin = useMemo(() => plTotalRevenue > 0 ? String(Math.round((plNetProfit / plTotalRevenue) * 100)) : '0', [plNetProfit, plTotalRevenue]);
 
-  const plTotalInflow = plTotalRevenue;
-  const plTotalOutflow = plTotalCOGS + plTotalExpenses;
+  const plTotalInflow = Math.round(plTotalRevenue);
+  const plTotalOutflow = Math.round(plTotalCOGS + plTotalExpenses);
 
   // Pagination for Bank Statement
   const totalPlPages = Math.max(1, Math.ceil(filteredPlJournal.length / plPageSize));
@@ -1987,11 +1988,13 @@ export const Reports = () => {
     });
 
     return Object.values(map).filter(p => p.unitsSold > 0 || p.salesRevenue > 0).map(p => {
-      const cogs = p.unitsSold * p.purchasePrice;
-      const gp = p.salesRevenue - cogs;
-      const margin = p.salesRevenue > 0 ? ((gp / p.salesRevenue) * 100).toFixed(1) : '0.0';
+      const cogs = Math.round(p.unitsSold * p.purchasePrice);
+      const gp = Math.round(p.salesRevenue - cogs);
+      const margin = p.salesRevenue > 0 ? String(Math.round((gp / p.salesRevenue) * 100)) : '0';
       return {
         ...p,
+        salesRevenue: Math.round(p.salesRevenue),
+        purchasePrice: Math.round(p.purchasePrice),
         cogs,
         grossProfit: gp,
         margin
@@ -2011,7 +2014,7 @@ export const Reports = () => {
         expenses: 0,
         grossProfit: 0,
         netProfit: 0,
-        margin: '0.0'
+        margin: '0'
       };
     });
 
@@ -2026,7 +2029,7 @@ export const Reports = () => {
           expenses: 0,
           grossProfit: 0,
           netProfit: 0,
-          margin: '0.0'
+          margin: '0'
         };
       }
 
@@ -2044,11 +2047,19 @@ export const Reports = () => {
     });
 
     return Object.values(map).filter(c => c.sales > 0 || c.cogs > 0 || c.purchases > 0 || c.expenses > 0).map(c => {
-      const gp = c.sales - c.cogs;
-      const net = gp - c.expenses;
-      const margin = c.sales > 0 ? ((net / c.sales) * 100).toFixed(1) : '0.0';
+      const sales = Math.round(c.sales);
+      const cogs = Math.round(c.cogs);
+      const purchases = Math.round(c.purchases);
+      const expenses = Math.round(c.expenses);
+      const gp = Math.round(sales - cogs);
+      const net = Math.round(gp - expenses);
+      const margin = sales > 0 ? String(Math.round((net / sales) * 100)) : '0';
       return {
         ...c,
+        sales,
+        cogs,
+        purchases,
+        expenses,
         grossProfit: gp,
         netProfit: net,
         margin
@@ -2073,7 +2084,7 @@ export const Reports = () => {
     };
 
     // Helper to format numeric values cleanly
-    const num = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const num = (n) => Math.round(Number(n || 0)).toLocaleString('en-US');
 
     // Helper to build rows padded to exact column count
     const makeRow = (cells, totalCols = 8) => {
@@ -3681,12 +3692,12 @@ export const Reports = () => {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400"> Sales Revenue</span>
               </div>
               <div className="text-2xl font-black font-mono mt-2 text-emerald-600 dark:text-emerald-400">
-                Rs. {plTotalRevenue.toLocaleString()}
+                Rs. {Math.round(plTotalRevenue).toLocaleString()}
               </div>
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/80 text-[10px] text-slate-500 font-mono">
-                <span>Sales: Rs. {plTotalSalesIncome.toLocaleString()}</span>
+                <span>Sales: Rs. {Math.round(plTotalSalesIncome).toLocaleString()}</span>
                 <span>•</span>
-                <span>Returns: Rs. {plTotalReturns.toLocaleString()}</span>
+                <span>Returns: Rs. {Math.round(plTotalReturns).toLocaleString()}</span>
               </div>
             </div>
 
@@ -3697,12 +3708,12 @@ export const Reports = () => {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-rose-500">Cost of Sales & Expenses</span>
               </div>
               <div className="text-2xl font-black font-mono mt-2 text-rose-600 dark:text-rose-400">
-                Rs. {(plTotalCOGS + plTotalExpenses).toLocaleString()}
+                Rs. {Math.round(plTotalCOGS + plTotalExpenses).toLocaleString()}
               </div>
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/80 text-[10px] text-slate-500 font-mono">
-                <span>COGS: Rs. {plTotalCOGS.toLocaleString()}</span>
+                <span>COGS: Rs. {Math.round(plTotalCOGS).toLocaleString()}</span>
                 <span>•</span>
-                <span>Expenses: Rs. {plTotalExpenses.toLocaleString()}</span>
+                <span>Expenses: Rs. {Math.round(plTotalExpenses).toLocaleString()}</span>
               </div>
             </div>
 
@@ -3721,10 +3732,10 @@ export const Reports = () => {
                 </span>
               </div>
               <div className={`text-2xl font-black font-mono mt-2 ${plNetProfit >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-400'}`}>
-                {plNetProfit >= 0 ? '+Rs. ' : '-Rs. '}{Math.abs(plNetProfit).toLocaleString()}
+                {plNetProfit >= 0 ? '+Rs. ' : '-Rs. '}{Math.round(Math.abs(plNetProfit)).toLocaleString()}
               </div>
               <div className="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-800 text-[10px] font-mono text-slate-500">
-                Gross Profit: Rs. {plGrossProfit.toLocaleString()} ({plGrossMargin}% Gross Margin)
+                Gross Profit: Rs. {Math.round(plGrossProfit).toLocaleString()} ({Math.round(Number(plGrossMargin))}% Gross Margin)
               </div>
             </div>
           </div>
