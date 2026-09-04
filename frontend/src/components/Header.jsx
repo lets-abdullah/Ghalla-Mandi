@@ -134,7 +134,7 @@ export const Header = () => {
             className={`flex items-center gap-2 pl-2 border-l transition cursor-pointer ${theme === 'dark' ? 'border-slate-800 hover:opacity-80' : 'border-slate-200 hover:opacity-80'
               }`}
           >
-            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 text-white font-black flex items-center justify-center text-xs shadow-md shadow-brand-500/25">
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-700 text-white font-black flex items-center justify-center text-xs shadow-md shadow-emerald-500/25">
               {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="hidden md:block text-left">

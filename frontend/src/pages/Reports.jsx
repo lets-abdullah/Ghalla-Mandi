@@ -6,7 +6,7 @@ import {
   CheckCircle2, AlertTriangle, ArrowUpDown, Package, Eye,
   Calendar, Users, ShoppingCart, ChevronDown, ChevronUp, BarChart3, Percent, Layers,
   RefreshCw, ArrowUpRight, ArrowDownRight, Wallet, Banknote, ChevronRight, CreditCard,
-  Receipt
+  Receipt, Clock, ShieldCheck
 } from 'lucide-react';
 import { useERP, resolveTransactionPayment, computeCustomerKhataBalance, computeSupplierKhataBalance, computeSaleFinancials, computePurchaseFinancials, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -4111,15 +4111,17 @@ export const Reports = () => {
           <div className={`no-print p-3 rounded-2xl border card-shadow flex flex-wrap items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Statement:</span>
-              <span className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400">As of All Time</span>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">STATEMENT:</span>
+              <span className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400">
+                AS OF {bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter.toUpperCase()}
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
               <select
                 value={bsDateFilter}
                 onChange={(e) => setBsDateFilter(e.target.value)}
-                className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                   }`}
               >
                 <option value="All Time">All Time</option>
@@ -4157,8 +4159,8 @@ export const Reports = () => {
             <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <span>Total Assets</span>
-                <Building className="w-3.5 h-3.5 text-emerald-500" />
+                <span>TOTAL ASSETS</span>
+                <Receipt className="w-4 h-4 text-emerald-500" />
               </div>
               <div className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1">
                 Rs. {totalAssets.toLocaleString()}
@@ -4166,12 +4168,12 @@ export const Reports = () => {
               <div className="text-[11px] font-medium text-slate-400 mt-0.5">What You Own</div>
             </div>
 
-            {/* 2. TOTAL LIABILITIES */}
+            {/* 2. TOTAL YOU OWE */}
             <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <span>Total Liabilities</span>
-                <PieChart className="w-3.5 h-3.5 text-rose-500" />
+                <span>TOTAL YOU OWE</span>
+                <Clock className="w-4 h-4 text-rose-500" />
               </div>
               <div className="text-xl sm:text-2xl font-black font-mono text-rose-600 dark:text-rose-400 mt-1">
                 Rs. {totalLiabilities.toLocaleString()}
@@ -4179,12 +4181,12 @@ export const Reports = () => {
               <div className="text-[11px] font-medium text-slate-400 mt-0.5">What You Owe</div>
             </div>
 
-            {/* 3. OPERATING NET PROFIT */}
+            {/* 3. NET PROFIT */}
             <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <span>Net Profit</span>
-                <ArrowUpRight className="w-3.5 h-3.5 text-amber-500" />
+                <span>NET PROFIT</span>
+                <ArrowUpRight className="w-4 h-4 text-amber-500" />
               </div>
               <div className="text-xl sm:text-2xl font-black font-mono text-amber-600 dark:text-amber-400 mt-1">
                 Rs. {netOperatingProfit.toLocaleString()}
@@ -4192,17 +4194,17 @@ export const Reports = () => {
               <div className="text-[11px] font-medium text-slate-400 mt-0.5">From P&L Report</div>
             </div>
 
-            {/* 4. NET BUSINESS WORTH */}
+            {/* 4. YOUR NET WORTH */}
             <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <span>Net Worth</span>
-                <Wallet className="w-3.5 h-3.5 text-indigo-500" />
+                <span>YOUR NET WORTH</span>
+                <Wallet className="w-4 h-4 text-indigo-500" />
               </div>
               <div className="text-xl sm:text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400 mt-1">
                 Rs. {totalEquity.toLocaleString()}
               </div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Assets − Liabilities</div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Your Business Value</div>
             </div>
           </div>
 
@@ -4223,14 +4225,14 @@ export const Reports = () => {
           {/* Clean 2-Column Balance Sheet */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* ========================================================================= */}
-            {/* LEFT COLUMN: ASSETS (WHAT YOU OWN) */}
+            {/* LEFT COLUMN: WHAT YOU OWN (ASSETS) */}
             {/* ========================================================================= */}
             <div className={`border rounded-2xl p-4 sm:p-5 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
                 <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                  <Building className="w-4 h-4" />
-                  <span>Assets (What You Own)</span>
+                  <Receipt className="w-4 h-4" />
+                  <span>WHAT YOU OWN (ASSETS)</span>
                 </h3>
                 <span className="text-sm font-mono font-black text-emerald-600 dark:text-emerald-400">
                   Rs. {totalAssets.toLocaleString()}
@@ -4238,11 +4240,11 @@ export const Reports = () => {
               </div>
 
               <div className="space-y-2 text-xs">
-                {/* 1. Cash & Bank Balances */}
-                <div className={`p-3 rounded-xl border space-y-1.5 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
+                {/* 1. Liquid Cash & Bank Balances */}
+                <div className={`p-3.5 rounded-xl border space-y-1.5 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50/80 border-slate-200/70'}`}>
                   <div className="flex items-center justify-between font-bold">
                     <span className="text-slate-800 dark:text-slate-200">1. Liquid Cash & Bank Balances</span>
-                    <span className="font-mono text-sm text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidAssets.toLocaleString()}</span>
+                    <span className="font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidAssets.toLocaleString()}</span>
                   </div>
                   <div className="space-y-0.5 text-[11px] text-slate-600 dark:text-slate-300">
                     <div className="flex justify-between">
@@ -4257,36 +4259,41 @@ export const Reports = () => {
                 </div>
 
                 {/* 2. Customer Khata Receivables */}
-                <div className={`p-3 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
+                <div className={`p-3.5 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50/80 border-slate-200/70'}`}>
                   <div className="space-y-0.5">
                     <div className="font-bold text-slate-800 dark:text-slate-200">2. Customer Khata Receivables</div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                       Outstanding balance due from customers
                     </div>
                   </div>
-                  <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                  <div className="font-mono font-black text-sm text-slate-900 dark:text-white">
                     Rs. {totalCustomerReceivables.toLocaleString()}
                   </div>
                 </div>
 
                 {/* 3. Godown Stock Inventory */}
-                <div className={`p-3 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
+                <div className={`p-3.5 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50/80 border-slate-200/70'}`}>
                   <div className="space-y-0.5">
                     <div className="font-bold text-slate-800 dark:text-slate-200">3. Godown Stock Inventory</div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                       Warehouse commodities at purchase cost
                     </div>
                   </div>
-                  <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                  <div className="font-mono font-black text-sm text-slate-900 dark:text-white">
                     Rs. {totalStockValuation.toLocaleString()}
                   </div>
                 </div>
 
                 {/* 4. Supplier Advances (if any) */}
                 {totalSupplierAdvances > 0 && (
-                  <div className={`p-3 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
-                    <div className="font-bold text-slate-800 dark:text-slate-200">4. Supplier Advance Credits</div>
-                    <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                  <div className={`p-3.5 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50/80 border-slate-200/70'}`}>
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-slate-800 dark:text-slate-200">4. Supplier Advance Credits</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                        Advance payments made to suppliers
+                      </div>
+                    </div>
+                    <div className="font-mono font-black text-sm text-slate-900 dark:text-white">
                       Rs. {totalSupplierAdvances.toLocaleString()}
                     </div>
                   </div>
@@ -4294,113 +4301,130 @@ export const Reports = () => {
 
                 {/* Left Total Summary Line */}
                 <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex items-center justify-between font-black text-sm">
-                  <span>TOTAL ASSETS:</span>
+                  <span className="tracking-wide uppercase">TOTAL ASSETS (WHAT YOU OWN):</span>
                   <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalAssets.toLocaleString()}</span>
                 </div>
               </div>
             </div>
 
             {/* ========================================================================= */}
-            {/* RIGHT COLUMN: LIABILITIES & EQUITY (WHAT YOU OWE & NET WORTH) */}
+            {/* RIGHT COLUMN: YOUR FINANCIAL POSITION */}
             {/* ========================================================================= */}
             <div className={`border rounded-2xl p-4 sm:p-5 card-shadow space-y-3.5 ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
-                <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-rose-600 dark:text-rose-400">
-                  <PieChart className="w-4 h-4" />
-                  <span>Liabilities & Equity</span>
+                <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                  <BarChart3 className="w-4 h-4" />
+                  <span>YOUR FINANCIAL POSITION</span>
                 </h3>
-                <span className="text-sm font-mono font-black text-slate-900 dark:text-white">
+                <span className="text-sm font-mono font-black text-blue-600 dark:text-blue-400">
                   Rs. {(totalLiabilities + totalEquity).toLocaleString()}
                 </span>
               </div>
 
               <div className="space-y-3 text-xs">
                 {/* Section A: Liabilities */}
-                <div className="space-y-1.5">
-                  <div className="text-[11px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
-                    A. Current Liabilities (Rs. {totalLiabilities.toLocaleString()})
+                <div className="p-3.5 rounded-xl border space-y-2 bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/40">
+                  <div className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                    A. WHAT YOU OWE (LIABILITIES)
                   </div>
 
-                  <div className={`p-3 rounded-xl border space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
-                    <div className="flex items-center justify-between font-bold">
+                  <div className="space-y-1 text-[11px]">
+                    <div className="flex items-center justify-between font-medium">
                       <span className="text-slate-800 dark:text-slate-200">• Supplier Khata Payables</span>
-                      <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
+                      <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
                     </div>
 
                     {cashDeficitLiability > 0 && (
-                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300 pl-2">
-                        <span>• Cash Drawer Deficit</span>
-                        <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {cashDeficitLiability.toLocaleString()}</span>
+                      <div className="flex items-center justify-between font-medium">
+                        <span className="text-slate-800 dark:text-slate-200">• Cash Drawer Deficit</span>
+                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {cashDeficitLiability.toLocaleString()}</span>
                       </div>
                     )}
 
                     {bankOverdraftLiability > 0 && (
-                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300 pl-2">
-                        <span>• Bank Overdraft</span>
-                        <span className="font-mono text-rose-600 dark:text-rose-400">Rs. {bankOverdraftLiability.toLocaleString()}</span>
+                      <div className="flex items-center justify-between font-medium">
+                        <span className="text-slate-800 dark:text-slate-200">• Bank Overdraft</span>
+                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {bankOverdraftLiability.toLocaleString()}</span>
                       </div>
                     )}
                   </div>
+
+                  <div className="pt-2 border-t border-rose-200/60 dark:border-rose-800/40 flex items-center justify-between font-bold text-xs">
+                    <span className="text-rose-600 dark:text-rose-400">Total You Owe:</span>
+                    <span className="font-mono font-black text-rose-600 dark:text-rose-400">Rs. {totalLiabilities.toLocaleString()}</span>
+                  </div>
                 </div>
 
-                {/* Section B: Equity */}
-                <div className="space-y-1.5">
-                  <div className="text-[11px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                    B. Owner's Equity & Capital (Rs. {totalEquity.toLocaleString()})
+                {/* Section B: Net Worth */}
+                <div className="p-3.5 rounded-xl border space-y-2 bg-blue-50/50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900/40">
+                  <div className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                    B. YOUR BUSINESS VALUE (NET WORTH)
                   </div>
 
-                  <div className={`p-3 rounded-xl border space-y-2 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50 border-slate-200/70'}`}>
-                    <div className="flex items-center justify-between font-bold">
+                  <div className="space-y-1 text-[11px]">
+                    <div className="flex items-center justify-between font-medium">
                       <span className="text-slate-800 dark:text-slate-200">• Owner's Opening Capital:</span>
-                      <span className="font-mono text-slate-900 dark:text-white">Rs. {ownersCapital.toLocaleString()}</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {ownersCapital.toLocaleString()}</span>
                     </div>
 
-                    <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300 pl-2">
-                      <div className="flex justify-between items-center">
-                        <span>+ Net Profit (from P&L):</span>
-                        <span className={`font-mono font-bold ${netOperatingProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                          {netOperatingProfit >= 0 ? `+ Rs. ${netOperatingProfit.toLocaleString()}` : `- Rs. ${Math.abs(netOperatingProfit).toLocaleString()}`}
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between font-medium">
+                      <span className="text-slate-800 dark:text-slate-200">• Net Profit (from P&L):</span>
+                      <span className={`font-mono font-bold ${netOperatingProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                        {netOperatingProfit >= 0 ? `+ Rs. ${netOperatingProfit.toLocaleString()}` : `- Rs. ${Math.abs(netOperatingProfit).toLocaleString()}`}
+                      </span>
                     </div>
+                  </div>
 
-                    <div className="flex items-center justify-between font-bold pt-1.5 border-t border-slate-200/50 dark:border-slate-700/50">
-                      <span className="text-slate-800 dark:text-slate-200">• Total Owner's Equity (Net Worth):</span>
-                      <span className="font-mono text-emerald-600 dark:text-emerald-400">Rs. {totalEquity.toLocaleString()}</span>
-                    </div>
+                  <div className="pt-2 border-t border-blue-200/60 dark:border-blue-800/40 flex items-center justify-between font-bold text-xs">
+                    <span className="text-blue-600 dark:text-blue-400">Your Net Worth (Your Business Value):</span>
+                    <span className="font-mono font-black text-blue-600 dark:text-blue-400">Rs. {totalEquity.toLocaleString()}</span>
                   </div>
                 </div>
 
-                {/* Right Total Summary Line */}
-                <div className="pt-3 border-t-2 border-slate-900 dark:border-white flex items-center justify-between font-black text-sm">
-                  <span>TOTAL LIABILITIES & EQUITY:</span>
-                  <span className="font-mono text-slate-900 dark:text-white">Rs. {(totalLiabilities + totalEquity).toLocaleString()}</span>
+                {/* Summary Shield Card */}
+                <div className={`p-3 rounded-xl border flex items-center justify-center gap-3 text-center ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50/70 border-slate-200/70'}`}>
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200 dark:border-blue-800">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-black text-blue-600 dark:text-blue-400">
+                      Your Business Value: Rs. {totalEquity.toLocaleString()}
+                    </div>
+                    <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      You owe others: Rs. {totalLiabilities.toLocaleString()}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Clean Balanced Status Pill */}
-          <div className="p-3 rounded-xl border text-center text-xs font-bold bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300">
-            ✓ Accounting Equation Reconciled: Total Assets (Rs. {totalAssets.toLocaleString()}) = Total Liabilities (Rs. {totalLiabilities.toLocaleString()}) + Total Equity (Rs. {totalEquity.toLocaleString()}) • Imbalance: Rs. 0
+          <div className="p-3 rounded-xl border text-center text-xs font-bold bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 flex items-center justify-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              Financial position is balanced. You own Rs. {totalAssets.toLocaleString()} and you owe Rs. {totalLiabilities.toLocaleString()}. Your Business Value (Net Worth) is Rs. {totalEquity.toLocaleString()}.
+            </span>
           </div>
 
           {/* Quick link to Cash Flow */}
           <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border bg-slate-50/70 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <Wallet className="w-4 h-4" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <Wallet className="w-4.5 h-4.5" />
               </div>
               <div>
                 <div className="text-xs font-bold text-slate-800 dark:text-white">Cash & Bank Movement Audit</div>
-                <div className="text-[11px] text-slate-400">Track every actual inflow, outflow, refund, and overdraft movement in the full Cash Flow Statement.</div>
+                <div className="text-[11px] text-slate-400 font-medium">
+                  Track every actual inflow, outflow, refund, and overdraft movement in the full Cash Flow Statement.
+                </div>
               </div>
             </div>
             <button
               type="button"
               onClick={() => navigate('/reports?type=CashFlow')}
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0 self-start sm:self-auto"
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0 self-start sm:self-auto"
             >
               <span>Open Cash Flow</span>
               <ArrowUpRight className="w-3.5 h-3.5" />

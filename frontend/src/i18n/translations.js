@@ -148,8 +148,8 @@ export const translations = {
     noSalesFoundForFilters: "No sales found matching your selected date and filter criteria.",
 
     // Authentication (Login & Register)
-    customerLoginPortal: "CUSTOMER LOGIN PORTAL",
-    newCustomerRegistration: "NEW CUSTOMER REGISTRATION",
+    customerLoginPortal: "LOGIN PORTAL",
+    newCustomerRegistration: "NEW REGISTRATION",
     emailAddress: "EMAIL ADDRESS",
     password: "PASSWORD",
     currentPassword: "Current Password",
@@ -164,7 +164,7 @@ export const translations = {
     creatingAccount: "Creating Account...",
     registerAccount: "Register Account",
     dontHaveAccount: "Don't have an account yet?",
-    registerNewAccount: "Register New Customer Account",
+    registerNewAccount: "Register New Account",
     alreadyRegistered: "Already registered?",
     signInToAccount: "Sign In to Your Account",
     loginErrorEmpty: "Please enter both email address and password.",
