@@ -363,6 +363,8 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     return (supId && pPartyId && pPartyId === supId) || (supName && pPartyName === supName);
   });
 
+  const totalUnlinkedCash = unlinkedGeneralLogs.reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
+
   const isKhataPurchase = (purchase.paymentMode === 'Supplier Khata' || purchase.paymentmode === 'Supplier Khata') || (Number(purchase.paidAmount || purchase.paidamount || 0) === 0);
 
   if (isKhataPurchase && matchingLogs.length === 0) {
