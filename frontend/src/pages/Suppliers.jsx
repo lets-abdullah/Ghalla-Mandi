@@ -591,7 +591,12 @@ export const Suppliers = () => {
   };
 
   // Processed Suppliers with Live Financial Balances using Centralized Engine
-  const { allSuppliers: processedSuppliers, totalPayables: totalPayablesAmount, settledCount: settledSuppliersCount } = useMemo(() => {
+  const {
+    allSuppliers: processedSuppliers,
+    totalPayables: totalPayablesAmount,
+    totalSupplierRefundDue: totalRefundDueAmount = 0,
+    settledCount: settledSuppliersCount
+  } = useMemo(() => {
     return computeAllSuppliersFinancials(suppliers, purchases, paymentLogs, purchaseReturns);
   }, [suppliers, purchases, paymentLogs, purchaseReturns]);
 
@@ -615,8 +620,10 @@ export const Suppliers = () => {
 
     // 4. Status filter
     const bal = Number(s.balance) || 0;
+    const refDue = Number(s.refundDue || s.advanceCredit || 0);
     if (statusFilter === 'Payable' && bal <= 0) return false;
-    if (statusFilter === 'Settled' && bal > 0) return false;
+    if (statusFilter === 'RefundDue' && refDue <= 0) return false;
+    if (statusFilter === 'Settled' && (bal > 0 || refDue > 0)) return false;
 
     return true;
   }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
@@ -669,7 +676,7 @@ export const Suppliers = () => {
       </div>
 
       {/* KPI Cards Row (Screen Only) */}
-      <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Total Suppliers */}
         <div
           onClick={() => { setStatusFilter('All'); setSelectedProductFilter('All'); setSelectedSupplierFilter('All'); }}
@@ -693,14 +700,29 @@ export const Suppliers = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-rose-600" />
-            <span>Outstanding Dues</span>
+            <span>Outstanding Payables</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
             Rs. {totalPayablesAmount.toLocaleString()}
           </div>
         </div>
 
-        {/* 3. Settled Suppliers */}
+        {/* 3. Supplier Refund Due */}
+        <div
+          onClick={() => setStatusFilter('RefundDue')}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-teal-50/50 to-white border-teal-200/80'
+            }`}
+        >
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-teal-600" />
+            <span>Supplier Refund Due</span>
+          </div>
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-teal-600 dark:text-teal-400">
+            Rs. {totalRefundDueAmount.toLocaleString()}
+          </div>
+        </div>
+
+        {/* 4. Settled Suppliers */}
         <div
           onClick={() => setStatusFilter('Settled')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
@@ -772,6 +794,7 @@ export const Suppliers = () => {
             >
               <option value="All">All Statuses</option>
               <option value="Payable">Due / Payable</option>
+              <option value="RefundDue">Supplier Refund Due</option>
               <option value="Settled">Settled / Rs. 0</option>
             </select>
           </div>
@@ -844,6 +867,7 @@ export const Suppliers = () => {
               ) : (
                 filteredSuppliers.map(s => {
                   const bal = Number(s.balance) || 0;
+                  const refDue = Number(s.refundDue || s.advanceCredit || 0);
                   const suppliedProds = s.suppliedProducts || [];
                   const isAct = (s.status || 'Active') === 'Active';
 
@@ -874,12 +898,28 @@ export const Suppliers = () => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right font-black font-mono">
-                        <span className={bal > 0 ? 'text-rose-500' : 'text-emerald-500'}>
-                          Rs. {bal.toLocaleString()}
-                        </span>
+                        {refDue > 0 ? (
+                          <div>
+                            <span className="text-teal-600 dark:text-teal-400">
+                              Rs. {refDue.toLocaleString()}
+                            </span>
+                            <div className="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase">Refund Due</div>
+                          </div>
+                        ) : (
+                          <span className={bal > 0 ? 'text-rose-500' : 'text-emerald-500'}>
+                            Rs. {bal.toLocaleString()}
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <StatusBadge status={bal > 0 ? 'Due' : 'Settled'} />
+                        {refDue > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/30">
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Refund Due</span>
+                          </span>
+                        ) : (
+                          <StatusBadge status={bal > 0 ? 'Due' : 'Settled'} />
+                        )}
                       </td>
                       <td className="py-3 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
@@ -893,6 +933,10 @@ export const Suppliers = () => {
                               <CreditCard className="w-3.5 h-3.5" />
                               <span>Pay Supplier</span>
                             </button>
+                          ) : refDue > 0 ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 dark:text-teal-400 font-mono">
+                              <RotateCcw className="w-3.5 h-3.5" /> Refund Due
+                            </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                               <Check className="w-3.5 h-3.5" /> Settled
@@ -1443,7 +1487,8 @@ export const Suppliers = () => {
         const totalPurchasesVal = Number(fin.totalPurchase ?? fin.grossPurchase ?? 0);
         const totalPaidVal = Number(fin.totalPaid ?? 0);
         const balanceDueVal = Number(fin.payableDue ?? 0);
-        const isSettled = balanceDueVal === 0;
+        const refundDueVal = Number(fin.refundDue ?? fin.advanceCredit ?? 0);
+        const isSettled = balanceDueVal === 0 && refundDueVal === 0;
 
         // Chronological combined transactions
         const allTransactions = [
@@ -1479,8 +1524,8 @@ export const Suppliers = () => {
             date: r.date || r.created_at || r.createdAt || '',
             type: 'Return',
             billNo: r.returnNo || `PR-${r.id}`,
-            amount: Number(r.refundAmount || r.totalRefund || 0),
-            paid: Number(r.refundAmount || r.totalRefund || 0),
+            amount: Number(r.totalGoodsValue || r.refundAmount || r.totalRefund || 0),
+            paid: Number(r.refundAmount || 0),
             status: 'Returned',
             note: r.reason || 'Purchase Return Credit'
           }))
@@ -1514,12 +1559,15 @@ export const Suppliers = () => {
                           • {fullSup.businessName}
                         </span>
                       )}
-                      <span className={`text-xs font-black uppercase tracking-wider flex items-center gap-1 ${isSettled
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-amber-600 dark:text-amber-400'
+                      <span className={`text-xs font-black uppercase tracking-wider flex items-center gap-1 ${
+                        refundDueVal > 0
+                          ? 'text-teal-600 dark:text-teal-400'
+                          : isSettled
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-amber-600 dark:text-amber-400'
                         }`}>
                         <span>•</span>
-                        <span>{isSettled ? 'Settled' : 'Payable Due'}</span>
+                        <span>{refundDueVal > 0 ? 'Supplier Refund Due' : isSettled ? 'Settled' : 'Payable Due'}</span>
                       </span>
                     </div>
 
@@ -1623,23 +1671,42 @@ export const Suppliers = () => {
                 </div>
 
                 {/* 3. Balance Due */}
-                <div className={`p-4 rounded-2xl border transition-all ${balanceDueVal > 0
-                  ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-gradient-to-br from-rose-50/80 via-white to-amber-50/30 border-rose-200'
-                  : theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 border-slate-200'
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  refundDueVal > 0
+                    ? theme === 'dark' ? 'bg-teal-950/20 border-teal-800/60' : 'bg-gradient-to-br from-teal-50/80 via-white to-emerald-50/30 border-teal-200'
+                    : balanceDueVal > 0
+                    ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-gradient-to-br from-rose-50/80 via-white to-amber-50/30 border-rose-200'
+                    : theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 border-slate-200'
                   }`}>
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Remaining Balance</span>
-                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${balanceDueVal > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    <span className="text-[10px] font-black uppercase tracking-wider">
+                      {refundDueVal > 0 ? 'Supplier Refund Due' : 'Remaining Balance'}
+                    </span>
+                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${
+                      refundDueVal > 0
+                        ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
+                        : balanceDueVal > 0
+                        ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                        : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                       }`}>
-                      {balanceDueVal > 0 ? <AlertCircle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+                      {refundDueVal > 0 ? <RotateCcw className="w-3.5 h-3.5" /> : balanceDueVal > 0 ? <AlertCircle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
                     </div>
                   </div>
-                  <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${balanceDueVal > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                  <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${
+                    refundDueVal > 0
+                      ? 'text-teal-600 dark:text-teal-400'
+                      : balanceDueVal > 0
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : 'text-emerald-600 dark:text-emerald-400'
                     }`}>
-                    Rs. {balanceDueVal.toLocaleString()}
+                    Rs. {(refundDueVal > 0 ? refundDueVal : balanceDueVal).toLocaleString()}
                   </div>
                   <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                    {balanceDueVal > 0 ? 'Pending Payable Liability' : '✓ Account Fully Settled'}
+                    {refundDueVal > 0
+                      ? '✓ Refund Receivable from Supplier'
+                      : balanceDueVal > 0
+                      ? 'Pending Payable Liability'
+                      : '✓ Account Fully Settled'}
                   </div>
                 </div>
               </div>

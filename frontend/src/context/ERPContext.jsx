@@ -93,21 +93,23 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
       tx.refundMode || tx.refundmode || tx.mode || tx.paymentMode || 'Cash'
     ).trim().toLowerCase();
 
-    const isBank = rawMode.includes('bank') || rawMode.includes('transfer') || rawMode.includes('raast') || rawMode.includes('online');
-    const isCard = !isBank && rawMode.includes('card');
-    const isCash = !isBank && !isCard;
+    const isNonLiquid = rawMode.includes('khata') || rawMode.includes('credit') || rawMode.includes('due') || rawMode.includes('pending') || refAmt === 0;
+
+    const isBank = !isNonLiquid && (rawMode.includes('bank') || rawMode.includes('transfer') || rawMode.includes('raast') || rawMode.includes('online'));
+    const isCard = !isNonLiquid && !isBank && rawMode.includes('card');
+    const isCash = !isNonLiquid && !isBank && !isCard;
 
     return {
-      channel: isBank ? 'bank' : (isCard ? 'card' : 'cash'),
-      isLiquid: true,
-      isKhata: false,
+      channel: isNonLiquid ? 'khata' : (isBank ? 'bank' : (isCard ? 'card' : 'cash')),
+      isLiquid: !isNonLiquid && refAmt > 0,
+      isKhata: isNonLiquid,
       cashAmount: isCash ? refAmt : 0,
       bankAmount: isBank ? refAmt : 0,
       cardAmount: isCard ? refAmt : 0,
-      totalLiquid: refAmt,
-      creditAmount: 0,
+      totalLiquid: !isNonLiquid ? refAmt : 0,
+      creditAmount: isNonLiquid ? refAmt : 0,
       grossAmount: refAmt,
-      refundMode: isBank ? 'Bank Account' : (isCard ? 'Card' : 'Cash'),
+      refundMode: isNonLiquid ? 'Khata / Due Adjustment' : (isBank ? 'Bank Account' : (isCard ? 'Card' : 'Cash')),
       refundAmount: refAmt
     };
   }
@@ -1150,7 +1152,7 @@ export const computeWalkinUncollectedDues = (sales = [], saleReturns = [], payme
 };
 
 export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLogs = [], purchaseReturns = []) => {
-  if (!supplier) return { openingBalance: 0, totalPurchase: 0, grossPurchase: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, returnAmount: 0, netPurchase: 0, netBalance: 0, balance: 0, payableDue: 0, advanceCredit: 0, status: 'Settled', ordersCount: 0 };
+  if (!supplier) return { openingBalance: 0, totalPurchase: 0, grossPurchase: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, netPaid: 0, returnAmount: 0, netPurchase: 0, netBalance: 0, balance: 0, payableDue: 0, refundDue: 0, advanceCredit: 0, status: 'Settled', ordersCount: 0 };
   const supId = supplier.id ? String(supplier.id) : null;
   const supName = (supplier.name || '').trim().toLowerCase();
 
@@ -1170,12 +1172,12 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
 
   const totalReturnAmount = supReturns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0);
 
-  // Supplier Payment Transactions recorded in paymentLogs (excluding Opening Balance and Debit Notes)
+  // Supplier Payment Transactions recorded in paymentLogs (excluding Opening Balance and Non-payments)
   const supPayments = (paymentLogs || []).filter(p => {
     const isSupplier = p.type === 'Supplier' || p.partyType === 'Supplier';
     if (!isSupplier) return false;
     const pMode = String(p.mode || '').trim().toLowerCase();
-    if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+    if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note' || pMode === 'purchase return' || pMode === 'supplier khata') return false;
 
     const pPartyId = p.partyId ? String(p.partyId) : null;
     const pPartyName = (p.partyName || '').trim().toLowerCase();
@@ -1183,6 +1185,12 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   });
 
   const directPaidLogs = supPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+  // Liquid cash/bank refunds actually collected from supplier
+  const liquidRefunds = supReturns.filter(r => {
+    const res = resolveTransactionPayment(r, 'PurchaseReturn');
+    return res.isLiquid && res.totalLiquid > 0;
+  }).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
 
   let unloggedUpfrontCash = 0;
   if (supPayments.length === 0) {
@@ -1205,36 +1213,42 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   }
 
   const grossPaymentsMade = directPaidLogs + unloggedUpfrontCash;
+  const netPaid = Math.max(0, grossPaymentsMade - liquidRefunds);
   const openingBalance = Number(supplier.openingBalance !== undefined ? supplier.openingBalance : (supplier.openingbalance !== undefined ? supplier.openingbalance : 0));
   const netPurchases = Math.max(0, Math.round(totalGrossPurchase - totalReturnAmount));
-  const totalActualPaymentsPaid = Math.min(grossPaymentsMade, netPurchases);
+  const netBilled = openingBalance + netPurchases;
 
-  // Canonical Accounting Equations: Purchase Returns reduce Net Purchases, No Supplier Advances
-  // Credits (Payable Liability) = Opening Balance + Net Purchases Billed
-  // Debits = Net Payments Made
-  // Payable Due = max(0, Credits - Debits)
-  const totalCredits = openingBalance + netPurchases;
-  const totalDebits = totalActualPaymentsPaid;
-  const netBalance = totalCredits - totalDebits;
+  // Canonical Supplier Accounting Equation:
+  // If netBilled >= netPaid: We owe supplier money -> PayableDue = netBilled - netPaid, RefundDue = 0
+  // If netPaid > netBilled: Supplier has our excess money -> PayableDue = 0, RefundDue = netPaid - netBilled
+  let payableDue = 0;
+  let refundDue = 0;
 
-  // STRICT INTEGER ENFORCEMENT: Any sub-rupee fraction (< 1) is 0
-  const payableDue = netBalance < 1 ? 0 : Math.round(netBalance);
-  const advanceCredit = 0; // Strictly enforced: No supplier advances
-  const status = payableDue > 0 ? 'Payable' : 'Settled';
+  if (netBilled >= netPaid) {
+    payableDue = Math.round(netBilled - netPaid);
+    refundDue = 0;
+  } else {
+    payableDue = 0;
+    refundDue = Math.round(netPaid - netBilled);
+  }
+
+  const status = payableDue > 0 ? 'Payable' : (refundDue > 0 ? 'Refund Due' : 'Settled');
 
   return {
     openingBalance,
     totalPurchase: totalGrossPurchase,
     grossPurchase: totalGrossPurchase,
-    upfrontPaid: totalActualPaymentsPaid,
+    upfrontPaid: Math.min(grossPaymentsMade, netPurchases),
     directPaid: directPaidLogs,
-    totalPaid: totalActualPaymentsPaid,
+    totalPaid: grossPaymentsMade,
+    netPaid,
     returnAmount: totalReturnAmount,
     netPurchase: netPurchases,
-    netBalance: payableDue,
+    netBalance: payableDue > 0 ? payableDue : -refundDue,
     balance: payableDue,
     payableDue,
-    advanceCredit: 0,
+    refundDue,
+    advanceCredit: refundDue,
     status,
     ordersCount: supPurchases.length
   };
@@ -1254,8 +1268,9 @@ export const computeAllSuppliersFinancials = (suppliers = [], purchases = [], pa
   const totalNetPurchases = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.netPurchase || 0), 0));
   const totalPaymentsPaid = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.totalPaid || 0), 0));
   const totalPayables = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.payableDue || 0), 0));
-  const totalSupplierAdvances = 0;
-  const settledCount = allSuppliers.filter(s => s.status === 'Settled' || s.payableDue === 0).length;
+  const totalSupplierRefundDue = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.refundDue || s.advanceCredit || 0), 0));
+  const totalSupplierAdvances = totalSupplierRefundDue;
+  const settledCount = allSuppliers.filter(s => s.status === 'Settled' || (s.payableDue === 0 && s.refundDue === 0)).length;
 
   return {
     allSuppliers,
@@ -1264,6 +1279,7 @@ export const computeAllSuppliersFinancials = (suppliers = [], purchases = [], pa
     totalNetPurchases,
     totalPaymentsPaid,
     totalPayables,
+    totalSupplierRefundDue,
     totalSupplierAdvances,
     settledCount
   };
@@ -1846,20 +1862,24 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     // Process Purchase Returns (Credit)
     partyReturns.forEach((r, idx) => {
       const ts = parseNormalizedTimestamp(r.date, r.created_at);
-      const refAmt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.amount || 0));
+      const merchandiseVal = extractMerchandiseReturnValue(r);
+      const cashRefundAmt = Number(r.refundAmount !== undefined ? r.refundAmount : 0);
+      const res = resolveTransactionPayment(r, 'PurchaseReturn');
+      const isCashReceived = res.isLiquid && res.totalLiquid > 0;
 
       const matchingPurchase = partyPurchases.find(p => (r.purchaseId && String(p.id) === String(r.purchaseId)) || (r.purchaseNo && p.purchaseNo && r.purchaseNo === p.purchaseNo));
       const origPurchaseGross = matchingPurchase ? Number(matchingPurchase.amount || matchingPurchase.grandTotal || 0) : 0;
-      const netAfterReturn = origPurchaseGross > 0 ? Math.max(0, origPurchaseGross - refAmt) : 0;
+      const netAfterReturn = origPurchaseGross > 0 ? Math.max(0, origPurchaseGross - merchandiseVal) : 0;
 
       const descText = matchingPurchase
         ? `Purchase Return #${r.returnNo || 'PR'} against Bill ${matchingPurchase.purchaseNo}: ${r.reason || 'Goods Return'}`
         : `Purchase Return #${r.returnNo || 'PR'}: ${r.reason || 'Commodity Return'}`;
 
       const historyNote = origPurchaseGross > 0
-        ? `Original Bill ${matchingPurchase?.purchaseNo || ''} (Rs. ${origPurchaseGross.toLocaleString()}) adjusted by return of Rs. ${refAmt.toLocaleString()} → Net Bill Rs. ${netAfterReturn.toLocaleString()}.`
-        : `Return of Rs. ${refAmt.toLocaleString()} adjusted against vendor account.`;
+        ? `Original Bill ${matchingPurchase?.purchaseNo || ''} (Rs. ${origPurchaseGross.toLocaleString()}) adjusted by return of Rs. ${merchandiseVal.toLocaleString()} → Net Bill Rs. ${netAfterReturn.toLocaleString()}.`
+        : `Return of Rs. ${merchandiseVal.toLocaleString()} adjusted against vendor account.`;
 
+      // 1. Goods return credits supplier account for full merchandise value
       entries.push({
         id: `pret-${r.id || idx}`,
         timestamp: ts,
@@ -1872,20 +1892,48 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         ref: r.returnNo || `PR-${r.id || idx}`,
         matchingInvoiceNo: matchingPurchase?.purchaseNo || r.purchaseNo || '',
         originalGross: origPurchaseGross,
-        returnAmount: refAmt,
+        returnAmount: merchandiseVal,
         netTotal: netAfterReturn,
-        refundMode: r.refundMode || 'Credit',
+        refundMode: r.refundMode || 'Khata Credit',
         txType: 'Returns',
         desc: descText,
         sales: 0,
-        payment: refAmt,
+        payment: merchandiseVal,
         debit: 0,
-        credit: refAmt,
+        credit: merchandiseVal,
         paymentMethod: r.refundMode || 'Purchase Return',
         paymentAccount: 'Supplier Khata',
         status: 'Settled',
         notes: historyNote
       });
+
+      // 2. If liquid cash/bank was collected from supplier, record separate Refund Received debit
+      if (isCashReceived && cashRefundAmt > 0) {
+        entries.push({
+          id: `pret-cash-${r.id || idx}`,
+          timestamp: ts,
+          eventPriority: 3,
+          seq: Number(r.id) || (idx + 1),
+          rawDate: r.date,
+          date: r.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: `REF-${r.returnNo || r.id || idx}`,
+          matchingInvoiceNo: matchingPurchase?.purchaseNo || r.purchaseNo || '',
+          originalGross: origPurchaseGross,
+          returnAmount: cashRefundAmt,
+          txType: 'Supplier Refund',
+          desc: `Supplier Refund Received (${res.refundMode || 'Cash'}) for Return #${r.returnNo || r.id || idx}`,
+          sales: 0,
+          payment: 0,
+          debit: cashRefundAmt,
+          credit: 0,
+          paymentMethod: res.refundMode || 'Cash',
+          paymentAccount: res.refundMode || 'Cash',
+          status: 'Settled',
+          notes: `Actual cash refund received from supplier for return #${r.returnNo || r.id}`
+        });
+      }
     });
 
     // Process Supplier Payments (Credit)
@@ -1959,24 +2007,27 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       ? 'Settled'
       : runningBalance > 0
         ? (isSupplier ? 'Payable' : 'Due')
-        : 'Settled';
+        : (isSupplier ? 'Refund Due' : 'Advance');
 
     return {
       ...entry,
       stepIndex: index + 1,
-      runningBalance: Math.max(0, runningBalance),
+      runningBalance: Math.abs(runningBalance),
+      rawRunningBalance: runningBalance,
       balanceState: entryStatus,
       status: entryStatus
     };
   });
 
-  const closingBalance = Math.max(0, runningBalance);
-  const receivableDue = !isSupplier ? closingBalance : 0;
-  const payableDue = isSupplier ? closingBalance : 0;
-  const advanceCredit = 0;
-  const status = closingBalance > 0
-    ? (isSupplier ? 'Payable' : 'Due')
-    : 'Settled';
+  const closingBalance = Math.abs(runningBalance);
+  const receivableDue = !isSupplier ? (runningBalance > 0 ? runningBalance : 0) : 0;
+  const payableDue = isSupplier ? (runningBalance > 0 ? runningBalance : 0) : 0;
+  const supplierRefundDue = isSupplier ? (runningBalance < 0 ? Math.abs(runningBalance) : 0) : 0;
+  const customerAdvance = !isSupplier ? (runningBalance < 0 ? Math.abs(runningBalance) : 0) : 0;
+  const advanceCredit = isSupplier ? supplierRefundDue : customerAdvance;
+  const status = runningBalance === 0
+    ? 'Settled'
+    : (runningBalance > 0 ? (isSupplier ? 'Payable' : 'Due') : (isSupplier ? 'Refund Due' : 'Advance'));
 
   // 3. Reverse for Newest-First display while keeping verified chronological running balance
   const displayEntries = [...chronologicalEntries].reverse();
@@ -1986,11 +2037,13 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     openingBalance: opBal,
     totalDebit,
     totalCredit,
-    netBalance: closingBalance,
+    netBalance: payableDue > 0 ? payableDue : (supplierRefundDue > 0 ? -supplierRefundDue : closingBalance),
     closingBalance,
     receivableDue,
     payableDue,
-    advanceCredit: 0,
+    supplierRefundDue,
+    refundDue: supplierRefundDue,
+    advanceCredit,
     status,
     chronologicalEntries,
     displayEntries

@@ -4,6 +4,7 @@ const mapSupplierRow = (r) => {
   if (!r) return null;
   const openingBalance = Number(r.openingbalance !== undefined ? r.openingbalance : (r.openingBalance !== undefined ? r.openingBalance : 0));
   const balance = Number(r.balance !== undefined ? r.balance : openingBalance);
+  const refundDue = Number(r.refunddue !== undefined ? r.refunddue : (r.refundDue !== undefined ? r.refundDue : 0));
   const suppliedProducts = r.suppliedproductsjson ? (typeof r.suppliedproductsjson === 'string' ? JSON.parse(r.suppliedproductsjson) : r.suppliedproductsjson) : (r.suppliedProductsJson ? (typeof r.suppliedProductsJson === 'string' ? JSON.parse(r.suppliedProductsJson) : r.suppliedProductsJson) : []);
 
   return {
@@ -16,6 +17,8 @@ const mapSupplierRow = (r) => {
     openingBalance,
     openingbalance: openingBalance,
     balance,
+    refundDue,
+    refunddue: refundDue,
     suppliedProducts,
     suppliedproductsjson: suppliedProducts
   };
@@ -63,11 +66,12 @@ export const Supplier = {
     const city = supData.city || supData.address || 'Local Mandi';
     const openingBalance = Number(supData.openingBalance) || 0;
     const balance = Number(supData.balance || supData.currentBalance) || openingBalance;
+    const refundDue = Number(supData.refundDue) || 0;
     const suppliedProductsJson = JSON.stringify(supData.suppliedProducts || []);
 
     await run(
-      'INSERT INTO suppliers (id, shop_id, name, phone, city, openingBalance, balance, suppliedProductsJson) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-      [id, shop_id, name, phone, city, openingBalance, balance, suppliedProductsJson]
+      'INSERT INTO suppliers (id, shop_id, name, phone, city, openingBalance, balance, refundDue, suppliedProductsJson) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+      [id, shop_id, name, phone, city, openingBalance, balance, refundDue, suppliedProductsJson]
     );
 
     return await this.findById(id, shop_id);
@@ -82,7 +86,7 @@ export const Supplier = {
     const params = [];
     let paramIndex = 1;
 
-    const keys = ['name', 'phone', 'city', 'openingBalance', 'balance'];
+    const keys = ['name', 'phone', 'city', 'openingBalance', 'balance', 'refundDue'];
     keys.forEach(k => {
       if (updateData[k] !== undefined) {
         fields.push(`${k} = $${paramIndex++}`);

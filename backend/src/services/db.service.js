@@ -151,9 +151,12 @@ const createTables = async () => {
       city TEXT,
       openingBalance NUMERIC DEFAULT 0,
       balance NUMERIC DEFAULT 0,
+      refundDue NUMERIC DEFAULT 0,
       suppliedProductsJson TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS refundDue NUMERIC DEFAULT 0;
 
     -- Sales Invoices Table
     CREATE TABLE IF NOT EXISTS sales (

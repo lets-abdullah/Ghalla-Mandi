@@ -125,6 +125,17 @@ export const createPurchase = async (req, res) => {
         if (matched) {
           targetSupId = matched.id;
           activeSupplierName = matched.name;
+        } else {
+          const createdSup = await Supplier.create({
+            shop_id: req.shop_id,
+            name: supplierName.trim(),
+            city: 'Local Mandi',
+            openingBalance: 0,
+            balance: 0,
+            refundDue: 0
+          });
+          targetSupId = createdSup.id;
+          activeSupplierName = createdSup.name;
         }
       }
 
@@ -148,6 +159,21 @@ export const createPurchase = async (req, res) => {
         if (sup) {
           activeSupplierName = sup.name;
 
+          // 1. Record full purchase bill in Supplier Khata
+          await Ledger.create({
+            shop_id: req.shop_id,
+            partyId: sup.id,
+            partyType: 'Supplier',
+            partyName: sup.name,
+            amount: totalGrand,
+            mode: 'Supplier Khata',
+            date: dateStr,
+            ref: purchaseNo,
+            note: `Purchase Bill #${purchaseNo}`,
+            purchaseId: purchase.id
+          });
+
+          // 2. Record upfront payment as distinct Payment transaction
           if (paid > 0) {
             await Ledger.create({
               shop_id: req.shop_id,

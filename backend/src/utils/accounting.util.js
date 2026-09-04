@@ -127,10 +127,10 @@ export const syncCustomerBalance = async (customerId, shop_id, dbRun) => {
 };
 
 export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
-  if (!supplierId) return 0;
+  if (!supplierId) return { payable: 0, refundDue: 0, balance: 0 };
 
   const supRows = await dbRun('SELECT * FROM suppliers WHERE id = $1 AND shop_id = $2', [supplierId, shop_id]);
-  if (!supRows || supRows.length === 0) return 0;
+  if (!supRows || supRows.length === 0) return { payable: 0, refundDue: 0, balance: 0 };
   const sup = supRows[0];
   const openingBalance = Number(sup.openingbalance !== undefined ? sup.openingbalance : (sup.openingBalance !== undefined ? sup.openingBalance : 0));
 
@@ -142,10 +142,16 @@ export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
   const netPurchases = Math.max(0, grossPurchases - totalReturns);
 
   const paymentRows = await dbRun(
-    "SELECT * FROM payment_logs WHERE shop_id = $1 AND partyId = $2 AND LOWER(partyType) = 'supplier' AND LOWER(mode) NOT IN ('opening balance', 'credit note', 'debit note')",
+    "SELECT * FROM payment_logs WHERE shop_id = $1 AND partyId = $2 AND LOWER(partyType) = 'supplier' AND LOWER(mode) NOT IN ('opening balance', 'credit note', 'debit note', 'purchase return', 'supplier khata')",
     [shop_id, supplierId]
   );
   const directPaidLogs = paymentRows.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+
+  // Liquid cash/bank refunds actually received back from supplier
+  const liquidRefunds = returnsRows.filter(r => {
+    const m = String(r.refundMode || r.refundmode || '').trim().toLowerCase();
+    return m === 'cash' || m === 'bank' || m === 'card';
+  }).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
 
   let unloggedUpfrontCash = 0;
   purchaseRows.forEach(p => {
@@ -163,14 +169,22 @@ export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
   });
 
   const totalPayments = directPaidLogs + unloggedUpfrontCash;
-  const effectivePaymentsMade = Math.min(totalPayments, netPurchases);
-  const totalCredits = openingBalance + netPurchases;
-  const totalDebits = effectivePaymentsMade;
-  const rawPayable = totalCredits - totalDebits;
-  const canonicalPayable = rawPayable < 1 ? 0 : Math.round(rawPayable);
+  const netPaid = Math.max(0, totalPayments - liquidRefunds);
+  const netBilled = openingBalance + netPurchases;
 
-  await dbRun('UPDATE suppliers SET balance = $1 WHERE id = $2 AND shop_id = $3', [canonicalPayable, supplierId, shop_id]);
-  return canonicalPayable;
+  let canonicalPayable = 0;
+  let canonicalRefundDue = 0;
+
+  if (netBilled >= netPaid) {
+    canonicalPayable = Math.round(netBilled - netPaid);
+    canonicalRefundDue = 0;
+  } else {
+    canonicalPayable = 0;
+    canonicalRefundDue = Math.round(netPaid - netBilled);
+  }
+
+  await dbRun('UPDATE suppliers SET balance = $1, refundDue = $2 WHERE id = $3 AND shop_id = $4', [canonicalPayable, canonicalRefundDue, supplierId, shop_id]);
+  return { payable: canonicalPayable, refundDue: canonicalRefundDue, balance: canonicalPayable };
 };
 
 

@@ -27,7 +27,12 @@ export const SupplierLedgerTimeline = ({
       ? supplier.balance
       : (supplier?.payableDue !== undefined ? supplier.payableDue : 0)
   );
-  const isSettled = currentBalance <= 0;
+  const refundDue = Number(
+    supplier?.refundDue !== undefined
+      ? supplier.refundDue
+      : (supplier?.advanceCredit || 0)
+  );
+  const isSettled = currentBalance <= 0 && refundDue <= 0;
 
   // Calculate totals for quick summary
   const totalPurchases = (entries || [])
@@ -84,21 +89,28 @@ export const SupplierLedgerTimeline = ({
           {/* Large Current Balance & Status */}
           <div className="sm:text-right w-full sm:w-auto p-3 sm:p-0 rounded-2xl sm:rounded-none bg-slate-50 sm:bg-transparent dark:bg-slate-900/40 sm:dark:bg-transparent">
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Current Balance
+              {refundDue > 0 ? 'Supplier Refund Due' : 'Current Balance'}
             </div>
             <div className="flex sm:justify-end items-baseline gap-2 mt-0.5">
               <span
                 className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${
-                  isSettled
+                  refundDue > 0
+                    ? 'text-teal-600 dark:text-teal-400'
+                    : isSettled
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-amber-500 dark:text-amber-400'
                 }`}
               >
-                Rs. {Math.abs(currentBalance).toLocaleString()}
+                Rs. {(refundDue > 0 ? refundDue : Math.abs(currentBalance)).toLocaleString()}
               </span>
             </div>
             <div className="flex sm:justify-end items-center gap-1.5 mt-1.5">
-              {isSettled ? (
+              {refundDue > 0 ? (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/30">
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Refund Due (Receivable from Supplier)</span>
+                </span>
+              ) : isSettled ? (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Settled (No payment required)</span>
@@ -106,7 +118,7 @@ export const SupplierLedgerTimeline = ({
               ) : (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                   <Clock className="w-3.5 h-3.5" />
-                  <span>Due: Rs. {currentBalance.toLocaleString()}</span>
+                  <span>Payable Due: Rs. {currentBalance.toLocaleString()}</span>
                 </span>
               )}
             </div>
@@ -144,16 +156,18 @@ export const SupplierLedgerTimeline = ({
 
           <div
             className={`p-3 rounded-2xl border ${
-              isSettled
+              refundDue > 0
+                ? 'bg-teal-500/10 border-teal-500/30 text-teal-700 dark:text-teal-300'
+                : isSettled
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
                 : 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
             }`}
           >
             <div className="text-[10px] font-bold uppercase">
-              Amount Due
+              {refundDue > 0 ? 'Supplier Refund Due' : 'Amount Due'}
             </div>
             <div className="text-sm font-black font-mono mt-0.5">
-              Rs. {currentBalance.toLocaleString()}
+              Rs. {(refundDue > 0 ? refundDue : currentBalance).toLocaleString()}
             </div>
           </div>
         </div>
@@ -187,6 +201,7 @@ export const SupplierLedgerTimeline = ({
 
               // Calculate previous balance for this step if possible
               const stepBalance = Number(entry.runningBalance || 0);
+              const isRefundDue = entry.balanceStatus === 'Refund Due' || Number(entry.supplierRefundDue || 0) > 0;
 
               return (
                 <div key={entry.id || idx} className="relative group">
@@ -247,11 +262,13 @@ export const SupplierLedgerTimeline = ({
                         <span className="text-slate-400 font-mono">{entry.date}</span>
                         <div className="text-right font-mono">
                           <span className="text-[10px] text-slate-400 uppercase font-bold mr-1">
-                            Due after step:
+                            {isRefundDue ? 'Refund due after step:' : 'Due after step:'}
                           </span>
                           <span
                             className={`font-black ${
-                              stepBalance === 0
+                              isRefundDue
+                                ? 'text-teal-600 dark:text-teal-400'
+                                : stepBalance === 0
                                 ? 'text-emerald-600 dark:text-emerald-400'
                                 : 'text-amber-500'
                             }`}
@@ -324,27 +341,23 @@ export const SupplierLedgerTimeline = ({
                             </span>
                           </div>
 
-                          {/* Visual Adjustment Arrow: Previous Due -> Current Due */}
-                          <div className="flex items-center gap-2 text-xs font-bold font-mono px-3 py-1.5 rounded-xl bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
-                            <span>Due adjusted:</span>
-                            <span className="line-through text-slate-400">
-                              Rs. {(stepBalance + (entry.credit || 0)).toLocaleString()}
-                            </span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                            <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                              Rs. {stepBalance.toLocaleString()}
-                            </span>
-                          </div>
-
-                          {/* Contextual Explanatory Message requested by User */}
-                          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
-                            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                          {/* Contextual Explanatory Message */}
+                          <div className={`p-3 rounded-xl border text-xs font-bold flex items-start gap-2 ${
+                            isRefundDue
+                              ? 'bg-teal-500/10 border-teal-500/30 text-teal-800 dark:text-teal-200'
+                              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                          }`}>
+                            <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${isRefundDue ? 'text-teal-600' : 'text-emerald-600'}`} />
                             <div>
                               <span>
-                                Rs. {(entry.credit || entry.returnAmount || 0).toLocaleString()} return adjusted against the outstanding due.
+                                Rs. {(entry.credit || entry.returnAmount || 0).toLocaleString()} return adjusted against supplier account.
                               </span>
-                              <div className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-200 mt-0.5">
-                                {stepBalance === 0 ? '✓ No payment required. Account is fully settled.' : `Remaining Due: Rs. ${stepBalance.toLocaleString()}`}
+                              <div className="text-[11px] font-extrabold mt-0.5">
+                                {isRefundDue
+                                  ? `✓ Supplier Refund Due: Rs. ${stepBalance.toLocaleString()} (Receivable from Supplier)`
+                                  : stepBalance === 0
+                                  ? '✓ No payment required. Account is fully settled.'
+                                  : `Remaining Due: Rs. ${stepBalance.toLocaleString()}`}
                               </div>
                             </div>
                           </div>
