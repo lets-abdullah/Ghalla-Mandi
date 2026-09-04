@@ -1277,7 +1277,8 @@ export const Ledger = () => {
                     <th className="py-3 px-3.5">Date</th>
                     <th className="py-3 px-3.5">Ref #</th>
                     <th className="py-3 px-3 text-right">Original Amount</th>
-                    <th className="py-3 px-3 text-right">Return / Adj.</th>
+                    <th className="py-3 px-3 text-right">Return Goods</th>
+                    <th className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30">Auto Refund Back</th>
                     <th className="py-3 px-3 text-right">{isSupplier ? 'Net Purchases' : 'Net Sales'}</th>
                     <th className="py-3 px-3 text-right">{isSupplier ? 'Paid to Supplier' : 'Amount Received'}</th>
                     <th className="py-3 px-3 text-center">Payment Method</th>
@@ -1287,7 +1288,7 @@ export const Ledger = () => {
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                   {singleCustomerLedger.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center">
+                      <td colSpan={10} className="py-8 text-center">
                         <EmptyState
                           icon={BookOpen}
                           title="No transactions recorded"
@@ -1316,7 +1317,7 @@ export const Ledger = () => {
                       const isBank = rawLower.includes('bank') || rawLower.includes('transfer');
                       const isCard = rawLower.includes('card');
                       const isReturn = entry.txType === 'Returns' || entry.txType === 'Return';
-                      const isRefund = entry.txType === 'Customer Refund' || entry.txType === 'Supplier Refund';
+                      const isRefund = entry.txType === 'Customer Refund' || entry.txType === 'Supplier Refund' || entry.isAutoRefund;
 
                       const methodLabel = isReturn
                         ? 'Return Adjustment'
@@ -1334,7 +1335,11 @@ export const Ledger = () => {
                         <tr
                           key={entry.id}
                           onClick={() => setViewingEntry(entry)}
-                          className={`transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                          className={`transition cursor-pointer ${
+                            isRefund
+                              ? 'bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100/70 dark:hover:bg-emerald-900/40 font-bold border-l-4 border-l-emerald-500'
+                              : theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
+                          }`}
                           title="Click to view complete voucher details"
                         >
                           {/* 1. Date */}
@@ -1360,7 +1365,7 @@ export const Ledger = () => {
                             )}
                           </td>
 
-                          {/* 5. Return / Adjustment */}
+                          {/* 5. Return Goods */}
                           <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
                             {(entry.txType === 'Returns' || entry.txType === 'Return') ? (
                               <span className="text-purple-600 dark:text-purple-400 font-bold">
@@ -1371,7 +1376,23 @@ export const Ledger = () => {
                             )}
                           </td>
 
-                          {/* 6. Net Purchases / Sales */}
+                          {/* 6. Auto Refund Back (SEPARATE COLUMN) */}
+                          <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap bg-emerald-50/40 dark:bg-emerald-950/20">
+                            {isRefund ? (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-black border border-emerald-500/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                Rs. {(entry.debit || entry.autoRefundAmount || 0).toLocaleString()}
+                              </span>
+                            ) : entry.autoRefundAmount > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
+                                Rs. {entry.autoRefundAmount.toLocaleString()}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-normal">—</span>
+                            )}
+                          </td>
+
+                          {/* 7. Net Purchases / Sales */}
                           <td className="py-3.5 px-3 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
                             {(entry.txType === 'Purchases' || entry.txType === 'Sales') ? (
                               `Rs. ${(entry.netTotal || entry.sales || entry.originalGross || entry.debit || 0).toLocaleString()}`
@@ -1382,10 +1403,10 @@ export const Ledger = () => {
                             )}
                           </td>
 
-                          {/* 7. Paid to Supplier / Received */}
+                          {/* 8. Paid to Supplier / Received */}
                           <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
                             {isRefund ? (
-                              <span className="text-rose-600 dark:text-rose-400 font-black">
+                              <span className="text-emerald-600 dark:text-emerald-400 font-black">
                                 {isSupplier ? `+ Rs. ${(entry.debit || 0).toLocaleString()}` : `- Rs. ${(entry.debit || 0).toLocaleString()}`} <span className="text-[10px] font-normal">({isSupplier ? 'Refund In' : 'Refund Out'})</span>
                               </span>
                             ) : (entry.txType === 'Payments' || entry.txType === 'Payment' || (entry.payment && entry.payment > 0 && !isReturn)) ? (
@@ -1397,11 +1418,11 @@ export const Ledger = () => {
                             )}
                           </td>
 
-                          {/* 8. Payment Method */}
+                          {/* 9. Payment Method */}
                           <td className="py-3.5 px-3 text-center whitespace-nowrap">
                             <span className={`font-bold text-xs ${
                               isRefund
-                                ? 'text-rose-600 dark:text-rose-400'
+                                ? 'text-emerald-600 dark:text-emerald-400'
                                 : isCash
                                   ? 'text-emerald-600 dark:text-emerald-400'
                                   : isReturn
@@ -1414,7 +1435,7 @@ export const Ledger = () => {
                             </span>
                           </td>
 
-                          {/* 9. Running Balance */}
+                          {/* 10. Running Balance */}
                           <td className="py-3.5 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap">
                             {isZero ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
@@ -1491,6 +1512,23 @@ export const Ledger = () => {
                 <span>Description:</span>
                 <span className="font-medium text-right max-w-xs text-slate-900 dark:text-white">{viewingEntry.desc}</span>
               </div>
+
+              {/* Prominent Auto Payment Back Banner */}
+              {(viewingEntry.autoRefundAmount > 0 || viewingEntry.txType === 'Supplier Refund' || viewingEntry.txType === 'Customer Refund' || viewingEntry.isAutoRefund) && (
+                <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black shrink-0 shadow-xs">
+                    ✓
+                  </div>
+                  <div>
+                    <div className="text-xs font-black text-emerald-800 dark:text-emerald-300">
+                      {isSupplier ? 'Auto Payment Back to System (Cash/Bank)' : 'Auto Payment Refunded to Customer'}
+                    </div>
+                    <div className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
+                      Amount of Rs. {(viewingEntry.autoRefundAmount || viewingEntry.debit || 0).toLocaleString()} was automatically {isSupplier ? 'returned back into Cash / Bank system' : 'refunded from Cash / Bank system'} without remaining trapped in Khata.
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Complete Return & Payment Lifecycle Breakdown */}
               {viewingEntry.returnAmount > 0 && (

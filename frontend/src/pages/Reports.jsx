@@ -193,10 +193,22 @@ export const Reports = () => {
     setCfPage(1);
   };
 
+  // Extract full merchandise value of returned goods for accurate P&L and Balance Sheet reconciliation
+  const extractReturnMerchandiseValue = (r) => {
+    let sum = 0;
+    const items = Array.isArray(r.items) && r.items.length > 0 ? r.items : (Array.isArray(r.cart) ? r.cart : []);
+    items.forEach(it => {
+      const itQty = Number(it.qty || it.enteredQty || 1);
+      const itRate = Number(it.rate || it.price || 0);
+      sum += Number(it.totalAmount || it.total || (itQty * itRate));
+    });
+    return sum > 0 ? sum : Number(r.refundAmount || r.amount || 0);
+  };
+
   // Returns aggregates
-  const totalSaleReturnsVal = useMemo(() => (saleReturns || []).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0), [saleReturns]);
+  const totalSaleReturnsVal = useMemo(() => (saleReturns || []).reduce((sum, r) => sum + extractReturnMerchandiseValue(r), 0), [saleReturns]);
   const totalSaleReturnsCash = useMemo(() => (saleReturns || []).filter(r => r.refundMode === 'Cash').reduce((sum, r) => sum + Number(r.refundAmount || 0), 0), [saleReturns]);
-  const totalPurchaseReturnsVal = useMemo(() => (purchaseReturns || []).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0), [purchaseReturns]);
+  const totalPurchaseReturnsVal = useMemo(() => (purchaseReturns || []).reduce((sum, r) => sum + extractReturnMerchandiseValue(r), 0), [purchaseReturns]);
   const totalPurchaseReturnsCash = useMemo(() => (purchaseReturns || []).filter(r => r.refundMode === 'Cash').reduce((sum, r) => sum + Number(r.refundAmount || 0), 0), [purchaseReturns]);
 
   // =========================================================================
@@ -310,7 +322,11 @@ export const Reports = () => {
   }, [sales, saleReturns, paymentLogs]);
 
   const totalSalesGross = useMemo(() => salesList.reduce((sum, s) => sum + s.grossAmt, 0), [salesList]);
-  const totalNetSales = useMemo(() => Math.max(0, totalSalesGross - totalSaleReturnsVal), [totalSalesGross, totalSaleReturnsVal]);
+  const totalNetSales = useMemo(() => {
+    const netFromInvoices = salesList.reduce((sum, s) => sum + (Number(s.netAmt !== undefined ? s.netAmt : s.grossAmt) || 0), 0);
+    const netFromGrossMinusReturns = Math.max(0, totalSalesGross - totalSaleReturnsVal);
+    return Math.min(netFromInvoices, netFromGrossMinusReturns);
+  }, [salesList, totalSalesGross, totalSaleReturnsVal]);
   const totalSalesCash = useMemo(() => salesList.reduce((sum, s) => sum + s.paidAmt, 0), [salesList]);
   const totalSalesCredit = useMemo(() => salesList.reduce((sum, s) => sum + s.dueAmt, 0), [salesList]);
 
@@ -687,7 +703,11 @@ export const Reports = () => {
   }, [purchases, purchaseReturns, paymentLogs]);
 
   const totalPurchasesGross = useMemo(() => purchasesList.reduce((sum, p) => sum + p.grossAmt, 0), [purchasesList]);
-  const totalNetPurchases = useMemo(() => Math.max(0, totalPurchasesGross - totalPurchaseReturnsVal), [totalPurchasesGross, totalPurchaseReturnsVal]);
+  const totalNetPurchases = useMemo(() => {
+    const netFromBills = purchasesList.reduce((sum, p) => sum + (Number(p.netAmt !== undefined ? p.netAmt : p.grossAmt) || 0), 0);
+    const netFromGrossMinusReturns = Math.max(0, totalPurchasesGross - totalPurchaseReturnsVal);
+    return Math.min(netFromBills, netFromGrossMinusReturns);
+  }, [purchasesList, totalPurchasesGross, totalPurchaseReturnsVal]);
   const totalPurchasesPaid = useMemo(() => purchasesList.reduce((sum, p) => sum + p.paidAmt, 0), [purchasesList]);
 
   // Detailed Operating Expenses Filtering, Search & Period Breakdown

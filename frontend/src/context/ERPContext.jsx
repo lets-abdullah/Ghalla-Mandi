@@ -1664,6 +1664,8 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         matchingInvoiceNo: matchingSale?.invoiceNo || r.invoiceNo || '',
         originalGross: origSaleGross,
         returnAmount: merchandiseVal,
+        autoRefundAmount: isCashRefunded ? cashRefundAmt : 0,
+        isAutoRefund: isCashRefunded && cashRefundAmt > 0,
         netTotal: netAfterReturn,
         refundMode: r.refundMode || 'Khata Credit',
         txType: 'Returns',
@@ -1693,8 +1695,10 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
           matchingInvoiceNo: matchingSale?.invoiceNo || r.invoiceNo || '',
           originalGross: 0,
           returnAmount: 0,
+          autoRefundAmount: cashRefundAmt,
+          isAutoRefund: true,
           txType: 'Customer Refund',
-          desc: `Customer Cash Refund (${res.refundMode || 'Cash'}) for Return #${r.returnNo || r.id || idx}`,
+          desc: `⚡ Auto Payment Refunded (${res.refundMode || 'Cash'}) for Return #${r.returnNo || r.id || idx}`,
           sales: 0,
           payment: 0,
           debit: cashRefundAmt,
@@ -1702,7 +1706,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
           paymentMethod: res.refundMode || 'Cash Refund',
           paymentAccount: res.refundMode || 'Cash',
           status: 'Settled',
-          notes: `Actual cash refund paid out to customer for return #${r.returnNo || r.id}`
+          notes: `Auto cash refund returned back to customer for return #${r.returnNo || r.id}`
         });
       }
     });
@@ -1955,6 +1959,8 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         matchingInvoiceNo: matchingPurchase?.purchaseNo || r.purchaseNo || '',
         originalGross: origPurchaseGross,
         returnAmount: merchandiseVal,
+        autoRefundAmount: isCashReceived ? cashRefundAmt : 0,
+        isAutoRefund: isCashReceived && cashRefundAmt > 0,
         netTotal: netAfterReturn,
         refundMode: r.refundMode || 'Khata Credit',
         txType: 'Returns',
@@ -1984,8 +1990,10 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
           matchingInvoiceNo: matchingPurchase?.purchaseNo || r.purchaseNo || '',
           originalGross: 0,
           returnAmount: 0,
+          autoRefundAmount: cashRefundAmt,
+          isAutoRefund: true,
           txType: 'Supplier Refund',
-          desc: `Supplier Refund Received (${res.refundMode || 'Cash'}) for Return #${r.returnNo || r.id || idx}`,
+          desc: `⚡ Auto Payment Back to System (${res.refundMode || 'Cash'}) for Return #${r.returnNo || r.id || idx}`,
           sales: 0,
           payment: 0,
           debit: cashRefundAmt,
@@ -1993,7 +2001,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
           paymentMethod: res.refundMode || 'Cash',
           paymentAccount: res.refundMode || 'Cash',
           status: 'Settled',
-          notes: `Actual cash refund received from supplier for return #${r.returnNo || r.id}`
+          notes: `Auto payment returned back to system cash/bank from supplier for return #${r.returnNo || r.id}`
         });
       }
     });
