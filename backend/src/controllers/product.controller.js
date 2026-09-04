@@ -78,13 +78,18 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const { sellingPrice, minStock, image } = req.body;
 
-    if (updateData.unit && !isValidOperationalUnit(updateData.unit)) {
-      return res.status(400).json({
-        success: false,
-        message: `Unit "${updateData.unit}" is invalid. Only genuine base units (KG, Gram, Litre, ML, Meter, Piece, Unit) are permitted.`
-      });
+    // Strict integrity rule: only sellingPrice, minStock, and image can be edited directly
+    const updateData = {};
+    if (sellingPrice !== undefined) {
+      updateData.sellingPrice = Math.max(0, Number(sellingPrice) || 0);
+    }
+    if (minStock !== undefined) {
+      updateData.minStock = Math.max(0, Number(minStock) || 0);
+    }
+    if (image !== undefined) {
+      updateData.image = image || '';
     }
 
     const product = await Product.findByIdAndUpdate(id, updateData, { shop_id: req.shop_id });

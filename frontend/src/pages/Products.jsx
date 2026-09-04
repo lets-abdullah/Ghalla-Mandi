@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Search, Plus, Filter, Barcode, Edit3, Trash2, AlertTriangle, FolderPlus, X, Image as ImageIcon, Upload, Printer, FileSpreadsheet, Coins, TrendingUp, History } from 'lucide-react';
+import { Package, Search, Plus, Filter, Barcode, Edit3, Trash2, AlertTriangle, FolderPlus, X, Image as ImageIcon, Upload, Printer, FileSpreadsheet, Coins, TrendingUp, History, Lock } from 'lucide-react';
 import { useERP, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
@@ -147,29 +147,16 @@ export const Products = () => {
 
   const handleUpdateProductSubmit = async (e) => {
     e.preventDefault();
-    if (!editingProduct || !editingProduct.name.trim()) {
-      toast.warning((t('productName') || 'Product name') + ' ' + (t('required') || 'is required'));
-      return;
-    }
-    if (!editingProduct.category) {
-      toast.warning(t('selectCategory') || 'Please select a category');
-      return;
-    }
+    if (!editingProduct) return;
 
     setIsSubmitting(true);
     try {
       await updateProduct(editingProduct.id, {
-        name: editingProduct.name.trim(),
-        category: editingProduct.category,
-        code: editingProduct.code,
-        unit: editingProduct.unit || editingProduct.baseUnit || 'KG',
-        purchasePrice: Math.max(0, Number(editingProduct.purchasePrice ?? editingProduct.purchaseprice) || 0),
         sellingPrice: Math.max(0, Number(editingProduct.sellingPrice ?? editingProduct.sellingprice) || 0),
-        stockQty: Math.max(0, Number(editingProduct.stockQty ?? editingProduct.stockqty) || 0),
         minStock: Math.max(0, Number(editingProduct.minStock ?? editingProduct.minstock) || 0),
         image: editingProduct.image || ''
       });
-      toast.success(`Product "${editingProduct.name.trim()}" updated successfully!`);
+      toast.success(`Product "${editingProduct.name?.trim() || ''}" updated successfully!`);
       setEditingProduct(null);
     } catch (err) {
       toast.error(err.message || 'Failed to update product');
@@ -663,12 +650,18 @@ export const Products = () => {
             </div>
 
             <form onSubmit={handleUpdateProductSubmit} className="space-y-3">
-              {/* Image Upload Input & Preview for Editing */}
+              {/* Informational notice */}
+              <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-2">
+                <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span>Only Selling Price, Image, and Min Stock Alert Threshold can be edited. Other attributes are locked.</span>
+              </div>
+
+              {/* Image Upload Input & Preview for Editing (EDITABLE) */}
               <div>
                 <label className="text-xs font-bold text-slate-400 block mb-1">{t('productImage')}</label>
                 <div className="flex items-center gap-3">
                   {editingProduct.image ? (
-                    <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-300 shrink-0 bg-slate-100">
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-600 shrink-0 bg-slate-100 dark:bg-slate-700">
                       <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" />
                       <button
                         type="button"
@@ -708,89 +701,77 @@ export const Products = () => {
                 </div>
               </div>
 
+              {/* Product Name (LOCKED) */}
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">{t('productName')}</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-400">{t('productName')}</label>
+                  <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5" /> Locked
+                  </span>
+                </div>
                 <input
                   type="text"
-                  required
+                  readOnly
+                  disabled
                   value={editingProduct.name}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold select-none cursor-not-allowed opacity-75 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'
                     }`}
                 />
               </div>
 
+              {/* Category & Unit (LOCKED) */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-bold text-slate-400">{t('category')}</label>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddCategoryModal(true)}
-                      className="text-[11px] font-extrabold text-brand-500 hover:underline flex items-center gap-0.5 cursor-pointer"
-                    >
-                      <Plus className="w-3 h-3" /> {t('add')}
-                    </button>
+                    <Lock className="w-2.5 h-2.5 text-slate-400" />
                   </div>
-                  <select
-                    value={editingProduct.category}
-                    onChange={(e) => {
-                      if (e.target.value === '__ADD_NEW_CATEGORY__') {
-                        setShowAddCategoryModal(true);
-                      } else {
-                        setEditingProduct({ ...editingProduct, category: e.target.value });
-                      }
-                    }}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'
-                      }`}
-                  >
-                    {categories.map(c => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
-                    ))}
-                    <option value="__ADD_NEW_CATEGORY__" className="font-bold text-brand-500">
-                      + {t('addCategory')}...
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('unit')}</label>
-                  <select
-                    value={editingProduct.unit || 'KG'}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, unit: e.target.value })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'
-                      }`}
-                  >
-                    <option value="KG">KG (Kilogram)</option>
-                    <option value="Gram">Gram (g)</option>
-                    <option value="Litre">Litre (L)</option>
-                    <option value="ML">ML (Millilitre)</option>
-                    <option value="Meter">Meter (m)</option>
-                    <option value="Piece">Piece (pc)</option>
-                    <option value="Unit">Unit</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('purchasePrice')}</label>
                   <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    onWheel={(e) => e.target.blur()}
-                    onFocus={(e) => e.target.select()}
-                    onKeyDown={(e) => {
-                      if (e.key === '.' || e.key === ',') e.preventDefault();
-                    }}
-                    value={editingProduct.purchasePrice ?? editingProduct.purchaseprice ?? 0}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, purchasePrice: parseInt(e.target.value.replace(/[^0-9]/g, ''), 10) || 0 })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    type="text"
+                    readOnly
+                    disabled
+                    value={editingProduct.category || ''}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold select-none cursor-not-allowed opacity-75 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'
                       }`}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('sellingPrice')}</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-400">{t('unit')}</label>
+                    <Lock className="w-2.5 h-2.5 text-slate-400" />
+                  </div>
+                  <input
+                    type="text"
+                    readOnly
+                    disabled
+                    value={editingProduct.unit || editingProduct.baseUnit || 'KG'}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold select-none cursor-not-allowed opacity-75 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'
+                      }`}
+                  />
+                </div>
+              </div>
+
+              {/* Purchase Price (LOCKED) & Selling Price (EDITABLE) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-400">{t('purchasePrice')} (Rs.)</label>
+                    <Lock className="w-2.5 h-2.5 text-slate-400" />
+                  </div>
+                  <input
+                    type="number"
+                    readOnly
+                    disabled
+                    value={editingProduct.purchasePrice ?? editingProduct.purchaseprice ?? 0}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold select-none cursor-not-allowed opacity-75 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'
+                      }`}
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-400">{t('sellingPrice')} (Rs.)</label>
+                    <span className="text-[10px] font-bold text-emerald-600">Editable</span>
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -802,29 +783,33 @@ export const Products = () => {
                     }}
                     value={editingProduct.sellingPrice ?? editingProduct.sellingprice ?? 0}
                     onChange={(e) => setEditingProduct({ ...editingProduct, sellingPrice: parseInt(e.target.value.replace(/[^0-9]/g, ''), 10) || 0 })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
                 </div>
               </div>
 
+              {/* Current Stock (LOCKED) & Min Stock Threshold (EDITABLE) */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('currentStock')}</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-400">{t('currentStock')}</label>
+                    <Lock className="w-2.5 h-2.5 text-slate-400" />
+                  </div>
                   <input
                     type="number"
-                    min="0"
-                    step="1"
-                    onWheel={(e) => e.target.blur()}
-                    onFocus={(e) => e.target.select()}
+                    readOnly
+                    disabled
                     value={editingProduct.stockQty ?? editingProduct.stockqty ?? 0}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, stockQty: Number(e.target.value) })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold select-none cursor-not-allowed opacity-75 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'
                       }`}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1">{t('minStockThreshold')}</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-400">{t('minStockThreshold')}</label>
+                    <span className="text-[10px] font-bold text-emerald-600">Editable</span>
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -832,8 +817,8 @@ export const Products = () => {
                     onWheel={(e) => e.target.blur()}
                     onFocus={(e) => e.target.select()}
                     value={editingProduct.minStock ?? editingProduct.minstock ?? 0}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, minStock: Number(e.target.value) })}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    onChange={(e) => setEditingProduct({ ...editingProduct, minStock: Math.max(0, Number(e.target.value) || 0) })}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                       }`}
                   />
                 </div>
@@ -850,9 +835,10 @@ export const Products = () => {
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  {t('saveChanges')}
+                  {isSubmitting ? t('processing') : t('saveChanges')}
                 </button>
               </div>
             </form>
