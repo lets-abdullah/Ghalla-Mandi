@@ -7,7 +7,10 @@ import {
   Printer,
   ShoppingBag,
   Package,
-  Info
+  Info,
+  Banknote,
+  Landmark,
+  CreditCard
 } from 'lucide-react';
 import { useERP, computeProductValuation } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
