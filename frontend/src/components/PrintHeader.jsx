@@ -24,7 +24,7 @@ export const PrintHeader = ({ title, subtitle, filterSummary, stats = [] }) => {
           </p>
         </div>
         <div className="text-right">
-          <div className="inline-block px-2.5 py-1 bg-slate-100 border border-slate-300 rounded text-xs font-black uppercase tracking-wider text-slate-900">
+          <div className="text-sm font-black uppercase tracking-wider text-slate-950">
             {title}
           </div>
           <div className="text-[10px] text-slate-500 font-mono mt-1">
@@ -35,10 +35,10 @@ export const PrintHeader = ({ title, subtitle, filterSummary, stats = [] }) => {
 
       {/* Subtitle & Filter Info */}
       {(subtitle || filterSummary) && (
-        <div className="mt-3 pt-2 border-t border-slate-200 flex flex-wrap justify-between items-center text-xs text-slate-700">
-          {subtitle && <span className="font-semibold text-slate-800">{subtitle}</span>}
+        <div className="mt-3 pt-2 border-t border-slate-300 flex flex-wrap justify-between items-center text-xs text-slate-700">
+          {subtitle && <span className="font-bold text-slate-900">{subtitle}</span>}
           {filterSummary && (
-            <span className="font-mono text-[11px] bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+            <span className="font-mono text-[11px] text-slate-700 font-bold">
               {filterSummary}
             </span>
           )}
@@ -49,8 +49,8 @@ export const PrintHeader = ({ title, subtitle, filterSummary, stats = [] }) => {
       {stats && stats.length > 0 && (
         <div className="mt-3 grid grid-flow-col auto-cols-fr gap-2 text-center">
           {stats.map((st, i) => (
-            <div key={i} className="p-1.5 border border-slate-300 rounded bg-slate-50">
-              <div className="text-[9px] uppercase font-bold text-slate-500">{st.label}</div>
+            <div key={i} className="p-2 border border-slate-400 bg-white">
+              <div className="text-[9px] uppercase font-extrabold text-slate-600">{st.label}</div>
               <div className="text-xs font-mono font-black text-slate-950 mt-0.5">{st.value}</div>
             </div>
           ))}

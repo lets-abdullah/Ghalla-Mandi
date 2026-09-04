@@ -197,11 +197,29 @@ export const Ledger = () => {
       });
 
       // 1. Customer Sales Invoices (Debit)
+      const isGenericWalkinName = (name) => {
+        if (!name) return true;
+        const n = String(name).trim().toLowerCase();
+        return n === 'walk-in customer' || n === 'walk in customer' || n === 'walk-in' || n === 'walkin' || n === 'walk in' || n === 'walk-in-customer';
+      };
+
+      const directPaidSaleIds = new Set();
+      const directPaidInvoiceNos = new Set();
+
       (sales || []).forEach(s => {
-        const custObj = customers.find(c => (s.customerId && String(c.id) === String(s.customerId)) || (c.name && s.partyName && c.name.trim().toLowerCase() === s.partyName.trim().toLowerCase() && c.name.trim().toLowerCase() !== 'walk-in customer'));
-        const isWalkin = (!custObj && !s.customerId) || (s.partyName || '').toLowerCase().includes('walk-in') || (s.customerType || '').toLowerCase().includes('walk-in');
-        const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
         const rawParty = (s.partyName || s.customerName || 'Walk-in Customer').trim();
+        const rawPartyLower = rawParty.toLowerCase();
+        const isGenericParty = isGenericWalkinName(rawPartyLower);
+
+        const custObj = customers.find(c => {
+          if (s.customerId && String(c.id) === String(s.customerId)) return true;
+          const cName = (c.name || '').trim().toLowerCase();
+          if (cName && rawPartyLower && cName === rawPartyLower && !isGenericParty) return true;
+          return false;
+        });
+
+        const isWalkin = (!custObj && !s.customerId) || isGenericParty || (s.customerType || '').toLowerCase().includes('walk-in');
+        const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
         const partyId = custObj ? String(custObj.id) : (s.customerId ? String(s.customerId) : `walkin-${rawParty}`);
         const partyName = custObj?.name || rawParty;
 
@@ -215,6 +233,13 @@ export const Ledger = () => {
         const isPartiallyReturned = sReturn > 0 && sStatus !== 'Returned';
         const isFullyReturned = sStatus === 'Returned' || (sReturn >= sGross && sGross > 0);
 
+        const isDirectCompletePaid = sGross > 0 && sDue === 0 && (sPaid >= sGross || sStatus === 'Paid') && !isPartiallyReturned && !isFullyReturned;
+
+        if (isDirectCompletePaid) {
+          if (s.id) directPaidSaleIds.add(String(s.id));
+          if (s.invoiceNo) directPaidInvoiceNos.add(String(s.invoiceNo));
+        }
+
         const itemsSummary = Array.isArray(s.cart) && s.cart.length > 0
           ? s.cart.map(i => `${i.name} (${i.qty} ${i.unitName || i.unit || 'KG'})`).join(', ')
           : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
@@ -227,76 +252,126 @@ export const Ledger = () => {
           ? `Original Sale: Rs. ${sGross.toLocaleString()} • Returned: Rs. ${sReturn.toLocaleString()} • Net Sale: Rs. ${sNet.toLocaleString()} | Paid: Rs. ${sPaid.toLocaleString()}, Due: Rs. ${sDue.toLocaleString()} (${sStatus})`
           : (s.note || '');
 
-        // Sale Invoice Entry (Debit)
-        entries.push({
-          id: `sale-${s.id}`,
-          rawDate: s.date,
-          date: s.date || 'N/A',
-          partyId,
-          partyName,
-          customerType: custType,
-          ref: s.invoiceNo || 'SALE',
-          txType: 'Sales',
-          desc: descText,
-          sales: sNet,
-          originalGross: sGross,
-          netTotal: sNet,
-          returnAmount: sReturn,
-          paidAmount: sPaid,
-          dueAmount: sDue,
-          invoiceStatus: sStatus,
-          isPartiallyReturned,
-          isFullyReturned,
-          debit: Number(s.amount ?? s.grandTotal ?? 0),
-          credit: 0,
-          notes: historyNote
-        });
+        const methodLabel = s.paymentMethod || s.paymentMode || 'Cash';
 
-        // Upfront cash paid on POS counter (only if unlogged in paymentLogs)
-        const hasSpecificInvoiceLog = (paymentLogs || []).some(p =>
-          (p.type === 'Customer' || p.partyType === 'Customer') &&
-          (
-            (p.saleId && String(p.saleId) === String(s.id)) ||
-            (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
-          )
-        );
-
-        let paidAmt = 0;
-        const customerPayments = (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer');
-        if (customerPayments.length === 0) {
-          const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
-          const sTotal = Number(s.amount ?? s.grandTotal ?? 0);
-          paidAmt = isMarkedPaid ? sTotal : Number(s.cashReceived !== undefined ? s.cashReceived : (s.paidAmount || 0));
-        } else if (!hasSpecificInvoiceLog && s.cashReceived !== undefined && Number(s.cashReceived) > 0) {
-          paidAmt = Number(s.cashReceived);
-        }
-
-        if (paidAmt > 0 && !hasSpecificInvoiceLog) {
+        if (isDirectCompletePaid) {
           entries.push({
-            id: `pay-direct-${s.id}`,
+            id: `sale-${s.id}`,
             rawDate: s.date,
             date: s.date || 'N/A',
             partyId,
             partyName,
             customerType: custType,
-            ref: `RCP-${s.invoiceNo || s.id}`,
-            txType: 'Payments',
-            desc: `POS Counter Payment against ${s.invoiceNo || 'Sale'}`,
-            debit: 0,
-            credit: paidAmt,
-            items: s.cart || s.items || [],
-            productNames: '',
-            notes: s.paymentMode || 'Counter Payment'
+            ref: s.invoiceNo || 'SALE',
+            txType: 'Sales',
+            desc: descText,
+            sales: sGross,
+            originalGross: sGross,
+            netTotal: sNet,
+            returnAmount: sReturn,
+            paidAmount: sGross,
+            dueAmount: 0,
+            invoiceStatus: 'Paid',
+            isPartiallyReturned: false,
+            isFullyReturned: false,
+            payment: sGross,
+            debit: sGross,
+            credit: sGross,
+            paymentMethod: methodLabel,
+            paymentAccount: methodLabel,
+            status: 'Settled',
+            notes: historyNote || `Direct Complete Payment via ${methodLabel}`
           });
+        } else {
+          // Sale Invoice Entry (Debit)
+          entries.push({
+            id: `sale-${s.id}`,
+            rawDate: s.date,
+            date: s.date || 'N/A',
+            partyId,
+            partyName,
+            customerType: custType,
+            ref: s.invoiceNo || 'SALE',
+            txType: 'Sales',
+            desc: descText,
+            sales: sNet,
+            originalGross: sGross,
+            netTotal: sNet,
+            returnAmount: sReturn,
+            paidAmount: sPaid,
+            dueAmount: sDue,
+            invoiceStatus: sStatus,
+            isPartiallyReturned,
+            isFullyReturned,
+            payment: 0,
+            debit: Number(s.amount ?? s.grandTotal ?? 0),
+            credit: 0,
+            paymentMethod: methodLabel,
+            paymentAccount: methodLabel,
+            notes: historyNote
+          });
+
+          // Upfront cash paid on POS counter (only if unlogged in paymentLogs)
+          const hasSpecificInvoiceLog = (paymentLogs || []).some(p =>
+            (p.type === 'Customer' || p.partyType === 'Customer') &&
+            (
+              (p.saleId && String(p.saleId) === String(s.id)) ||
+              (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+            )
+          );
+
+          let paidAmt = 0;
+          const customerPayments = (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer');
+          if (customerPayments.length === 0) {
+            const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
+            const sTotal = Number(s.amount ?? s.grandTotal ?? 0);
+            paidAmt = isMarkedPaid ? sTotal : Number(s.cashReceived !== undefined ? s.cashReceived : (s.paidAmount || 0));
+          } else if (!hasSpecificInvoiceLog && s.cashReceived !== undefined && Number(s.cashReceived) > 0) {
+            paidAmt = Number(s.cashReceived);
+          }
+
+          if (paidAmt > 0 && !hasSpecificInvoiceLog) {
+            entries.push({
+              id: `pay-direct-${s.id}`,
+              rawDate: s.date,
+              date: s.date || 'N/A',
+              partyId,
+              partyName,
+              customerType: custType,
+              ref: `RCP-${s.invoiceNo || s.id}`,
+              txType: 'Payments',
+              desc: `POS Counter Payment against ${s.invoiceNo || 'Sale'}`,
+              sales: 0,
+              payment: paidAmt,
+              debit: 0,
+              credit: paidAmt,
+              items: s.cart || s.items || [],
+              productNames: '',
+              notes: s.paymentMode || 'Counter Payment'
+            });
+          }
         }
       });
 
       // 2. Standalone Customer Payment Logs (Credit)
       (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer').forEach(p => {
-        const custObj = customers.find(c => (p.partyId && String(c.id) === String(p.partyId)) || (c.name && p.partyName && c.name.trim().toLowerCase() === p.partyName.trim().toLowerCase() && c.name.trim().toLowerCase() !== 'walk-in customer'));
-        const isWalkin = (!custObj && !p.partyId) || (p.partyName || '').toLowerCase().includes('walk-in');
+        if (p.saleId && directPaidSaleIds.has(String(p.saleId))) return;
+        if (p.ref && Array.from(directPaidInvoiceNos).some(inv => p.ref.includes(inv) || inv.includes(p.ref.replace('POS-PAY-', '')))) return;
+        if (p.note && Array.from(directPaidInvoiceNos).some(inv => p.note.includes(inv))) return;
+
+        const rawParty = (p.partyName || 'Customer').trim();
+        const rawPartyLower = rawParty.toLowerCase();
+        const isGenericParty = isGenericWalkinName(rawPartyLower);
+
+        const custObj = customers.find(c => {
+          if (p.partyId && String(c.id) === String(p.partyId)) return true;
+          const cName = (c.name || '').trim().toLowerCase();
+          if (cName && rawPartyLower && cName === rawPartyLower && !isGenericParty) return true;
+          return false;
+        });
+
+        const isWalkin = (!custObj && !p.partyId) || isGenericParty || (p.partyName || '').toLowerCase().includes('walk-in');
         const custType = isWalkin ? 'Walk-in Customer' : 'Regular Customer';
-        const rawParty = (p.partyName || custObj?.name || 'Customer').trim();
         const partyId = custObj ? String(custObj.id) : (p.partyId ? String(p.partyId) : `walkin-${rawParty}`);
         const partyName = custObj?.name || rawParty;
 
@@ -310,6 +385,8 @@ export const Ledger = () => {
           ref: p.ref || `PAY-${p.id}`,
           txType: 'Payments',
           desc: p.saleId ? `POS Payment for Invoice` : `Payment: ${p.mode || p.paymentMode || 'Cash'}`,
+          sales: 0,
+          payment: Number(p.amount || 0),
           debit: 0,
           credit: Number(p.amount || 0),
           items: [],
@@ -1293,7 +1370,7 @@ export const Ledger = () => {
                           {/* 6. Net Purchases / Sales */}
                           <td className="py-3.5 px-3 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
                             {(entry.txType === 'Purchases' || entry.txType === 'Sales') ? (
-                              `Rs. ${(entry.debit || entry.sales || entry.originalGross || 0).toLocaleString()}`
+                              `Rs. ${(entry.netTotal || entry.sales || entry.originalGross || entry.debit || 0).toLocaleString()}`
                             ) : entry.txType === 'Opening Balance' ? (
                               `Rs. ${entry.debit?.toLocaleString()}`
                             ) : (
@@ -1303,7 +1380,7 @@ export const Ledger = () => {
 
                           {/* 7. Paid to Supplier / Received */}
                           <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
-                            {(entry.txType === 'Payments' || entry.txType === 'Payment') ? (
+                            {(entry.txType === 'Payments' || entry.txType === 'Payment' || (entry.payment && entry.payment > 0)) ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-black">
                                 Rs. {(entry.payment || entry.credit || 0).toLocaleString()}
                               </span>
@@ -1314,14 +1391,15 @@ export const Ledger = () => {
 
                           {/* 8. Payment Method */}
                           <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                            <span className={`inline-block px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${isCash
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                              : isReturn
-                                ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
-                                : isBank
-                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                                  : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
-                              }`}>
+                            <span className={`font-bold text-xs ${
+                              isCash
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : isReturn
+                                  ? 'text-purple-600 dark:text-purple-400'
+                                  : isBank
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : 'text-slate-700 dark:text-slate-300'
+                            }`}>
                               {methodLabel}
                             </span>
                           </td>
@@ -1329,15 +1407,15 @@ export const Ledger = () => {
                           {/* 9. Running Balance */}
                           <td className="py-3.5 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap">
                             {isZero ? (
-                              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
                                 ✓ Rs. 0 (Settled)
                               </span>
                             ) : isBalPos ? (
-                              <span className="text-amber-600 dark:text-amber-400">
+                              <span className="text-amber-600 dark:text-amber-400 font-black">
                                 {isSupplier ? 'Payable: ' : 'Due: '}Rs. {entry.runningBalance.toLocaleString()}
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
                                 ✓ Rs. 0 (Settled)
                               </span>
                             )}

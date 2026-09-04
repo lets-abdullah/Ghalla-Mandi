@@ -412,9 +412,6 @@ export const Sales = () => {
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
             Rs. {totalFilteredSalesVolume.toLocaleString()}
           </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
-            Gross merchandise sales
-          </div>
         </div>
 
         {/* 2. Cash Received */}
@@ -434,9 +431,6 @@ export const Sales = () => {
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
             Rs. {totalFilteredCashReceived.toLocaleString()}
           </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
-            Realized cash & payments
-          </div>
         </div>
 
         {/* 3. Sale Returns */}
@@ -455,9 +449,6 @@ export const Sales = () => {
 
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-purple-600 dark:text-purple-400">
             Rs. {totalFilteredReturnAmount.toLocaleString()}
-          </div>
-          <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
-            Total goods returned / refunded
           </div>
         </div>
 
@@ -480,7 +471,7 @@ export const Sales = () => {
           <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
             {selectedCustomerId !== 'All'
               ? 'Customer Ledger Khata balance'
-              : `Party Khata: Rs. ${totalPartyKhataReceivables.toLocaleString()} • Walk-in: Rs. ${totalWalkinUncollected.toLocaleString()}`}
+              : `Regular Customer: Rs. ${totalPartyKhataReceivables.toLocaleString()} • Walk-in Customer: Rs. ${totalWalkinUncollected.toLocaleString()}`}
           </div>
         </div>
       </div>
@@ -503,9 +494,8 @@ export const Sales = () => {
                 placeholder="Search invoice #, customer, commodity..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full border rounded-xl pl-9 pr-8 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
-                }`}
+                className={`w-full border rounded-xl pl-9 pr-8 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+                  }`}
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               {searchTerm && (
@@ -554,16 +544,16 @@ export const Sales = () => {
                 }`}
             >
               <option value="All">All Customer Types</option>
-              <option value="Regular Party">Regular Parties</option>
+              <option value="Regular Party">Regular Customers</option>
               <option value="Walk-in Customer">Walk-in Customers</option>
             </select>
           </div>
 
-          {/* 3. Select Party */}
+          {/* 3. Select Customer */}
           <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <User className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Select Party</span>
+              <span>Select Customer</span>
             </label>
             <select
               value={selectedCustomerId}
@@ -571,7 +561,7 @@ export const Sales = () => {
               className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
             >
-              <option value="All">All Individual Parties</option>
+              <option value="All">All Customers</option>
               {customers.map(cust => (
                 <option key={cust.id} value={cust.id}>
                   {cust.name} {cust.city ? `(${cust.city})` : ''}
@@ -897,11 +887,10 @@ export const Sales = () => {
                 {paymentModalSale && (
                   <div className="mt-1.5 flex items-center justify-between text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/50">
                     <span className="text-slate-500 dark:text-slate-400">Balance after payment:</span>
-                    <span className={`font-mono ${
-                      Math.max(0, (Number(paymentModalSale.amount || 0) - Number(paymentModalSale.paidAmount || 0)) - (Number(paymentAmount) || 0)) === 0
-                        ? 'text-emerald-600 dark:text-emerald-400 font-black'
-                        : 'text-amber-600 dark:text-amber-400 font-black'
-                    }`}>
+                    <span className={`font-mono ${Math.max(0, (Number(paymentModalSale.amount || 0) - Number(paymentModalSale.paidAmount || 0)) - (Number(paymentAmount) || 0)) === 0
+                      ? 'text-emerald-600 dark:text-emerald-400 font-black'
+                      : 'text-amber-600 dark:text-amber-400 font-black'
+                      }`}>
                       Rs. {Math.max(0, (Number(paymentModalSale.amount || 0) - Number(paymentModalSale.paidAmount || 0)) - (Number(paymentAmount) || 0)).toLocaleString()}
                       {Math.max(0, (Number(paymentModalSale.amount || 0) - Number(paymentModalSale.paidAmount || 0)) - (Number(paymentAmount) || 0)) === 0 && ' (Fully Settled)'}
                     </span>

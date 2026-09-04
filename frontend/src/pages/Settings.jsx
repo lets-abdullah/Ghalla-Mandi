@@ -30,7 +30,9 @@ import {
   Scale,
   Sparkles,
   ShieldAlert,
-  Percent
+  Percent,
+  Lightbulb,
+  MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -41,8 +43,8 @@ export const Settings = () => {
   const { theme } = useTheme();
   const { t } = useLocale();
 
-  // Tab State: 'profile' | 'security' | 'shop'
-  const [activeTab, setActiveTab] = useState('profile');
+  // Tab State: 'shop' (Default - Mandi Profile Setup Flow) | 'profile' | 'security'
+  const [activeTab, setActiveTab] = useState('shop');
 
   // Tab 1: Personal Details State
   const [profilePicture, setProfilePicture] = useState(user?.profilePicture || '');
@@ -61,8 +63,8 @@ export const Settings = () => {
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  // Tab 3: Shop & Mandi Profile State (Expanded with rich Mandi details)
-  const [shopName, setShopName] = useState(shop?.name || 'Shaheen Traders');
+  // Tab 3: Shop & Mandi Profile State (Structured per Profile Setup Flow)
+  const [shopName, setShopName] = useState(shop?.name || shop?.shopName || 'Shaheen Traders');
   const [shopNo, setShopNo] = useState(shop?.shopNo || '');
   const [mandiName, setMandiName] = useState(shop?.mandiName || 'Ghalla Mandi Multan');
   const [mandiGate, setMandiGate] = useState(shop?.mandiGate || '');
@@ -73,7 +75,7 @@ export const Settings = () => {
   const [businessPhone, setBusinessPhone] = useState(shop?.businessPhone || shop?.phone || '');
   const [businessWhatsapp, setBusinessWhatsapp] = useState(shop?.businessWhatsapp || '');
   const [businessEmail, setBusinessEmail] = useState(shop?.businessEmail || shop?.email || '');
-  const [businessAddress, setBusinessAddress] = useState(shop?.address || '');
+  const [businessAddress, setBusinessAddress] = useState(shop?.address || shop?.businessAddress || '');
   const [shopCity, setShopCity] = useState(shop?.city || 'Multan');
   const [defaultCommission, setDefaultCommission] = useState(shop?.defaultCommission || '2.0');
   const [defaultLabourRate, setDefaultLabourRate] = useState(shop?.defaultLabourRate || '25');
@@ -83,6 +85,38 @@ export const Settings = () => {
   const [accountTitle, setAccountTitle] = useState(shop?.accountTitle || '');
   const [accountNumber, setAccountNumber] = useState(shop?.accountNumber || shop?.iban || '');
   const [taxStatus, setTaxStatus] = useState(shop?.taxStatus || 'Active Taxpayer (Filer)');
+
+  // Real-time Field Touched State for Inline Validation
+  const [touched, setTouched] = useState({});
+  const markTouched = (field) => setTouched(prev => ({ ...prev, [field]: true }));
+
+  // =========================================================================
+  // REAL-TIME VALIDATION ENGINE ACCORDING TO SETUP FLOW
+  // =========================================================================
+  // 1. Business Details Validation (Required: Business Name, Address, City)
+  const isBusinessNameValid = Boolean(shopName && shopName.trim().length > 0);
+  const isBusinessAddressValid = Boolean(businessAddress && businessAddress.trim().length > 0);
+  const isCityValid = Boolean(shopCity && shopCity.trim().length > 0);
+  const isBusinessDetailsValid = isBusinessNameValid && isBusinessAddressValid && isCityValid;
+
+  // 2. Contact Details Validation (Required: Mobile 11 digits; Valid optional formats for WhatsApp & Email)
+  const cleanPhone = (businessPhone || '').replace(/\D/g, '');
+  const isPhoneValid = cleanPhone.length === 11;
+  const cleanWhatsapp = (businessWhatsapp || '').replace(/\D/g, '');
+  const isWhatsappValid = !businessWhatsapp || !businessWhatsapp.trim() || cleanWhatsapp.length === 11;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isEmailValid = !businessEmail || !businessEmail.trim() || emailRegex.test(businessEmail.trim());
+  const isContactDetailsValid = isPhoneValid && isWhatsappValid && isEmailValid;
+
+  // 3. Bank Details Validation (Required: Bank Name, Branch Name, Account Title, Account Number/IBAN)
+  const isBankNameValid = Boolean(bankName && bankName.trim().length > 0);
+  const isBranchNameValid = Boolean(branchName && branchName.trim().length > 0);
+  const isAccountTitleValid = Boolean(accountTitle && accountTitle.trim().length > 0);
+  const isAccountNumberValid = Boolean(accountNumber && accountNumber.trim().length > 0);
+  const isBankDetailsValid = isBankNameValid && isBranchNameValid && isAccountTitleValid && isAccountNumberValid;
+
+  // Master Validity (Data is saved ONLY when all sections are valid)
+  const isAllProfileSectionsValid = isBusinessDetailsValid && isContactDetailsValid && isBankDetailsValid;
 
   // Notifications / Saving state
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
@@ -239,23 +273,46 @@ export const Settings = () => {
     }
   };
 
-  // 3. Handle Save Shop & Mandi Profile
+  // 3. Handle Save Shop & Mandi Profile (Strict Multi-Section Validation Flow)
   const handleShopProfileSave = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setStatusMsg({ type: '', text: '' });
 
-    if (!shopName.trim()) {
-      setStatusMsg({ type: 'error', text: 'Shop / Business Name is required.' });
+    // Mark all section fields as touched to display inline validation errors immediately
+    setTouched({
+      shopName: true,
+      businessAddress: true,
+      shopCity: true,
+      businessPhone: true,
+      businessWhatsapp: true,
+      businessEmail: true,
+      bankName: true,
+      branchName: true,
+      accountTitle: true,
+      accountNumber: true
+    });
+
+    if (!isBusinessDetailsValid) {
+      setStatusMsg({
+        type: 'error',
+        text: 'Validation Error (Required Fields): Please provide Business Name, Business Address, and City.'
+      });
       return;
     }
 
-    if (businessPhone.trim() && businessPhone.replace(/\D/g, '').length !== 11) {
-      setStatusMsg({ type: 'error', text: 'Business phone number must be exactly 11 digits (e.g. 03001234567).' });
+    if (!isContactDetailsValid) {
+      setStatusMsg({
+        type: 'error',
+        text: 'Validation Error (Invalid Format): Please enter a valid 11-digit Mobile Number and valid WhatsApp / Email format.'
+      });
       return;
     }
 
-    if (businessWhatsapp.trim() && businessWhatsapp.replace(/\D/g, '').length !== 11) {
-      setStatusMsg({ type: 'error', text: 'Business WhatsApp number must be exactly 11 digits (e.g. 03001234567).' });
+    if (!isBankDetailsValid) {
+      setStatusMsg({
+        type: 'error',
+        text: 'Validation Error (Required Fields): Please provide Bank Name, Branch Name, Account Title, and Account Number / IBAN.'
+      });
       return;
     }
 
@@ -286,10 +343,10 @@ export const Settings = () => {
     setIsSaving(false);
 
     if (res.success) {
-      setStatusMsg({ type: 'success', text: 'Shop & Mandi Profile details saved successfully!' });
-      setTimeout(() => setStatusMsg({ type: '', text: '' }), 4000);
+      setStatusMsg({ type: 'success', text: 'Profile Saved Successfully' });
+      setTimeout(() => setStatusMsg({ type: '', text: '' }), 5000);
     } else {
-      setStatusMsg({ type: 'error', text: res.message || 'Failed to update shop details.' });
+      setStatusMsg({ type: 'error', text: res.message || 'Failed to update shop profile.' });
     }
   };
 
@@ -328,8 +385,8 @@ export const Settings = () => {
       {/* Dynamic Status Alert Banner */}
       {statusMsg.text && (
         <div className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-3 border shadow-sm transition-all animate-fade-in ${statusMsg.type === 'success'
-            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-            : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
+          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+          : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
           }`}>
           {statusMsg.type === 'success' ? (
             <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500" />
@@ -353,8 +410,8 @@ export const Settings = () => {
           type="button"
           onClick={() => { setActiveTab('profile'); setStatusMsg({ type: '', text: '' }); }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${activeTab === 'profile'
-              ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+            : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
         >
           <User className="w-4 h-4" />
@@ -365,8 +422,8 @@ export const Settings = () => {
           type="button"
           onClick={() => { setActiveTab('security'); setStatusMsg({ type: '', text: '' }); }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${activeTab === 'security'
-              ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+            : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
         >
           <ShieldCheck className="w-4 h-4" />
@@ -377,8 +434,8 @@ export const Settings = () => {
           type="button"
           onClick={() => { setActiveTab('shop'); setStatusMsg({ type: '', text: '' }); }}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer ${activeTab === 'shop'
-              ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-xs'
+            : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
         >
           <Store className="w-4 h-4" />
@@ -783,346 +840,886 @@ export const Settings = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: SHOP & MANDI PROFILE (Business Identity, Contacts & Banking) */}
+      {/* TAB 3: SHOP & MANDI PROFILE SETUP FLOW */}
       {/* ========================================================================= */}
       {activeTab === 'shop' && (
-        <div className={`border rounded-3xl p-6 md:p-8 card-shadow space-y-8 transition-colors ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+        <div className="space-y-6">
+          {/* Top Flow Header & Visual Stepper */}
+          <div className={`p-5 sm:p-6 rounded-3xl border card-shadow space-y-4 transition-colors ${
+            isDark ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
-          {/* Section Header */}
-          <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-700">
-            <div className="w-9 h-9 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center font-bold">
-              <Store className="w-5 h-5" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-bold shrink-0">
+                  <Store className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                      Shop & Mandi Profile Setup Flow
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Form Open
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    Structured 3-step setup with real-time field validation and verified profile persistence
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Indicator */}
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border ${
+                  isAllProfileSectionsValid
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+                }`}>
+                  {isAllProfileSectionsValid ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" /> All Sections Valid
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-4 h-4" /> Completion Pending
+                    </>
+                  )}
+                </span>
+              </div>
             </div>
-            <div>
-              <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Shop & Mandi Profile</h3>
-              <p className="text-xs text-slate-400 font-medium">
-                Configure your business details, contacts, and banking information for receipts and invoices
-              </p>
+
+            {/* Stepper Flow Roadline */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              {/* Step 1: Business Details */}
+              <div className={`p-3 rounded-2xl border flex items-center gap-3 transition-all ${
+                isBusinessDetailsValid
+                  ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/60'
+                  : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700'
+              }`}>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                  isBusinessDetailsValid
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                }`}>
+                  {isBusinessDetailsValid ? <Check className="w-4 h-4 stroke-[3]" /> : '1'}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-extrabold text-slate-900 dark:text-white truncate">1. Business Details</div>
+                  <div className={`text-[11px] font-semibold truncate ${
+                    isBusinessDetailsValid ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'
+                  }`}>
+                    {isBusinessDetailsValid ? '✓ Section Valid' : 'Name, Address, City'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Contact Details */}
+              <div className={`p-3 rounded-2xl border flex items-center gap-3 transition-all ${
+                isContactDetailsValid
+                  ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
+                  : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700'
+              }`}>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                  isContactDetailsValid
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400'
+                }`}>
+                  {isContactDetailsValid ? <Check className="w-4 h-4 stroke-[3]" /> : '2'}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-extrabold text-slate-900 dark:text-white truncate">2. Contact Details</div>
+                  <div className={`text-[11px] font-semibold truncate ${
+                    isContactDetailsValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
+                  }`}>
+                    {isContactDetailsValid ? '✓ Formats Valid' : 'Mobile, WhatsApp, Email'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3: Bank Details */}
+              <div className={`p-3 rounded-2xl border flex items-center gap-3 transition-all ${
+                isBankDetailsValid
+                  ? 'bg-purple-50/50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800/60'
+                  : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700'
+              }`}>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                  isBankDetailsValid
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400'
+                }`}>
+                  {isBankDetailsValid ? <Check className="w-4 h-4 stroke-[3]" /> : '3'}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-extrabold text-slate-900 dark:text-white truncate">3. Bank Details</div>
+                  <div className={`text-[11px] font-semibold truncate ${
+                    isBankDetailsValid ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400'
+                  }`}>
+                    {isBankDetailsValid ? '✓ Account Valid' : 'Bank, Branch, Title, IBAN'}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <form onSubmit={handleShopProfileSave} className="space-y-8">
-            {/* PART 1: Business Identity */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-brand-600 dark:text-brand-400 border-b border-slate-100 dark:border-slate-700/60 pb-1.5">
-                <Store className="w-4 h-4" />
-                <span>1. Business Identity</span>
+          {/* Form & Sidebar Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Main Form Sections (8 Cols) */}
+            <form onSubmit={handleShopProfileSave} className="lg:col-span-8 space-y-6">
+              {/* ===================================================================== */}
+              {/* SECTION 1: BUSINESS DETAILS (Soft Blue Theme) */}
+              {/* ===================================================================== */}
+              <div className={`border-2 rounded-3xl p-5 sm:p-6 card-shadow space-y-5 transition-all ${
+                isDark
+                  ? 'bg-slate-800/90 border-blue-900/50 text-white'
+                  : 'bg-white border-blue-200 text-slate-800'
+              }`}>
+                {/* Header */}
+                <div className="flex items-center justify-between border-b pb-3.5 border-blue-100 dark:border-blue-900/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold shrink-0">
+                      <Building2 className="w-4.5 h-4.5" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-sm text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                        1. Business Details
+                      </h3>
+                      <p className="text-[11px] text-slate-400 font-medium">
+                        Core legal and operational business identity
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Section 1 Validity Badge */}
+                  <div>
+                    {isBusinessDetailsValid ? (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Valid
+                      </span>
+                    ) : (
+                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border flex items-center gap-1 ${
+                        touched.shopName || touched.businessAddress || touched.shopCity
+                          ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-500 border-slate-200 dark:border-slate-600'
+                      }`}>
+                        {touched.shopName || touched.businessAddress || touched.shopCity ? (
+                          <>
+                            <AlertCircle className="w-3 h-3" /> Required Fields
+                          </>
+                        ) : (
+                          'Required *'
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Field 1: Business Name * */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between mb-1.5">
+                      <span>Business Name <span className="text-rose-500">*</span></span>
+                      {touched.shopName && isBusinessNameValid && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                          <Check className="w-3 h-3" /> Valid
+                        </span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <Store className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={shopName}
+                        onBlur={() => markTouched('shopName')}
+                        onChange={(e) => { setShopName(e.target.value); markTouched('shopName'); }}
+                        placeholder="e.g. Shaheen Traders"
+                        className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:ring-2 ${
+                          touched.shopName && !isBusinessNameValid
+                            ? 'border-rose-500 bg-rose-50/20 focus:ring-rose-500/20'
+                            : isDark
+                            ? 'bg-slate-900 border-slate-700 text-white focus:border-blue-500 focus:ring-blue-500/20'
+                            : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500 focus:ring-blue-500/20'
+                        }`}
+                      />
+                    </div>
+                    {/* Inline Validation Error */}
+                    {touched.shopName && !isBusinessNameValid && (
+                      <p className="mt-1.5 text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Show Validation Error: Business Name is required.</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Field 2: Business Address * */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between mb-1.5">
+                      <span>Business Address <span className="text-rose-500">*</span></span>
+                      {touched.businessAddress && isBusinessAddressValid && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                          <Check className="w-3 h-3" /> Valid
+                        </span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={businessAddress}
+                        onBlur={() => markTouched('businessAddress')}
+                        onChange={(e) => { setBusinessAddress(e.target.value); markTouched('businessAddress'); }}
+                        placeholder="e.g. Shop 42, Block B, New Ghalla Mandi, Vehari Road"
+                        className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:ring-2 ${
+                          touched.businessAddress && !isBusinessAddressValid
+                            ? 'border-rose-500 bg-rose-50/20 focus:ring-rose-500/20'
+                            : isDark
+                            ? 'bg-slate-900 border-slate-700 text-white focus:border-blue-500 focus:ring-blue-500/20'
+                            : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500 focus:ring-blue-500/20'
+                        }`}
+                      />
+                    </div>
+                    {/* Inline Validation Error */}
+                    {touched.businessAddress && !isBusinessAddressValid && (
+                      <p className="mt-1.5 text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Show Validation Error: Business Address is required.</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Field 3: City * and Mandi Details */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* City * */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between mb-1.5">
+                        <span>City <span className="text-rose-500">*</span></span>
+                        {touched.shopCity && isCityValid && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                            <Check className="w-3 h-3" /> Valid
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          required
+                          value={shopCity}
+                          onBlur={() => markTouched('shopCity')}
+                          onChange={(e) => { setShopCity(e.target.value); markTouched('shopCity'); }}
+                          placeholder="e.g. Multan"
+                          className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:ring-2 ${
+                            touched.shopCity && !isCityValid
+                              ? 'border-rose-500 bg-rose-50/20 focus:ring-rose-500/20'
+                              : isDark
+                              ? 'bg-slate-900 border-slate-700 text-white focus:border-blue-500 focus:ring-blue-500/20'
+                              : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500 focus:ring-blue-500/20'
+                          }`}
+                        />
+                      </div>
+                      {/* Inline Validation Error */}
+                      {touched.shopCity && !isCityValid && (
+                        <p className="mt-1.5 text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Show Validation Error: City is required.</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Mandi Name (Supporting) */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                        Mandi Name (Optional)
+                      </label>
+                      <div className="relative">
+                        <Wheat className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={mandiName}
+                          onChange={(e) => setMandiName(e.target.value)}
+                          placeholder="e.g. Ghalla Mandi Multan"
+                          className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
+                            isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-                {/* Business Name */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Business Name <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Store className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Shaheen Traders"
-                      value={shopName}
-                      onChange={(e) => setShopName(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
+              {/* ===================================================================== */}
+              {/* SECTION 2: CONTACT DETAILS (Soft Green Theme) */}
+              {/* ===================================================================== */}
+              <div className={`border-2 rounded-3xl p-5 sm:p-6 card-shadow space-y-5 transition-all ${
+                isDark
+                  ? 'bg-slate-800/90 border-emerald-900/50 text-white'
+                  : 'bg-white border-emerald-200 text-slate-800'
+              }`}>
+                {/* Header */}
+                <div className="flex items-center justify-between border-b pb-3.5 border-emerald-100 dark:border-emerald-900/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
+                      <Phone className="w-4.5 h-4.5" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-sm text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                        2. Contact Details
+                      </h3>
+                      <p className="text-[11px] text-slate-400 font-medium">
+                        Customer & supplier communication channels
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Section 2 Validity Badge */}
+                  <div>
+                    {isContactDetailsValid ? (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Valid
+                      </span>
+                    ) : (
+                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border flex items-center gap-1 ${
+                        touched.businessPhone || touched.businessWhatsapp || touched.businessEmail
+                          ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-500 border-slate-200 dark:border-slate-600'
+                      }`}>
+                        {touched.businessPhone || touched.businessWhatsapp || touched.businessEmail ? (
+                          <>
+                            <AlertCircle className="w-3 h-3" /> Invalid Format
+                          </>
+                        ) : (
+                          'Mobile Required *'
+                        )}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Trade Type */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Trade Type
-                  </label>
-                  <div className="relative">
-                    <Briefcase className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <select
-                      value={businessType}
-                      onChange={(e) => setBusinessType(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                <div className="space-y-4">
+                  {/* Field 1: Mobile Number * */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between mb-1.5">
+                      <span>Mobile Number <span className="text-rose-500">*</span></span>
+                      {touched.businessPhone && isPhoneValid && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                          <Check className="w-3 h-3" /> 11-digit Verified
+                        </span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
+                        required
+                        value={businessPhone}
+                        onBlur={() => markTouched('businessPhone')}
+                        onChange={(e) => {
+                          setBusinessPhone(e.target.value.replace(/\D/g, '').slice(0, 11));
+                          markTouched('businessPhone');
+                        }}
+                        placeholder="03001234567"
+                        className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:ring-2 ${
+                          touched.businessPhone && !isPhoneValid
+                            ? 'border-rose-500 bg-rose-50/20 focus:ring-rose-500/20'
+                            : isDark
+                            ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500 focus:ring-emerald-500/20'
+                            : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500/20'
                         }`}
-                    >
-                      <option value="Commission Agent (Aarthi)">Commission Agent (Aarthi)</option>
-                      <option value="Grain Wholesaler">Grain Wholesaler</option>
-                      <option value="Grain Broker">Grain Broker</option>
-                      <option value="Mandi Input Supplier">Mandi Input Supplier</option>
-                      <option value="Warehouse / Silo Operator">Warehouse / Silo Operator</option>
-                    </select>
+                      />
+                    </div>
+                    {/* Inline Validation Error */}
+                    {touched.businessPhone && !businessPhone.trim() && (
+                      <p className="mt-1.5 text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Show Validation Error: Mobile Number is required.</span>
+                      </p>
+                    )}
+                    {touched.businessPhone && businessPhone.trim() && !isPhoneValid && (
+                      <p className="mt-1.5 text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Show Validation Error (Invalid Format): Exactly 11 digits required (e.g. 03001234567). Current: {cleanPhone.length}/11.</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Field 2: WhatsApp Number */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between mb-1.5">
+                        <span>WhatsApp Number</span>
+                        {businessWhatsapp && isWhatsappValid && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                            <Check className="w-3 h-3" /> Valid
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <MessageCircle className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="tel"
+                          inputMode="numeric"
+                          maxLength={11}
+                          value={businessWhatsapp}
+                          onBlur={() => markTouched('businessWhatsapp')}
+                          onChange={(e) => {
+                            setBusinessWhatsapp(e.target.value.replace(/\D/g, '').slice(0, 11));
+                            markTouched('businessWhatsapp');
+                          }}
+                          placeholder="03001234567 (Optional)"
+                          className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:ring-2 ${
+                            touched.businessWhatsapp && !isWhatsappValid
+                              ? 'border-rose-500 bg-rose-50/20 focus:ring-rose-500/20'
+                              : isDark
+                              ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500 focus:ring-emerald-500/20'
+                              : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500/20'
+                          }`}
+                        />
+                      </div>
+                      {/* Inline Validation Error */}
+                      {touched.businessWhatsapp && !isWhatsappValid && (
+                        <p className="mt-1.5 text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Show Validation Error (Invalid Format): 11 digits required (Current: {cleanWhatsapp.length}).</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Field 3: Email Address */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between mb-1.5">
+                        <span>Email Address</span>
+                        {businessEmail && isEmailValid && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                            <Check className="w-3 h-3" /> Valid
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="email"
+                          value={businessEmail}
+                          onBlur={() => markTouched('businessEmail')}
+                          onChange={(e) => {
+                            setBusinessEmail(e.target.value);
+                            markTouched('businessEmail');
+                          }}
+                          placeholder="shaheen@traders.com (Optional)"
+                          className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:ring-2 ${
+                            touched.businessEmail && !isEmailValid
+                              ? 'border-rose-500 bg-rose-50/20 focus:ring-rose-500/20'
+                              : isDark
+                              ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500 focus:ring-emerald-500/20'
+                              : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500/20'
+                          }`}
+                        />
+                      </div>
+                      {/* Inline Validation Error */}
+                      {touched.businessEmail && !isEmailValid && (
+                        <p className="mt-1.5 text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Show Validation Error (Invalid Format): Please enter a valid email format.</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ===================================================================== */}
+              {/* SECTION 3: BANK DETAILS (Soft Purple Theme) */}
+              {/* ===================================================================== */}
+              <div className={`border-2 rounded-3xl p-5 sm:p-6 card-shadow space-y-5 transition-all ${
+                isDark
+                  ? 'bg-slate-800/90 border-purple-900/50 text-white'
+                  : 'bg-white border-purple-200 text-slate-800'
+              }`}>
+                {/* Header */}
+                <div className="flex items-center justify-between border-b pb-3.5 border-purple-100 dark:border-purple-900/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold shrink-0">
+                      <Landmark className="w-4.5 h-4.5" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-sm text-purple-600 dark:text-purple-400 uppercase tracking-wide">
+                        3. Bank Details
+                      </h3>
+                      <p className="text-[11px] text-slate-400 font-medium">
+                        Banking credentials for invoices, receipts and khata transfers
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Section 3 Validity Badge */}
+                  <div>
+                    {isBankDetailsValid ? (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Valid
+                      </span>
+                    ) : (
+                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border flex items-center gap-1 ${
+                        touched.bankName || touched.branchName || touched.accountTitle || touched.accountNumber
+                          ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-500 border-slate-200 dark:border-slate-600'
+                      }`}>
+                        {touched.bankName || touched.branchName || touched.accountTitle || touched.accountNumber ? (
+                          <>
+                            <AlertCircle className="w-3 h-3" /> Required Fields
+                          </>
+                        ) : (
+                          'Required *'
+                        )}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Khata Number */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Khata Number
-                  </label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Shop 42, Block B"
-                      value={shopNo}
-                      onChange={(e) => setShopNo(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Field 1: Bank Name * */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between mb-1.5">
+                        <span>Bank Name <span className="text-rose-500">*</span></span>
+                        {touched.bankName && isBankNameValid && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                            <Check className="w-3 h-3" /> Valid
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <Landmark className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          required
+                          value={bankName}
+                          onBlur={() => markTouched('bankName')}
+                          onChange={(e) => { setBankName(e.target.value); markTouched('bankName'); }}
+                          placeholder="e.g. Meezan Bank, HBL, MCB"
+                          className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:ring-2 ${
+                            touched.bankName && !isBankNameValid
+                              ? 'border-rose-500 bg-rose-50/20 focus:ring-rose-500/20'
+                              : isDark
+                              ? 'bg-slate-900 border-slate-700 text-white focus:border-purple-500 focus:ring-purple-500/20'
+                              : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-purple-500 focus:ring-purple-500/20'
+                          }`}
+                        />
+                      </div>
+                      {/* Inline Validation Error */}
+                      {touched.bankName && !isBankNameValid && (
+                        <p className="mt-1.5 text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Show Validation Error: Bank Name is required.</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Field 2: Branch Name * */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between mb-1.5">
+                        <span>Branch Name <span className="text-rose-500">*</span></span>
+                        {touched.branchName && isBranchNameValid && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                            <Check className="w-3 h-3" /> Valid
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          required
+                          value={branchName}
+                          onBlur={() => markTouched('branchName')}
+                          onChange={(e) => { setBranchName(e.target.value); markTouched('branchName'); }}
+                          placeholder="e.g. Ghalla Mandi Branch (0123)"
+                          className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:ring-2 ${
+                            touched.branchName && !isBranchNameValid
+                              ? 'border-rose-500 bg-rose-50/20 focus:ring-rose-500/20'
+                              : isDark
+                              ? 'bg-slate-900 border-slate-700 text-white focus:border-purple-500 focus:ring-purple-500/20'
+                              : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-purple-500 focus:ring-purple-500/20'
+                          }`}
+                        />
+                      </div>
+                      {/* Inline Validation Error */}
+                      {touched.branchName && !isBranchNameValid && (
+                        <p className="mt-1.5 text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Show Validation Error: Branch Name is required.</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Field 3: Account Title * */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between mb-1.5">
+                        <span>Account Title <span className="text-rose-500">*</span></span>
+                        {touched.accountTitle && isAccountTitleValid && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                            <Check className="w-3 h-3" /> Valid
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          required
+                          value={accountTitle}
+                          onBlur={() => markTouched('accountTitle')}
+                          onChange={(e) => { setAccountTitle(e.target.value); markTouched('accountTitle'); }}
+                          placeholder="e.g. Shaheen Traders"
+                          className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:ring-2 ${
+                            touched.accountTitle && !isAccountTitleValid
+                              ? 'border-rose-500 bg-rose-50/20 focus:ring-rose-500/20'
+                              : isDark
+                              ? 'bg-slate-900 border-slate-700 text-white focus:border-purple-500 focus:ring-purple-500/20'
+                              : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-purple-500 focus:ring-purple-500/20'
+                          }`}
+                        />
+                      </div>
+                      {/* Inline Validation Error */}
+                      {touched.accountTitle && !isAccountTitleValid && (
+                        <p className="mt-1.5 text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Show Validation Error: Account Title is required.</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Field 4: Account Number / IBAN * */}
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between mb-1.5">
+                        <span>Account Number / IBAN <span className="text-rose-500">*</span></span>
+                        {touched.accountNumber && isAccountNumberValid && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
+                            <Check className="w-3 h-3" /> Valid
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <CreditCard className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          required
+                          value={accountNumber}
+                          onBlur={() => markTouched('accountNumber')}
+                          onChange={(e) => { setAccountNumber(e.target.value); markTouched('accountNumber'); }}
+                          placeholder="e.g. PK36MEZN0001234567890101"
+                          className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:ring-2 ${
+                            touched.accountNumber && !isAccountNumberValid
+                              ? 'border-rose-500 bg-rose-50/20 focus:ring-rose-500/20'
+                              : isDark
+                              ? 'bg-slate-900 border-slate-700 text-white focus:border-purple-500 focus:ring-purple-500/20'
+                              : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-purple-500 focus:ring-purple-500/20'
+                          }`}
+                        />
+                      </div>
+                      {/* Inline Validation Error */}
+                      {touched.accountNumber && !isAccountNumberValid && (
+                        <p className="mt-1.5 text-[11px] font-bold text-rose-500 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Show Validation Error: Account Number / IBAN is required.</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ===================================================================== */}
+              {/* SAVE ACTION BAR & CONFIRMATION FLOW */}
+              {/* ===================================================================== */}
+              <div className={`p-5 rounded-3xl border card-shadow space-y-4 ${
+                isDark ? 'bg-slate-800/90 border-slate-700' : 'bg-white border-slate-200'
+              }`}>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div>
+                    <div className="text-xs font-extrabold text-slate-800 dark:text-slate-200">
+                      Save & Apply Mandi Profile
+                    </div>
+                    <div className="text-[11px] font-medium text-slate-400">
+                      {isAllProfileSectionsValid
+                        ? 'All sections are valid. Click save to persist business credentials.'
+                        : 'Please complete all required fields and correct format errors before saving.'}
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className={`w-full sm:w-auto px-7 py-3.5 rounded-2xl font-black text-xs transition shadow-md flex items-center justify-center gap-2.5 cursor-pointer active:scale-98 ${
+                      isAllProfileSectionsValid
+                        ? 'bg-brand-500 hover:bg-brand-600 text-white shadow-brand-500/25'
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
+                    }`}
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSaving ? 'Saving Business Profile...' : 'Save Business Profile'}</span>
+                  </button>
+                </div>
+
+                {/* Profile Saved Successfully Feedback Card (From Flowchart) */}
+                {statusMsg.type === 'success' && (
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 flex items-center gap-3 animate-fade-in">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shrink-0">
+                      <Check className="w-4 h-4 stroke-[3]" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black">Profile Saved Successfully</div>
+                      <div className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                        Your Shop, Mandi, and Banking credentials have been stored and updated across all reports and invoices.
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </form>
+
+            {/* Sidebar Guide Panel (4 Cols) */}
+            <div className="lg:col-span-4 space-y-5">
+              {/* KEY POINTS CALLOUT CARD (Exact replica of diagram) */}
+              <div className="p-5 sm:p-6 rounded-3xl border-2 border-amber-300/80 dark:border-amber-700/60 bg-amber-50/70 dark:bg-amber-950/20 card-shadow space-y-3.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+                    <Lightbulb className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xs uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                      Key Points
+                    </h4>
+                    <p className="text-[10px] text-amber-700/80 dark:text-amber-400/80 font-medium">
+                      Setup requirements & best practices
+                    </p>
                   </div>
                 </div>
 
-                {/* Mandi Name */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Mandi Name
-                  </label>
-                  <div className="relative">
-                    <Wheat className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Ghalla Mandi Multan"
-                      value={mandiName}
-                      onChange={(e) => setMandiName(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
+                <ul className="space-y-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <li className="flex items-start gap-2.5">
+                    <span className="text-amber-600 dark:text-amber-400 font-black text-sm leading-none mt-0.5">•</span>
+                    <span>Fields marked with <strong className="text-rose-500 font-black">*</strong> are required</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="text-amber-600 dark:text-amber-400 font-black text-sm leading-none mt-0.5">•</span>
+                    <span>Real-time validation for better user experience</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="text-amber-600 dark:text-amber-400 font-black text-sm leading-none mt-0.5">•</span>
+                    <span>Errors shown inline for quick correction</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="text-amber-600 dark:text-amber-400 font-black text-sm leading-none mt-0.5">•</span>
+                    <span>Data is saved only when all sections are valid</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* LIVE SECTION FLOW VALIDATOR */}
+              <div className={`p-5 rounded-3xl border card-shadow space-y-4 ${
+                isDark ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+              }`}>
+                <div className="flex items-center justify-between border-b pb-2.5 border-slate-100 dark:border-slate-700">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+                    Live Section Status
+                  </span>
+                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                    isAllProfileSectionsValid
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                  }`}>
+                    {isAllProfileSectionsValid ? '3 of 3 Ready' : 'Validation Active'}
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Section 1 Status */}
+                  <div className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
+                    isBusinessDetailsValid
+                      ? 'bg-blue-50/40 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/40'
+                      : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-700'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs ${
+                        isBusinessDetailsValid ? 'bg-blue-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                      }`}>
+                        1
+                      </div>
+                      <span className="text-xs font-bold">Business Details</span>
+                    </div>
+                    {isBusinessDetailsValid ? (
+                      <span className="text-[11px] font-black text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Valid
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5" /> Incomplete
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Section 2 Status */}
+                  <div className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
+                    isContactDetailsValid
+                      ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40'
+                      : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-700'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs ${
+                        isContactDetailsValid ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                      }`}>
+                        2
+                      </div>
+                      <span className="text-xs font-bold">Contact Details</span>
+                    </div>
+                    {isContactDetailsValid ? (
+                      <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Valid
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5" /> Invalid Format
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Section 3 Status */}
+                  <div className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
+                    isBankDetailsValid
+                      ? 'bg-purple-50/40 dark:bg-purple-950/20 border-purple-200 dark:border-purple-900/40'
+                      : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-700'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs ${
+                        isBankDetailsValid ? 'bg-purple-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                      }`}>
+                        3
+                      </div>
+                      <span className="text-xs font-bold">Bank Details</span>
+                    </div>
+                    {isBankDetailsValid ? (
+                      <span className="text-[11px] font-black text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Valid
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5" /> Incomplete
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Mandi Gate */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Mandi Gate
-                  </label>
-                  <div className="relative">
-                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Gate 2, Block C"
-                      value={mandiGate}
-                      onChange={(e) => setMandiGate(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Primary Commodities */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Primary Commodities
-                  </label>
-                  <div className="relative">
-                    <Wheat className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Wheat, Basmati Rice, Maize, Mustard"
-                      value={primaryCommodities}
-                      onChange={(e) => setPrimaryCommodities(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-700 text-[11px] text-slate-400">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Rule:</span> When all 3 sections show <strong className="text-emerald-500">Valid</strong>, the profile is verified and ready for instant activation.
                 </div>
               </div>
             </div>
-
-            {/* PART 2: Contact Information */}
-            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-slate-100 dark:border-slate-700/60 pb-1.5">
-                <Phone className="w-4 h-4" />
-                <span>2. Contact Information</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-                {/* Phone */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Phone
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      maxLength={11}
-                      placeholder="03001234567"
-                      value={businessPhone}
-                      onChange={(e) => setBusinessPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* WhatsApp */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    WhatsApp
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      maxLength={11}
-                      placeholder="03001234567"
-                      value={businessWhatsapp}
-                      onChange={(e) => setBusinessWhatsapp(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="email"
-                      placeholder="shaheen@traders.com"
-                      value={businessEmail}
-                      onChange={(e) => setBusinessEmail(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Business Address */}
-                <div className="md:col-span-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Business Address
-                  </label>
-                  <div className="relative">
-                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Shop 42, Block B, New Ghalla Mandi, Vehari Road, Multan"
-                      value={businessAddress}
-                      onChange={(e) => setBusinessAddress(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* City */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    City
-                  </label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Multan"
-                      value={shopCity}
-                      onChange={(e) => setShopCity(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* PART 3: Banking Details */}
-            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 border-b border-slate-100 dark:border-slate-700/60 pb-1.5">
-                <Landmark className="w-4 h-4" />
-                <span>3. Banking Details</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-                {/* Bank Name */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Bank Name
-                  </label>
-                  <div className="relative">
-                    <Landmark className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Meezan Bank, HBL"
-                      value={bankName}
-                      onChange={(e) => setBankName(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Branch Name */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Branch Name
-                  </label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Ghalla Mandi Branch (0123)"
-                      value={branchName}
-                      onChange={(e) => setBranchName(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Account Title */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Account Title
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Shaheen Traders"
-                      value={accountTitle}
-                      onChange={(e) => setAccountTitle(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Account Number */}
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                    Account Number
-                  </label>
-                  <div className="relative">
-                    <Hash className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="e.g. PK36MEZN0001234567890101"
-                      value={accountNumber}
-                      onChange={(e) => setAccountNumber(e.target.value)}
-                      className={`w-full border rounded-2xl pl-10 pr-3.5 py-3 text-xs font-mono font-bold outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 ${isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Save Button */}
-            <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-700">
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs px-6 py-3 rounded-2xl transition shadow-md shadow-brand-500/25 disabled:opacity-50 cursor-pointer active:scale-98"
-              >
-                <Save className="w-4 h-4" />
-                <span>{isSaving ? 'Saving Shop Profile...' : 'Save Shop & Mandi Profile'}</span>
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
       )}
     </div>

@@ -179,8 +179,6 @@ export const Inventory = () => {
       if (movementTypeFilter !== 'All') {
         if (movementTypeFilter === 'IN' && item.direction !== 'IN') return false;
         if (movementTypeFilter === 'OUT' && item.direction !== 'OUT') return false;
-        if (movementTypeFilter === 'PURCHASE' && item.movementCategory !== 'PURCHASE') return false;
-        if (movementTypeFilter === 'SALE' && item.movementCategory !== 'SALE') return false;
         if (movementTypeFilter === 'RETURN' && !item.movementCategory.includes('RETURN')) return false;
       }
 
@@ -288,7 +286,7 @@ export const Inventory = () => {
             <AlertTriangle className="w-4 h-4 text-amber-600" />
             <span>Low Stock Alerts</span>
           </div>
-          <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${lowStockCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
+          <div className={`text-xl sm:text-2xl font-black mt-2 tracking-tight ${lowStockCount > 0 ? 'text-amber-500' : 'text-amber-500'}`}>
             {lowStockCount} <span className="text-xs font-bold text-slate-400">Items</span>
           </div>
         </div>
@@ -350,8 +348,6 @@ export const Inventory = () => {
               <option value="All">All Movements</option>
               <option value="IN">All Stock In (+)</option>
               <option value="OUT">All Stock Out (-)</option>
-              <option value="PURCHASE">Purchases In</option>
-              <option value="SALE">POS Sales Out</option>
               <option value="RETURN">All Returns (Sale/Purchase)</option>
             </select>
           </div>

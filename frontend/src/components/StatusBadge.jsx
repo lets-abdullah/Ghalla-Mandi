@@ -16,9 +16,6 @@ import { useTheme } from '../context/ThemeContext';
  * size: 'sm' | 'md' | 'lg'
  */
 export const StatusBadge = ({ status, size = 'md', className = '' }) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
   const normalize = (s) => {
     if (!s) return 'unknown';
     const lower = String(s).toLowerCase().trim();
@@ -41,15 +38,24 @@ export const StatusBadge = ({ status, size = 'md', className = '' }) => {
     unknown: String(status || '').toUpperCase(),
   };
 
-  const sizeClasses = {
-    sm: 'text-[9px] px-1.5 py-0.5',
-    md: 'text-[10px] px-2 py-0.5',
-    lg: 'text-[11px] px-2.5 py-1',
+  const colorClasses = {
+    paid: 'text-emerald-600 dark:text-emerald-400',
+    partial: 'text-amber-600 dark:text-amber-400',
+    unpaid: 'text-rose-600 dark:text-rose-400',
+    returned: 'text-purple-600 dark:text-purple-400',
+    settled: 'text-emerald-600 dark:text-emerald-400',
+    unknown: 'text-slate-600 dark:text-slate-400',
+  };
+
+  const fontSizes = {
+    sm: 'text-[10px]',
+    md: 'text-xs',
+    lg: 'text-xs sm:text-sm',
   };
 
   return (
     <span
-      className={`status-badge status-${normalized} ${sizeClasses[size] || sizeClasses.md} ${className}`}
+      className={`inline-block font-extrabold uppercase tracking-wider ${colorClasses[normalized] || colorClasses.unknown} ${fontSizes[size] || fontSizes.md} ${className}`}
     >
       {labels[normalized]}
     </span>

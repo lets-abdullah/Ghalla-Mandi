@@ -204,78 +204,89 @@ input[type="number"]::-webkit-outer-spin-button {
      ============================================================ */
 
   .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 9999px;
-    font-size: 0.65rem;
-    font-weight: 700;
+    display: inline-block;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.75rem;
+    font-weight: 800;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    border: 1px solid transparent;
+    border: none;
+    background: transparent !important;
     white-space: nowrap;
   }
 
   .status-paid {
-    background-color: #ecfdf5;
-    color: #059669;
-    border-color: #a7f3d0;
+    background: transparent !important;
+    color: #059669 !important;
+    border: none !important;
   }
 
   .status-partial {
-    background-color: #fffbeb;
-    color: #d97706;
-    border-color: #fde68a;
+    background: transparent !important;
+    color: #d97706 !important;
+    border: none !important;
   }
 
   .status-unpaid {
-    background-color: #fff1f2;
-    color: #e11d48;
-    border-color: #fecdd3;
+    background: transparent !important;
+    color: #e11d48 !important;
+    border: none !important;
   }
 
   .status-returned {
-    background-color: #f8fafc;
-    color: #64748b;
-    border-color: #e2e8f0;
+    background: transparent !important;
+    color: #7c3aed !important;
+    border: none !important;
   }
 
   .status-settled {
-    background-color: #f0fdf4;
-    color: #16a34a;
-    border-color: #bbf7d0;
+    background: transparent !important;
+    color: #16a34a !important;
+    border: none !important;
   }
 
   .status-due {
-    background-color: #fff7ed;
-    color: #ea580c;
-    border-color: #fed7aa;
+    background: transparent !important;
+    color: #ea580c !important;
+    border: none !important;
   }
 
   /* Dark mode status badges */
   .dark .status-paid {
-    background-color: rgba(5, 150, 105, 0.15);
-    color: #34d399;
-    border-color: rgba(52, 211, 153, 0.25);
+    background: transparent !important;
+    color: #34d399 !important;
+    border: none !important;
   }
 
   .dark .status-partial {
-    background-color: rgba(217, 119, 6, 0.15);
-    color: #fbbf24;
-    border-color: rgba(251, 191, 36, 0.25);
+    background: transparent !important;
+    color: #fbbf24 !important;
+    border: none !important;
   }
 
   .dark .status-unpaid {
-    background-color: rgba(225, 29, 72, 0.15);
-    color: #fb7185;
-    border-color: rgba(251, 113, 133, 0.25);
+    background: transparent !important;
+    color: #fb7185 !important;
+    border: none !important;
   }
 
   .dark .status-returned {
-    background-color: rgba(100, 116, 139, 0.15);
-    color: #94a3b8;
-    border-color: rgba(148, 163, 184, 0.25);
+    background: transparent !important;
+    color: #a78bfa !important;
+    border: none !important;
+  }
+
+  .dark .status-settled {
+    background: transparent !important;
+    color: #4ade80 !important;
+    border: none !important;
+  }
+
+  .dark .status-due {
+    background: transparent !important;
+    color: #fb923c !important;
+    border: none !important;
   }
 
   .dark .status-settled {
@@ -973,8 +984,22 @@ input[type="number"]::-webkit-outer-spin-button {
     color: #0f172a !important;
   }
 
-  span {
+  span, div, td, th {
     box-shadow: none !important;
+  }
+
+  /* Eliminate all block/pill shapes and backgrounds from printed tables */
+  .status-badge,
+  [class*="status-"],
+  [class*="badge"],
+  td span[class*="rounded-"],
+  td div[class*="rounded-"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
   }
 
   /* 7. Modal & Drawer Full-Page Invoice / Voucher Rendering */

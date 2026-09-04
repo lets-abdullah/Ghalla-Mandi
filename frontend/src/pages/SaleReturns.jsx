@@ -148,8 +148,8 @@ export const SaleReturns = () => {
                       <td className="py-3 px-4 text-right font-black font-mono text-emerald-600 dark:text-emerald-400">
                         Rs. {retAmt.toLocaleString()}
                       </td>
-                      <td className="py-3 px-4 text-center font-bold text-xs">
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+                      <td className="py-3 px-4 text-center">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
                           Cash Refunded
                         </span>
                       </td>

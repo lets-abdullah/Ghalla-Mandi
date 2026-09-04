@@ -415,20 +415,42 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   if (!customer) return { openingBalance: 0, totalSale: 0, grossSale: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, returnAmount: 0, netSale: 0, netBalance: 0, balance: 0, receivableDue: 0, advanceCredit: 0, status: 'Settled', ordersCount: 0 };
   const custId = customer.id ? String(customer.id) : null;
   const custName = (customer.name || '').trim().toLowerCase();
-  const isRegularCust = custId && !custId.startsWith('walkin-') && custName !== 'walk-in customer';
+
+  const isGenericWalkinName = (name) => {
+    if (!name) return true;
+    const n = String(name).trim().toLowerCase();
+    return (
+      n === 'walk-in customer' ||
+      n === 'walk in customer' ||
+      n === 'walk-in' ||
+      n === 'walkin' ||
+      n === 'walk in' ||
+      n === 'walk-in-customer'
+    );
+  };
+
+  const isCustGenericWalkin = isGenericWalkinName(custName) || (custId && (custId.startsWith('walkin-generic') || custId === 'walkin-default'));
 
   const custSales = (sales || []).filter(s => {
     const sCustId = s.customerId ? String(s.customerId) : null;
     const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
-    const isWalkinSale = (!sCustId && (sPartyName === 'walk-in customer' || sPartyName === '')) ||
-      (s.customerType || '').toLowerCase().includes('walk-in');
 
-    if (isRegularCust) {
-      if (isWalkinSale && !sCustId) return false;
-      return (sCustId && sCustId === custId) || (custName && sPartyName === custName && !sPartyName.includes('walk-in'));
-    } else {
-      return (custId && sCustId && sCustId === custId) || (custName && sPartyName === custName);
+    // 1. Explicit Customer ID match
+    if (custId && sCustId && sCustId === custId) return true;
+
+    // 2. Specific Named Customer (Regular Party or Named Walk-in like Bilal, Ali, Chaudhary)
+    if (!isCustGenericWalkin) {
+      if (custName && sPartyName && sPartyName === custName && !isGenericWalkinName(sPartyName)) {
+        return true;
+      }
+      if (custId && (custId === `cust-pos-${sPartyName}` || custId === `walkin-${sPartyName}`)) {
+        return true;
+      }
+      return false;
     }
+
+    // 3. Generic Unnamed Walk-in Customer
+    return (!sCustId || sCustId === custId) && isGenericWalkinName(sPartyName);
   });
 
   const totalGrossSale = custSales.reduce((acc, s) => acc + Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0)), 0);
@@ -437,11 +459,20 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   const custReturns = (saleReturns || []).filter(r => {
     const rCustId = r.customerId ? String(r.customerId) : null;
     const rCustName = (r.customerName || '').trim().toLowerCase();
-    if (isRegularCust) {
-      return (custId && rCustId && rCustId === custId) || (custName && rCustName === custName && !rCustName.includes('walk-in'));
-    } else {
-      return (custId && rCustId && rCustId === custId) || (custName && rCustName === custName);
+
+    if (custId && rCustId && rCustId === custId) return true;
+
+    if (!isCustGenericWalkin) {
+      if (custName && rCustName && rCustName === custName && !isGenericWalkinName(rCustName)) {
+        return true;
+      }
+      if (custId && (custId === `cust-pos-${rCustName}` || custId === `walkin-${rCustName}`)) {
+        return true;
+      }
+      return false;
     }
+
+    return (!rCustId || rCustId === custId) && isGenericWalkinName(rCustName);
   });
 
   const totalReturnAmount = custReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
@@ -456,48 +487,48 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     const pPartyId = p.partyId ? String(p.partyId) : null;
     const pPartyName = (p.partyName || '').trim().toLowerCase();
 
-    if (isRegularCust) {
-      return (custId && pPartyId && pPartyId === custId) ||
-        (custName && pPartyName === custName && !pPartyName.includes('walk-in'));
-    } else {
-      return (custId && pPartyId && pPartyId === custId) || (custName && pPartyName === custName);
+    if (custId && pPartyId && pPartyId === custId) return true;
+
+    if (!isCustGenericWalkin) {
+      if (custName && pPartyName && pPartyName === custName && !isGenericWalkinName(pPartyName)) {
+        return true;
+      }
+      if (custId && (custId === `cust-pos-${pPartyName}` || custId === `walkin-${pPartyName}`)) {
+        return true;
+      }
+      return false;
     }
+
+    return (!pPartyId || pPartyId === custId) && isGenericWalkinName(pPartyName);
   });
 
   const directPaidLogs = custPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
   // Upfront POS payments on sales that do not have a separate payment log in paymentLogs
   let unloggedUpfrontCash = 0;
-  if (custPayments.length === 0) {
-    // If no payment logs exist at all for this customer, use sale upfront amounts
-    custSales.forEach(s => {
-      const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
-      const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
-      const sPaid = isMarkedPaid ? sTotal : Number(s.cashReceived !== undefined ? s.cashReceived : (s.paidAmount || 0));
+  custSales.forEach(s => {
+    const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
+    const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
+    const sPaid = isMarkedPaid ? sTotal : Number(s.paidAmount !== undefined ? s.paidAmount : (s.cashReceived || 0));
+
+    // Check if this sale already has an explicit matching log in custPayments
+    const hasMatchingLog = custPayments.some(p =>
+      (p.saleId && String(p.saleId) === String(s.id)) ||
+      (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+    );
+
+    if (!hasMatchingLog && sPaid > 0) {
       unloggedUpfrontCash += Math.min(sTotal, sPaid);
-    });
-  } else {
-    // If payment logs exist, only add explicit POS cash on sales that are NOT linked to any payment log
-    custSales.forEach(s => {
-      const hasMatchingLog = custPayments.some(p =>
-        (p.saleId && String(p.saleId) === String(s.id)) ||
-        (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
-      );
-      if (!hasMatchingLog && s.cashReceived !== undefined && Number(s.cashReceived) > 0) {
-        unloggedUpfrontCash += Number(s.cashReceived);
-      }
-    });
-  }
+    }
+  });
 
   const grossPaymentsReceived = Math.round(directPaidLogs + unloggedUpfrontCash);
   const openingBalance = Math.round(Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0)));
   const netSales = Math.max(0, Math.round(totalGrossSale - totalReturnAmount));
-  const totalActualPaymentsReceived = Math.min(grossPaymentsReceived, netSales);
+  const maxReceivable = openingBalance + netSales;
+  const totalActualPaymentsReceived = Math.min(grossPaymentsReceived, maxReceivable);
 
   // Canonical Accounting Equations: Sale Returns reduce Net Sales, Customer cannot be creditor
-  // Total Debits = Opening Balance (Receivable) + Net Sales Invoiced
-  // Total Credits = Net Payments Received
-  // Receivable Due = max(0, Debits - Credits)
   const totalDebits = openingBalance + netSales;
   const totalCredits = totalActualPaymentsReceived;
   const netBalance = totalDebits - totalCredits;
@@ -529,14 +560,28 @@ export const computeAllCustomersFinancials = (customers = [], sales = [], paymen
   const registeredCustIds = new Set((customers || []).map(c => String(c.id)));
   const registeredCustNames = new Set((customers || []).map(c => (c.name || '').trim().toLowerCase()));
 
-  // 1. Saved Customer Profiles (Regular Customers)
+  const isGenericWalkinName = (name) => {
+    if (!name) return true;
+    const n = String(name).trim().toLowerCase();
+    return (
+      n === 'walk-in customer' ||
+      n === 'walk in customer' ||
+      n === 'walk-in' ||
+      n === 'walkin' ||
+      n === 'walk in' ||
+      n === 'walk-in-customer'
+    );
+  };
+
+  // 1. Saved Customer Profiles (Regular and Walk-in Customer Accounts)
   const registeredList = (customers || []).map(cust => {
     const fin = computeCustomerKhataBalance(cust, sales, paymentLogs, saleReturns);
     const rawType = cust.customerType || cust.type || 'Regular Customer';
-    const isWalkin = rawType.toLowerCase().includes('walk');
+    const isWalkin = rawType.toLowerCase().includes('walk') || isGenericWalkinName(cust.name);
     return {
       ...cust,
       customerType: isWalkin ? 'Walk-in Customer' : 'Regular Customer',
+      isWalkin,
       isRegistered: true,
       ...fin
     };
@@ -562,14 +607,16 @@ export const computeAllCustomersFinancials = (customers = [], sales = [], paymen
 
   const unlistedList = [];
   unlistedSalesMap.forEach((val, key) => {
-    const fin = computeCustomerKhataBalance({ id: `cust-pos-${key}`, name: val.name, customerType: 'Walk-in Customer' }, val.sales, paymentLogs, saleReturns);
+    const isGeneric = isGenericWalkinName(val.name);
+    const fin = computeCustomerKhataBalance({ id: `cust-pos-${key}`, name: val.name, customerType: 'Walk-in Customer' }, sales, paymentLogs, saleReturns);
     unlistedList.push({
       id: `cust-pos-${key}`,
       name: val.name,
-      businessName: 'Walk-in Counter',
+      businessName: isGeneric ? 'Walk-in Counter' : 'Walk-in Customer',
       phone: 'Counter Sale',
       city: 'Local Mandi',
       customerType: 'Walk-in Customer',
+      isWalkin: true,
       isRegistered: false,
       ...fin
     });
@@ -1288,14 +1335,36 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
   }
 
   if (!isSupplier) {
+    const isGenericWalkinName = (name) => {
+      if (!name) return true;
+      const n = String(name).trim().toLowerCase();
+      return (
+        n === 'walk-in customer' ||
+        n === 'walk in customer' ||
+        n === 'walk-in' ||
+        n === 'walkin' ||
+        n === 'walk in' ||
+        n === 'walk-in-customer'
+      );
+    };
+
+    const isPartyGenericWalkin = isGenericWalkinName(partyName) || (partyId && (partyId.startsWith('walkin-generic') || partyId === 'walkin-default'));
+
     // 1. Filter Customer Sales
     const partySales = (sales || []).filter(s => {
       const sCustId = s.customerId ? String(s.customerId) : null;
       const sCustName = (s.customerName || s.partyName || '').trim().toLowerCase();
-      if (isRegular) {
-        return (partyId && sCustId && sCustId === partyId) || (partyName && sCustName === partyName && !sCustName.includes('walk-in'));
+      if (partyId && sCustId && sCustId === partyId) return true;
+      if (!isPartyGenericWalkin) {
+        if (partyName && sCustName && sCustName === partyName && !isGenericWalkinName(sCustName)) {
+          return true;
+        }
+        if (partyId && (partyId === `cust-pos-${sCustName}` || partyId === `walkin-${sCustName}`)) {
+          return true;
+        }
+        return false;
       }
-      return (partyId && sCustId && sCustId === partyId) || (partyName && sCustName === partyName);
+      return (!sCustId || sCustId === partyId) && isGenericWalkinName(sCustName);
     });
 
     // 2. Filter Customer Payments (excluding Opening Balance)
@@ -1307,34 +1376,41 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
 
       const pPartyId = p.partyId ? String(p.partyId) : null;
       const pPartyName = (p.partyName || '').trim().toLowerCase();
-      if (isRegular) {
-        return (partyId && pPartyId && pPartyId === partyId) || (partyName && pPartyName === partyName && !pPartyName.includes('walk-in'));
+      if (partyId && pPartyId && pPartyId === partyId) return true;
+      if (!isPartyGenericWalkin) {
+        if (partyName && pPartyName && pPartyName === partyName && !isGenericWalkinName(pPartyName)) {
+          return true;
+        }
+        if (partyId && (partyId === `cust-pos-${pPartyName}` || partyId === `walkin-${pPartyName}`)) {
+          return true;
+        }
+        return false;
       }
-      return (partyId && pPartyId && pPartyId === partyId) || (partyName && pPartyName === partyName);
+      return (!pPartyId || pPartyId === partyId) && isGenericWalkinName(pPartyName);
     });
 
     // 3. Filter Customer Returns
     const partyReturns = (saleReturns || []).filter(r => {
       const rCustId = r.customerId ? String(r.customerId) : null;
       const rCustName = (r.customerName || '').trim().toLowerCase();
-      if (isRegular) {
-        return (partyId && rCustId && rCustId === partyId) || (partyName && rCustName === partyName && !rCustName.includes('walk-in'));
+      if (partyId && rCustId && rCustId === partyId) return true;
+      if (!isPartyGenericWalkin) {
+        if (partyName && rCustName && rCustName === partyName && !isGenericWalkinName(rCustName)) {
+          return true;
+        }
+        if (partyId && (partyId === `cust-pos-${rCustName}` || partyId === `walkin-${rCustName}`)) {
+          return true;
+        }
+        return false;
       }
-      return (partyId && rCustId && rCustId === partyId) || (partyName && rCustName === partyName);
+      return (!rCustId || rCustId === partyId) && isGenericWalkinName(rCustName);
     });
 
-    // Track which sales have explicit payment logs
-    const salesWithPaymentLogs = new Set();
-    partyPayments.forEach(p => {
-      if (p.saleId) salesWithPaymentLogs.add(String(p.saleId));
-      if (p.ref) {
-        partySales.forEach(s => {
-          if (s.invoiceNo && p.ref.includes(s.invoiceNo)) salesWithPaymentLogs.add(String(s.id));
-        });
-      }
-    });
+    // Track which sales are directly completely paid upfront so we don't double count their payment log
+    const directCompletePaidSaleIds = new Set();
+    const directCompletePaidInvoiceNos = new Set();
 
-    // Process Sales Invoices (Debit)
+    // Process Sales Invoices
     partySales.forEach((s, idx) => {
       const ts = parseNormalizedTimestamp(s.date, s.created_at);
       const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
@@ -1346,6 +1422,14 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       const sStatus = fin.status;
       const isPartiallyReturned = sReturn > 0 && sStatus !== 'Returned';
       const isFullyReturned = sStatus === 'Returned' || (sReturn >= sGross && sGross > 0);
+
+      // Check if this sale is directly completely paid upfront without any due or partial
+      const isDirectCompletePaid = sGross > 0 && sDue === 0 && (sPaid >= sGross || sStatus === 'Paid') && !isPartiallyReturned && !isFullyReturned;
+
+      if (isDirectCompletePaid) {
+        if (s.id) directCompletePaidSaleIds.add(String(s.id));
+        if (s.invoiceNo) directCompletePaidInvoiceNos.add(String(s.invoiceNo));
+      }
 
       const sItems = Array.isArray(s.cart) && s.cart.length > 0
         ? s.cart.map(i => `${i.name || 'Commodity'} (${i.qty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
@@ -1359,61 +1443,100 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         ? `Original Sale: Rs. ${sGross.toLocaleString()} • Returned: Rs. ${sReturn.toLocaleString()} • Net Sale: Rs. ${sNet.toLocaleString()} | Paid: Rs. ${sPaid.toLocaleString()}, Due: Rs. ${sDue.toLocaleString()} (${sStatus})`
         : (s.saleNote || s.note || '');
 
-      entries.push({
-        id: `sale-${s.id || idx}`,
-        timestamp: ts,
-        eventPriority: 1, // Invoice occurs before same-day payments
-        seq: Number(s.id) || (idx + 1),
-        rawDate: s.date,
-        date: s.date || 'N/A',
-        partyId,
-        partyName: party.name,
-        ref: s.invoiceNo || `INV-${s.id || idx}`,
-        txType: 'Sales',
-        desc: descText,
-        sales: sGross,
-        originalGross: sGross,
-        netTotal: sNet,
-        returnAmount: sReturn,
-        paidAmount: sPaid,
-        dueAmount: sDue,
-        invoiceStatus: sStatus,
-        isPartiallyReturned,
-        isFullyReturned,
-        payment: 0,
-        debit: sGross,
-        credit: 0,
-        paymentMethod: s.paymentMethod || 'Credit / Khata',
-        paymentAccount: s.paymentMethod || 'Credit / Khata',
-        status: sStatus,
-        notes: historyNote
-      });
+      const methodLabel = s.paymentMethod || s.paymentMode || 'Cash';
 
-      // If NO payment logs exist at all for this customer, fallback to upfront counter payment recorded on sale
-      if (partyPayments.length === 0) {
-        const upfrontPaid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.cashReceived || 0));
-        if (upfrontPaid > 0) {
-          entries.push({
-            id: `pay-direct-${s.id || idx}`,
-            timestamp: ts,
-            eventPriority: 2,
-            seq: Number(s.id) || (idx + 1),
-            rawDate: s.date,
-            date: s.date || 'N/A',
-            partyId,
-            partyName: party.name,
-            ref: `POS-PAY-${s.invoiceNo || s.id}`,
-            txType: 'Payments',
-            desc: `POS Payment Received against Invoice #${s.invoiceNo || s.id}`,
-            sales: 0,
-            payment: upfrontPaid,
-            debit: 0,
-            credit: upfrontPaid,
-            paymentMethod: s.paymentMethod || 'Cash',
-            paymentAccount: s.paymentMethod || 'Cash',
-            status: 'Settled',
-            notes: s.paymentMethod || 'POS Upfront Payment'
-          });
+      if (isDirectCompletePaid) {
+        // Direct complete payment: SINGLE ROW with original, net, received, and settled!
+        // Debit and Credit are equal, so net delta to running balance is 0.
+        // It NEVER shows intermediate "Due: Rs. X".
+        entries.push({
+          id: `sale-${s.id || idx}`,
+          timestamp: ts,
+          eventPriority: 1,
+          seq: Number(s.id) || (idx + 1),
+          rawDate: s.date,
+          date: s.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: s.invoiceNo || `INV-${s.id || idx}`,
+          txType: 'Sales',
+          desc: descText,
+          sales: sGross,
+          originalGross: sGross,
+          netTotal: sNet,
+          returnAmount: sReturn,
+          paidAmount: sGross,
+          dueAmount: 0,
+          invoiceStatus: 'Paid',
+          isPartiallyReturned: false,
+          isFullyReturned: false,
+          isDirectPaid: true,
+          payment: sGross, // Received column displays sGross
+          debit: sGross,
+          credit: sGross,  // Balanced on this exact row
+          paymentMethod: methodLabel,
+          paymentAccount: methodLabel,
+          status: 'Settled',
+          notes: historyNote || `Direct Complete Payment via ${methodLabel}`
+        });
+      } else {
+        // Normal invoice entry (Credit Sale or Partial Payment)
+        entries.push({
+          id: `sale-${s.id || idx}`,
+          timestamp: ts,
+          eventPriority: 1,
+          seq: Number(s.id) || (idx + 1),
+          rawDate: s.date,
+          date: s.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: s.invoiceNo || `INV-${s.id || idx}`,
+          txType: 'Sales',
+          desc: descText,
+          sales: sGross,
+          originalGross: sGross,
+          netTotal: sNet,
+          returnAmount: sReturn,
+          paidAmount: sPaid,
+          dueAmount: sDue,
+          invoiceStatus: sStatus,
+          isPartiallyReturned,
+          isFullyReturned,
+          payment: 0,
+          debit: sGross,
+          credit: 0,
+          paymentMethod: s.paymentMethod || 'Credit / Khata',
+          paymentAccount: s.paymentMethod || 'Credit / Khata',
+          status: sStatus,
+          notes: historyNote
+        });
+
+        // Upfront partial payment on POS counter if no payment log exists
+        if (partyPayments.length === 0) {
+          const upfrontPaid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.cashReceived || 0));
+          if (upfrontPaid > 0) {
+            entries.push({
+              id: `pay-direct-${s.id || idx}`,
+              timestamp: ts,
+              eventPriority: 2,
+              seq: Number(s.id) || (idx + 1),
+              rawDate: s.date,
+              date: s.date || 'N/A',
+              partyId,
+              partyName: party.name,
+              ref: `POS-PAY-${s.invoiceNo || s.id}`,
+              txType: 'Payments',
+              desc: `POS Payment Received against Invoice #${s.invoiceNo || s.id}`,
+              sales: 0,
+              payment: upfrontPaid,
+              debit: 0,
+              credit: upfrontPaid,
+              paymentMethod: s.paymentMethod || 'Cash',
+              paymentAccount: s.paymentMethod || 'Cash',
+              status: sDue === 0 ? 'Settled' : 'Partial',
+              notes: s.paymentMethod || 'POS Upfront Payment'
+            });
+          }
         }
       }
     });
@@ -1465,6 +1588,19 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
 
     // Process Payment Logs (Credit)
     partyPayments.forEach((p, idx) => {
+      // If this payment is linked to a direct complete paid sale, skip it because it is already displayed in 1 single row!
+      if (p.saleId && directCompletePaidSaleIds.has(String(p.saleId))) {
+        return;
+      }
+      if (p.ref) {
+        const isLinkedToDirectPaid = Array.from(directCompletePaidInvoiceNos).some(inv => p.ref.includes(inv) || inv.includes(p.ref.replace('POS-PAY-', '')));
+        if (isLinkedToDirectPaid) return;
+      }
+      if (p.note) {
+        const isLinkedToDirectPaid = Array.from(directCompletePaidInvoiceNos).some(inv => p.note.includes(inv));
+        if (isLinkedToDirectPaid) return;
+      }
+
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
       const pAmt = Number(p.amount || 0);
       const rawPMode = String(p.mode || p.paymentMode || 'Cash').trim();
@@ -1526,15 +1662,8 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       return (partyId && rSupId && rSupId === partyId) || (partyName && rSupName === partyName);
     });
 
-    const purchasesWithPaymentLogs = new Set();
-    partyPayments.forEach(p => {
-      if (p.purchaseId) purchasesWithPaymentLogs.add(String(p.purchaseId));
-      if (p.ref) {
-        partyPurchases.forEach(pr => {
-          if (pr.purchaseNo && p.ref.includes(pr.purchaseNo)) purchasesWithPaymentLogs.add(String(pr.id));
-        });
-      }
-    });
+    const directCompletePaidPurIds = new Set();
+    const directCompletePaidPurNos = new Set();
 
     // Process Purchases (Debit)
     partyPurchases.forEach((p, idx) => {
@@ -1549,6 +1678,13 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       const isPartiallyReturned = pReturn > 0 && pStatus !== 'Returned';
       const isFullyReturned = pStatus === 'Returned' || (pReturn >= pGross && pGross > 0);
 
+      const isDirectCompletePaid = pGross > 0 && pDue === 0 && (pPaid >= pGross || pStatus === 'Paid') && !isPartiallyReturned && !isFullyReturned;
+
+      if (isDirectCompletePaid) {
+        if (p.id) directCompletePaidPurIds.add(String(p.id));
+        if (p.purchaseNo) directCompletePaidPurNos.add(String(p.purchaseNo));
+      }
+
       const pItems = Array.isArray(p.items) && p.items.length > 0
         ? p.items.map(i => `${i.name || 'Produce'} (${i.qty || i.enteredQty || 1} ${i.unitName || i.unit || 'KG'})`).join(', ')
         : (typeof p.cart === 'string' ? p.cart : 'Commodity Procurement');
@@ -1561,61 +1697,96 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         ? `Original Bill: Rs. ${pGross.toLocaleString()} • Returned: Rs. ${pReturn.toLocaleString()} • Net Bill: Rs. ${pNet.toLocaleString()} | Paid: Rs. ${pPaid.toLocaleString()}, Payable: Rs. ${pDue.toLocaleString()} (${pStatus})`
         : (p.note || '');
 
-      entries.push({
-        id: `pur-${p.id || idx}`,
-        timestamp: ts,
-        eventPriority: 1,
-        seq: Number(p.id) || (idx + 1),
-        rawDate: p.date,
-        date: p.date || 'N/A',
-        partyId,
-        partyName: party.name,
-        ref: p.purchaseNo || `PUR-${p.id || idx}`,
-        txType: 'Purchases',
-        desc: descText,
-        sales: pGross,
-        originalGross: pGross,
-        netTotal: pNet,
-        returnAmount: pReturn,
-        paidAmount: pPaid,
-        dueAmount: pDue,
-        invoiceStatus: pStatus,
-        isPartiallyReturned,
-        isFullyReturned,
-        payment: 0,
-        debit: pGross,
-        credit: 0,
-        paymentMethod: p.paymentMethod || 'Supplier Khata',
-        paymentAccount: p.paymentMethod || 'Supplier Khata',
-        status: pStatus,
-        notes: historyNote
-      });
+      const methodLabel = p.paymentMethod || p.paymentMode || 'Cash';
 
-      // If NO payment logs exist at all for this supplier, fallback to upfront payment recorded on bill
-      if (partyPayments.length === 0) {
-        const upfrontPaid = Number(p.paidAmount !== undefined ? p.paidAmount : (p.cashPaid || 0));
-        if (upfrontPaid > 0) {
-          entries.push({
-            id: `pay-direct-sup-${p.id || idx}`,
-            timestamp: ts,
-            eventPriority: 2,
-            seq: Number(p.id) || (idx + 1),
-            rawDate: p.date,
-            date: p.date || 'N/A',
-            partyId,
-            partyName: party.name,
-            ref: `PUR-PAY-${p.purchaseNo || p.id}`,
-            txType: 'Payments',
-            desc: `Upfront Payment Made for Bill #${p.purchaseNo || p.id}`,
-            sales: 0,
-            payment: upfrontPaid,
-            debit: 0,
-            credit: upfrontPaid,
-            paymentMethod: p.paymentMethod || 'Cash',
-            paymentAccount: p.paymentMethod || 'Cash',
-            status: 'Settled',
-            notes: p.paymentMethod || 'Upfront Payment'
-          });
+      if (isDirectCompletePaid) {
+        entries.push({
+          id: `pur-${p.id || idx}`,
+          timestamp: ts,
+          eventPriority: 1,
+          seq: Number(p.id) || (idx + 1),
+          rawDate: p.date,
+          date: p.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: p.purchaseNo || `PUR-${p.id || idx}`,
+          txType: 'Purchases',
+          desc: descText,
+          sales: pGross,
+          originalGross: pGross,
+          netTotal: pNet,
+          returnAmount: pReturn,
+          paidAmount: pGross,
+          dueAmount: 0,
+          invoiceStatus: 'Paid',
+          isPartiallyReturned: false,
+          isFullyReturned: false,
+          isDirectPaid: true,
+          payment: pGross,
+          debit: pGross,
+          credit: pGross,
+          paymentMethod: methodLabel,
+          paymentAccount: methodLabel,
+          status: 'Settled',
+          notes: historyNote || `Direct Complete Payment via ${methodLabel}`
+        });
+      } else {
+        entries.push({
+          id: `pur-${p.id || idx}`,
+          timestamp: ts,
+          eventPriority: 1,
+          seq: Number(p.id) || (idx + 1),
+          rawDate: p.date,
+          date: p.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: p.purchaseNo || `PUR-${p.id || idx}`,
+          txType: 'Purchases',
+          desc: descText,
+          sales: pGross,
+          originalGross: pGross,
+          netTotal: pNet,
+          returnAmount: pReturn,
+          paidAmount: pPaid,
+          dueAmount: pDue,
+          invoiceStatus: pStatus,
+          isPartiallyReturned,
+          isFullyReturned,
+          payment: 0,
+          debit: pGross,
+          credit: 0,
+          paymentMethod: p.paymentMethod || 'Supplier Khata',
+          paymentAccount: p.paymentMethod || 'Supplier Khata',
+          status: pStatus,
+          notes: historyNote
+        });
+
+        // Upfront payment on purchase if no payment logs exist
+        if (partyPayments.length === 0) {
+          const upfrontPaid = Number(p.paidAmount !== undefined ? p.paidAmount : (p.cashPaid || 0));
+          if (upfrontPaid > 0) {
+            entries.push({
+              id: `pay-direct-sup-${p.id || idx}`,
+              timestamp: ts,
+              eventPriority: 2,
+              seq: Number(p.id) || (idx + 1),
+              rawDate: p.date,
+              date: p.date || 'N/A',
+              partyId,
+              partyName: party.name,
+              ref: `PUR-PAY-${p.purchaseNo || p.id}`,
+              txType: 'Payments',
+              desc: `Upfront Payment Made for Bill #${p.purchaseNo || p.id}`,
+              sales: 0,
+              payment: upfrontPaid,
+              debit: 0,
+              credit: upfrontPaid,
+              paymentMethod: p.paymentMethod || 'Cash',
+              paymentAccount: p.paymentMethod || 'Cash',
+              status: pDue === 0 ? 'Settled' : 'Partial',
+              notes: p.paymentMethod || 'Upfront Payment'
+            });
+          }
         }
       }
     });
@@ -1667,6 +1838,18 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
 
     // Process Supplier Payments (Credit)
     partyPayments.forEach((p, idx) => {
+      if (p.purchaseId && directCompletePaidPurIds.has(String(p.purchaseId))) {
+        return;
+      }
+      if (p.ref) {
+        const isLinked = Array.from(directCompletePaidPurNos).some(no => p.ref.includes(no) || no.includes(p.ref.replace('PUR-PAY-', '')));
+        if (isLinked) return;
+      }
+      if (p.note) {
+        const isLinked = Array.from(directCompletePaidPurNos).some(no => p.note.includes(no));
+        if (isLinked) return;
+      }
+
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
       const pAmt = Number(p.amount || 0);
       const rawPMode = String(p.mode || p.paymentMode || 'Cash').trim();

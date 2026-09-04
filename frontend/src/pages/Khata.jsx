@@ -311,9 +311,8 @@ export const Khata = () => {
       <div className="no-print">
         <div
           onClick={() => setBalanceStatusFilter('All')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow transition ${
-            isCustomer ? 'bg-amber-500/5 border-amber-500/20' : 'bg-rose-500/5 border-rose-500/20'
-          }`}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow transition ${isCustomer ? 'bg-amber-500/5 border-amber-500/20' : 'bg-rose-500/5 border-rose-500/20'
+            }`}
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -321,9 +320,8 @@ export const Khata = () => {
                 <Clock className={`w-4 h-4 ${isCustomer ? 'text-amber-500' : 'text-rose-500'}`} />
                 <span>{isCustomer ? 'Total Outstanding Receivables' : 'Total Outstanding Payables'}</span>
               </div>
-              <div className={`text-2xl sm:text-3xl font-black mt-1 font-mono tracking-tight ${
-                isCustomer ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
-              }`}>
+              <div className={`text-2xl sm:text-3xl font-black mt-1 font-mono tracking-tight ${isCustomer ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
+                }`}>
                 Rs. {totalOutstanding.toLocaleString()}
               </div>
             </div>
@@ -345,9 +343,8 @@ export const Khata = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={`Search ${isCustomer ? 'customer' : 'supplier'} by name, phone, city...`}
-              className={`w-full border rounded-xl pl-9 pr-8 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}
+              className={`w-full border rounded-xl pl-9 pr-8 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
             />
             {searchTerm && (
               <button
@@ -366,13 +363,12 @@ export const Khata = () => {
               <select
                 value={customerTypeFilter}
                 onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
+                className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
               >
                 <option value="All">All Customer Types</option>
-                <option value="Regular Customer">Regular Customers</option>
-                <option value="Walk-in Customer">Walk-in Parties</option>
+                <option value="Regular Customer">Regular Customer</option>
+                <option value="Walk-in Customer">Walk-in Customer</option>
               </select>
             </div>
           )}
@@ -382,33 +378,30 @@ export const Khata = () => {
             <button
               type="button"
               onClick={() => setBalanceStatusFilter('All')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                balanceStatusFilter === 'All'
-                  ? 'bg-brand-500 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${balanceStatusFilter === 'All'
+                ? 'bg-brand-500 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               Active Dues ({activeDueCount})
             </button>
             <button
               type="button"
               onClick={() => setBalanceStatusFilter('Clear')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                balanceStatusFilter === 'Clear'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${balanceStatusFilter === 'Clear'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               Settled ({settledAccountsCount})
             </button>
             <button
               type="button"
               onClick={() => setBalanceStatusFilter('Total')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                balanceStatusFilter === 'Total'
-                  ? 'bg-slate-700 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${balanceStatusFilter === 'Total'
+                ? 'bg-slate-700 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
             >
               All
             </button>
@@ -446,9 +439,8 @@ export const Khata = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
             <thead>
-              <tr className={`border-b text-[10px] font-extrabold uppercase tracking-wider ${
-                theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-              }`}>
+              <tr className={`border-b text-[10px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                }`}>
                 <th className="py-3 px-4">{isCustomer ? 'Customer / Shop' : 'Supplier / Vendor'}</th>
                 <th className="py-3 px-4 text-right">{isCustomer ? 'Total Sales' : 'Total Purchases'}</th>
                 <th className="py-3 px-4 text-right">Returns Deducted</th>
@@ -536,13 +528,12 @@ export const Khata = () => {
                       {/* 5. Khata Due */}
                       <td className="py-3 px-4 text-right font-mono font-black text-xs">
                         {isZero ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md font-bold">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
                             ✓ Rs. 0 (Settled)
                           </span>
                         ) : (
-                          <span className={`text-sm ${
-                            isCustomer ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
-                          }`}>
+                          <span className={`text-sm ${isCustomer ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
+                            }`}>
                             Rs. {currentDue.toLocaleString()}
                           </span>
                         )}
@@ -579,15 +570,13 @@ export const Khata = () => {
             onClick={(e) => { if (e.target === e.currentTarget) setPaymentModalParty(null); }}
             className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
           >
-            <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${
-              theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
+            <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-2.5">
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold ${
-                    isCustomer ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                  }`}>
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold ${isCustomer ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                    }`}>
                     <CreditCard className="w-5 h-5" />
                   </div>
                   <div>
@@ -657,11 +646,10 @@ export const Khata = () => {
                     }}
                     placeholder={`e.g. ${maxDue}`}
                     autoFocus
-                    className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-black outline-none focus:border-brand-500 font-mono ${
-                      isFullSettlement
-                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-400 dark:border-emerald-700'
-                        : 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
-                    }`}
+                    className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-black outline-none focus:border-brand-500 font-mono ${isFullSettlement
+                      ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-400 dark:border-emerald-700'
+                      : 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                      }`}
                   />
 
                   {/* Quick Preset Amount Buttons */}
@@ -719,11 +707,10 @@ export const Khata = () => {
                         key={mode}
                         type="button"
                         onClick={() => setPaymentMode(mode)}
-                        className={`py-2 px-3 rounded-xl text-xs font-black transition border cursor-pointer ${
-                          paymentMode === mode
-                            ? 'bg-brand-500 text-white border-brand-600 shadow-xs'
-                            : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                        }`}
+                        className={`py-2 px-3 rounded-xl text-xs font-black transition border cursor-pointer ${paymentMode === mode
+                          ? 'bg-brand-500 text-white border-brand-600 shadow-xs'
+                          : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
                       >
                         {mode === 'Bank' ? 'Bank Transfer' : 'Cash in Hand'}
                       </button>
@@ -738,9 +725,8 @@ export const Khata = () => {
                     type="date"
                     value={paymentDate}
                     onChange={(e) => setPaymentDate(e.target.value)}
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
 
@@ -752,9 +738,8 @@ export const Khata = () => {
                     value={paymentNote}
                     onChange={(e) => setPaymentNote(e.target.value)}
                     placeholder="e.g. Counter cash, cheque #..."
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${
-                      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                   />
                 </div>
 
@@ -763,9 +748,8 @@ export const Khata = () => {
                   <button
                     type="button"
                     onClick={() => setPaymentModalParty(null)}
-                    className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${
-                      theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
+                    className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
                   >
                     Cancel
                   </button>

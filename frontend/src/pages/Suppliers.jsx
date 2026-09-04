@@ -894,8 +894,8 @@ export const Suppliers = () => {
                               <span>Pay Supplier</span>
                             </button>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                              <Check className="w-3 h-3" /> Settled
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                              <Check className="w-3.5 h-3.5" /> Settled
                             </span>
                           )}
 
