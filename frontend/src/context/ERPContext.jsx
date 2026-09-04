@@ -1633,46 +1633,78 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     // Process Returns (Credit)
     partyReturns.forEach((r, idx) => {
       const ts = parseNormalizedTimestamp(r.date, r.created_at);
-      const refAmt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.amount || 0));
+      const merchandiseVal = extractMerchandiseReturnValue(r);
+      const cashRefundAmt = Number(r.refundAmount !== undefined ? r.refundAmount : 0);
+      const res = resolveTransactionPayment(r, 'SaleReturn');
+      const isCashRefunded = res.isLiquid && res.totalLiquid > 0;
 
       const matchingSale = partySales.find(s => (r.saleId && String(s.id) === String(r.saleId)) || (r.invoiceNo && s.invoiceNo && r.invoiceNo === s.invoiceNo));
       const origSaleGross = matchingSale ? Number(matchingSale.amount || matchingSale.grandTotal || 0) : 0;
-      const netAfterReturn = origSaleGross > 0 ? Math.max(0, origSaleGross - refAmt) : 0;
+      const netAfterReturn = origSaleGross > 0 ? Math.max(0, origSaleGross - merchandiseVal) : 0;
 
       const descText = matchingSale
         ? `Sale Return #${r.returnNo || 'RET'} against Invoice ${matchingSale.invoiceNo}: ${r.reason || 'Goods Return'}`
         : `Sale Return #${r.returnNo || 'RET'}: ${r.reason || 'Produce Return'}`;
 
       const historyNote = origSaleGross > 0
-        ? `Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted by return of Rs. ${refAmt.toLocaleString()} → Net Invoice Rs. ${netAfterReturn.toLocaleString()}.`
-        : `Return of Rs. ${refAmt.toLocaleString()} adjusted against customer account.`;
+        ? `Original Invoice ${matchingSale?.invoiceNo || ''} (Rs. ${origSaleGross.toLocaleString()}) adjusted by return of Rs. ${merchandiseVal.toLocaleString()} → Net Invoice Rs. ${netAfterReturn.toLocaleString()}.`
+        : `Return of Rs. ${merchandiseVal.toLocaleString()} adjusted against customer account.`;
 
+      // 1. Goods return credits customer account for full merchandise value
       entries.push({
-        id: `ret-${r.id || idx}`,
+        id: `sret-${r.id || idx}`,
         timestamp: ts,
-        eventPriority: 2,
+        eventPriority: 3,
         seq: Number(r.id) || (idx + 1),
         rawDate: r.date,
         date: r.date || 'N/A',
         partyId,
         partyName: party.name,
-        ref: r.returnNo || `RET-${r.id || idx}`,
+        ref: r.returnNo || `SR-${r.id || idx}`,
         matchingInvoiceNo: matchingSale?.invoiceNo || r.invoiceNo || '',
         originalGross: origSaleGross,
-        returnAmount: refAmt,
+        returnAmount: merchandiseVal,
         netTotal: netAfterReturn,
-        refundMode: r.refundMode || 'Credit',
+        refundMode: r.refundMode || 'Khata Credit',
         txType: 'Returns',
         desc: descText,
         sales: 0,
-        payment: refAmt,
+        payment: 0,
         debit: 0,
-        credit: refAmt,
+        credit: merchandiseVal,
         paymentMethod: r.refundMode || 'Sale Return',
         paymentAccount: 'Customer Khata',
         status: 'Settled',
         notes: historyNote
       });
+
+      // 2. If liquid cash/bank was refunded to customer, record separate Customer Refund debit
+      if (isCashRefunded && cashRefundAmt > 0) {
+        entries.push({
+          id: `sret-cash-${r.id || idx}`,
+          timestamp: ts,
+          eventPriority: 4,
+          seq: Number(r.id) || (idx + 1),
+          rawDate: r.date,
+          date: r.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: `REF-${r.returnNo || r.id || idx}`,
+          matchingInvoiceNo: matchingSale?.invoiceNo || r.invoiceNo || '',
+          originalGross: 0,
+          returnAmount: 0,
+          txType: 'Customer Refund',
+          desc: `Customer Cash Refund (${res.refundMode || 'Cash'}) for Return #${r.returnNo || r.id || idx}`,
+          sales: 0,
+          payment: 0,
+          debit: cashRefundAmt,
+          credit: 0,
+          paymentMethod: res.refundMode || 'Cash Refund',
+          paymentAccount: res.refundMode || 'Cash',
+          status: 'Settled',
+          notes: `Actual cash refund paid out to customer for return #${r.returnNo || r.id}`
+        });
+      }
     });
 
     // Process Payment Logs (Credit)
@@ -1707,7 +1739,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       entries.push({
         id: `pay-${p.id || idx}`,
         timestamp: ts,
-        eventPriority: 3,
+        eventPriority: 2,
         seq: Number(p.id) || (idx + 1),
         rawDate: p.date,
         date: p.date || 'N/A',
@@ -1913,7 +1945,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       entries.push({
         id: `pret-${r.id || idx}`,
         timestamp: ts,
-        eventPriority: 2,
+        eventPriority: 3,
         seq: Number(r.id) || (idx + 1),
         rawDate: r.date,
         date: r.date || 'N/A',
@@ -1928,7 +1960,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         txType: 'Returns',
         desc: descText,
         sales: 0,
-        payment: merchandiseVal,
+        payment: 0,
         debit: 0,
         credit: merchandiseVal,
         paymentMethod: r.refundMode || 'Purchase Return',
@@ -1942,7 +1974,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         entries.push({
           id: `pret-cash-${r.id || idx}`,
           timestamp: ts,
-          eventPriority: 3,
+          eventPriority: 4,
           seq: Number(r.id) || (idx + 1),
           rawDate: r.date,
           date: r.date || 'N/A',
@@ -1950,8 +1982,8 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
           partyName: party.name,
           ref: `REF-${r.returnNo || r.id || idx}`,
           matchingInvoiceNo: matchingPurchase?.purchaseNo || r.purchaseNo || '',
-          originalGross: origPurchaseGross,
-          returnAmount: cashRefundAmt,
+          originalGross: 0,
+          returnAmount: 0,
           txType: 'Supplier Refund',
           desc: `Supplier Refund Received (${res.refundMode || 'Cash'}) for Return #${r.returnNo || r.id || idx}`,
           sales: 0,
@@ -1997,7 +2029,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       entries.push({
         id: `pay-sup-${p.id || idx}`,
         timestamp: ts,
-        eventPriority: 3,
+        eventPriority: 2,
         seq: Number(p.id) || (idx + 1),
         rawDate: p.date,
         date: p.date || 'N/A',

@@ -755,7 +755,7 @@ export const Ledger = () => {
       if (!matchDate(entry.rawDate)) return false;
       if (txTypeFilter === 'Sales' && entry.txType !== 'Sales' && entry.txType !== 'Purchases') return false;
       if (txTypeFilter === 'Payments' && entry.txType !== 'Payments') return false;
-      if (txTypeFilter === 'Returns' && entry.txType !== 'Returns') return false;
+      if (txTypeFilter === 'Returns' && entry.txType !== 'Returns' && entry.txType !== 'Customer Refund' && entry.txType !== 'Supplier Refund') return false;
       if (txSearchQuery.trim()) {
         const q = txSearchQuery.toLowerCase().trim();
         const refMatch = (entry.ref || '').toLowerCase().includes(q);
@@ -1297,9 +1297,10 @@ export const Ledger = () => {
                     </tr>
                   ) : (
                     singleCustomerLedger.map(entry => {
-                      const isBalPos = entry.runningBalance > 0;
-                      const isBalNeg = entry.runningBalance < 0;
-                      const isZero = entry.runningBalance === 0;
+                      const rawBal = Number(entry.rawRunningBalance !== undefined ? entry.rawRunningBalance : entry.runningBalance);
+                      const isZero = rawBal === 0 || entry.balanceState === 'Settled' || entry.status === 'Settled';
+                      const isBalPos = !isZero && rawBal > 0;
+                      const isBalNeg = !isZero && rawBal < 0;
 
                       // Clean up description and avoid duplicate notes
                       const cleanDesc = (entry.desc || 'Transaction')
@@ -1315,16 +1316,19 @@ export const Ledger = () => {
                       const isBank = rawLower.includes('bank') || rawLower.includes('transfer');
                       const isCard = rawLower.includes('card');
                       const isReturn = entry.txType === 'Returns' || entry.txType === 'Return';
+                      const isRefund = entry.txType === 'Customer Refund' || entry.txType === 'Supplier Refund';
 
                       const methodLabel = isReturn
                         ? 'Return Adjustment'
-                        : isBank
-                          ? 'Bank Transfer'
-                          : isCard
-                            ? 'Card Payment'
-                            : isCash
-                              ? 'Cash'
-                              : rawMethod;
+                        : isRefund
+                          ? (isSupplier ? `Refund In (${rawMethod})` : `Refund Out (${rawMethod})`)
+                          : isBank
+                            ? 'Bank Transfer'
+                            : isCard
+                              ? 'Card Payment'
+                              : isCash
+                                ? 'Cash'
+                                : rawMethod;
 
                       return (
                         <tr
@@ -1360,7 +1364,7 @@ export const Ledger = () => {
                           <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
                             {(entry.txType === 'Returns' || entry.txType === 'Return') ? (
                               <span className="text-purple-600 dark:text-purple-400 font-bold">
-                                Rs. {(entry.returnAmount || entry.credit || entry.payment || 0).toLocaleString()}
+                                Rs. {(entry.returnAmount || entry.credit || 0).toLocaleString()}
                               </span>
                             ) : (
                               '—'
@@ -1380,7 +1384,11 @@ export const Ledger = () => {
 
                           {/* 7. Paid to Supplier / Received */}
                           <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
-                            {(entry.txType === 'Payments' || entry.txType === 'Payment' || (entry.payment && entry.payment > 0)) ? (
+                            {isRefund ? (
+                              <span className="text-rose-600 dark:text-rose-400 font-black">
+                                {isSupplier ? `+ Rs. ${(entry.debit || 0).toLocaleString()}` : `- Rs. ${(entry.debit || 0).toLocaleString()}`} <span className="text-[10px] font-normal">({isSupplier ? 'Refund In' : 'Refund Out'})</span>
+                              </span>
+                            ) : (entry.txType === 'Payments' || entry.txType === 'Payment' || (entry.payment && entry.payment > 0 && !isReturn)) ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-black">
                                 Rs. {(entry.payment || entry.credit || 0).toLocaleString()}
                               </span>
@@ -1392,13 +1400,15 @@ export const Ledger = () => {
                           {/* 8. Payment Method */}
                           <td className="py-3.5 px-3 text-center whitespace-nowrap">
                             <span className={`font-bold text-xs ${
-                              isCash
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : isReturn
-                                  ? 'text-purple-600 dark:text-purple-400'
-                                  : isBank
-                                    ? 'text-blue-600 dark:text-blue-400'
-                                    : 'text-slate-700 dark:text-slate-300'
+                              isRefund
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : isCash
+                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  : isReturn
+                                    ? 'text-purple-600 dark:text-purple-400'
+                                    : isBank
+                                      ? 'text-blue-600 dark:text-blue-400'
+                                      : 'text-slate-700 dark:text-slate-300'
                             }`}>
                               {methodLabel}
                             </span>
@@ -1412,11 +1422,11 @@ export const Ledger = () => {
                               </span>
                             ) : isBalPos ? (
                               <span className="text-amber-600 dark:text-amber-400 font-black">
-                                {isSupplier ? 'Payable: ' : 'Due: '}Rs. {entry.runningBalance.toLocaleString()}
+                                {isSupplier ? 'Payable: ' : 'Due: '}Rs. {Math.abs(rawBal).toLocaleString()}
                               </span>
                             ) : (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
-                                ✓ Rs. 0 (Settled)
+                              <span className="text-blue-600 dark:text-blue-400 font-black">
+                                {isSupplier ? 'Refund Due: ' : 'Advance: '}Rs. {Math.abs(rawBal).toLocaleString()}
                               </span>
                             )}
                           </td>
@@ -1531,11 +1541,18 @@ export const Ledger = () => {
 
               <div className="flex justify-between items-center font-black pt-1 border-t border-slate-200 dark:border-slate-700">
                 <span>Running Balance:</span>
-                <span className={`font-mono text-sm ${viewingEntry.runningBalance > 0 ? 'text-emerald-600' :
-                  viewingEntry.runningBalance < 0 ? 'text-rose-600' :
-                    'text-slate-500'
-                  }`}>
-                  {viewingEntry.runningBalance < 0 ? `-Rs. ${Math.abs(viewingEntry.runningBalance).toLocaleString()}` : `Rs. ${viewingEntry.runningBalance.toLocaleString()}`}
+                <span className={`font-mono text-sm ${(() => {
+                  const raw = Number(viewingEntry.rawRunningBalance !== undefined ? viewingEntry.rawRunningBalance : viewingEntry.runningBalance);
+                  if (raw === 0 || viewingEntry.balanceState === 'Settled' || viewingEntry.status === 'Settled') return 'text-emerald-600 dark:text-emerald-400';
+                  if (raw > 0) return 'text-amber-600 dark:text-amber-400';
+                  return 'text-blue-600 dark:text-blue-400';
+                })()}`}>
+                  {(() => {
+                    const raw = Number(viewingEntry.rawRunningBalance !== undefined ? viewingEntry.rawRunningBalance : viewingEntry.runningBalance);
+                    if (raw === 0 || viewingEntry.balanceState === 'Settled' || viewingEntry.status === 'Settled') return '✓ Rs. 0 (Settled)';
+                    if (raw > 0) return `${isSupplier ? 'Payable: ' : 'Due: '}Rs. ${Math.abs(raw).toLocaleString()}`;
+                    return `${isSupplier ? 'Refund Due: ' : 'Advance: '}Rs. ${Math.abs(raw).toLocaleString()}`;
+                  })()}
                 </span>
               </div>
             </div>
