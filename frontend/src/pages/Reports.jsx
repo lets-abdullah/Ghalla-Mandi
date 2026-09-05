@@ -1360,6 +1360,14 @@ export const Reports = () => {
     return Math.round(totalAssets - totalLiabilities);
   }, [totalAssets, totalLiabilities]);
 
+  const openingStockEquity = useMemo(() => {
+    return Math.round(totalInitialStockValuation);
+  }, [totalInitialStockValuation]);
+
+  const contributedCashCapital = useMemo(() => {
+    return Math.max(0, Math.round(totalEquity - netOperatingProfit - openingStockEquity));
+  }, [totalEquity, netOperatingProfit, openingStockEquity]);
+
   const ownersCapital = useMemo(() => {
     return Math.round(totalEquity - netOperatingProfit);
   }, [totalEquity, netOperatingProfit]);
@@ -1370,12 +1378,14 @@ export const Reports = () => {
 
   const bsEquityBreakdown = useMemo(() => {
     return {
+      openingStockEquity,
+      contributedCashCapital,
       ownersCapital,
       netProfit: netOperatingProfit,
       retainedProfit,
       total: totalEquity
     };
-  }, [ownersCapital, netOperatingProfit, retainedProfit, totalEquity]);
+  }, [openingStockEquity, contributedCashCapital, ownersCapital, netOperatingProfit, retainedProfit, totalEquity]);
 
   // Granular Balance Sheet Breakdown Objects
   const bsCashBreakdown = useMemo(() => {
@@ -4398,9 +4408,16 @@ export const Reports = () => {
 
                   <div className="space-y-1 text-[11px]">
                     <div className="flex items-center justify-between font-medium">
-                      <span className="text-slate-800 dark:text-slate-200">• Owner's Opening Capital:</span>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {ownersCapital.toLocaleString()}</span>
+                      <span className="text-slate-800 dark:text-slate-200">• Opening Stock Equity (Godown Stock):</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {openingStockEquity.toLocaleString()}</span>
                     </div>
+
+                    {contributedCashCapital > 0 && (
+                      <div className="flex items-center justify-between font-medium">
+                        <span className="text-slate-800 dark:text-slate-200">• Contributed Cash Capital:</span>
+                        <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {contributedCashCapital.toLocaleString()}</span>
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between font-medium">
                       <span className="text-slate-800 dark:text-slate-200">• Net Profit (from P&L):</span>
