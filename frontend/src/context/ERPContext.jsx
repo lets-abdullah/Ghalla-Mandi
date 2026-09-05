@@ -575,19 +575,31 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     );
   };
 
+  const supId = purchase.supplierId ? String(purchase.supplierId) : (purchase.supplierid ? String(purchase.supplierid) : null);
+  const supName = (purchase.supplier || purchase.supplierName || purchase.suppliername || '').trim().toLowerCase();
+  const res = resolveTransactionPayment(purchase, 'Purchase');
+  const upfrontPaid = res.totalLiquid;
+
   // Categorize specific payment logs for this purchase
   const matchingLogs = (paymentLogs || []).filter(pl => {
     if (isExcludedSupplierLog(pl)) return false;
 
-    return (
+    const idMatch = Boolean(
       (pl.purchaseId && String(pl.purchaseId) === String(purchase.id)) ||
       (pl.purchaseid && String(pl.purchaseid) === String(purchase.id)) ||
-      (purchase.purchaseNo && pl.ref && pl.ref.includes(purchase.purchaseNo))
+      (purchase.purchaseNo && pl.ref && pl.ref.includes(purchase.purchaseNo)) ||
+      (purchase.invoiceNo && pl.ref && pl.ref.includes(purchase.invoiceNo))
     );
+    if (idMatch) return true;
+
+    // Party + Amount match for upfront payment log created at checkout
+    const pPartyId = pl.partyId ? String(pl.partyId) : (pl.partyid ? String(pl.partyid) : null);
+    const pPartyName = (pl.partyName || pl.partyname || '').trim().toLowerCase();
+    const partyMatch = (supId && pPartyId && pPartyId === supId) || (supName && pPartyName && pPartyName === supName);
+    const amountMatch = Number(pl.amount || 0) === upfrontPaid && upfrontPaid > 0;
+    return partyMatch && amountMatch;
   });
 
-  const res = resolveTransactionPayment(purchase, 'Purchase');
-  const upfrontPaid = res.totalLiquid;
   const totalMatchingLogs = matchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
   const isKhataPurchase = (purchase.paymentMode === 'Supplier Khata' || purchase.paymentmode === 'Supplier Khata') || (Number(purchase.paidAmount || purchase.paidamount || 0) === 0);
   const baseUpfront = isKhataPurchase ? 0 : upfrontPaid;
@@ -595,9 +607,6 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   let rawGrossPaid = specificPaid;
 
   // Unlinked general supplier settlement payments allocation
-  const supId = purchase.supplierId ? String(purchase.supplierId) : (purchase.supplierid ? String(purchase.supplierid) : null);
-  const supName = (purchase.supplier || purchase.supplierName || purchase.suppliername || '').trim().toLowerCase();
-
   const unlinkedGeneralLogs = (paymentLogs || []).filter(pl => {
     if (isExcludedSupplierLog(pl)) return false;
 
@@ -815,20 +824,24 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   // Upfront POS payments on sales that do not have a separate payment log in paymentLogs
   let unloggedUpfrontCash = 0;
   custSales.forEach(s => {
-    const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
+    const upfrontRes = resolveTransactionPayment(s, 'Sale');
+    const sUpfront = upfrontRes.totalLiquid || Number(s.paidAmount !== undefined ? s.paidAmount : (s.cashPaid || 0));
 
     // Check if this sale already has an explicit matching log in custPayments
     const hasMatchingLog = custPayments.some(p =>
       (p.saleId && String(p.saleId) === String(s.id)) ||
-      (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+      (p.saleid && String(p.saleid) === String(s.id)) ||
+      (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo)) ||
+      (
+        (
+          (custId && p.partyId && String(p.partyId) === custId) ||
+          (custName && p.partyName && p.partyName.trim().toLowerCase() === custName)
+        ) && Number(p.amount || 0) === sUpfront && sUpfront > 0
+      )
     );
 
-    if (!hasMatchingLog) {
-      const upfrontRes = resolveTransactionPayment(s, 'Sale');
-      const upfrontPaid = upfrontRes.totalLiquid;
-      if (upfrontPaid > 0) {
-        unloggedUpfrontCash += Math.min(sTotal, upfrontPaid);
-      }
+    if (!hasMatchingLog && sUpfront > 0) {
+      unloggedUpfrontCash += Math.min(sTotal, sUpfront);
     }
   });
 
@@ -1484,19 +1497,26 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
     const isKhata = (p.paymentMode === 'Supplier Khata' || p.paymentmode === 'Supplier Khata') || (Number(p.paidAmount || p.paidamount || 0) === 0 && p.status !== 'Paid' && p.paymentStatus !== 'Paid');
     if (isKhata) return;
 
+    const res = resolveTransactionPayment(p, 'Purchase');
+    const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
+    const pTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
+    const pUpfront = isMarkedPaid ? pTotal : (res.totalLiquid > 0 ? res.totalLiquid : Number(p.paidAmount !== undefined ? p.paidAmount : (p.cashPaid || 0)));
+
     const hasMatchingLog = supPayments.some(pl =>
       (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
-      (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+      (pl.purchaseid && String(pl.purchaseid) === String(p.id)) ||
+      (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo)) ||
+      (p.invoiceNo && pl.ref && pl.ref.includes(p.invoiceNo)) ||
+      (
+        (
+          (supId && pl.partyId && String(pl.partyId) === supId) ||
+          (supName && pl.partyName && pl.partyName.trim().toLowerCase() === supName)
+        ) && Number(pl.amount || 0) === pUpfront && pUpfront > 0
+      )
     );
 
-    if (!hasMatchingLog) {
-      const pTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
-      const res = resolveTransactionPayment(p, 'Purchase');
-      const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
-      const upfrontPaid = isMarkedPaid ? pTotal : (res.totalLiquid > 0 ? res.totalLiquid : Number(p.paidAmount !== undefined ? p.paidAmount : (p.cashPaid || 0)));
-      if (upfrontPaid > 0) {
-        unloggedUpfrontCash += Math.min(pTotal, upfrontPaid);
-      }
+    if (!hasMatchingLog && pUpfront > 0) {
+      unloggedUpfrontCash += Math.min(pTotal, pUpfront);
     }
   });
 
