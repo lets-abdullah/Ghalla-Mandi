@@ -748,7 +748,7 @@ export const Ledger = () => {
         const netPurchase = fin.netTotal;
         const paid = fin.paid;
         const due = Math.max(0, netPurchase - paid);
-        const refundCashback = Math.max(0, paid - netPurchase);
+        const refundCashback = Number(fin.refundCashback || 0);
 
         let status = 'Settled';
         if (refundCashback > 0) {
@@ -849,7 +849,7 @@ export const Ledger = () => {
         const netPurchase = fin.netTotal;
         const paid = fin.paid;
         const due = Math.max(0, netPurchase - paid);
-        const refundCashback = Math.max(0, paid - netPurchase);
+        const refundCashback = Number(fin.refundCashback || 0);
 
         let status = 'Settled';
         if (refundCashback > 0) {
