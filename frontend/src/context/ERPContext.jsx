@@ -239,10 +239,10 @@ export const computeLiquidBalances = (
   let cOutflow = 0, bOutflow = 0, kOutflow = 0;
 
   const validCustPaymentLogs = (paymentLogs || []).filter(p =>
-    p && p.type === 'Customer Payment' && String(p.status || '').toLowerCase() !== 'cancelled'
+    p && (p.type === 'Customer Payment' || p.type === 'Customer' || p.partyType === 'Customer') && String(p.status || '').toLowerCase() !== 'cancelled'
   );
   const validSupPaymentLogs = (paymentLogs || []).filter(p =>
-    p && p.type === 'Supplier Payment' && String(p.status || '').toLowerCase() !== 'cancelled'
+    p && (p.type === 'Supplier Payment' || p.type === 'Supplier' || p.partyType === 'Supplier') && String(p.status || '').toLowerCase() !== 'cancelled'
   );
 
   // 1. Sales (Upfront liquid payments)
@@ -1343,7 +1343,7 @@ export const computeWalkinUncollectedDues = (sales = [], saleReturns = [], payme
 };
 
 export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLogs = [], purchaseReturns = []) => {
-  if (!supplier) return { openingBalance: 0, totalPurchase: 0, grossPurchase: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, netPaid: 0, returnAmount: 0, netPurchase: 0, netBalance: 0, balance: 0, payableDue: 0, refundDue: 0, advanceCredit: 0, status: 'Settled', ordersCount: 0 };
+  if (!supplier) return { openingBalance: 0, totalPurchase: 0, grossPurchase: 0, upfrontPaid: 0, directPaid: 0, totalPaid: 0, netPaid: 0, returnAmount: 0, netPurchase: 0, netBalance: 0, balance: 0, payableDue: 0, refundDue: 0, advanceCredit: 0, automaticSupplierRefund: 0, refundCashback: 0, status: 'Settled', ordersCount: 0 };
   const supId = supplier.id ? String(supplier.id) : null;
   const supName = (supplier.name || '').trim().toLowerCase();
 
@@ -1386,52 +1386,42 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
 
   const directPaidLogs = supPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-  // Liquid cash/bank refunds actually collected from supplier
-  const liquidRefunds = supReturns.filter(r => {
+  // Liquid cash/bank refunds explicitly recorded on purchase returns
+  const explicitLiquidRefunds = supReturns.filter(r => {
     const res = resolveTransactionPayment(r, 'PurchaseReturn');
     return res.isLiquid && res.totalLiquid > 0;
   }).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
 
+  // Upfront cash paid on purchases that do not have a separate matching log in paymentLogs
   let unloggedUpfrontCash = 0;
-  if (supPayments.length === 0) {
-    supPurchases.forEach(p => {
-      const isKhata = (p.paymentMode === 'Supplier Khata' || p.paymentmode === 'Supplier Khata') || (Number(p.paidAmount || p.paidamount || 0) === 0);
-      if (isKhata) return;
+  supPurchases.forEach(p => {
+    const isKhata = (p.paymentMode === 'Supplier Khata' || p.paymentmode === 'Supplier Khata') || (Number(p.paidAmount || p.paidamount || 0) === 0 && p.status !== 'Paid' && p.paymentStatus !== 'Paid');
+    if (isKhata) return;
+
+    const hasMatchingLog = supPayments.some(pl =>
+      (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+      (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+    );
+
+    if (!hasMatchingLog) {
       const pTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
+      const res = resolveTransactionPayment(p, 'Purchase');
       const isMarkedPaid = p.status === 'Paid' || p.paymentStatus === 'Paid';
-      const pPaid = isMarkedPaid ? pTotal : Number(p.cashPaid !== undefined ? p.cashPaid : (p.paidAmount || 0));
-      unloggedUpfrontCash += Math.min(pTotal, pPaid);
-    });
-  } else {
-    supPurchases.forEach(p => {
-      const isKhata = (p.paymentMode === 'Supplier Khata' || p.paymentmode === 'Supplier Khata') || (Number(p.paidAmount || p.paidamount || 0) === 0);
-      if (isKhata) return;
-      const hasMatchingLog = supPayments.some(pl =>
-        (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
-        (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
-      );
-      if (!hasMatchingLog && p.cashPaid !== undefined && Number(p.cashPaid) > 0) {
-        unloggedUpfrontCash += Number(p.cashPaid);
+      const upfrontPaid = isMarkedPaid ? pTotal : (res.totalLiquid > 0 ? res.totalLiquid : Number(p.paidAmount !== undefined ? p.paidAmount : (p.cashPaid || 0)));
+      if (upfrontPaid > 0) {
+        unloggedUpfrontCash += Math.min(pTotal, upfrontPaid);
       }
-    });
-  }
+    }
+  });
 
   const grossPaymentsMade = directPaidLogs + unloggedUpfrontCash;
-  const netPaid = Math.max(0, grossPaymentsMade - liquidRefunds);
   const openingBalance = Number(supplier.openingBalance !== undefined ? supplier.openingBalance : (supplier.openingbalance !== undefined ? supplier.openingbalance : 0));
   const netPurchases = Math.max(0, Math.round(totalGrossPurchase - totalReturnAmount));
   const netBilled = openingBalance + netPurchases;
 
-  let payableDue = 0;
-  let automaticSupplierRefund = 0;
-
-  if (netBilled >= netPaid) {
-    payableDue = Math.round(netBilled - netPaid);
-    automaticSupplierRefund = 0;
-  } else {
-    payableDue = 0;
-    automaticSupplierRefund = Math.round(netPaid - netBilled);
-  }
+  const automaticSupplierRefund = Math.max(explicitLiquidRefunds, Math.max(0, Math.round(grossPaymentsMade - netBilled)));
+  const payableDue = Math.max(0, Math.round(netBilled - grossPaymentsMade));
+  const netPaid = Math.max(0, Math.round(grossPaymentsMade - automaticSupplierRefund));
 
   const status = payableDue > 0 ? 'Payable' : 'Settled';
 
@@ -1443,6 +1433,8 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
     directPaid: directPaidLogs,
     totalPaid: grossPaymentsMade,
     netPaid,
+    refundsPaid: explicitLiquidRefunds,
+    refundCashback: automaticSupplierRefund,
     returnAmount: totalReturnAmount,
     netPurchase: netPurchases,
     netBalance: payableDue,
@@ -1470,9 +1462,10 @@ export const computeAllSuppliersFinancials = (suppliers = [], purchases = [], pa
   const totalNetPurchases = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.netPurchase || 0), 0));
   const totalPaymentsPaid = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.totalPaid || 0), 0));
   const totalPayables = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.payableDue || 0), 0));
-  const totalSupplierRefundDue = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.refundDue || s.advanceCredit || 0), 0));
-  const totalSupplierAdvances = totalSupplierRefundDue;
-  const settledCount = allSuppliers.filter(s => s.status === 'Settled' || (s.payableDue === 0 && s.refundDue === 0)).length;
+  const totalSupplierRefundsReceived = Math.round(allSuppliers.reduce((sum, s) => sum + Number(s.automaticSupplierRefund || s.refundCashback || 0), 0));
+  const totalSupplierRefundDue = 0;
+  const totalSupplierAdvances = 0;
+  const settledCount = allSuppliers.filter(s => s.status === 'Settled' || s.payableDue === 0).length;
 
   return {
     allSuppliers,
@@ -1481,6 +1474,7 @@ export const computeAllSuppliersFinancials = (suppliers = [], purchases = [], pa
     totalNetPurchases,
     totalPaymentsPaid,
     totalPayables,
+    totalSupplierRefundsReceived,
     totalSupplierRefundDue,
     totalSupplierAdvances,
     settledCount

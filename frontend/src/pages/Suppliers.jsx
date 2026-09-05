@@ -1455,8 +1455,8 @@ export const Suppliers = () => {
         const totalPurchasesVal = Number(fin.totalPurchase ?? fin.grossPurchase ?? 0);
         const totalPaidVal = Number(fin.totalPaid ?? 0);
         const balanceDueVal = Number(fin.payableDue ?? 0);
-        const refundDueVal = Number(fin.refundDue ?? fin.advanceCredit ?? 0);
-        const isSettled = balanceDueVal === 0 && refundDueVal === 0;
+        const refundDueVal = Number(fin.refundCashback ?? fin.automaticSupplierRefund ?? 0);
+        const isSettled = balanceDueVal === 0;
 
         // Chronological combined transactions
         const allTransactions = [
@@ -1534,7 +1534,7 @@ export const Suppliers = () => {
                           : 'text-amber-600 dark:text-amber-400'
                         }`}>
                         <span>•</span>
-                        <span>{refundDueVal > 0 ? 'Supplier Refund Due' : isSettled ? 'Settled' : 'Payable Due'}</span>
+                        <span>{refundDueVal > 0 ? `Refund / Cashback: Rs. ${refundDueVal.toLocaleString()}` : isSettled ? 'Settled' : 'Payable Due'}</span>
                       </span>
                     </div>
 
@@ -1646,7 +1646,7 @@ export const Suppliers = () => {
                   }`}>
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                     <span className="text-[10px] font-black uppercase tracking-wider">
-                      {refundDueVal > 0 ? 'Supplier Refund Due' : 'Remaining Balance'}
+                      {refundDueVal > 0 ? 'Refund / Cashback' : 'Remaining Balance'}
                     </span>
                     <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${refundDueVal > 0
                       ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
@@ -1667,9 +1667,9 @@ export const Suppliers = () => {
                   </div>
                   <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
                     {refundDueVal > 0
-                      ? '✓ Refund Receivable from Supplier'
+                      ? '✓ Refund / Cashback Received'
                       : balanceDueVal > 0
-                        ? 'Pending Payable Liability'
+                        ? `Outstandings payable to ${fullSup.name}`
                         : '✓ Account Fully Settled'}
                   </div>
                 </div>

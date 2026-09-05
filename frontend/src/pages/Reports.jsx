@@ -1113,9 +1113,14 @@ export const Reports = () => {
       }
     });
 
-    // 3. Purchase Returns Inflow (Direct Cash/Bank/Card Refunds received from supplier)
+    // 3. Purchase Returns Inflow & Supplier Refund / Cashback Inflows
+    const explicitLiquidMap = new Map();
     (purchaseReturns || []).forEach(r => {
       const res = resolveTransactionPayment(r, 'PurchaseReturn');
+      const supName = (r.supplierName || '').trim().toLowerCase();
+      if (supName) {
+        explicitLiquidMap.set(supName, (explicitLiquidMap.get(supName) || 0) + res.totalLiquid);
+      }
       if (res.totalLiquid > 0) {
         cInflow += res.cashAmount;
         bInflow += res.bankAmount;
@@ -1139,6 +1144,35 @@ export const Reports = () => {
           bankAmount: res.bankAmount,
           cardAmount: res.cardAmount,
           amount: res.totalLiquid
+        });
+      }
+    });
+
+    // Account for automatic supplier refunds / cashbacks where excess payments exceed net purchases
+    (suppliers || []).forEach(s => {
+      const fin = computeSupplierKhataBalance(s, purchases, paymentLogs, purchaseReturns);
+      const sName = (s.name || '').trim().toLowerCase();
+      const explicitRef = explicitLiquidMap.get(sName) || 0;
+      const autoRefundExcess = Math.max(0, (fin.automaticSupplierRefund || fin.refundCashback || 0) - explicitRef);
+
+      if (autoRefundExcess > 0) {
+        cInflow += autoRefundExcess;
+        cPRetInflow += autoRefundExcess;
+
+        txList.push({
+          id: `sup-refund-${s.id || Math.random()}`,
+          date: 'Today',
+          created_at: new Date().toISOString(),
+          source: `Supplier Refund / Cashback (${s.name})`,
+          party: s.name || 'Supplier',
+          category: 'Purchase Return',
+          channel: 'Cash in Hand',
+          mode: 'Cash',
+          type: 'Inflow',
+          cashAmount: autoRefundExcess,
+          bankAmount: 0,
+          cardAmount: 0,
+          amount: autoRefundExcess
         });
       }
     });

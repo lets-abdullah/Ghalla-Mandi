@@ -27,12 +27,12 @@ export const SupplierLedgerTimeline = ({
       ? supplier.balance
       : (supplier?.payableDue !== undefined ? supplier.payableDue : 0)
   );
-  const refundDue = Number(
-    supplier?.refundDue !== undefined
-      ? supplier.refundDue
-      : (supplier?.advanceCredit || 0)
+  const refundCashback = Number(
+    supplier?.refundCashback !== undefined
+      ? supplier.refundCashback
+      : (supplier?.automaticSupplierRefund || 0)
   );
-  const isSettled = currentBalance <= 0 && refundDue <= 0;
+  const isSettled = currentBalance <= 0;
 
   // Calculate totals for quick summary
   const totalPurchases = (entries || [])
@@ -89,26 +89,26 @@ export const SupplierLedgerTimeline = ({
           {/* Large Current Balance & Status */}
           <div className="sm:text-right w-full sm:w-auto p-3 sm:p-0 rounded-2xl sm:rounded-none bg-slate-50 sm:bg-transparent dark:bg-slate-900/40 sm:dark:bg-transparent">
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              {refundDue > 0 ? 'Supplier Refund Due' : 'Current Balance'}
+              {refundCashback > 0 ? 'Refund / Cashback' : 'Current Balance'}
             </div>
             <div className="flex sm:justify-end items-baseline gap-2 mt-0.5">
               <span
                 className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${
-                  refundDue > 0
+                  refundCashback > 0
                     ? 'text-teal-600 dark:text-teal-400'
                     : isSettled
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-amber-500 dark:text-amber-400'
                 }`}
               >
-                Rs. {(refundDue > 0 ? refundDue : Math.abs(currentBalance)).toLocaleString()}
+                Rs. {(refundCashback > 0 ? refundCashback : currentBalance).toLocaleString()}
               </span>
             </div>
             <div className="flex sm:justify-end items-center gap-1.5 mt-1.5">
-              {refundDue > 0 ? (
+              {refundCashback > 0 ? (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/30">
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Refund Due (Receivable from Supplier)</span>
+                  <span>Refund / Cashback (Rs. {refundCashback.toLocaleString()})</span>
                 </span>
               ) : isSettled ? (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
@@ -156,7 +156,7 @@ export const SupplierLedgerTimeline = ({
 
           <div
             className={`p-3 rounded-2xl border ${
-              refundDue > 0
+              refundCashback > 0
                 ? 'bg-teal-500/10 border-teal-500/30 text-teal-700 dark:text-teal-300'
                 : isSettled
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
@@ -164,10 +164,10 @@ export const SupplierLedgerTimeline = ({
             }`}
           >
             <div className="text-[10px] font-bold uppercase">
-              {refundDue > 0 ? 'Supplier Refund Due' : 'Amount Due'}
+              {refundCashback > 0 ? 'Refund / Cashback' : 'Amount Due'}
             </div>
             <div className="text-sm font-black font-mono mt-0.5">
-              Rs. {(refundDue > 0 ? refundDue : currentBalance).toLocaleString()}
+              Rs. {(refundCashback > 0 ? refundCashback : currentBalance).toLocaleString()}
             </div>
           </div>
         </div>
