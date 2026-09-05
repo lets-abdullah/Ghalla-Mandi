@@ -311,6 +311,7 @@ export const Reports = () => {
         ...s,
         grossAmt,
         returnAmt,
+        refundCashback: fin.refundCashback || 0,
         discount,
         netAmt: fin.netTotal,
         paidAmt: fin.paid,
@@ -471,6 +472,7 @@ export const Reports = () => {
   const filteredNetSales = useMemo(() => filteredSalesList.reduce((sum, s) => sum + s.netAmt, 0), [filteredSalesList]);
   const filteredCashSales = useMemo(() => filteredSalesList.reduce((sum, s) => sum + s.paidAmt, 0), [filteredSalesList]);
   const filteredCreditSales = useMemo(() => filteredSalesList.reduce((sum, s) => sum + s.dueAmt, 0), [filteredSalesList]);
+  const filteredRefundsVal = useMemo(() => filteredSalesList.reduce((sum, s) => sum + (s.refundCashback || 0), 0), [filteredSalesList]);
   const filteredInvoicesCount = filteredSalesList.length;
   const filteredAvgInvoiceValue = filteredInvoicesCount > 0 ? Math.round(filteredGrossSales / filteredInvoicesCount) : 0;
 
@@ -2899,7 +2901,7 @@ export const Reports = () => {
       {reportType === 'Sales' && (
         <div className="space-y-5">
           {/* Top KPI Summary Cards (Screen Only) */}
-          <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="no-print grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5">
             {/* 1. Gross Sales */}
             <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
@@ -2953,6 +2955,20 @@ export const Reports = () => {
               </div>
               <div className="text-2xl font-black font-mono mt-2 text-amber-600 dark:text-amber-400">
                 Rs. {filteredCreditSales.toLocaleString()}
+              </div>
+            </div>
+
+            {/* 5. Refunds / Cashback */}
+            <div className={`p-4 rounded-2xl border card-shadow transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">5. Refunds / Cashback</span>
+                <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                  <RefreshCw className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-black font-mono mt-2 text-purple-600 dark:text-purple-400">
+                Rs. {filteredRefundsVal.toLocaleString()}
               </div>
             </div>
           </div>
@@ -3096,6 +3112,7 @@ export const Reports = () => {
                       <th className="py-3 px-3">Items</th>
                       <th className="py-3 px-3 text-right font-black">Amount</th>
                       <th className="py-3 px-3 text-right text-rose-600 dark:text-rose-400 font-bold">Return</th>
+                      <th className="py-3 px-3 text-right text-purple-600 dark:text-purple-400 font-bold">Refund / Cashback</th>
                       <th className="py-3 px-3 text-right font-black text-slate-900 dark:text-white">Net Sale</th>
                       <th className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400 font-bold">Paid</th>
                       <th className="py-3 px-3 text-right text-amber-600 dark:text-amber-400 font-bold">Remaining Due</th>
@@ -3105,7 +3122,7 @@ export const Reports = () => {
                   <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                     {filteredSalesList.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="py-10 text-center text-slate-400 font-medium">
+                        <td colSpan={10} className="py-10 text-center text-slate-400 font-medium">
                           No sales orders found matching current filter selection.
                         </td>
                       </tr>
@@ -3144,6 +3161,13 @@ export const Reports = () => {
                                 <span className="text-slate-400">Rs. 0</span>
                               )}
                             </td>
+                            <td className="py-3 px-3 text-right font-mono font-bold">
+                              {Number(s.refundCashback || 0) > 0 ? (
+                                <span className="text-purple-600 dark:text-purple-400 font-black">Rs. {Number(s.refundCashback).toLocaleString()}</span>
+                              ) : (
+                                <span className="text-slate-400">Rs. 0</span>
+                              )}
+                            </td>
                             <td className="py-3 px-3 text-right font-mono font-black text-slate-900 dark:text-white">
                               Rs. {Number(s.netAmt !== undefined ? s.netAmt : ((s.grossAmt || s.amount || 0) - (s.returnAmt || 0))).toLocaleString()}
                             </td>
@@ -3169,6 +3193,9 @@ export const Reports = () => {
                         <td className="py-3.5 px-3 text-right font-mono font-black">Rs. {filteredGrossSales.toLocaleString()}</td>
                         <td className="py-3.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
                           {filteredSalesReturnsVal > 0 ? `- Rs. ${filteredSalesReturnsVal.toLocaleString()}` : 'Rs. 0'}
+                        </td>
+                        <td className="py-3.5 px-3 text-right font-mono font-bold text-purple-600 dark:text-purple-400">
+                          {filteredRefundsVal > 0 ? `Rs. ${filteredRefundsVal.toLocaleString()}` : 'Rs. 0'}
                         </td>
                         <td className="py-3.5 px-3 text-right font-mono font-black">Rs. {filteredNetSales.toLocaleString()}</td>
                         <td className="py-3.5 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400">Rs. {filteredCashSales.toLocaleString()}</td>

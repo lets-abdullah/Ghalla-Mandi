@@ -196,70 +196,10 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Bottom Summary & Activity Row (2 Columns) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Today's Financial Summary Card - 7 columns */}
-        <div className="lg:col-span-7 flex flex-col">
-          <div className={`h-full border rounded-2xl p-5 card-shadow flex items-center ${
-            isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-700/60">
-              {/* 1. TODAY'S NET CASH */}
-              <div className="flex items-center gap-3.5 pt-3 md:pt-0">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                  <Wallet className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">TODAY'S NET CASH</div>
-                  <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
-                    Rs. {todayNetCash.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-slate-400 font-medium mt-0.5">Sales - Purchases</div>
-                </div>
-              </div>
-
-              {/* 2. TOTAL TRANSACTIONS */}
-              <div className="flex items-center gap-3.5 pt-4 md:pt-0 md:pl-6">
-                <div className="w-11 h-11 rounded-2xl bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                  <Receipt className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">TOTAL TRANSACTIONS</div>
-                  <div className="text-xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
-                    {todayTransactionsCount}
-                  </div>
-                  <div className="text-xs text-slate-400 font-medium mt-0.5">Today</div>
-                </div>
-              </div>
-
-              {/* 3. ITEMS SOLD */}
-              <div className="flex items-center gap-3.5 pt-4 md:pt-0 md:pl-6">
-                <div className="w-11 h-11 rounded-2xl bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
-                  <Package className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">ITEMS SOLD</div>
-                  <div className="text-xl font-black text-orange-600 dark:text-orange-400 tracking-tight">
-                    {totalTodayQtySold.toLocaleString()} {primaryTodayUnit}
-                  </div>
-                  <div className="text-xs text-slate-400 font-medium mt-0.5">Across {distinctItemsSoldToday} Items</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity - 5 columns */}
-        <div className="lg:col-span-5 flex flex-col">
-          <RecentActivityWidget />
-        </div>
+      {/* Full Width Recent Activity Row */}
+      <div className="w-full">
+        <RecentActivityWidget />
       </div>
-
-      {/* Footer */}
-      <footer className="mt-8 pt-4 border-t border-slate-200/60 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 font-medium gap-2">
-        <div>© 2026 Ghalla Mandi. All rights reserved.</div>
-        <div>Production Multi-Tenant SaaS v1.0.0</div>
-      </footer>
 
       {/* Invoice Drawer Modal */}
       {activeInvoice && (
