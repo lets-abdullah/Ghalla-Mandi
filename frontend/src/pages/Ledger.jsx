@@ -749,24 +749,257 @@ export const Ledger = () => {
     });
   }, [activeCustomer, sales, purchases, paymentLogs, saleReturns, purchaseReturns, isSupplier, selectedPartyId]);
 
-  // Single Customer Chronological Ledger with Verified Running Balance
-  const singleCustomerLedger = useMemo(() => {
-    if (!statement) return [];
-    const sourceEntries = sortOrder === 'asc' ? statement.chronologicalEntries : statement.displayEntries;
-    return sourceEntries.filter(entry => {
-      if (!matchDate(entry.rawDate)) return false;
-      if (txTypeFilter === 'Sales' && entry.txType !== 'Sales' && entry.txType !== 'Purchases') return false;
-      if (txTypeFilter === 'Payments' && entry.txType !== 'Payments') return false;
-      if (txTypeFilter === 'Returns' && entry.txType !== 'Returns' && entry.txType !== 'Customer Refund' && entry.txType !== 'Supplier Refund') return false;
+  // Single Customer / Supplier Consolidated Bill Ledger
+  const consolidatedPartyLedger = useMemo(() => {
+    if (selectedPartyId === 'All' || !activeCustomer) return [];
+
+    const partyId = activeCustomer.id ? String(activeCustomer.id) : null;
+    const partyName = (activeCustomer.name || '').trim().toLowerCase();
+    const isGenericWalkinName = (name) => {
+      if (!name) return true;
+      const n = String(name).trim().toLowerCase();
+      return n === 'walk-in customer' || n === 'walk in customer' || n === 'walk-in' || n === 'walkin' || n === 'walk in' || n === 'walk-in-customer';
+    };
+    const isPartyGenericWalkin = isGenericWalkinName(partyName) || (partyId && (partyId.startsWith('walkin-generic') || partyId === 'walkin-default'));
+
+    const rows = [];
+
+    if (isSupplier) {
+      // 0. Opening Balance if any
+      const opBal = Number(activeCustomer.openingBalance !== undefined ? activeCustomer.openingBalance : (activeCustomer.openingbalance !== undefined ? activeCustomer.openingbalance : 0));
+      if (opBal > 0) {
+        rows.push({
+          id: `op-bal-${partyId}`,
+          rawDate: activeCustomer.created_at || '2026-01-01',
+          date: activeCustomer.created_at ? new Date(activeCustomer.created_at).toLocaleDateString('en-GB') : 'Opening',
+          billNo: 'OPENING',
+          totalPurchase: opBal,
+          paid: 0,
+          due: opBal,
+          purchaseReturn: 0,
+          netPurchase: opBal,
+          refundCashback: 0,
+          status: 'Payable',
+          isOpening: true
+        });
+      }
+
+      // 1. Filter Purchases for this Supplier
+      const partyPurchases = (purchases || []).filter(p => {
+        const pSupId = p.supplierId ? String(p.supplierId) : (p.supplierid ? String(p.supplierid) : null);
+        const pSupName = (p.supplier || p.supplierName || p.suppliername || '').trim().toLowerCase();
+        return (partyId && pSupId && pSupId === partyId) || (partyName && pSupName && pSupName === partyName);
+      });
+
+      partyPurchases.forEach(p => {
+        const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+        const totalPurchase = fin.grossTotal;
+        const purchaseReturn = fin.returnAmount;
+        const netPurchase = fin.netTotal;
+        const paid = fin.paid;
+        const due = Math.max(0, netPurchase - paid);
+        const refundCashback = Math.max(0, paid - netPurchase);
+
+        let status = 'Settled';
+        if (refundCashback > 0) {
+          status = 'Refunded / Settled';
+        } else if (due > 0 && paid > 0) {
+          status = 'Partial';
+        } else if (due > 0) {
+          status = 'Payable';
+        } else {
+          status = 'Settled';
+        }
+
+        rows.push({
+          id: `pur-${p.id}`,
+          rawDate: p.date,
+          date: p.date || 'N/A',
+          billNo: p.purchaseNo || `PUR-${p.id}`,
+          totalPurchase,
+          paid,
+          due,
+          purchaseReturn,
+          netPurchase,
+          refundCashback,
+          status,
+          rawTx: p
+        });
+      });
+
+      // 2. Unlinked Standalone Payments
+      const partyPayments = (paymentLogs || []).filter(pl => {
+        const isSup = pl.type === 'Supplier' || pl.partyType === 'Supplier';
+        if (!isSup) return false;
+        const pMode = String(pl.mode || '').trim().toLowerCase();
+        if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note' || pMode === 'purchase return' || pMode === 'supplier khata' || pMode.includes('khata')) return false;
+
+        if (pl.purchaseId || pl.purchaseid || (pl.ref && (pl.ref.includes('PUR-') || pl.ref.includes('BILL-')))) return false;
+
+        const pPartyId = pl.partyId ? String(pl.partyId) : (pl.partyid ? String(pl.partyid) : null);
+        const pPartyName = (pl.partyName || pl.partyname || '').trim().toLowerCase();
+        return (partyId && pPartyId && pPartyId === partyId) || (partyName && pPartyName && pPartyName === partyName);
+      });
+
+      partyPayments.forEach(pl => {
+        const pAmt = Number(pl.amount || 0);
+        rows.push({
+          id: `pay-${pl.id}`,
+          rawDate: pl.date,
+          date: pl.date || 'N/A',
+          billNo: pl.ref || `PAY-${pl.id}`,
+          totalPurchase: 0,
+          paid: pAmt,
+          due: 0,
+          purchaseReturn: 0,
+          netPurchase: 0,
+          refundCashback: 0,
+          status: 'Settled',
+          isStandalonePayment: true,
+          rawTx: pl
+        });
+      });
+
+    } else {
+      // CUSTOMER MODE
+      const opBal = Number(activeCustomer.openingBalance !== undefined ? activeCustomer.openingBalance : (activeCustomer.openingbalance !== undefined ? activeCustomer.openingbalance : 0));
+      if (opBal > 0) {
+        rows.push({
+          id: `op-bal-${partyId}`,
+          rawDate: activeCustomer.created_at || '2026-01-01',
+          date: activeCustomer.created_at ? new Date(activeCustomer.created_at).toLocaleDateString('en-GB') : 'Opening',
+          billNo: 'OPENING',
+          totalPurchase: opBal,
+          paid: 0,
+          due: opBal,
+          purchaseReturn: 0,
+          netPurchase: opBal,
+          refundCashback: 0,
+          status: 'Due',
+          isOpening: true
+        });
+      }
+
+      const partySales = (sales || []).filter(s => {
+        const sCustId = s.customerId ? String(s.customerId) : null;
+        const sCustName = (s.customerName || s.partyName || '').trim().toLowerCase();
+        if (partyId && sCustId && sCustId === partyId) return true;
+        if (!isPartyGenericWalkin) {
+          if (partyName && sCustName && sCustName === partyName && !isGenericWalkinName(sCustName)) return true;
+          if (partyId && (partyId === `cust-pos-${sCustName}` || partyId === `walkin-${sCustName}`)) return true;
+          return false;
+        }
+        return (!sCustId || sCustId === partyId) && isGenericWalkinName(sCustName);
+      });
+
+      partySales.forEach(s => {
+        const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
+        const totalPurchase = fin.grossTotal;
+        const purchaseReturn = fin.returnAmount;
+        const netPurchase = fin.netTotal;
+        const paid = fin.paid;
+        const due = Math.max(0, netPurchase - paid);
+        const refundCashback = Math.max(0, paid - netPurchase);
+
+        let status = 'Settled';
+        if (refundCashback > 0) {
+          status = 'Refunded / Settled';
+        } else if (due > 0 && paid > 0) {
+          status = 'Partial';
+        } else if (due > 0) {
+          status = 'Receivable';
+        } else {
+          status = 'Settled';
+        }
+
+        rows.push({
+          id: `sale-${s.id}`,
+          rawDate: s.date,
+          date: s.date || 'N/A',
+          billNo: s.invoiceNo || `INV-${s.id}`,
+          totalPurchase,
+          paid,
+          due,
+          purchaseReturn,
+          netPurchase,
+          refundCashback,
+          status,
+          rawTx: s
+        });
+      });
+
+      const partyPayments = (paymentLogs || []).filter(pl => {
+        const isCust = pl.type === 'Customer' || pl.partyType === 'Customer';
+        if (!isCust) return false;
+        const pMode = String(pl.mode || '').trim().toLowerCase();
+        if (pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note') return false;
+
+        if (pl.saleId || (pl.ref && (pl.ref.includes('INV-') || pl.ref.includes('SAL-')))) return false;
+
+        const pPartyId = pl.partyId ? String(pl.partyId) : null;
+        const pPartyName = (pl.partyName || pl.partyname || '').trim().toLowerCase();
+        if (partyId && pPartyId && pPartyId === partyId) return true;
+        if (!isPartyGenericWalkin) {
+          if (partyName && pPartyName && pPartyName === partyName && !isGenericWalkinName(pPartyName)) return true;
+          if (partyId && (partyId === `cust-pos-${pPartyName}` || partyId === `walkin-${pPartyName}`)) return true;
+          return false;
+        }
+        return (!pPartyId || pPartyId === partyId) && isGenericWalkinName(pPartyName);
+      });
+
+      partyPayments.forEach(pl => {
+        const pAmt = Number(pl.amount || 0);
+        rows.push({
+          id: `pay-${pl.id}`,
+          rawDate: pl.date,
+          date: pl.date || 'N/A',
+          billNo: pl.ref || `PAY-${pl.id}`,
+          totalPurchase: 0,
+          paid: pAmt,
+          due: 0,
+          purchaseReturn: 0,
+          netPurchase: 0,
+          refundCashback: 0,
+          status: 'Settled',
+          isStandalonePayment: true,
+          rawTx: pl
+        });
+      });
+    }
+
+    const filtered = rows.filter(row => {
+      if (!matchDate(row.rawDate)) return false;
+      if (txTypeFilter === 'Sales' && row.totalPurchase === 0) return false;
+      if (txTypeFilter === 'Payments' && row.paid === 0) return false;
+      if (txTypeFilter === 'Returns' && row.purchaseReturn === 0 && row.refundCashback === 0) return false;
       if (txSearchQuery.trim()) {
         const q = txSearchQuery.toLowerCase().trim();
-        const refMatch = (entry.ref || '').toLowerCase().includes(q);
-        const descMatch = (entry.desc || '').toLowerCase().includes(q);
-        if (!refMatch && !descMatch) return false;
+        const refMatch = (row.billNo || '').toLowerCase().includes(q);
+        if (!refMatch) return false;
       }
       return true;
     });
-  }, [statement, sortOrder, dateFilterType, customStartDate, customEndDate, txTypeFilter, txSearchQuery]);
+
+    filtered.sort((a, b) => {
+      const da = parseLedgerDate(a.rawDate) || new Date(0);
+      const db = parseLedgerDate(b.rawDate) || new Date(0);
+      return sortOrder === 'desc' ? db - da : da - db;
+    });
+
+    return filtered;
+  }, [selectedPartyId, activeCustomer, isSupplier, purchases, sales, paymentLogs, purchaseReturns, saleReturns, dateFilterType, customStartDate, customEndDate, txTypeFilter, txSearchQuery, sortOrder]);
+
+  const consolidatedTotals = useMemo(() => {
+    return consolidatedPartyLedger.reduce((acc, row) => {
+      acc.totalPurchase += row.totalPurchase;
+      acc.paid += row.paid;
+      acc.due += row.due;
+      acc.purchaseReturn += row.purchaseReturn;
+      acc.netPurchase += row.netPurchase;
+      acc.refundCashback += row.refundCashback;
+      return acc;
+    }, { totalPurchase: 0, paid: 0, due: 0, purchaseReturn: 0, netPurchase: 0, refundCashback: 0 });
+  }, [consolidatedPartyLedger]);
 
   // Handle Switching to a Customer's Ledger
   const handleOpenCustomerLedger = (cust) => {
@@ -1281,148 +1514,145 @@ export const Ledger = () => {
             ]}
           />
 
-          {/* Complete Clean Statement Table (No Horizontal Scroll) */}
+          {/* Clean Consolidated Bill-by-Bill Table (No Horizontal Scroll) */}
           <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
             }`}>
-            <div className="w-full">
+            <div className="w-full overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className={`border-b text-[10px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                     }`}>
-                    <th className="py-3.5 px-4 w-28">Date</th>
-                    <th className="py-3.5 px-4 w-36">Reference #</th>
-                    <th className="py-3.5 px-4">Description</th>
-                    <th className="py-3.5 px-4 text-right w-32">Net Amount</th>
-                    <th className="py-3.5 px-4 text-right w-36">Paid / Received</th>
-                    <th className="py-3.5 px-4 text-right w-36 font-black">Running Balance</th>
+                    <th className="py-3.5 px-4">{isSupplier ? 'Bill # & Date' : 'Invoice # & Date'}</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Purchase' : 'Total Sale'}</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Paid' : 'Received'}</th>
+                    <th className="py-3.5 px-4 text-right">Due</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Purchase Return' : 'Sale Return'}</th>
+                    <th className="py-3.5 px-4 text-right">{isSupplier ? 'Net Purchase' : 'Net Sale'}</th>
+                    <th className="py-3.5 px-4 text-right">Refund / Cashback</th>
+                    <th className="py-3.5 px-4 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
-                  {singleCustomerLedger.length === 0 ? (
+                  {consolidatedPartyLedger.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center">
+                      <td colSpan={8} className="py-8 text-center">
                         <EmptyState
                           icon={BookOpen}
                           title="No transactions recorded"
-                          description="No entries found for this party matching the selected date range."
+                          description="No entries found for this party matching the selected filter."
                         />
                       </td>
                     </tr>
                   ) : (
-                    singleCustomerLedger.map(entry => {
-                      const rawBal = Number(entry.rawRunningBalance !== undefined ? entry.rawRunningBalance : entry.runningBalance);
-                      const isZero = rawBal === 0 || entry.balanceState === 'Settled' || entry.status === 'Settled';
-                      const isBalPos = !isZero && rawBal > 0;
+                    consolidatedPartyLedger.map(row => (
+                      <tr
+                        key={row.id}
+                        onClick={() => setViewingEntry(row)}
+                        className={`transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                      >
+                        {/* 1. Date & Bill # */}
+                        <td className="py-3.5 px-4">
+                          <div className="font-mono font-bold text-blue-600 dark:text-blue-400">{row.billNo}</div>
+                          <div className="text-[11px] font-mono text-slate-400 mt-0.5">{row.date}</div>
+                        </td>
 
-                      // Clean up description
-                      const cleanDesc = (entry.desc || 'Transaction')
-                        .replace(/:\s*Purchase Return$/i, '')
-                        .replace(/:\s*Sale Return$/i, '')
-                        .trim();
+                        {/* 2. Total Purchase */}
+                        <td className="py-3.5 px-4 text-right font-mono font-extrabold text-slate-900 dark:text-white">
+                          Rs. {row.totalPurchase.toLocaleString()}
+                        </td>
 
-                      const isReturn = entry.txType === 'Returns' || entry.txType === 'Return';
-                      const isRefund = entry.txType === 'Customer Refund' || entry.txType === 'Supplier Refund' || entry.isAutoRefund;
+                        {/* 3. Paid */}
+                        <td className="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
+                          Rs. {row.paid.toLocaleString()}
+                        </td>
 
-                      return (
-                        <tr
-                          key={entry.id}
-                          onClick={() => setViewingEntry(entry)}
-                          className={`transition cursor-pointer ${
-                            theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
-                          }`}
-                          title="Click to view complete voucher details"
-                        >
-                          {/* 1. Date */}
-                          <td className="py-3.5 px-4 font-mono text-slate-500 dark:text-slate-400">
-                            {entry.date}
-                          </td>
+                        {/* 4. Due */}
+                        <td className="py-3.5 px-4 text-right font-mono font-extrabold">
+                          <span className={row.due > 0 ? 'text-amber-600 dark:text-amber-400 font-black' : 'text-slate-400'}>
+                            Rs. {row.due.toLocaleString()}
+                          </span>
+                        </td>
 
-                          {/* 2. Reference # */}
-                          <td className="py-3.5 px-4 font-mono font-bold text-blue-600 dark:text-blue-400">
-                            {entry.ref}
-                          </td>
+                        {/* 5. Purchase Return */}
+                        <td className="py-3.5 px-4 text-right font-mono font-bold text-purple-600 dark:text-purple-400">
+                          {row.purchaseReturn > 0 ? `Rs. ${row.purchaseReturn.toLocaleString()}` : '—'}
+                        </td>
 
-                          {/* 3. Description */}
-                          <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200">
-                            {cleanDesc}
-                          </td>
+                        {/* 6. Net Purchase */}
+                        <td className="py-3.5 px-4 text-right font-mono font-black text-slate-900 dark:text-white">
+                          Rs. {row.netPurchase.toLocaleString()}
+                        </td>
 
-                          {/* 4. Net Amount */}
-                          <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
-                            {(entry.txType === 'Purchases' || entry.txType === 'Sales') ? (
-                              `Rs. ${(entry.netTotal || entry.sales || entry.originalGross || entry.debit || 0).toLocaleString()}`
-                            ) : isReturn ? (
-                              `Rs. ${(entry.returnAmount || entry.credit || 0).toLocaleString()}`
-                            ) : (
-                              '—'
-                            )}
-                          </td>
+                        {/* 7. Refund / Cashback */}
+                        <td className="py-3.5 px-4 text-right font-mono font-black">
+                          {row.refundCashback > 0 ? (
+                            <span className="text-emerald-600 dark:text-emerald-400">
+                              Rs. {row.refundCashback.toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
 
-                          {/* 5. Paid / Received */}
-                          <td className="py-3.5 px-4 text-right font-mono font-bold">
-                            {isRefund ? (
-                              <span className="text-emerald-600 dark:text-emerald-400">
-                                {isSupplier ? `+ Rs. ${(entry.debit || 0).toLocaleString()}` : `- Rs. ${(entry.debit || 0).toLocaleString()}`}
-                              </span>
-                            ) : (entry.txType === 'Payments' || entry.txType === 'Payment' || (entry.payment && entry.payment > 0 && !isReturn)) ? (
-                              <span className="text-emerald-600 dark:text-emerald-400">
-                                Rs. ${(entry.payment || entry.credit || 0).toLocaleString()}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 font-normal">—</span>
-                            )}
-                          </td>
-
-                          {/* 6. Running Balance */}
-                          <td className="py-3.5 px-4 text-right font-mono font-black text-xs">
-                            {isZero ? (
-                              <span className="text-emerald-600 dark:text-emerald-400">
-                                Rs. 0
-                              </span>
-                            ) : isBalPos ? (
-                              <span className="text-rose-600 dark:text-rose-400">
-                                Rs. {Math.abs(rawBal).toLocaleString()}
-                              </span>
-                            ) : (
-                              <span className="text-emerald-600 dark:text-emerald-400">
-                                Rs. {Math.abs(rawBal).toLocaleString()}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })
+                        {/* 8. Status */}
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider ${
+                            row.status.includes('Refunded')
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                              : row.status === 'Settled'
+                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30'
+                                : row.status === 'Partial'
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                          }`}>
+                            {row.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
             </div>
 
             {/* Bottom Summary Bar */}
-            <div className={`p-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-4 text-center text-xs font-bold ${
+            <div className={`p-4 border-t grid grid-cols-2 sm:grid-cols-6 gap-4 text-center text-xs font-bold ${
               theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
             }`}>
               <div>
-                <div className="text-slate-400 text-[10px] uppercase font-black">Opening Balance</div>
+                <div className="text-slate-400 text-[10px] uppercase font-black">{isSupplier ? 'Total Purchase' : 'Total Sale'}</div>
                 <div className="font-mono font-bold mt-0.5 text-slate-700 dark:text-slate-300">
-                  Rs. ${(statement?.openingBalance || 0).toLocaleString()}
+                  Rs. {consolidatedTotals.totalPurchase.toLocaleString()}
                 </div>
               </div>
               <div>
-                <div className="text-slate-400 text-[10px] uppercase font-black">Total Credits</div>
+                <div className="text-slate-400 text-[10px] uppercase font-black">{isSupplier ? 'Paid' : 'Received'}</div>
                 <div className="font-mono font-bold mt-0.5 text-emerald-600 dark:text-emerald-400">
-                  Rs. ${(statement?.totalCredit || 0).toLocaleString()}
+                  Rs. {consolidatedTotals.paid.toLocaleString()}
                 </div>
               </div>
               <div>
-                <div className="text-slate-400 text-[10px] uppercase font-black">Total Debits</div>
-                <div className="font-mono font-bold mt-0.5 text-rose-600 dark:text-rose-400">
-                  Rs. ${(statement?.totalDebit || 0).toLocaleString()}
+                <div className="text-slate-400 text-[10px] uppercase font-black">Due</div>
+                <div className="font-mono font-bold mt-0.5 text-amber-600 dark:text-amber-400">
+                  Rs. {consolidatedTotals.due.toLocaleString()}
                 </div>
               </div>
               <div>
-                <div className="text-slate-400 text-[10px] uppercase font-black">Closing Balance</div>
-                <div className={`font-mono font-black mt-0.5 ${(statement?.closingBalance || 0) === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                  Rs. ${(statement?.closingBalance || 0).toLocaleString()}
+                <div className="text-slate-400 text-[10px] uppercase font-black">{isSupplier ? 'Purchase Return' : 'Sale Return'}</div>
+                <div className="font-mono font-bold mt-0.5 text-purple-600 dark:text-purple-400">
+                  Rs. {consolidatedTotals.purchaseReturn.toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-400 text-[10px] uppercase font-black">{isSupplier ? 'Net Purchase' : 'Net Sale'}</div>
+                <div className="font-mono font-bold mt-0.5 text-slate-900 dark:text-white">
+                  Rs. {consolidatedTotals.netPurchase.toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-400 text-[10px] uppercase font-black">Refund / Cashback</div>
+                <div className="font-mono font-black mt-0.5 text-emerald-600 dark:text-emerald-400">
+                  Rs. {consolidatedTotals.refundCashback.toLocaleString()}
                 </div>
               </div>
             </div>
@@ -1439,25 +1669,25 @@ export const Ledger = () => {
               <div>
                 <h4 className="font-extrabold text-xs">About This Ledger</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  This ledger shows all purchases, returns, payments, and refunds related to this party.
+                  This ledger shows a bill-by-bill financial summary of purchases, returns, payments, and refunds for this party.
                 </p>
               </div>
             </div>
 
             <div className={`p-4 rounded-2xl border flex items-start gap-3 ${
-              (statement?.closingBalance || 0) === 0
+              (activeCustomer?.balance || 0) === 0
                 ? (theme === 'dark' ? 'bg-emerald-950/30 border-emerald-800/60 text-white' : 'bg-emerald-50/50 border-emerald-100 text-slate-800')
                 : (theme === 'dark' ? 'bg-amber-950/30 border-amber-800/60 text-white' : 'bg-amber-50/50 border-amber-100 text-slate-800')
             }`}>
-              <div className={`p-2 rounded-xl shrink-0 ${(statement?.closingBalance || 0) === 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
+              <div className={`p-2 rounded-xl shrink-0 ${(activeCustomer?.balance || 0) === 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="font-extrabold text-xs">Current Status</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {(statement?.closingBalance || 0) === 0
+                  {(activeCustomer?.balance || 0) === 0
                     ? `All dues have been cleared. No amount is ${isSupplier ? 'payable to this supplier' : 'due from this customer'}.`
-                    : `Active account balance of Rs. ${(statement?.closingBalance || 0).toLocaleString()} ${statement?.status}.`}
+                    : `Active account balance of Rs. ${(activeCustomer?.balance || 0).toLocaleString()} ${isSupplier ? 'payable' : 'receivable'}.`}
                 </p>
               </div>
             </div>
@@ -1484,8 +1714,8 @@ export const Ledger = () => {
                   <BookOpen className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold">Ledger Voucher Details</h3>
-                  <p className="text-[11px] text-slate-400 font-bold">{viewingEntry.ref}</p>
+                  <h3 className="text-base font-extrabold">Bill Financial Position</h3>
+                  <p className="text-[11px] text-slate-400 font-bold">{viewingEntry.billNo}</p>
                 </div>
               </div>
               <button
@@ -1500,111 +1730,57 @@ export const Ledger = () => {
             <div className={`p-4 rounded-2xl space-y-2.5 border text-xs ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
               }`}>
               <div className="flex justify-between items-center text-slate-500">
-                <span>Party / Customer:</span>
-                <span className="font-extrabold text-slate-900 dark:text-white">{viewingEntry.partyName}</span>
+                <span>Party Name:</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">{activeCustomer?.name}</span>
               </div>
               <div className="flex justify-between items-center text-slate-500">
                 <span>Date:</span>
                 <span className="font-mono font-bold text-slate-900 dark:text-white">{viewingEntry.date}</span>
               </div>
               <div className="flex justify-between items-center text-slate-500">
-                <span>Transaction Type:</span>
-                <span className="font-bold text-brand-600">{viewingEntry.txType}</span>
-              </div>
-              <div className="flex justify-between items-start text-slate-500 pt-1 border-t border-slate-200 dark:border-slate-700">
-                <span>Description:</span>
-                <span className="font-medium text-right max-w-xs text-slate-900 dark:text-white">{viewingEntry.desc}</span>
+                <span>Bill Reference:</span>
+                <span className="font-mono font-bold text-brand-600">{viewingEntry.billNo}</span>
               </div>
 
-              {/* Prominent Auto Payment Back Banner */}
-              {(viewingEntry.autoRefundAmount > 0 || viewingEntry.txType === 'Supplier Refund' || viewingEntry.txType === 'Customer Refund' || viewingEntry.isAutoRefund) && (
-                <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black shrink-0 shadow-xs">
-                    ✓
-                  </div>
-                  <div>
-                    <div className="text-xs font-black text-emerald-800 dark:text-emerald-300">
-                      {isSupplier ? 'Auto Payment Back to System (Cash/Bank)' : 'Auto Payment Refunded to Customer'}
-                    </div>
-                    <div className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
-                      Amount of Rs. {(viewingEntry.autoRefundAmount || viewingEntry.debit || 0).toLocaleString()} was automatically {isSupplier ? 'returned back into Cash / Bank system' : 'refunded from Cash / Bank system'} without remaining trapped in Khata.
-                    </div>
-                  </div>
+              <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 space-y-1.5 font-mono text-[11px] my-2">
+                <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                  <span>{isSupplier ? 'Total Purchase:' : 'Total Sale:'}</span>
+                  <span className="font-bold">Rs. {viewingEntry.totalPurchase?.toLocaleString()}</span>
                 </div>
-              )}
-
-              {/* Complete Return & Payment Lifecycle Breakdown */}
-              {viewingEntry.returnAmount > 0 && (
-                <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 space-y-1.5 font-mono text-[11px] my-2">
-                  <div className="font-bold text-purple-900 dark:text-purple-300 uppercase tracking-wider text-[10px] pb-1 border-b border-purple-200 dark:border-purple-800/40">
-                    Transaction Financial Summary
-                  </div>
-                  <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                    <span>Original Amount:</span>
-                    <span className="font-bold">Rs. {viewingEntry.originalGross?.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-purple-700 dark:text-purple-400 font-bold">
-                    <span>Returned Amount:</span>
-                    <span>- Rs. {viewingEntry.returnAmount?.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-emerald-700 dark:text-emerald-400 font-black border-t border-purple-200 dark:border-purple-800/40 pt-1">
-                    <span>Net Amount:</span>
-                    <span>Rs. {viewingEntry.netTotal?.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                    <span>Paid:</span>
-                    <span className="font-bold">Rs. {viewingEntry.paidAmount?.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between font-black text-amber-700 dark:text-amber-400">
-                    <span>Remaining Due:</span>
-                    <span>Rs. {viewingEntry.dueAmount?.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-500 pt-1 border-t border-purple-200 dark:border-purple-800/40">
-                    <span>Status:</span>
-                    <span className="font-black text-brand-600">{viewingEntry.invoiceStatus || viewingEntry.status}</span>
-                  </div>
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                  <span>{isSupplier ? 'Paid:' : 'Received:'}</span>
+                  <span className="font-bold">Rs. {viewingEntry.paid?.toLocaleString()}</span>
                 </div>
-              )}
-
-              {viewingEntry.debit > 0 && (
-                <div className="flex justify-between items-center text-blue-600 font-black pt-1 border-t border-slate-200 dark:border-slate-700">
-                  <span>Debit Amount:</span>
-                  <span className="font-mono text-sm">Rs. {viewingEntry.debit.toLocaleString()}</span>
+                <div className="flex justify-between text-purple-600 dark:text-purple-400">
+                  <span>{isSupplier ? 'Purchase Return:' : 'Sale Return:'}</span>
+                  <span className="font-bold">Rs. {viewingEntry.purchaseReturn?.toLocaleString()}</span>
                 </div>
-              )}
-
-              {viewingEntry.credit > 0 && (
-                <div className="flex justify-between items-center text-emerald-600 font-black pt-1 border-t border-slate-200 dark:border-slate-700">
-                  <span>Credit Amount:</span>
-                  <span className="font-mono text-sm">Rs. {viewingEntry.credit.toLocaleString()}</span>
+                <div className="flex justify-between text-slate-900 dark:text-white font-extrabold border-t border-slate-200 dark:border-slate-700 pt-1">
+                  <span>{isSupplier ? 'Net Purchase:' : 'Net Sale:'}</span>
+                  <span>Rs. {viewingEntry.netPurchase?.toLocaleString()}</span>
                 </div>
-              )}
-
-              <div className="flex justify-between items-center font-black pt-1 border-t border-slate-200 dark:border-slate-700">
-                <span>Running Balance:</span>
-                <span className={`font-mono text-sm ${(() => {
-                  const raw = Number(viewingEntry.rawRunningBalance !== undefined ? viewingEntry.rawRunningBalance : viewingEntry.runningBalance);
-                  if (raw === 0 || viewingEntry.balanceState === 'Settled' || viewingEntry.status === 'Settled') return 'text-emerald-600 dark:text-emerald-400';
-                  if (raw > 0) return 'text-amber-600 dark:text-amber-400';
-                  return 'text-blue-600 dark:text-blue-400';
-                })()}`}>
-                  {(() => {
-                    const raw = Number(viewingEntry.rawRunningBalance !== undefined ? viewingEntry.rawRunningBalance : viewingEntry.runningBalance);
-                    if (raw === 0 || viewingEntry.balanceState === 'Settled' || viewingEntry.status === 'Settled') return '✓ Rs. 0 (Settled)';
-                    if (raw > 0) return `${isSupplier ? 'Payable: ' : 'Due: '}Rs. ${Math.abs(raw).toLocaleString()}`;
-                    return `${isSupplier ? 'Refund Due: ' : 'Advance: '}Rs. ${Math.abs(raw).toLocaleString()}`;
-                  })()}
-                </span>
+                <div className="flex justify-between text-amber-600 dark:text-amber-400 font-extrabold">
+                  <span>Due Amount:</span>
+                  <span>Rs. {viewingEntry.due?.toLocaleString()}</span>
+                </div>
+                {viewingEntry.refundCashback > 0 && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-black border-t border-emerald-200 dark:border-emerald-800/40 pt-1">
+                    <span>Refund / Cashback:</span>
+                    <span>Rs. {viewingEntry.refundCashback?.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setViewingEntry(null)}
-              className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-brand-500/20 cursor-pointer"
-            >
-              Close
-            </button>
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setViewingEntry(null)}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs transition cursor-pointer"
+              >
+                Close Summary
+              </button>
+            </div>
           </div>
         </div>
       )}
