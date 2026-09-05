@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
-import { useERP, computeCustomerKhataBalance, computeSupplierKhataBalance, computeAllCustomersFinancials, computeAllSuppliersFinancials, computeProductValuation } from '../context/ERPContext';
+import { useERP, computeCustomerKhataBalance, computeSupplierKhataBalance, computeAllCustomersFinancials, computeAllSuppliersFinancials, computeProductValuation, computeSaleFinancials, computePurchaseFinancials, extractMerchandiseReturnValue } from '../context/ERPContext';
 import { KPICard } from '../components/KPICard';
 import { SalesChart } from '../components/SalesChart';
 import { LowStockWidget } from '../components/LowStockWidget';
@@ -67,24 +67,30 @@ export const Dashboard = () => {
   const todaySales = sales.filter(s => isToday(s.date, s.created_at || s.createdAt));
   const todaySaleReturns = saleReturns.filter(r => isToday(r.date, r.created_at || r.createdAt));
   const grossTodaySales = todaySales.reduce((acc, s) => acc + (Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0), 0);
-  const todaySaleReturnsVal = todaySaleReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+  const todaySaleReturnsVal = todaySaleReturns.reduce((sum, r) => sum + extractMerchandiseReturnValue(r), 0);
   const netTodaySales = Math.max(0, grossTodaySales - todaySaleReturnsVal);
 
   // Strictly Today's Purchases (Net of Today's Returns)
   const todayPurchases = purchases.filter(p => isToday(p.date, p.created_at || p.createdAt));
   const todayPurchaseReturns = purchaseReturns.filter(r => isToday(r.date, r.created_at || r.createdAt));
   const grossTodayPurchases = todayPurchases.reduce((acc, p) => acc + (Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0), 0);
-  const todayPurchaseReturnsVal = todayPurchaseReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+  const todayPurchaseReturnsVal = todayPurchaseReturns.reduce((sum, r) => sum + extractMerchandiseReturnValue(r), 0);
   const netTodayPurchases = Math.max(0, grossTodayPurchases - todayPurchaseReturnsVal);
 
-  // Overall / All-Time Totals
-  const allTimeGrossSales = sales.reduce((acc, s) => acc + (Number(s.amount ?? s.grandTotal ?? s.grandtotal) || 0), 0);
-  const allTimeSaleReturnsVal = saleReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
-  const netAllTimeSales = Math.max(0, allTimeGrossSales - allTimeSaleReturnsVal);
+  // Overall / All-Time Totals from Canonical Transaction Ledger
+  const netAllTimeSales = useMemo(() => {
+    return sales.reduce((acc, s) => {
+      const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
+      return acc + fin.netTotal;
+    }, 0);
+  }, [sales, saleReturns, paymentLogs]);
 
-  const allTimeGrossPurchases = purchases.reduce((acc, p) => acc + (Number(p.amount ?? p.grandTotal ?? p.grandtotal) || 0), 0);
-  const allTimePurchaseReturnsVal = purchaseReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
-  const netAllTimePurchases = Math.max(0, allTimeGrossPurchases - allTimePurchaseReturnsVal);
+  const netAllTimePurchases = useMemo(() => {
+    return purchases.reduce((acc, p) => {
+      const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+      return acc + fin.netTotal;
+    }, 0);
+  }, [purchases, purchaseReturns, paymentLogs]);
 
   // Combined Live Customer Receivables using Centralized Engine
   const { totalReceivables: totalCustomerDues, allCustomers, registeredList, walkinList } = useMemo(() => {

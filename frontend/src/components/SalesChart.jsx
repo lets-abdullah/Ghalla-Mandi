@@ -4,11 +4,11 @@ import {
   Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeSaleFinancials, computePurchaseFinancials } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 
 export const SalesChart = () => {
-  const { sales = [], purchases = [] } = useERP();
+  const { sales = [], purchases = [], saleReturns = [], purchaseReturns = [], paymentLogs = [] } = useERP();
   const { theme } = useTheme();
   const [timeframe, setTimeframe] = useState('7D'); // '7D' | '30D' | '6M' | '1Y'
 
@@ -39,8 +39,9 @@ export const SalesChart = () => {
       }
 
       sales.forEach(s => {
-        const amt = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? s.total ?? 0);
-        if (amt <= 0) return;
+        const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
+        const amt = fin.netTotal;
+        if (amt < 0) return;
         const sDateStr = String(s.date || s.createdAt || '');
         const matched = days.find(d =>
           sDateStr.includes(d.rawIso) ||
@@ -55,8 +56,9 @@ export const SalesChart = () => {
       });
 
       purchases.forEach(p => {
-        const amt = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? p.total ?? 0);
-        if (amt <= 0) return;
+        const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+        const amt = fin.netTotal;
+        if (amt < 0) return;
         const pDateStr = String(p.date || p.createdAt || '');
         const matched = days.find(d =>
           pDateStr.includes(d.rawIso) ||
@@ -92,8 +94,9 @@ export const SalesChart = () => {
       }
 
       sales.forEach(s => {
-        const amt = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? s.total ?? 0);
-        if (amt <= 0) return;
+        const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
+        const amt = fin.netTotal;
+        if (amt < 0) return;
         const sDate = s.createdAt ? new Date(s.createdAt) : new Date();
         const matched = weeks.find(w => sDate >= w.startDate && sDate <= w.endDate);
         if (matched) matched.sales += amt;
@@ -101,8 +104,9 @@ export const SalesChart = () => {
       });
 
       purchases.forEach(p => {
-        const amt = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? p.total ?? 0);
-        if (amt <= 0) return;
+        const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+        const amt = fin.netTotal;
+        if (amt < 0) return;
         const pDate = p.createdAt ? new Date(p.createdAt) : new Date();
         const matched = weeks.find(w => pDate >= w.startDate && pDate <= w.endDate);
         if (matched) matched.purchases += amt;
@@ -128,8 +132,9 @@ export const SalesChart = () => {
       }
 
       sales.forEach(s => {
-        const amt = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? s.total ?? 0);
-        if (amt <= 0) return;
+        const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
+        const amt = fin.netTotal;
+        if (amt < 0) return;
         const sDateStr = String(s.date || s.createdAt || '');
         const matched = months.find(m => sDateStr.includes(m.yearMonth) || sDateStr.includes(m.shortDate));
         if (matched) matched.sales += amt;
@@ -137,8 +142,9 @@ export const SalesChart = () => {
       });
 
       purchases.forEach(p => {
-        const amt = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? p.total ?? 0);
-        if (amt <= 0) return;
+        const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+        const amt = fin.netTotal;
+        if (amt < 0) return;
         const pDateStr = String(p.date || p.createdAt || '');
         const matched = months.find(m => pDateStr.includes(m.yearMonth) || pDateStr.includes(m.shortDate));
         if (matched) matched.purchases += amt;
@@ -164,8 +170,9 @@ export const SalesChart = () => {
       }
 
       sales.forEach(s => {
-        const amt = Number(s.amount ?? s.grandTotal ?? s.grandtotal ?? s.total ?? 0);
-        if (amt <= 0) return;
+        const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
+        const amt = fin.netTotal;
+        if (amt < 0) return;
         const sDateStr = String(s.date || s.createdAt || '');
         const matched = months.find(m => sDateStr.includes(m.yearMonth) || sDateStr.includes(m.shortDate));
         if (matched) matched.sales += amt;
@@ -173,8 +180,9 @@ export const SalesChart = () => {
       });
 
       purchases.forEach(p => {
-        const amt = Number(p.amount ?? p.grandTotal ?? p.grandtotal ?? p.total ?? 0);
-        if (amt <= 0) return;
+        const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+        const amt = fin.netTotal;
+        if (amt < 0) return;
         const pDateStr = String(p.date || p.createdAt || '');
         const matched = months.find(m => pDateStr.includes(m.yearMonth) || pDateStr.includes(m.shortDate));
         if (matched) matched.purchases += amt;
@@ -183,7 +191,7 @@ export const SalesChart = () => {
 
       return months;
     }
-  }, [sales, purchases, timeframe]);
+  }, [sales, purchases, saleReturns, purchaseReturns, paymentLogs, timeframe]);
 
   const isDark = theme === 'dark';
 
