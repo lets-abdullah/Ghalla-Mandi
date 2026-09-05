@@ -25,7 +25,7 @@ import { ReturnReceiptModal, printReturnReceipt } from './ReturnReceiptModal';
 
 export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
   const toast = useToast();
-  const { sales = [], saleReturns = [], paymentLogs = [], recordSaleReturn } = useERP();
+  const { sales = [], saleReturns = [], paymentLogs = [], liquidBalances, recordSaleReturn } = useERP();
   const { shop } = useAuth();
   const { theme } = useTheme();
   const { t } = useLocale();
@@ -168,6 +168,18 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
   // Unpaid debt cancelled / waived from customer's khata
   const dueCancelled = Math.min(saleDue, Math.max(0, currentGoodsValue - cashRefundAmount));
 
+  // Available balance in user-selected refund channel
+  const selectedChannelBalance = useMemo(() => {
+    const balances = liquidBalances || { cashInHand: 0, bankBalance: 0, cardBalance: 0 };
+    const m = String(refundMode || '').trim().toLowerCase();
+    if (m.includes('bank')) return Number(balances.bankBalance || 0);
+    if (m.includes('card')) return Number(balances.cardBalance || 0);
+    return Number(balances.cashInHand || 0);
+  }, [refundMode, liquidBalances]);
+
+  const isLiquidPayoutRequested = refundMode !== 'Credit' && refundMode !== 'Khata Credit' && cashRefundAmount > 0;
+  const isInsufficientBalance = isLiquidPayoutRequested && cashRefundAmount > selectedChannelBalance;
+
   const handleItemSelect = (idx) => {
     setSelectedItemIdx(idx);
     const it = saleItems[idx] || {};
@@ -194,14 +206,18 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSubmitting || numReturnQty <= 0 || isFullyReturned) return;
+    if (isSubmitting || numReturnQty <= 0 || isFullyReturned || isInsufficientBalance) return;
 
     if (numReturnQty > remainingQty) {
       toast.warning(`Return quantity cannot exceed returnable limit (${remainingQty} ${itemUnit}).`);
       return;
     }
 
-    const isLiquidPayoutRequested = refundMode !== 'Credit' && refundMode !== 'Khata Credit' && cashRefundAmount > 0;
+    if (isInsufficientBalance) {
+      toast.error(`Insufficient Balance in ${refundMode} — Available: Rs. ${selectedChannelBalance.toLocaleString()}. Required: Rs. ${cashRefundAmount.toLocaleString()}.`);
+      return;
+    }
+
     const finalRefundPayout = isLiquidPayoutRequested ? cashRefundAmount : 0;
 
     setIsSubmitting(true);
@@ -564,9 +580,14 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                   {/* Payment Method Selector (Only active if there is cash to refund) */}
                   {cashRefundAmount > 0 ? (
                     <div className="space-y-1.5 pt-1">
-                      <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                        Refund Payment Method *
-                      </label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                          Refund Payment Method *
+                        </label>
+                        <span className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400">
+                          Avail: Rs. {selectedChannelBalance.toLocaleString()}
+                        </span>
+                      </div>
                       <div className="grid grid-cols-3 gap-2">
                         {[
                           { id: 'Cash', label: 'Cash', icon: Banknote },
@@ -591,6 +612,16 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                           );
                         })}
                       </div>
+
+                      {isInsufficientBalance && (
+                        <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-1.5 animate-in fade-in mt-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                          <span>
+                            Insufficient Balance in {refundMode} — Available: Rs. {selectedChannelBalance.toLocaleString()}.
+                            Required: Rs. {cashRefundAmount.toLocaleString()}. Please select another payment method with sufficient balance.
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold flex items-center gap-2">
@@ -613,7 +644,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || numReturnQty <= 0 || isFullyReturned}
+                  disabled={isSubmitting || numReturnQty <= 0 || isFullyReturned || isInsufficientBalance}
                   className="w-2/3 py-2.5 rounded-xl font-black text-xs bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-500/20 transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed active:scale-98"
                 >
                   {isSubmitting ? (

@@ -4376,24 +4376,10 @@ export const Reports = () => {
                       <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {totalSupplierPayables.toLocaleString()}</span>
                     </div>
 
-                    {cashDeficitLiability > 0 && (
+                    {totalCustomerRefundLiabilities > 0 && (
                       <div className="flex items-center justify-between font-medium">
-                        <span className="text-slate-800 dark:text-slate-200">• Cash Drawer Deficit</span>
-                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {cashDeficitLiability.toLocaleString()}</span>
-                      </div>
-                    )}
-
-                    {bankOverdraftLiability > 0 && (
-                      <div className="flex items-center justify-between font-medium">
-                        <span className="text-slate-800 dark:text-slate-200">• Bank Overdraft</span>
-                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {bankOverdraftLiability.toLocaleString()}</span>
-                      </div>
-                    )}
-
-                    {cardDeficitLiability > 0 && (
-                      <div className="flex items-center justify-between font-medium">
-                        <span className="text-slate-800 dark:text-slate-200">• Card Settlement Deficit</span>
-                        <span className="font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {cardDeficitLiability.toLocaleString()}</span>
+                        <span className="text-slate-800 dark:text-slate-200">• Customer Refund Liabilities</span>
+                        <span className="font-mono font-bold text-amber-600 dark:text-amber-400">Rs. {totalCustomerRefundLiabilities.toLocaleString()}</span>
                       </div>
                     )}
                   </div>

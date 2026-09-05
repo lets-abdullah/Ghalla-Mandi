@@ -191,6 +191,109 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
   };
 };
 
+export const computeLiquidBalances = (
+  sales = [],
+  purchases = [],
+  saleReturns = [],
+  purchaseReturns = [],
+  paymentLogs = [],
+  expenses = []
+) => {
+  let cInflow = 0, bInflow = 0, kInflow = 0;
+  let cOutflow = 0, bOutflow = 0, kOutflow = 0;
+
+  const validCustPaymentLogs = (paymentLogs || []).filter(p =>
+    p && p.type === 'Customer Payment' && String(p.status || '').toLowerCase() !== 'cancelled'
+  );
+  const validSupPaymentLogs = (paymentLogs || []).filter(p =>
+    p && p.type === 'Supplier Payment' && String(p.status || '').toLowerCase() !== 'cancelled'
+  );
+
+  // 1. Sales (Upfront liquid payments)
+  (sales || []).forEach(s => {
+    const hasMatchingLog = validCustPaymentLogs.some(pl =>
+      (pl.saleId && String(pl.saleId) === String(s.id)) ||
+      (s.invoiceNo && pl.ref && pl.ref.includes(s.invoiceNo))
+    );
+    if (!hasMatchingLog) {
+      const res = resolveTransactionPayment(s, 'Sale');
+      cInflow += res.cashAmount;
+      bInflow += res.bankAmount;
+      kInflow += res.cardAmount;
+    }
+  });
+
+  // 2. Customer Payments (Payment logs)
+  validCustPaymentLogs.forEach(p => {
+    const res = resolveTransactionPayment(p, 'Sale');
+    cInflow += res.cashAmount;
+    bInflow += res.bankAmount;
+    kInflow += res.cardAmount;
+  });
+
+  // 3. Purchase Returns (Supplier refunds)
+  (purchaseReturns || []).forEach(r => {
+    const res = resolveTransactionPayment(r, 'PurchaseReturn');
+    cInflow += res.cashAmount;
+    bInflow += res.bankAmount;
+    kInflow += res.cardAmount;
+  });
+
+  // 4. Supplier Payments (Payment logs)
+  validSupPaymentLogs.forEach(p => {
+    const res = resolveTransactionPayment(p, 'Purchase');
+    cOutflow += res.cashAmount;
+    bOutflow += res.bankAmount;
+    kOutflow += res.cardAmount;
+  });
+
+  // 5. Purchases (Direct upfront paid)
+  (purchases || []).forEach(p => {
+    const hasMatchingLog = validSupPaymentLogs.some(pl =>
+      (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+      (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+    );
+    if (!hasMatchingLog) {
+      const res = resolveTransactionPayment(p, 'Purchase');
+      cOutflow += res.cashAmount;
+      bOutflow += res.bankAmount;
+      kOutflow += res.cardAmount;
+    }
+  });
+
+  // 6. Expenses Outflows
+  (expenses || []).forEach(e => {
+    const res = resolveTransactionPayment(e, 'Expense');
+    if (res.isLiquid && res.totalLiquid > 0) {
+      cOutflow += res.cashAmount;
+      bOutflow += res.bankAmount;
+      kOutflow += res.cardAmount;
+    }
+  });
+
+  // 7. Sale Returns Outflows
+  (saleReturns || []).forEach(r => {
+    const res = resolveTransactionPayment(r, 'SaleReturn');
+    cOutflow += res.cashAmount;
+    bOutflow += res.bankAmount;
+    kOutflow += res.cardAmount;
+  });
+
+  const cashInHand = Math.max(0, cInflow - cOutflow);
+  const bankBalance = Math.max(0, bInflow - bOutflow);
+  const cardBalance = Math.max(0, kInflow - kOutflow);
+
+  return {
+    cashInHand,
+    bankBalance,
+    cardBalance,
+    totalLiquidFunds: cashInHand + bankBalance + cardBalance,
+    rawCash: cInflow - cOutflow,
+    rawBank: bInflow - bOutflow,
+    rawCard: kInflow - kOutflow
+  };
+};
+
 export const extractMerchandiseReturnValue = (r) => {
   if (!r) return 0;
   if (Array.isArray(r.items) && r.items.length > 0) {
@@ -3496,6 +3599,10 @@ export const ERPProvider = ({ children }) => {
     }
   };
 
+  const liquidBalances = useMemo(() => {
+    return computeLiquidBalances(sales, purchases, saleReturns, purchaseReturns, paymentLogs, expenses);
+  }, [sales, purchases, saleReturns, purchaseReturns, paymentLogs, expenses]);
+
   return (
     <ERPContext.Provider value={{
       categories,
@@ -3509,6 +3616,7 @@ export const ERPProvider = ({ children }) => {
       saleReturns,
       purchaseReturns,
       expenses,
+      liquidBalances,
       loading,
       error,
       refreshData: fetchAllData,
@@ -3542,6 +3650,7 @@ export const ERPProvider = ({ children }) => {
       updateExpense,
       deleteExpense,
       resolveTransactionPayment,
+      computeLiquidBalances,
       computeSaleFinancials,
       computePurchaseFinancials,
       computeCustomerKhataBalance,
