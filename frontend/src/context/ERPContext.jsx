@@ -720,8 +720,6 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   let unloggedUpfrontCash = 0;
   custSales.forEach(s => {
     const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
-    const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
-    const sPaid = isMarkedPaid ? sTotal : Number(s.paidAmount !== undefined ? s.paidAmount : (s.cashReceived || 0));
 
     // Check if this sale already has an explicit matching log in custPayments
     const hasMatchingLog = custPayments.some(p =>
@@ -729,8 +727,12 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
       (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
     );
 
-    if (!hasMatchingLog && sPaid > 0) {
-      unloggedUpfrontCash += Math.min(sTotal, sPaid);
+    if (!hasMatchingLog) {
+      const upfrontRes = resolveTransactionPayment(s, 'Sale');
+      const upfrontPaid = upfrontRes.totalLiquid;
+      if (upfrontPaid > 0) {
+        unloggedUpfrontCash += Math.min(sTotal, upfrontPaid);
+      }
     }
   });
 
@@ -746,9 +748,9 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   const netSales = Math.max(0, Math.round(totalGrossSale - totalReturnAmount));
   const totalDebits = openingBalance + netSales;
   const rawDue = totalDebits - effectivePaid;
-  const receivableDue = rawDue < 1 ? 0 : Math.round(rawDue);
+  const receivableDue = rawDue > 0 ? Math.round(rawDue) : 0;
   const refundLiability = rawDue < 0 ? Math.abs(Math.round(rawDue)) : 0;
-  const status = receivableDue > 0 ? 'Due' : (refundLiability > 0 ? 'Refund Pending' : 'Settled');
+  const status = receivableDue > 0 ? 'Due' : (refundLiability > 0 ? 'Advance Credit' : 'Settled');
 
   return {
     openingBalance,
@@ -761,8 +763,8 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     refundsPaid: liquidRefundsPaid,
     returnAmount: totalReturnAmount,
     netSale: netSales,
-    netBalance: receivableDue,
-    balance: receivableDue,
+    netBalance: Math.round(rawDue),
+    balance: Math.round(rawDue),
     receivableDue,
     refundLiability,
     advanceCredit: refundLiability,
@@ -1663,14 +1665,6 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       const isPartiallyReturned = sReturn > 0 && sStatus !== 'Returned';
       const isFullyReturned = sStatus === 'Returned' || (sReturn >= sGross && sGross > 0);
 
-      // Check if this sale is directly completely paid upfront without any due or partial
-      const isDirectCompletePaid = sGross > 0 && sDue === 0 && (sPaid >= sGross || sStatus === 'Paid') && !isPartiallyReturned && !isFullyReturned;
-
-      if (isDirectCompletePaid) {
-        if (s.id) directCompletePaidSaleIds.add(String(s.id));
-        if (s.invoiceNo) directCompletePaidInvoiceNos.add(String(s.invoiceNo));
-      }
-
       const sItems = Array.isArray(s.cart) && s.cart.length > 0
         ? s.cart.map(i => `${i.name || 'Commodity'} (${i.qty || 1} ${resolveProductMasterUnit(i, i.unitName || i.unit || 'KG')})`).join(', ')
         : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
@@ -1685,99 +1679,68 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
 
       const methodLabel = s.paymentMethod || s.paymentMode || 'Cash';
 
-      if (isDirectCompletePaid) {
-        // Direct complete payment: SINGLE ROW with original, net, received, and settled!
-        // Debit and Credit are equal, so net delta to running balance is 0.
-        // It NEVER shows intermediate "Due: Rs. X".
+      // Sale invoice entry (Debit)
+      entries.push({
+        id: `sale-${s.id || idx}`,
+        timestamp: ts,
+        eventPriority: 1,
+        seq: Number(s.id) || (idx + 1),
+        rawDate: s.date,
+        date: s.date || 'N/A',
+        partyId,
+        partyName: party.name,
+        ref: s.invoiceNo || `INV-${s.id || idx}`,
+        txType: 'Sales',
+        desc: descText,
+        sales: sGross,
+        originalGross: sGross,
+        netTotal: sNet,
+        returnAmount: sReturn,
+        paidAmount: sPaid,
+        dueAmount: sDue,
+        invoiceStatus: sStatus,
+        isPartiallyReturned,
+        isFullyReturned,
+        payment: 0,
+        debit: sGross,
+        credit: 0,
+        paymentMethod: methodLabel,
+        paymentAccount: methodLabel,
+        status: sStatus,
+        notes: historyNote
+      });
+
+      // Upfront cash paid on POS counter if no matching payment log exists
+      const hasSpecificInvoiceLog = partyPayments.some(p =>
+        (p.saleId && String(p.saleId) === String(s.id)) ||
+        (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+      );
+
+      const upfrontRes = resolveTransactionPayment(s, 'Sale');
+      const upfrontPaid = upfrontRes.totalLiquid;
+
+      if (upfrontPaid > 0 && !hasSpecificInvoiceLog) {
         entries.push({
-          id: `sale-${s.id || idx}`,
-          timestamp: ts,
-          eventPriority: 1,
+          id: `pay-direct-${s.id || idx}`,
+          timestamp: ts + 1,
+          eventPriority: 2,
           seq: Number(s.id) || (idx + 1),
           rawDate: s.date,
           date: s.date || 'N/A',
           partyId,
           partyName: party.name,
-          ref: s.invoiceNo || `INV-${s.id || idx}`,
-          txType: 'Sales',
-          desc: descText,
-          sales: sGross,
-          originalGross: sGross,
-          netTotal: sNet,
-          returnAmount: sReturn,
-          paidAmount: sGross,
-          dueAmount: 0,
-          invoiceStatus: 'Paid',
-          isPartiallyReturned: false,
-          isFullyReturned: false,
-          isDirectPaid: true,
-          payment: sGross, // Received column displays sGross
-          debit: sGross,
-          credit: sGross,  // Balanced on this exact row
+          ref: `POS-PAY-${s.invoiceNo || s.id}`,
+          txType: 'Payments',
+          desc: `POS Payment Received against Invoice #${s.invoiceNo || s.id}`,
+          sales: 0,
+          payment: upfrontPaid,
+          debit: 0,
+          credit: upfrontPaid,
           paymentMethod: methodLabel,
           paymentAccount: methodLabel,
-          status: 'Settled',
-          notes: historyNote || `Direct Complete Payment via ${methodLabel}`
+          status: sDue === 0 ? 'Settled' : 'Partial',
+          notes: s.paymentMode || s.paymentMethod || 'POS Upfront Payment'
         });
-      } else {
-        // Normal invoice entry (Credit Sale or Partial Payment)
-        entries.push({
-          id: `sale-${s.id || idx}`,
-          timestamp: ts,
-          eventPriority: 1,
-          seq: Number(s.id) || (idx + 1),
-          rawDate: s.date,
-          date: s.date || 'N/A',
-          partyId,
-          partyName: party.name,
-          ref: s.invoiceNo || `INV-${s.id || idx}`,
-          txType: 'Sales',
-          desc: descText,
-          sales: sGross,
-          originalGross: sGross,
-          netTotal: sNet,
-          returnAmount: sReturn,
-          paidAmount: sPaid,
-          dueAmount: sDue,
-          invoiceStatus: sStatus,
-          isPartiallyReturned,
-          isFullyReturned,
-          payment: 0,
-          debit: sGross,
-          credit: 0,
-          paymentMethod: s.paymentMethod || 'Credit / Khata',
-          paymentAccount: s.paymentMethod || 'Credit / Khata',
-          status: sStatus,
-          notes: historyNote
-        });
-
-        // Upfront partial payment on POS counter if no payment log exists
-        if (partyPayments.length === 0) {
-          const upfrontPaid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.cashReceived || 0));
-          if (upfrontPaid > 0) {
-            entries.push({
-              id: `pay-direct-${s.id || idx}`,
-              timestamp: ts,
-              eventPriority: 2,
-              seq: Number(s.id) || (idx + 1),
-              rawDate: s.date,
-              date: s.date || 'N/A',
-              partyId,
-              partyName: party.name,
-              ref: `POS-PAY-${s.invoiceNo || s.id}`,
-              txType: 'Payments',
-              desc: `POS Payment Received against Invoice #${s.invoiceNo || s.id}`,
-              sales: 0,
-              payment: upfrontPaid,
-              debit: 0,
-              credit: upfrontPaid,
-              paymentMethod: s.paymentMethod || 'Cash',
-              paymentAccount: s.paymentMethod || 'Cash',
-              status: sDue === 0 ? 'Settled' : 'Partial',
-              notes: s.paymentMethod || 'POS Upfront Payment'
-            });
-          }
-        }
       }
     });
 
@@ -1864,19 +1827,6 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
 
     // Process Payment Logs (Credit)
     partyPayments.forEach((p, idx) => {
-      // If this payment is linked to a direct complete paid sale, skip it because it is already displayed in 1 single row!
-      if (p.saleId && directCompletePaidSaleIds.has(String(p.saleId))) {
-        return;
-      }
-      if (p.ref) {
-        const isLinkedToDirectPaid = Array.from(directCompletePaidInvoiceNos).some(inv => p.ref.includes(inv) || inv.includes(p.ref.replace('POS-PAY-', '')));
-        if (isLinkedToDirectPaid) return;
-      }
-      if (p.note) {
-        const isLinkedToDirectPaid = Array.from(directCompletePaidInvoiceNos).some(inv => p.note.includes(inv));
-        if (isLinkedToDirectPaid) return;
-      }
-
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
       const pAmt = Number(p.amount || 0);
       const rawPMode = String(p.mode || p.paymentMode || 'Cash').trim();
@@ -1902,7 +1852,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         partyName: party.name,
         ref: p.ref || `PAY-${p.id || idx}`,
         txType: 'Payments',
-        desc: p.note || (p.saleId ? `POS Payment Received (${methodLabel})` : `Payment Received (${methodLabel})`),
+        desc: p.note || (p.saleId ? `Payment for Invoice` : `Customer Payment Received (${methodLabel})`),
         sales: 0,
         payment: pAmt,
         debit: 0,
@@ -1910,7 +1860,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         paymentMethod: methodLabel,
         paymentAccount: methodLabel,
         status: 'Settled',
-        notes: p.note || ''
+        notes: p.note || 'Payment Received'
       });
     });
   } else {
@@ -1947,9 +1897,6 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       return (partyId && rSupId && rSupId === partyId) || (partyName && rSupName === partyName);
     });
 
-    const directCompletePaidPurIds = new Set();
-    const directCompletePaidPurNos = new Set();
-
     // Process Purchases (Debit)
     partyPurchases.forEach((p, idx) => {
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
@@ -1962,13 +1909,6 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       const pStatus = fin.status;
       const isPartiallyReturned = pReturn > 0 && pStatus !== 'Returned';
       const isFullyReturned = pStatus === 'Returned' || (pReturn >= pGross && pGross > 0);
-
-      const isDirectCompletePaid = pGross > 0 && pDue === 0 && (pPaid >= pGross || pStatus === 'Paid') && !isPartiallyReturned && !isFullyReturned;
-
-      if (isDirectCompletePaid) {
-        if (p.id) directCompletePaidPurIds.add(String(p.id));
-        if (p.purchaseNo) directCompletePaidPurNos.add(String(p.purchaseNo));
-      }
 
       const pItems = Array.isArray(p.items) && p.items.length > 0
         ? p.items.map(i => `${i.name || 'Produce'} (${i.qty || i.enteredQty || 1} ${resolveProductMasterUnit(i, i.unitName || i.unit || 'KG')})`).join(', ')
@@ -1984,95 +1924,67 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
 
       const methodLabel = p.paymentMethod || p.paymentMode || 'Cash';
 
-      if (isDirectCompletePaid) {
-        entries.push({
-          id: `pur-${p.id || idx}`,
-          timestamp: ts,
-          eventPriority: 1,
-          seq: Number(p.id) || (idx + 1),
-          rawDate: p.date,
-          date: p.date || 'N/A',
-          partyId,
-          partyName: party.name,
-          ref: p.purchaseNo || `PUR-${p.id || idx}`,
-          txType: 'Purchases',
-          desc: descText,
-          sales: pGross,
-          originalGross: pGross,
-          netTotal: pNet,
-          returnAmount: pReturn,
-          paidAmount: pGross,
-          dueAmount: 0,
-          invoiceStatus: 'Paid',
-          isPartiallyReturned: false,
-          isFullyReturned: false,
-          isDirectPaid: true,
-          payment: pGross,
-          debit: pGross,
-          credit: pGross,
-          paymentMethod: methodLabel,
-          paymentAccount: methodLabel,
-          status: 'Settled',
-          notes: historyNote || `Direct Complete Payment via ${methodLabel}`
-        });
-      } else {
-        entries.push({
-          id: `pur-${p.id || idx}`,
-          timestamp: ts,
-          eventPriority: 1,
-          seq: Number(p.id) || (idx + 1),
-          rawDate: p.date,
-          date: p.date || 'N/A',
-          partyId,
-          partyName: party.name,
-          ref: p.purchaseNo || `PUR-${p.id || idx}`,
-          txType: 'Purchases',
-          desc: descText,
-          sales: pGross,
-          originalGross: pGross,
-          netTotal: pNet,
-          returnAmount: pReturn,
-          paidAmount: pPaid,
-          dueAmount: pDue,
-          invoiceStatus: pStatus,
-          isPartiallyReturned,
-          isFullyReturned,
-          payment: 0,
-          debit: pGross,
-          credit: 0,
-          paymentMethod: p.paymentMethod || 'Supplier Khata',
-          paymentAccount: p.paymentMethod || 'Supplier Khata',
-          status: pStatus,
-          notes: historyNote
-        });
+      entries.push({
+        id: `pur-${p.id || idx}`,
+        timestamp: ts,
+        eventPriority: 1,
+        seq: Number(p.id) || (idx + 1),
+        rawDate: p.date,
+        date: p.date || 'N/A',
+        partyId,
+        partyName: party.name,
+        ref: p.purchaseNo || `PUR-${p.id || idx}`,
+        txType: 'Purchases',
+        desc: descText,
+        sales: pGross,
+        originalGross: pGross,
+        netTotal: pNet,
+        returnAmount: pReturn,
+        paidAmount: pPaid,
+        dueAmount: pDue,
+        invoiceStatus: pStatus,
+        isPartiallyReturned,
+        isFullyReturned,
+        payment: 0,
+        debit: pGross,
+        credit: 0,
+        paymentMethod: p.paymentMethod || 'Supplier Khata',
+        paymentAccount: p.paymentMethod || 'Supplier Khata',
+        status: pStatus,
+        notes: historyNote
+      });
 
-        // Upfront payment on purchase if no payment logs exist
-        if (partyPayments.length === 0) {
-          const upfrontPaid = Number(p.paidAmount !== undefined ? p.paidAmount : (p.cashPaid || 0));
-          if (upfrontPaid > 0) {
-            entries.push({
-              id: `pay-direct-sup-${p.id || idx}`,
-              timestamp: ts,
-              eventPriority: 2,
-              seq: Number(p.id) || (idx + 1),
-              rawDate: p.date,
-              date: p.date || 'N/A',
-              partyId,
-              partyName: party.name,
-              ref: `PUR-PAY-${p.purchaseNo || p.id}`,
-              txType: 'Payments',
-              desc: `Upfront Payment Made for Bill #${p.purchaseNo || p.id}`,
-              sales: 0,
-              payment: upfrontPaid,
-              debit: 0,
-              credit: upfrontPaid,
-              paymentMethod: p.paymentMethod || 'Cash',
-              paymentAccount: p.paymentMethod || 'Cash',
-              status: pDue === 0 ? 'Settled' : 'Partial',
-              notes: p.paymentMethod || 'Upfront Payment'
-            });
-          }
-        }
+      // Upfront payment on purchase if no matching payment log exists
+      const hasSpecificPurLog = partyPayments.some(pl =>
+        (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+        (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+      );
+
+      const upfrontRes = resolveTransactionPayment(p, 'Purchase');
+      const upfrontPaid = upfrontRes.totalLiquid;
+
+      if (upfrontPaid > 0 && !hasSpecificPurLog) {
+        entries.push({
+          id: `pay-direct-sup-${p.id || idx}`,
+          timestamp: ts + 1,
+          eventPriority: 2,
+          seq: Number(p.id) || (idx + 1),
+          rawDate: p.date,
+          date: p.date || 'N/A',
+          partyId,
+          partyName: party.name,
+          ref: `PUR-PAY-${p.purchaseNo || p.id}`,
+          txType: 'Payments',
+          desc: `Upfront Payment Made for Bill #${p.purchaseNo || p.id}`,
+          sales: 0,
+          payment: upfrontPaid,
+          debit: 0,
+          credit: upfrontPaid,
+          paymentMethod: p.paymentMethod || 'Cash',
+          paymentAccount: p.paymentMethod || 'Cash',
+          status: pDue === 0 ? 'Settled' : 'Partial',
+          notes: p.paymentMethod || 'Upfront Payment'
+        });
       }
     });
 
@@ -2159,18 +2071,6 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
 
     // Process Supplier Payments (Credit)
     partyPayments.forEach((p, idx) => {
-      if (p.purchaseId && directCompletePaidPurIds.has(String(p.purchaseId))) {
-        return;
-      }
-      if (p.ref) {
-        const isLinked = Array.from(directCompletePaidPurNos).some(no => p.ref.includes(no) || no.includes(p.ref.replace('PUR-PAY-', '')));
-        if (isLinked) return;
-      }
-      if (p.note) {
-        const isLinked = Array.from(directCompletePaidPurNos).some(no => p.note.includes(no));
-        if (isLinked) return;
-      }
-
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
       const pAmt = Number(p.amount || 0);
       const rawPMode = String(p.mode || p.paymentMode || 'Cash').trim();
@@ -2196,7 +2096,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         partyName: party.name,
         ref: p.ref || `PAY-${p.id || idx}`,
         txType: 'Payments',
-        desc: p.note || (p.purchaseId ? `Bill Payment (${methodLabel})` : `Supplier Payment (${methodLabel})`),
+        desc: p.note || (p.purchaseId ? `Bill Payment (${methodLabel})` : `Supplier Payment Made (${methodLabel})`),
         sales: 0,
         payment: pAmt,
         debit: 0,
@@ -2204,7 +2104,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         paymentMethod: methodLabel,
         paymentAccount: methodLabel,
         status: 'Settled',
-        notes: p.note || ''
+        notes: p.note || 'Payment Out'
       });
     });
   }

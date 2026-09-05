@@ -546,13 +546,13 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                       </span>
                     </div>
                     <div className="px-1.5">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 block">Unpaid Due Cancelled</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 block">Due</span>
                       <span className="font-mono font-black text-orange-600 dark:text-orange-400 text-sm sm:text-base mt-1 block">
                         - Rs. {dueCancelled.toLocaleString()}
                       </span>
                     </div>
                     <div className="px-1.5">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Cash Refund to Customer</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Refund</span>
                       <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
                         Rs. {cashRefundAmount.toLocaleString()}
                       </span>

@@ -1467,12 +1467,12 @@ export const Ledger = () => {
           {/* Clean Consolidated Bill-by-Bill Table (No Horizontal Scroll) */}
           <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
             }`}>
-            <div className="w-full overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
                 <thead>
-                  <tr className={`border-b text-[10px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+                  <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                     }`}>
-                    <th className="py-3.5 px-4">{isSupplier ? 'Bill # & Date' : 'Invoice # & Date'}</th>
+                    <th className="py-3.5 px-4">Invoice # & Date</th>
                     <th className="py-3.5 px-4 text-right">{isSupplier ? 'Total Purchase' : 'Total Sale'}</th>
                     <th className="py-3.5 px-4 text-right">{isSupplier ? 'Paid' : 'Received'}</th>
                     <th className="py-3.5 px-4 text-right">Due</th>
@@ -1488,8 +1488,8 @@ export const Ledger = () => {
                       <td colSpan={8} className="py-8 text-center">
                         <EmptyState
                           icon={BookOpen}
-                          title="No transactions recorded"
-                          description="No entries found for this party matching the selected filter."
+                          title="No transactions found"
+                          description="No statement vouchers recorded for this party matching current filters."
                         />
                       </td>
                     </tr>
@@ -1497,62 +1497,59 @@ export const Ledger = () => {
                     consolidatedPartyLedger.map(row => (
                       <tr
                         key={row.id}
-                        onClick={() => setViewingEntry(row)}
-                        className={`transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}
+                        onClick={() => row.rawTx && setViewingEntry(row)}
+                        className={`transition ${row.rawTx ? 'cursor-pointer' : ''} ${theme === 'dark' ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50/90'
+                          }`}
                       >
-                        {/* 1. Date & Bill # */}
+                        {/* 1. Reference & Date */}
                         <td className="py-3.5 px-4">
-                          <div className="font-mono font-bold text-blue-600 dark:text-blue-400">{row.billNo}</div>
-                          <div className="text-[11px] font-mono text-slate-400 mt-0.5">{row.date}</div>
+                          <div className="font-extrabold text-brand-600 dark:text-brand-400 text-xs">
+                            {row.billNo}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-semibold font-mono">
+                            {row.date}
+                          </div>
                         </td>
 
-                        {/* 2. Total Purchase */}
+                        {/* 2. Total Purchase / Sale */}
                         <td className="py-3.5 px-4 text-right font-mono font-extrabold text-slate-900 dark:text-white">
-                          Rs. {row.totalPurchase.toLocaleString()}
+                          {row.totalPurchase > 0 ? `Rs. ${row.totalPurchase.toLocaleString()}` : '—'}
                         </td>
 
-                        {/* 3. Paid */}
-                        <td className="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
-                          Rs. {row.paid.toLocaleString()}
+                        {/* 3. Paid / Received */}
+                        <td className="py-3.5 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
+                          {row.paid > 0 ? `Rs. ${row.paid.toLocaleString()}` : '—'}
                         </td>
 
                         {/* 4. Due */}
                         <td className="py-3.5 px-4 text-right font-mono font-extrabold">
-                          <span className={row.due > 0 ? 'text-amber-600 dark:text-amber-400 font-black' : 'text-slate-400'}>
-                            Rs. {row.due.toLocaleString()}
+                          <span className={row.due > 0 ? 'text-amber-500 font-black' : 'text-slate-400'}>
+                            {row.due > 0 ? `Rs. ${row.due.toLocaleString()}` : 'Rs. 0'}
                           </span>
                         </td>
 
-                        {/* 5. Purchase Return */}
+                        {/* 5. Return */}
                         <td className="py-3.5 px-4 text-right font-mono font-bold text-purple-600 dark:text-purple-400">
                           {row.purchaseReturn > 0 ? `Rs. ${row.purchaseReturn.toLocaleString()}` : '—'}
                         </td>
 
-                        {/* 6. Net Purchase */}
+                        {/* 6. Net Total */}
                         <td className="py-3.5 px-4 text-right font-mono font-black text-slate-900 dark:text-white">
-                          Rs. {row.netPurchase.toLocaleString()}
+                          {row.netPurchase > 0 ? `Rs. ${row.netPurchase.toLocaleString()}` : '—'}
                         </td>
 
-                        {/* 7. Refund / Cashback */}
-                        <td className="py-3.5 px-4 text-right font-mono font-black">
-                          {row.refundCashback > 0 ? (
-                            <span className="text-emerald-600 dark:text-emerald-400">
-                              Rs. {row.refundCashback.toLocaleString()}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
+                        {/* 7. Refund Cashback */}
+                        <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600">
+                          {row.refundCashback > 0 ? `Rs. ${row.refundCashback.toLocaleString()}` : '—'}
                         </td>
 
                         {/* 8. Status */}
-                        <td className="py-3.5 px-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider ${row.status.includes('Refunded')
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                              : row.status === 'Settled'
-                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30'
-                                : row.status === 'Partial'
-                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                        <td className="py-3.5 px-4 text-center font-bold">
+                          <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider ${row.status === 'Settled' || row.status === 'Refunded / Settled'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                            : row.status === 'Partial'
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30'
                             }`}>
                             {row.status}
                           </span>
@@ -1576,7 +1573,7 @@ export const Ledger = () => {
               <div>
                 <div className="text-slate-400 text-[10px] uppercase font-black">{isSupplier ? 'Paid' : 'Received'}</div>
                 <div className="font-mono font-bold mt-0.5 text-emerald-600 dark:text-emerald-400">
-                  Rs. {consolidatedTotals.paid.toLocaleString()}
+                  Rs. {(activeCustomer?.totalCredit || consolidatedTotals.paid || 0).toLocaleString()}
                 </div>
               </div>
               <div>

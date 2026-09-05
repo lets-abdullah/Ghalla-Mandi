@@ -572,7 +572,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                       <button
                         type="button"
                         onClick={handleSetMaxQty}
-                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full"
+                        className="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:underline cursor-pointer bg-emerald-100 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full"
                       >
                         MAX ({maxReturnableQty})
                       </button>
@@ -617,10 +617,9 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                       <span className="font-mono font-black text-orange-600 dark:text-orange-400 text-sm sm:text-base mt-1 block">
                         Rs. {Math.max(0, purDue - currentGoodsValue).toLocaleString()}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">(To be paid)</span>
                     </div>
                     <div className="px-1.5">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Refund / Cashback</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Refund</span>
                       <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
                         Rs. {cashRefundAmount.toLocaleString()}
                       </span>
