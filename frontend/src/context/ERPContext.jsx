@@ -499,7 +499,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   }
 
   const rawGrossPaid = specificPaid + generalAllocatedToThisSale;
-  const paid = Math.min(netDueableTotal, rawGrossPaid);
+  const paid = rawGrossPaid;
   const isFullyReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus === 'Fully Returned') || (returnAmount >= (total - 0.5) && total > 0);
   const isPartiallyReturned = !isFullyReturned && returnAmount > 0;
   const isReturned = isFullyReturned;
@@ -679,7 +679,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     rawGrossPaid = 0;
   }
 
-  const paid = Math.min(netDueableTotal, rawGrossPaid);
+  const paid = rawGrossPaid;
   const isFullyReturned = (purchase.status === 'Returned') || (purchase.paymentStatus === 'Returned') || purchase.isReturned || (purchase.returnStatus === 'Fully Returned') || (returnAmount >= (total - 0.5) && total > 0);
   const isPartiallyReturned = !isFullyReturned && returnAmount > 0;
   const isReturned = isFullyReturned;
