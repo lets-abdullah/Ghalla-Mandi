@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   ShoppingCart,
-  DollarSign,
+  Wallet,
   RotateCcw,
   CheckCircle2,
   Clock,
@@ -218,7 +218,7 @@ export const SupplierLedgerTimeline = ({
                     }`}
                   >
                     {isPurchase && <ShoppingCart className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
-                    {isPayment && <DollarSign className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />}
+                    {isPayment && <Wallet className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />}
                     {isReturn && <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />}
                     {isOpening && <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                   </div>

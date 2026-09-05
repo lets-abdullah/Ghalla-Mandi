@@ -79,7 +79,7 @@ export const Ledger = () => {
   const [txTypeFilter, setTxTypeFilter] = useState('All'); // 'All' | 'Sales' | 'Payments' | 'Returns'
   const [txSearchQuery, setTxSearchQuery] = useState('');
   const [statementViewMode, setStatementViewMode] = useState('table'); // Table / columns view strictly enforced
-  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' = Chronological (Oldest to Newest) | 'desc' = Newest First
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = Newest First (Recent transactions at top) | 'asc' = Oldest First
 
   // Modals state
   const [viewingEntry, setViewingEntry] = useState(null);
@@ -1239,8 +1239,8 @@ export const Ledger = () => {
                   className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                 >
-                  <option value="asc">Oldest to Newest (1..N)</option>
-                  <option value="desc">Newest to Oldest (N..1)</option>
+                  <option value="desc">Recent First (Newest at Top)</option>
+                  <option value="asc">Chronological (Oldest at Top)</option>
                 </select>
               </div>
             </div>
@@ -1281,30 +1281,26 @@ export const Ledger = () => {
             ]}
           />
 
-          {/* Complete Chronological Statement Table */}
+          {/* Complete Clean Statement Table (No Horizontal Scroll) */}
           <div className={`border rounded-3xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
             }`}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+            <div className="w-full">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className={`border-b text-[10px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                     }`}>
-                    <th className="py-3.5 px-3.5">Date</th>
-                    <th className="py-3.5 px-3.5">Type</th>
-                    <th className="py-3.5 px-3.5">Reference #</th>
+                    <th className="py-3.5 px-4 w-28">Date</th>
+                    <th className="py-3.5 px-4 w-36">Reference #</th>
                     <th className="py-3.5 px-4">Description</th>
-                    <th className="py-3.5 px-3 text-right">Original Amount</th>
-                    <th className="py-3.5 px-3 text-right">Return / Refund</th>
-                    <th className="py-3.5 px-3 text-right">Net Amount</th>
-                    <th className="py-3.5 px-3 text-right">Paid / Received</th>
-                    <th className="py-3.5 px-3 text-center">Payment Method</th>
-                    <th className="py-3.5 px-3.5 text-right font-black">Running Balance</th>
+                    <th className="py-3.5 px-4 text-right w-32">Net Amount</th>
+                    <th className="py-3.5 px-4 text-right w-36">Paid / Received</th>
+                    <th className="py-3.5 px-4 text-right w-36 font-black">Running Balance</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
                   {singleCustomerLedger.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center">
+                      <td colSpan={6} className="py-8 text-center">
                         <EmptyState
                           icon={BookOpen}
                           title="No transactions recorded"
@@ -1317,178 +1313,78 @@ export const Ledger = () => {
                       const rawBal = Number(entry.rawRunningBalance !== undefined ? entry.rawRunningBalance : entry.runningBalance);
                       const isZero = rawBal === 0 || entry.balanceState === 'Settled' || entry.status === 'Settled';
                       const isBalPos = !isZero && rawBal > 0;
-                      const isBalNeg = !isZero && rawBal < 0;
 
-                      // Clean up description and avoid duplicate notes
+                      // Clean up description
                       const cleanDesc = (entry.desc || 'Transaction')
                         .replace(/:\s*Purchase Return$/i, '')
                         .replace(/:\s*Sale Return$/i, '')
                         .trim();
 
-                      // Method styling
-                      const rawMethod = entry.paymentMethod || 'Cash';
-                      const rawLower = rawMethod.toLowerCase();
-                      const isCash = rawLower.includes('cash');
-                      const isBank = rawLower.includes('bank') || rawLower.includes('transfer');
-                      const isCard = rawLower.includes('card');
                       const isReturn = entry.txType === 'Returns' || entry.txType === 'Return';
                       const isRefund = entry.txType === 'Customer Refund' || entry.txType === 'Supplier Refund' || entry.isAutoRefund;
-
-                      const methodLabel = isReturn
-                        ? 'Return Adjustment'
-                        : isRefund
-                          ? (isSupplier ? `Cash` : `Cash`)
-                          : isBank
-                            ? 'Bank Transfer'
-                            : isCard
-                              ? 'Card Payment'
-                              : isCash
-                                ? 'Cash'
-                                : rawMethod;
-
-                      // Determine Type Badge
-                      let typeLabel = entry.txType;
-                      let typeBadgeClass = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
-                      if (entry.txType === 'Purchases') {
-                        typeLabel = '🛒 Purchase';
-                        typeBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800';
-                      } else if (entry.txType === 'Sales') {
-                        typeLabel = '🛒 Sale';
-                        typeBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800';
-                      } else if (isReturn) {
-                        typeLabel = isSupplier ? '🛍️ Purchase Return' : '🛍️ Sale Return';
-                        typeBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800';
-                      } else if (isRefund) {
-                        typeLabel = isSupplier ? '📥 Refund In' : '📤 Refund Out';
-                        typeBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800';
-                      } else if (entry.txType === 'Payments') {
-                        typeLabel = isSupplier ? '💸 Payment Out' : '💰 Payment In';
-                        typeBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800';
-                      } else if (entry.txType === 'Opening Balance') {
-                        typeLabel = '⚖️ Opening Balance';
-                        typeBadgeClass = 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
-                      }
 
                       return (
                         <tr
                           key={entry.id}
                           onClick={() => setViewingEntry(entry)}
                           className={`transition cursor-pointer ${
-                            isRefund
-                              ? 'bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100/70 dark:hover:bg-emerald-900/40 font-bold border-l-4 border-l-emerald-500'
-                              : theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
+                            theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'
                           }`}
                           title="Click to view complete voucher details"
                         >
                           {/* 1. Date */}
-                          <td className="py-3.5 px-3.5 font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                          <td className="py-3.5 px-4 font-mono text-slate-500 dark:text-slate-400">
                             {entry.date}
                           </td>
 
-                          {/* 2. Type */}
-                          <td className="py-3.5 px-3.5 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px] font-extrabold ${typeBadgeClass}`}>
-                              {typeLabel}
-                            </span>
-                          </td>
-
-                          {/* 3. Reference # */}
-                          <td className="py-3.5 px-3.5 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                          {/* 2. Reference # */}
+                          <td className="py-3.5 px-4 font-mono font-bold text-blue-600 dark:text-blue-400">
                             {entry.ref}
                           </td>
 
-                          {/* 4. Description */}
-                          <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200 max-w-[240px] truncate" title={cleanDesc}>
+                          {/* 3. Description */}
+                          <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200">
                             {cleanDesc}
                           </td>
 
-                          {/* 5. Original Amount */}
-                          <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                            {entry.originalGross > 0 ? (
-                              `Rs. ${entry.originalGross.toLocaleString()}`
-                            ) : entry.txType === 'Opening Balance' ? (
-                              `Rs. ${entry.debit?.toLocaleString()}`
-                            ) : entry.txType === 'Purchases' || entry.txType === 'Sales' ? (
-                              `Rs. ${(entry.debit || entry.sales || 0).toLocaleString()}`
-                            ) : (
-                              <span className="text-slate-400 font-normal">—</span>
-                            )}
-                          </td>
-
-                          {/* 6. Return / Refund */}
-                          <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
-                            {isRefund ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
-                                Rs. ${(entry.debit || entry.autoRefundAmount || 0).toLocaleString()}
-                              </span>
-                            ) : isReturn ? (
-                              <span className="text-purple-600 dark:text-purple-400 font-extrabold">
-                                Rs. ${(entry.returnAmount || entry.credit || 0).toLocaleString()}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 font-normal">—</span>
-                            )}
-                          </td>
-
-                          {/* 7. Net Amount */}
-                          <td className="py-3.5 px-3 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
+                          {/* 4. Net Amount */}
+                          <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
                             {(entry.txType === 'Purchases' || entry.txType === 'Sales') ? (
                               `Rs. ${(entry.netTotal || entry.sales || entry.originalGross || entry.debit || 0).toLocaleString()}`
                             ) : isReturn ? (
-                              `Rs. ${(entry.netTotal || 0).toLocaleString()}`
-                            ) : isRefund ? (
-                              `Rs. ${(entry.netTotal || entry.debit || 0).toLocaleString()}`
-                            ) : entry.txType === 'Opening Balance' ? (
-                              `Rs. ${entry.debit?.toLocaleString()}`
+                              `Rs. ${(entry.returnAmount || entry.credit || 0).toLocaleString()}`
                             ) : (
-                              <span className="text-slate-400 font-normal">—</span>
+                              '—'
                             )}
                           </td>
 
-                          {/* 8. Paid / Received */}
-                          <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
+                          {/* 5. Paid / Received */}
+                          <td className="py-3.5 px-4 text-right font-mono font-bold">
                             {isRefund ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                              <span className="text-emerald-600 dark:text-emerald-400">
                                 {isSupplier ? `+ Rs. ${(entry.debit || 0).toLocaleString()}` : `- Rs. ${(entry.debit || 0).toLocaleString()}`}
                               </span>
                             ) : (entry.txType === 'Payments' || entry.txType === 'Payment' || (entry.payment && entry.payment > 0 && !isReturn)) ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                                Rs. {(entry.payment || entry.credit || 0).toLocaleString()}
+                              <span className="text-emerald-600 dark:text-emerald-400">
+                                Rs. ${(entry.payment || entry.credit || 0).toLocaleString()}
                               </span>
                             ) : (
                               <span className="text-slate-400 font-normal">—</span>
                             )}
                           </td>
 
-                          {/* 9. Payment Method */}
-                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                            <span className={`font-bold text-xs ${
-                              isRefund
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : isCash
-                                  ? 'text-emerald-600 dark:text-emerald-400'
-                                  : isReturn
-                                    ? 'text-purple-600 dark:text-purple-400'
-                                    : isBank
-                                      ? 'text-blue-600 dark:text-blue-400'
-                                      : 'text-slate-700 dark:text-slate-300'
-                            }`}>
-                              {methodLabel}
-                            </span>
-                          </td>
-
-                          {/* 10. Running Balance */}
-                          <td className="py-3.5 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap">
+                          {/* 6. Running Balance */}
+                          <td className="py-3.5 px-4 text-right font-mono font-black text-xs">
                             {isZero ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
+                              <span className="text-emerald-600 dark:text-emerald-400">
                                 Rs. 0
                               </span>
                             ) : isBalPos ? (
-                              <span className="text-rose-600 dark:text-rose-400 font-black">
+                              <span className="text-rose-600 dark:text-rose-400">
                                 Rs. {Math.abs(rawBal).toLocaleString()}
                               </span>
                             ) : (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                              <span className="text-emerald-600 dark:text-emerald-400">
                                 Rs. {Math.abs(rawBal).toLocaleString()}
                               </span>
                             )}
@@ -1506,19 +1402,19 @@ export const Ledger = () => {
               theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
             }`}>
               <div>
-                <div className="text-slate-400 text-[10px] uppercase font-black">Opening Balance (as on start)</div>
-                <div className="font-mono font-bold mt-0.5 text-rose-600 dark:text-rose-400">
-                  Rs. {(statement?.openingBalance || 0).toLocaleString()}
+                <div className="text-slate-400 text-[10px] uppercase font-black">Opening Balance</div>
+                <div className="font-mono font-bold mt-0.5 text-slate-700 dark:text-slate-300">
+                  Rs. ${(statement?.openingBalance || 0).toLocaleString()}
                 </div>
               </div>
               <div>
-                <div className="text-slate-400 text-[10px] uppercase font-black">Total Credits (Inflow)</div>
+                <div className="text-slate-400 text-[10px] uppercase font-black">Total Credits</div>
                 <div className="font-mono font-bold mt-0.5 text-emerald-600 dark:text-emerald-400">
                   Rs. ${(statement?.totalCredit || 0).toLocaleString()}
                 </div>
               </div>
               <div>
-                <div className="text-slate-400 text-[10px] uppercase font-black">Total Debits (Outflow)</div>
+                <div className="text-slate-400 text-[10px] uppercase font-black">Total Debits</div>
                 <div className="font-mono font-bold mt-0.5 text-rose-600 dark:text-rose-400">
                   Rs. ${(statement?.totalDebit || 0).toLocaleString()}
                 </div>
