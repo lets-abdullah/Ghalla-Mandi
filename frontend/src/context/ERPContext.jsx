@@ -584,35 +584,38 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
     }
   });
 
+  // Unique liquid cash refunds actually paid out to customer
+  const liquidRefundsPaid = custReturns.filter(r => {
+    const res = resolveTransactionPayment(r, 'SaleReturn');
+    return res.isLiquid && res.totalLiquid > 0;
+  }).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+
   const grossPaymentsReceived = Math.round(directPaidLogs + unloggedUpfrontCash);
+  const effectivePaid = Math.max(0, grossPaymentsReceived - liquidRefundsPaid);
   const openingBalance = Math.round(Number(customer.openingBalance !== undefined ? customer.openingBalance : (customer.openingbalance !== undefined ? customer.openingbalance : 0)));
   const netSales = Math.max(0, Math.round(totalGrossSale - totalReturnAmount));
-  const maxReceivable = openingBalance + netSales;
-  const totalActualPaymentsReceived = Math.min(grossPaymentsReceived, maxReceivable);
-
-  // Canonical Accounting Equations: Sale Returns reduce Net Sales, Customer cannot be creditor
   const totalDebits = openingBalance + netSales;
-  const totalCredits = totalActualPaymentsReceived;
-  const netBalance = totalDebits - totalCredits;
-
-  // STRICT INTEGER ENFORCEMENT: Any fraction less than 1 rupee is zero (no .5, float, or decimal dust)
-  const receivableDue = netBalance < 1 ? 0 : Math.round(netBalance);
-  const advanceCredit = 0; // Strictly enforced: customers can never become creditors
-  const status = receivableDue > 0 ? 'Due' : 'Settled';
+  const rawDue = totalDebits - effectivePaid;
+  const receivableDue = rawDue < 1 ? 0 : Math.round(rawDue);
+  const refundLiability = rawDue < 0 ? Math.abs(Math.round(rawDue)) : 0;
+  const status = receivableDue > 0 ? 'Due' : (refundLiability > 0 ? 'Refund Pending' : 'Settled');
 
   return {
     openingBalance,
     totalSale: totalGrossSale,
     grossSale: totalGrossSale,
-    upfrontPaid: totalActualPaymentsReceived,
+    upfrontPaid: Math.min(grossPaymentsReceived, netSales),
     directPaid: directPaidLogs,
-    totalPaid: totalActualPaymentsReceived,
+    totalPaid: grossPaymentsReceived,
+    effectivePaid,
+    refundsPaid: liquidRefundsPaid,
     returnAmount: totalReturnAmount,
     netSale: netSales,
     netBalance: receivableDue,
     balance: receivableDue,
     receivableDue,
-    advanceCredit: 0,
+    refundLiability,
+    advanceCredit: refundLiability,
     status,
     ordersCount: custSales.length
   };
@@ -1239,21 +1242,18 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
   const netPurchases = Math.max(0, Math.round(totalGrossPurchase - totalReturnAmount));
   const netBilled = openingBalance + netPurchases;
 
-  // Canonical Supplier Accounting Equation:
-  // If netBilled >= netPaid: We owe supplier money -> PayableDue = netBilled - netPaid, RefundDue = 0
-  // If netPaid > netBilled: Supplier has our excess money -> PayableDue = 0, RefundDue = netPaid - netBilled
   let payableDue = 0;
-  let refundDue = 0;
+  let automaticSupplierRefund = 0;
 
   if (netBilled >= netPaid) {
     payableDue = Math.round(netBilled - netPaid);
-    refundDue = 0;
+    automaticSupplierRefund = 0;
   } else {
     payableDue = 0;
-    refundDue = Math.round(netPaid - netBilled);
+    automaticSupplierRefund = Math.round(netPaid - netBilled);
   }
 
-  const status = payableDue > 0 ? 'Payable' : (refundDue > 0 ? 'Refund Due' : 'Settled');
+  const status = payableDue > 0 ? 'Payable' : 'Settled';
 
   return {
     openingBalance,
@@ -1265,11 +1265,12 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
     netPaid,
     returnAmount: totalReturnAmount,
     netPurchase: netPurchases,
-    netBalance: payableDue > 0 ? payableDue : -refundDue,
+    netBalance: payableDue,
     balance: payableDue,
     payableDue,
-    refundDue,
-    advanceCredit: refundDue,
+    refundDue: 0,
+    advanceCredit: 0,
+    automaticSupplierRefund,
     status,
     ordersCount: supPurchases.length
   };

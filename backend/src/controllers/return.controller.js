@@ -125,11 +125,12 @@ export const createSaleReturn = async (req, res) => {
         maxEligibleCashRefund = Math.max(0, Math.min(approvedTotal, salePaid - newNetSale - priorCashRefunds));
       }
 
-      const finalRefundAmount = req.body.refundAmount !== undefined
+      const isLiquidRefundMode = ['cash', 'bank account', 'bank', 'card'].includes(String(req.body.refundMode || '').trim().toLowerCase());
+      const finalRefundAmount = (isLiquidRefundMode && req.body.refundAmount !== undefined && Number(req.body.refundAmount) > 0)
         ? Math.min(Number(req.body.refundAmount), maxEligibleCashRefund)
-        : maxEligibleCashRefund;
+        : 0;
 
-      // 2. Create Sale Return Record (refundMode is strictly Cash under canonical rules)
+      // 2. Create Sale Return Record
       const createdReturn = await SaleReturn.create({
         shop_id: req.shop_id,
         returnNo,
@@ -139,7 +140,7 @@ export const createSaleReturn = async (req, res) => {
         customerName: targetSale ? (targetSale.partyName || customerName || 'Customer Party') : (customerName || 'Customer Party'),
         items: processedItems,
         refundAmount: finalRefundAmount,
-        refundMode: req.body.refundMode || 'Credit',
+        refundMode: isLiquidRefundMode && finalRefundAmount > 0 ? (req.body.refundMode || 'Cash') : 'Credit',
         reason,
         date: dateStr
       });
@@ -404,11 +405,13 @@ export const createPurchaseReturn = async (req, res) => {
         maxEligibleCashRefund = Math.max(0, Math.min(approvedTotal, purPaid - newNetPur - priorCashRefunds));
       }
 
+      const automaticRefundAmount = maxEligibleCashRefund;
       const finalRefundAmount = req.body.refundAmount !== undefined
         ? Math.min(Number(req.body.refundAmount), maxEligibleCashRefund)
-        : maxEligibleCashRefund;
+        : automaticRefundAmount;
+      const finalRefundMode = finalRefundAmount > 0 ? (req.body.refundMode || 'Cash') : 'Credit';
 
-      // 2. Create Purchase Return Record (refundMode is strictly Cash)
+      // 2. Create Purchase Return Record
       const createdReturn = await PurchaseReturn.create({
         shop_id: req.shop_id,
         returnNo,
@@ -418,7 +421,7 @@ export const createPurchaseReturn = async (req, res) => {
         supplierName: targetPurchase ? (targetPurchase.supplierName || supplierName || 'Supplier Firm') : (supplierName || 'Supplier Firm'),
         items: processedItems,
         refundAmount: finalRefundAmount,
-        refundMode: req.body.refundMode || 'Credit',
+        refundMode: finalRefundMode,
         reason,
         date: dateStr
       });

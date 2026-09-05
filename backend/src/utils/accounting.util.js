@@ -115,15 +115,21 @@ export const syncCustomerBalance = async (customerId, shop_id, dbRun) => {
     }
   });
 
-  const totalPayments = directPaidLogs + unloggedUpfrontCash;
-  const effectivePaymentsReceived = Math.min(totalPayments, netSales);
+  // Unique cash refunds actually paid out to customer
+  const liquidRefunds = returnsRows.filter(r => {
+    const mode = String(r.refundMode || r.refundmode || '').trim().toLowerCase();
+    return (mode === 'cash' || mode === 'bank account' || mode === 'bank' || mode === 'card') && Number(r.refundAmount || 0) > 0;
+  }).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+
+  const grossPaymentsReceived = directPaidLogs + unloggedUpfrontCash;
+  const effectivePaid = Math.max(0, grossPaymentsReceived - liquidRefunds);
   const totalDebits = openingBalance + netSales;
-  const totalCredits = effectivePaymentsReceived;
-  const rawDue = totalDebits - totalCredits;
+  const rawDue = totalDebits - effectivePaid;
   const canonicalDue = rawDue < 1 ? 0 : Math.round(rawDue);
+  const refundLiability = rawDue < 0 ? Math.abs(Math.round(rawDue)) : 0;
 
   await dbRun('UPDATE customers SET balance = $1 WHERE id = $2 AND shop_id = $3', [canonicalDue, customerId, shop_id]);
-  return canonicalDue;
+  return { due: canonicalDue, refundLiability };
 };
 
 export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
@@ -168,23 +174,20 @@ export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
     }
   });
 
-  const totalPayments = directPaidLogs + unloggedUpfrontCash;
-  const netPaid = Math.max(0, totalPayments - liquidRefunds);
+  const grossPaymentsMade = directPaidLogs + unloggedUpfrontCash;
+  const netPaid = Math.max(0, grossPaymentsMade - liquidRefunds);
   const netBilled = openingBalance + netPurchases;
 
   let canonicalPayable = 0;
-  let canonicalRefundDue = 0;
 
   if (netBilled >= netPaid) {
     canonicalPayable = Math.round(netBilled - netPaid);
-    canonicalRefundDue = 0;
   } else {
     canonicalPayable = 0;
-    canonicalRefundDue = Math.round(netPaid - netBilled);
   }
 
-  await dbRun('UPDATE suppliers SET balance = $1, refundDue = $2 WHERE id = $3 AND shop_id = $4', [canonicalPayable, canonicalRefundDue, supplierId, shop_id]);
-  return { payable: canonicalPayable, refundDue: canonicalRefundDue, balance: canonicalPayable };
+  await dbRun('UPDATE suppliers SET balance = $1, refundDue = 0 WHERE id = $2 AND shop_id = $3', [canonicalPayable, supplierId, shop_id]);
+  return { payable: canonicalPayable, refundDue: 0, balance: canonicalPayable };
 };
 
 

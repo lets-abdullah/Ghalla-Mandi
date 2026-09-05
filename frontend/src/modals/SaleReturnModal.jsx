@@ -201,9 +201,12 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
       return;
     }
 
+    const isLiquidPayoutRequested = refundMode !== 'Credit' && refundMode !== 'Khata Credit' && cashRefundAmount > 0;
+    const finalRefundPayout = isLiquidPayoutRequested ? cashRefundAmount : 0;
+
     setIsSubmitting(true);
     try {
-      const activeRefundMode = cashRefundAmount > 0 ? refundMode : 'Khata Credit';
+      const activeRefundMode = isLiquidPayoutRequested ? refundMode : 'Credit';
       const returnRecord = await recordSaleReturn({
         saleId: activeSale.id,
         invoiceNo: activeSale.invoiceNo || 'Direct Sale Return',
@@ -218,7 +221,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
           total: currentGoodsValue
         }],
         totalGoodsValue: currentGoodsValue,
-        refundAmount: cashRefundAmount, // Strictly capped at historical paid amount!
+        refundAmount: finalRefundPayout,
         dueCleared: dueCancelled,
         refundMode: activeRefundMode,
         reason: reason.trim() || 'Sale Return',
@@ -235,7 +238,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
         productName: currentItem.name,
         totalGoodsValue: currentGoodsValue,
         refundMode: activeRefundMode,
-        refundAmount: cashRefundAmount,
+        refundAmount: finalRefundPayout,
         dueCleared: dueCancelled,
         salePaid: salePaid,
         saleDue: saleDue,

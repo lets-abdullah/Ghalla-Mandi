@@ -1026,26 +1026,6 @@ export const Reports = () => {
         let grossBank = res.bankAmount;
         let grossCard = res.cardAmount;
 
-        const targetSale = p.saleId ? (sales || []).find(s => String(s.id) === String(p.saleId)) : null;
-        if (targetSale) {
-          const relatedReturns = (saleReturns || []).filter(r =>
-            (r.saleId && String(r.saleId) === String(targetSale.id)) ||
-            (targetSale.invoiceNo && r.invoiceNo === targetSale.invoiceNo)
-          );
-          const retRefundAmt = relatedReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
-          const origGross = Number(targetSale.amount || targetSale.grandTotal || 0);
-
-          if (retRefundAmt > 0 && origGross > 0 && res.totalLiquid < origGross) {
-            if (res.channel === 'cash') {
-              grossCash = Math.min(origGross, res.cashAmount + retRefundAmt);
-            } else if (res.channel === 'bank') {
-              grossBank = Math.min(origGross, res.bankAmount + retRefundAmt);
-            } else if (res.channel === 'card') {
-              grossCard = Math.min(origGross, res.cardAmount + retRefundAmt);
-            }
-          }
-        }
-
         cInflow += grossCash;
         bInflow += grossBank;
         kInflow += grossCard;
@@ -1082,26 +1062,9 @@ export const Reports = () => {
       if (!hasMatchingLog) {
         const res = resolveTransactionPayment(s, 'Sale');
         if (res.totalLiquid > 0) {
-          const relatedReturns = (saleReturns || []).filter(r =>
-            (r.saleId && String(r.saleId) === String(s.id)) ||
-            (s.invoiceNo && r.invoiceNo === s.invoiceNo)
-          );
-          const retRefundAmt = relatedReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
-          const origGross = Number(s.amount || s.grandTotal || 0);
-
           let grossCash = res.cashAmount;
           let grossBank = res.bankAmount;
           let grossCard = res.cardAmount;
-
-          if (retRefundAmt > 0 && origGross > 0) {
-            if (res.channel === 'cash') {
-              grossCash = Math.min(origGross, res.cashAmount + retRefundAmt);
-            } else if (res.channel === 'bank') {
-              grossBank = Math.min(origGross, res.bankAmount + retRefundAmt);
-            } else if (res.channel === 'card') {
-              grossCard = Math.min(origGross, res.cardAmount + retRefundAmt);
-            }
-          }
 
           cInflow += grossCash;
           bInflow += grossBank;
@@ -1368,26 +1331,29 @@ export const Reports = () => {
     }, 0);
   }, [products]);
 
+  // Customer Refund Liabilities (Pending liquid payout for returns against paid sales)
+  const totalCustomerRefundLiabilities = useMemo(() => {
+    return (customers || []).reduce((sum, c) => {
+      const fin = computeCustomerKhataBalance(c, sales, paymentLogs, saleReturns);
+      return sum + (fin.refundLiability || 0);
+    }, 0);
+  }, [customers, sales, paymentLogs, saleReturns]);
+
   // Canonical Double-Entry Balance Sheet:
-  // 1. ASSETS: Genuine Asset balances (Cash >= 0, Bank >= 0, Inventory, Receivables, Advances)
+  // 1. ASSETS: Genuine Asset balances (Cash >= 0, Bank >= 0, Card >= 0, Customer Receivables, Inventory)
   const liquidCashAsset = Math.max(0, cashInHand);
   const liquidBankAsset = Math.max(0, bankBalance);
   const liquidCardAsset = Math.max(0, cardBalance);
   const totalLiquidAssets = liquidCashAsset + liquidBankAsset + liquidCardAsset;
 
   const totalAssets = useMemo(() => {
-    return Math.round(totalLiquidAssets + totalCustomerReceivables + totalStockValuation + totalSupplierAdvances);
-  }, [totalLiquidAssets, totalCustomerReceivables, totalStockValuation, totalSupplierAdvances]);
+    return Math.round(totalLiquidAssets + totalCustomerReceivables + totalStockValuation);
+  }, [totalLiquidAssets, totalCustomerReceivables, totalStockValuation]);
 
-  // 2. LIABILITIES: Supplier Payables + Cash Overdraft/Deficit + Bank Overdraft
-  const cashDeficitLiability = Math.abs(Math.min(0, cashInHand));
-  const bankOverdraftLiability = Math.abs(Math.min(0, bankBalance));
-  const cardDeficitLiability = Math.abs(Math.min(0, cardBalance));
-  const totalOverdraftLiabilities = cashDeficitLiability + bankOverdraftLiability + cardDeficitLiability;
-
+  // 2. LIABILITIES: Supplier Payables + Customer Refund Liabilities (Zero Overdraft)
   const totalLiabilities = useMemo(() => {
-    return Math.round(totalSupplierPayables + totalOverdraftLiabilities);
-  }, [totalSupplierPayables, totalOverdraftLiabilities]);
+    return Math.round(totalSupplierPayables + totalCustomerRefundLiabilities);
+  }, [totalSupplierPayables, totalCustomerRefundLiabilities]);
 
   // 3. EQUITY: Canonical Double-Entry Equation (Total Assets = Total Liabilities + Total Equity)
   const totalEquity = useMemo(() => {
@@ -4656,17 +4622,17 @@ export const Reports = () => {
               <div className="text-[11px] font-medium text-slate-400 mt-0.5">POS & Merchant Receipts</div>
             </div>
 
-            {/* 4. OVERDRAFT / DEFICIT (LIABILITY) */}
+            {/* 4. CUSTOMER REFUND LIABILITIES (LIABILITY) */}
             <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <span>Overdraft / Deficit</span>
-                <PieChart className="w-3.5 h-3.5 text-rose-500" />
+                <span>Customer Refund Liabilities</span>
+                <PieChart className="w-3.5 h-3.5 text-amber-500" />
               </div>
-              <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${(bankOverdraftLiability + cardDeficitLiability) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'}`}>
-                Rs. {(bankOverdraftLiability + cardDeficitLiability).toLocaleString()}
+              <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${totalCustomerRefundLiabilities > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500'}`}>
+                Rs. {totalCustomerRefundLiabilities.toLocaleString()}
               </div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Bank & Card Facilities</div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Pending Refund Payouts</div>
             </div>
 
             {/* 5. NET LIQUID POSITION */}
