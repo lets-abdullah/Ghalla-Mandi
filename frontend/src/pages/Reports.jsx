@@ -4484,14 +4484,6 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* Clean Balanced Status Pill */}
-          <div className="p-3 rounded-xl border text-center text-xs font-bold bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 flex items-center justify-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>
-              Financial position is balanced. You own Rs. {totalAssets.toLocaleString()} and you owe Rs. {totalLiabilities.toLocaleString()}. Your Business Value (Net Worth) is Rs. {totalEquity.toLocaleString()}.
-            </span>
-          </div>
-
           {/* Quick link to Cash Flow */}
           <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border bg-slate-50/70 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700">
             <div className="flex items-center gap-3">
@@ -4558,19 +4550,6 @@ export const Reports = () => {
                 />
               )}
 
-              {/* Channel Filter */}
-              <select
-                value={cfChannelFilter}
-                onChange={(e) => { setCfChannelFilter(e.target.value); setCfPage(1); }}
-                className={`border rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              >
-                <option value="All">All Channels</option>
-                <option value="Cash">Cash in Hand</option>
-                <option value="Bank">Bank Accounts</option>
-                <option value="Card">Card Payments</option>
-              </select>
-
               {/* Search Filter */}
               <div className="relative">
                 <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -4635,19 +4614,6 @@ export const Reports = () => {
                 Rs. {liquidCardAsset.toLocaleString()}
               </div>
               <div className="text-[11px] font-medium text-slate-400 mt-0.5">POS & Merchant Receipts</div>
-            </div>
-
-            {/* 4. CUSTOMER REFUND LIABILITIES (LIABILITY) */}
-            <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <span>Customer Refund Liabilities</span>
-                <PieChart className="w-3.5 h-3.5 text-amber-500" />
-              </div>
-              <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${totalCustomerRefundLiabilities > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500'}`}>
-                Rs. {totalCustomerRefundLiabilities.toLocaleString()}
-              </div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Pending Refund Payouts</div>
             </div>
 
             {/* 5. NET LIQUID POSITION */}

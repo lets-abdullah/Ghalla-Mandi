@@ -720,36 +720,6 @@ export const Suppliers = () => {
             Rs. {totalPayablesAmount.toLocaleString()}
           </div>
         </div>
-
-        {/* 3. Supplier Refund Due */}
-        <div
-          onClick={() => setStatusFilter('RefundDue')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-teal-50/50 to-white border-teal-200/80'
-            }`}
-        >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <RotateCcw className="w-4 h-4 text-teal-600" />
-            <span>Supplier Refund Due</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-teal-600 dark:text-teal-400">
-            Rs. {totalRefundDueAmount.toLocaleString()}
-          </div>
-        </div>
-
-        {/* 4. Settled Suppliers */}
-        <div
-          onClick={() => setStatusFilter('Settled')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'
-            }`}
-        >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Settled Suppliers</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
-            {settledSuppliersCount}
-          </div>
-        </div>
       </div>
 
       {/* Unified Filter Toolbar: [Supplier] [Product] [Status] (Screen Only) */}
@@ -794,25 +764,6 @@ export const Suppliers = () => {
             </select>
           </div>
 
-          {/* Status Filter */}
-          <div className="flex-1 min-w-[140px]">
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-amber-500" />
-              <span>Status</span>
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                }`}
-            >
-              <option value="All">All Statuses</option>
-              <option value="Payable">Due / Payable</option>
-              <option value="RefundDue">Supplier Refund Due</option>
-              <option value="Settled">Settled / Rs. 0</option>
-            </select>
-          </div>
-
           {/* Inline Reset Button */}
           {isAnyFilterActive && (
             <button
@@ -849,7 +800,7 @@ export const Suppliers = () => {
             <thead>
               <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                <th className="py-3 px-4">Supplier Firm</th>
+                <th className="py-3 px-4">Supplier</th>
                 <th className="py-3 px-4">Contact</th>
                 <th className="py-3 px-4">Supplied Products</th>
                 <th className="py-3 px-4 text-right">Balance Due</th>
@@ -1573,10 +1524,9 @@ export const Suppliers = () => {
                           • {fullSup.businessName}
                         </span>
                       )}
-                      <span className={`text-xs font-black uppercase tracking-wider flex items-center gap-1 ${
-                        refundDueVal > 0
-                          ? 'text-teal-600 dark:text-teal-400'
-                          : isSettled
+                      <span className={`text-xs font-black uppercase tracking-wider flex items-center gap-1 ${refundDueVal > 0
+                        ? 'text-teal-600 dark:text-teal-400'
+                        : isSettled
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : 'text-amber-600 dark:text-amber-400'
                         }`}>
@@ -1685,10 +1635,9 @@ export const Suppliers = () => {
                 </div>
 
                 {/* 3. Balance Due */}
-                <div className={`p-4 rounded-2xl border transition-all ${
-                  refundDueVal > 0
-                    ? theme === 'dark' ? 'bg-teal-950/20 border-teal-800/60' : 'bg-gradient-to-br from-teal-50/80 via-white to-emerald-50/30 border-teal-200'
-                    : balanceDueVal > 0
+                <div className={`p-4 rounded-2xl border transition-all ${refundDueVal > 0
+                  ? theme === 'dark' ? 'bg-teal-950/20 border-teal-800/60' : 'bg-gradient-to-br from-teal-50/80 via-white to-emerald-50/30 border-teal-200'
+                  : balanceDueVal > 0
                     ? theme === 'dark' ? 'bg-rose-950/20 border-rose-800/60' : 'bg-gradient-to-br from-rose-50/80 via-white to-amber-50/30 border-rose-200'
                     : theme === 'dark' ? 'bg-emerald-950/20 border-emerald-800/60' : 'bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 border-slate-200'
                   }`}>
@@ -1696,20 +1645,18 @@ export const Suppliers = () => {
                     <span className="text-[10px] font-black uppercase tracking-wider">
                       {refundDueVal > 0 ? 'Supplier Refund Due' : 'Remaining Balance'}
                     </span>
-                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${
-                      refundDueVal > 0
-                        ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
-                        : balanceDueVal > 0
+                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${refundDueVal > 0
+                      ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
+                      : balanceDueVal > 0
                         ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                         : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                       }`}>
                       {refundDueVal > 0 ? <RotateCcw className="w-3.5 h-3.5" /> : balanceDueVal > 0 ? <AlertCircle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
                     </div>
                   </div>
-                  <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${
-                    refundDueVal > 0
-                      ? 'text-teal-600 dark:text-teal-400'
-                      : balanceDueVal > 0
+                  <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${refundDueVal > 0
+                    ? 'text-teal-600 dark:text-teal-400'
+                    : balanceDueVal > 0
                       ? 'text-rose-600 dark:text-rose-400'
                       : 'text-emerald-600 dark:text-emerald-400'
                     }`}>
@@ -1719,8 +1666,8 @@ export const Suppliers = () => {
                     {refundDueVal > 0
                       ? '✓ Refund Receivable from Supplier'
                       : balanceDueVal > 0
-                      ? 'Pending Payable Liability'
-                      : '✓ Account Fully Settled'}
+                        ? 'Pending Payable Liability'
+                        : '✓ Account Fully Settled'}
                   </div>
                 </div>
               </div>
@@ -2066,11 +2013,10 @@ export const Suppliers = () => {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-400 block">Payment Account / Mode *</label>
-                  <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border ${
-                    availableLiquidForPayMode.amount > 0 
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' 
-                      : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                  }`}>
+                  <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border ${availableLiquidForPayMode.amount > 0
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                    : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                    }`}>
                     Avail: Rs. {availableLiquidForPayMode.amount.toLocaleString()}
                   </span>
                 </div>

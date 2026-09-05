@@ -1596,15 +1596,14 @@ export const Ledger = () => {
 
                         {/* 8. Status */}
                         <td className="py-3.5 px-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider ${
-                            row.status.includes('Refunded')
+                          <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider ${row.status.includes('Refunded')
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                               : row.status === 'Settled'
                                 ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30'
                                 : row.status === 'Partial'
                                   ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'
                                   : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                          }`}>
+                            }`}>
                             {row.status}
                           </span>
                         </td>
@@ -1616,9 +1615,8 @@ export const Ledger = () => {
             </div>
 
             {/* Bottom Summary Bar */}
-            <div className={`p-4 border-t grid grid-cols-2 sm:grid-cols-6 gap-4 text-center text-xs font-bold ${
-              theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-            }`}>
+            <div className={`p-4 border-t grid grid-cols-2 sm:grid-cols-6 gap-4 text-center text-xs font-bold ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
               <div>
                 <div className="text-slate-400 text-[10px] uppercase font-black">{isSupplier ? 'Total Purchase' : 'Total Sale'}</div>
                 <div className="font-mono font-bold mt-0.5 text-slate-700 dark:text-slate-300">
@@ -1654,41 +1652,6 @@ export const Ledger = () => {
                 <div className="font-mono font-black mt-0.5 text-emerald-600 dark:text-emerald-400">
                   Rs. {consolidatedTotals.refundCashback.toLocaleString()}
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Guidance Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className={`p-4 rounded-2xl border flex items-start gap-3 ${
-              theme === 'dark' ? 'bg-slate-800/80 border-slate-700 text-white' : 'bg-blue-50/50 border-blue-100 text-slate-800'
-            }`}>
-              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 shrink-0">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-extrabold text-xs">About This Ledger</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  This ledger shows a bill-by-bill financial summary of purchases, returns, payments, and refunds for this party.
-                </p>
-              </div>
-            </div>
-
-            <div className={`p-4 rounded-2xl border flex items-start gap-3 ${
-              (activeCustomer?.balance || 0) === 0
-                ? (theme === 'dark' ? 'bg-emerald-950/30 border-emerald-800/60 text-white' : 'bg-emerald-50/50 border-emerald-100 text-slate-800')
-                : (theme === 'dark' ? 'bg-amber-950/30 border-amber-800/60 text-white' : 'bg-amber-50/50 border-amber-100 text-slate-800')
-            }`}>
-              <div className={`p-2 rounded-xl shrink-0 ${(activeCustomer?.balance || 0) === 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-extrabold text-xs">Current Status</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {(activeCustomer?.balance || 0) === 0
-                    ? `All dues have been cleared. No amount is ${isSupplier ? 'payable to this supplier' : 'due from this customer'}.`
-                    : `Active account balance of Rs. ${(activeCustomer?.balance || 0).toLocaleString()} ${isSupplier ? 'payable' : 'receivable'}.`}
-                </p>
               </div>
             </div>
           </div>

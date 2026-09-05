@@ -351,35 +351,7 @@ export const Customers = () => {
       <div className={`no-print border rounded-3xl p-3.5 sm:p-4 card-shadow ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
         }`}>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
-          {/* 1. Search Customer */}
-          <div className="flex-[2] min-w-[200px]">
-            <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
-              <Search className="w-3.5 h-3.5 text-brand-500" />
-              <span>Search Customer</span>
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by name, business, phone, city..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full border rounded-xl pl-9 pr-8 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
-                  }`}
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* 2. Customer Type */}
+          {/* 1. Customer Type */}
           <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-brand-500" />
@@ -397,11 +369,11 @@ export const Customers = () => {
             </select>
           </div>
 
-          {/* 3. Balance Filter */}
+          {/* 2. Balance Filter */}
           <div className="flex-1 min-w-[140px]">
             <label className="text-[10px] font-black uppercase text-slate-400 mb-1 flex items-center gap-1">
               <DollarSign className="w-3.5 h-3.5 text-amber-500" />
-              <span>Balance Status</span>
+              <span>Status</span>
             </label>
             <select
               value={balanceFilter}
