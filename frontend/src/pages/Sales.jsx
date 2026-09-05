@@ -329,6 +329,7 @@ export const Sales = () => {
 
   // Receipt Modal View Helper
   const openReceiptForSale = (s) => {
+    const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
     const receiptData = {
       orderId: s.invoiceNo,
       date: s.date || (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '-'),
@@ -346,12 +347,15 @@ export const Sales = () => {
         unit: t('item'),
         price: Number(s.amount || 0)
       }],
-      subtotal: Number(s.amount || 0),
-      discount: 0,
-      tax: 0,
-      grandTotal: Number(s.amount || 0),
-      paidAmount: Number(s.paidAmount || 0),
-      paymentMethod: s.paymentMode || (Number(s.paidAmount) >= Number(s.amount) ? 'Cash' : Number(s.paidAmount) > 0 ? 'Partial Cash' : 'Khata (Udhaar)'),
+      subtotal: fin.grossTotal,
+      discount: Number(s.discount || 0),
+      tax: Number(s.tax || 0),
+      returnAmount: fin.returnAmount,
+      netAmount: fin.netTotal,
+      grandTotal: fin.netTotal,
+      paidAmount: fin.paid,
+      dueAmount: fin.due,
+      paymentMethod: s.paymentMode || (fin.status === 'Paid' ? 'Cash' : fin.status === 'Partial' ? 'Partial Cash' : 'Khata (Udhaar)'),
       saleNote: s.note || ''
     };
     setActiveReceiptModal(receiptData);

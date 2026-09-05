@@ -357,22 +357,36 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   const cashRefundAmount = returns.filter(r => String(r.refundMode || '').trim().toLowerCase() === 'cash').reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
   const netDueableTotal = Math.max(0, total - returnAmount);
 
-  // Categorize specific payment logs for this sale invoice
-  const matchingLogs = (paymentLogs || []).filter(pl =>
+  // Categorize specific payment logs for this sale invoice (excluding POS checkout logs, Opening Balance, Credit Notes)
+  const specificNonPosLogs = (paymentLogs || []).filter(pl =>
     (pl.type === 'Customer' || pl.partyType === 'Customer') &&
     (
       (pl.saleId && String(pl.saleId) === String(sale.id)) ||
       (sale.invoiceNo && pl.ref && pl.ref.includes(sale.invoiceNo))
     ) &&
     pl.mode !== 'Opening Balance' &&
-    pl.mode !== 'Credit Note'
+    pl.mode !== 'Credit Note' &&
+    !String(pl.ref || '').includes('POS-PAY')
+  );
+
+  // Check if a POS payment log was explicitly recorded in paymentLogs for this sale
+  const hasPosLog = (paymentLogs || []).some(pl =>
+    (pl.type === 'Customer' || pl.partyType === 'Customer') &&
+    (
+      (pl.saleId && String(pl.saleId) === String(sale.id)) ||
+      (sale.invoiceNo && pl.ref && pl.ref.includes(sale.invoiceNo))
+    ) &&
+    String(pl.ref || '').includes('POS-PAY')
   );
 
   const res = resolveTransactionPayment(sale, 'Sale');
-  const upfrontPaid = res.totalLiquid;
-  const totalMatchingLogs = matchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-  const specificPaid = Math.max(upfrontPaid, totalMatchingLogs);
-  let rawGrossPaid = specificPaid;
+  const upfrontPaid = hasPosLog
+    ? (paymentLogs || []).filter(pl => (pl.saleId && String(pl.saleId) === String(sale.id)) || (sale.invoiceNo && pl.ref && pl.ref.includes(sale.invoiceNo)))
+        .reduce((sum, pl) => sum + (String(pl.ref || '').includes('POS-PAY') ? Number(pl.amount || 0) : 0), 0)
+    : res.totalLiquid;
+
+  const totalSpecificNonPos = specificNonPosLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+  let specificPaid = Math.min(netDueableTotal, upfrontPaid + totalSpecificNonPos);
 
   // Unlinked general customer payments (e.g. Khata payments) allocation
   const custId = sale.customerId ? String(sale.customerId) : null;
@@ -388,7 +402,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
     // Check if this log is already specifically linked to ANY sale invoice
     const hasSpecificInvoice = Boolean(
       pl.saleId ||
-      (pl.ref && (pl.ref.includes('INV-') || pl.ref.includes('SAL-')))
+      (pl.ref && (pl.ref.includes('INV-') || pl.ref.includes('SAL-') || pl.ref.includes('POS-PAY')))
     );
     if (hasSpecificInvoice) return false;
 
@@ -404,6 +418,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   });
 
   const totalUnlinkedCash = unlinkedGeneralLogs.reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
+  let generalAllocatedToThisSale = 0;
 
   if (totalUnlinkedCash > 0) {
     const relevantSales = (allSales && allSales.length > 0)
@@ -424,7 +439,6 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
       : [sale];
 
     let availableGeneralCash = totalUnlinkedCash;
-    let generalAllocatedToThisSale = 0;
 
     for (const s of relevantSales) {
       if (availableGeneralCash <= 0) break;
@@ -433,17 +447,32 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
       const sRetAmt = sReturns.length > 0 ? sReturns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0) : Number(s.returnAmount || 0);
       const sNetTotal = Math.max(0, sTotal - sRetAmt);
 
-      const sMatchingLogs = (paymentLogs || []).filter(pl =>
+      const sSpecificLogs = (paymentLogs || []).filter(pl =>
         (pl.type === 'Customer' || pl.partyType === 'Customer') &&
         (
           (pl.saleId && String(pl.saleId) === String(s.id)) ||
           (s.invoiceNo && pl.ref && pl.ref.includes(s.invoiceNo))
         ) &&
         pl.mode !== 'Opening Balance' &&
-        pl.mode !== 'Credit Note'
+        pl.mode !== 'Credit Note' &&
+        !String(pl.ref || '').includes('POS-PAY')
       );
-      const sUpfront = resolveTransactionPayment(s, 'Sale').totalLiquid;
-      const sSpecificPaid = Math.max(sUpfront, sMatchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0));
+
+      const sHasPosLog = (paymentLogs || []).some(pl =>
+        (pl.type === 'Customer' || pl.partyType === 'Customer') &&
+        (
+          (pl.saleId && String(pl.saleId) === String(s.id)) ||
+          (s.invoiceNo && pl.ref && pl.ref.includes(s.invoiceNo))
+        ) &&
+        String(pl.ref || '').includes('POS-PAY')
+      );
+
+      const sUpfront = sHasPosLog
+        ? (paymentLogs || []).filter(pl => (pl.saleId && String(pl.saleId) === String(s.id)) || (s.invoiceNo && pl.ref && pl.ref.includes(s.invoiceNo)))
+            .reduce((sum, pl) => sum + (String(pl.ref || '').includes('POS-PAY') ? Number(pl.amount || 0) : 0), 0)
+        : resolveTransactionPayment(s, 'Sale').totalLiquid;
+
+      const sSpecificPaid = Math.min(sNetTotal, sUpfront + sSpecificLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0));
       const sRemainingDue = Math.max(0, sNetTotal - sSpecificPaid);
 
       const alloc = Math.min(sRemainingDue, availableGeneralCash);
@@ -453,10 +482,9 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
       }
       availableGeneralCash -= alloc;
     }
-
-    rawGrossPaid = specificPaid + generalAllocatedToThisSale;
   }
 
+  const rawGrossPaid = specificPaid + generalAllocatedToThisSale;
   const paid = Math.min(netDueableTotal, rawGrossPaid);
   const isFullyReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus === 'Fully Returned') || (returnAmount >= (total - 0.5) && total > 0);
   const isPartiallyReturned = !isFullyReturned && returnAmount > 0;
@@ -851,7 +879,7 @@ export const computeAllCustomersFinancials = (customers = [], sales = [], paymen
   const totalNetSales = Math.round(allCustomers.reduce((sum, c) => sum + Number(c.netSale || 0), 0));
   const totalPaymentsReceived = Math.round(allCustomers.reduce((sum, c) => sum + Number(c.totalPaid || 0), 0));
   const totalReceivables = Math.round(allCustomers.reduce((sum, c) => sum + Number(c.receivableDue || 0), 0));
-  const totalCustomerCredits = 0;
+  const totalCustomerCredits = Math.round(allCustomers.reduce((sum, c) => sum + Number(c.advanceCredit || 0), 0));
   const settledCount = allCustomers.filter(c => c.status === 'Settled' || c.netBalance === 0).length;
 
   return {
