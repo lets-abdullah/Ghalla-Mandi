@@ -1348,11 +1348,11 @@ export const Reports = () => {
   }, [customers, sales, paymentLogs, saleReturns]);
 
   // Canonical Double-Entry Balance Sheet:
-  // 1. ASSETS: Genuine Asset balances (Cash >= 0, Bank >= 0, Card >= 0, Customer Receivables, Inventory)
-  const liquidCashAsset = Math.max(0, cashInHand);
-  const liquidBankAsset = Math.max(0, bankBalance);
-  const liquidCardAsset = Math.max(0, cardBalance);
-  const totalLiquidAssets = liquidCashAsset + liquidBankAsset + liquidCardAsset;
+  // 1. ASSETS: Combined Overall Net Operating Liquid Funds (Cash + Bank + Card)
+  const totalCombinedLiquidInflows = cashInflows + bankInflows + cardInflows;
+  const totalCombinedLiquidOutflows = cashTotalOutflows + bankTotalOutflows + cardTotalOutflows;
+  const netLiquidOperatingFunds = totalCombinedLiquidInflows - totalCombinedLiquidOutflows;
+  const totalLiquidAssets = Math.max(0, netLiquidOperatingFunds);
 
   const totalAssets = useMemo(() => {
     return Math.round(totalLiquidAssets + totalCustomerReceivables + totalStockValuation);
@@ -4304,12 +4304,12 @@ export const Reports = () => {
                   </div>
                   <div className="space-y-0.5 text-[11px] text-slate-600 dark:text-slate-300">
                     <div className="flex justify-between">
-                      <span>• Total Liquid Inflows (Customer Collections & Cash Receipts):</span>
-                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">+ Rs. {cashInflows.toLocaleString()}</span>
+                      <span>• Total Liquid Inflows (Cash, Bank & Card Receipts):</span>
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">+ Rs. {totalCombinedLiquidInflows.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>• Total Liquid Outflows (Supplier Outflows & Cash Refunds Paid):</span>
-                      <span className="font-mono font-bold text-rose-600 dark:text-rose-400">- Rs. {cashTotalOutflows.toLocaleString()}</span>
+                      <span>• Total Liquid Outflows (Supplier, Expenses & Refunds Paid):</span>
+                      <span className="font-mono font-bold text-rose-600 dark:text-rose-400">- Rs. {totalCombinedLiquidOutflows.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-bold pt-1 border-t border-slate-200 dark:border-slate-700">
                       <span>• Net Operating Cash Flow (Available Liquid Funds):</span>
