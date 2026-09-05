@@ -1325,8 +1325,16 @@ export const Reports = () => {
   // Initial stock valuation seeded as owner's invested opening equity
   const totalInitialStockValuation = useMemo(() => {
     return (products || []).reduce((sum, prod) => {
-      const initQty = Number(prod.initialStock !== undefined ? prod.initialStock : (prod.initialstock !== undefined ? prod.initialstock : (prod.openingStock ?? prod.opening_stock ?? 0)));
-      const initRate = Number(prod.purchasePrice !== undefined ? prod.purchasePrice : (prod.purchaseprice !== undefined ? prod.purchaseprice : (prod.initialCost || 0)));
+      const rawQty = prod.initialStock !== undefined && prod.initialStock !== null ? prod.initialStock :
+        prod.initialstock !== undefined && prod.initialstock !== null ? prod.initialstock :
+          prod.openingStock !== undefined && prod.openingStock !== null ? prod.openingStock :
+            prod.opening_stock !== undefined && prod.opening_stock !== null ? prod.opening_stock :
+              (prod.stockQty !== undefined ? prod.stockQty : prod.stockqty);
+      const initQty = Number(rawQty !== undefined && rawQty !== null ? rawQty : 0);
+      const initRate = Number(
+        prod.purchasePrice !== undefined ? prod.purchasePrice :
+          prod.purchaseprice !== undefined ? prod.purchaseprice : (prod.initialCost || 0)
+      );
       return sum + (initQty * initRate);
     }, 0);
   }, [products]);
@@ -1361,8 +1369,9 @@ export const Reports = () => {
   }, [totalAssets, totalLiabilities]);
 
   const openingStockEquity = useMemo(() => {
-    return Math.round(totalInitialStockValuation);
-  }, [totalInitialStockValuation]);
+    const val = totalInitialStockValuation > 0 ? totalInitialStockValuation : totalStockValuation;
+    return Math.round(val);
+  }, [totalInitialStockValuation, totalStockValuation]);
 
   const contributedCashCapital = useMemo(() => {
     return Math.max(0, Math.round(totalEquity - netOperatingProfit - openingStockEquity));
