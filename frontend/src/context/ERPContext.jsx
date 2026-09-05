@@ -386,7 +386,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
     : res.totalLiquid;
 
   const totalSpecificNonPos = specificNonPosLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-  let specificPaid = Math.min(netDueableTotal, upfrontPaid + totalSpecificNonPos);
+  let specificPaid = upfrontPaid + totalSpecificNonPos;
 
   // Unlinked general customer payments (e.g. Khata payments) allocation
   const custId = sale.customerId ? String(sale.customerId) : null;
@@ -472,7 +472,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
             .reduce((sum, pl) => sum + (String(pl.ref || '').includes('POS-PAY') ? Number(pl.amount || 0) : 0), 0)
         : resolveTransactionPayment(s, 'Sale').totalLiquid;
 
-      const sSpecificPaid = Math.min(sNetTotal, sUpfront + sSpecificLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0));
+      const sSpecificPaid = sUpfront + sSpecificLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
       const sRemainingDue = Math.max(0, sNetTotal - sSpecificPaid);
 
       const alloc = Math.min(sRemainingDue, availableGeneralCash);
@@ -485,13 +485,38 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   }
 
   const rawGrossPaid = specificPaid + generalAllocatedToThisSale;
-  const paid = Math.min(netDueableTotal, rawGrossPaid);
+  const paid = rawGrossPaid;
   const isFullyReturned = (sale.status === 'Returned') || sale.isReturned || (sale.returnStatus === 'Fully Returned') || (returnAmount >= (total - 0.5) && total > 0);
   const isPartiallyReturned = !isFullyReturned && returnAmount > 0;
   const isReturned = isFullyReturned;
   const due = Math.max(0, netDueableTotal - paid);
   const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
-  const effectiveRefundCashback = Math.max(cashRefundAmount, Math.max(0, rawGrossPaid - netDueableTotal));
+
+  const dummyCust = { id: custId, name: partyName, customerType: isRegularCust ? 'Regular Customer' : 'Walk-in Customer' };
+  const custKhata = computeCustomerKhataBalance(dummyCust, allSales.length > 0 ? allSales : [sale], paymentLogs, saleReturns);
+  const autoCustRefund = Number(custKhata.refundLiability || custKhata.advanceCredit || 0);
+
+  const relevantSales = (allSales && allSales.length > 0)
+    ? (allSales || []).filter(s => {
+        const sCustId = s.customerId ? String(s.customerId) : null;
+        const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
+        if (isRegularCust) {
+          return (custId && sCustId && sCustId === custId) || (partyName && sPartyName === partyName && !sPartyName.includes('walk-in'));
+        } else {
+          return (custId && sCustId && sCustId === custId) || (partyName && sPartyName === partyName);
+        }
+      })
+    : [sale];
+
+  const primarySale = relevantSales.find(s => {
+    const sReturns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(s.id)) || (r.invoiceNo && r.invoiceNo === s.invoiceNo));
+    return sReturns.length > 0;
+  }) || relevantSales[0] || sale;
+
+  const isPrimary = String(primarySale.id) === String(sale.id);
+  const effectiveRefundCashback = isPrimary
+    ? Math.max(cashRefundAmount, Math.max(autoCustRefund, Math.max(0, rawGrossPaid - netDueableTotal)))
+    : cashRefundAmount;
 
   return {
     total: Math.round(total),
