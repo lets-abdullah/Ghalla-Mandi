@@ -39,6 +39,12 @@ export const KPICard = ({
       value: 'text-rose-600 dark:text-rose-400',
       badge: 'text-rose-700 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60'
     },
+    red: {
+      card: theme === 'dark' ? 'bg-slate-800 border-red-500/30' : 'bg-gradient-to-br from-red-50/40 to-white border-red-200/60',
+      iconBox: 'bg-red-100 text-red-700 shadow-2xs',
+      value: 'text-red-600 dark:text-red-400',
+      badge: 'text-red-700 bg-red-50 dark:bg-red-950/40 border border-red-200/60'
+    },
     orange: {
       card: theme === 'dark' ? 'bg-slate-800 border-orange-500/30' : 'bg-gradient-to-br from-orange-50/40 to-white border-orange-200/60',
       iconBox: 'bg-orange-100 text-orange-700 shadow-2xs',

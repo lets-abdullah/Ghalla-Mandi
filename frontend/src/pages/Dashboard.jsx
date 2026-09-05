@@ -156,6 +156,7 @@ export const Dashboard = () => {
           title="Customer Receivables"
           amount={`Rs. ${totalCustomerDues.toLocaleString()}`}
           icon={Users}
+          color="orange"
           onClick={() => navigate('/khata')}
         />
 
@@ -164,6 +165,7 @@ export const Dashboard = () => {
           title="Supplier Payables"
           amount={`Rs. ${totalPayables.toLocaleString()}`}
           icon={CreditCard}
+          color="red"
           onClick={() => navigate('/suppliers')}
         />
       </div>
