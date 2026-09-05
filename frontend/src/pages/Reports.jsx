@@ -4296,24 +4296,24 @@ export const Reports = () => {
               </div>
 
               <div className="space-y-2 text-xs">
-                {/* 1. Liquid Cash, Bank & Card Balances */}
+                {/* 1. Net Operating Cash Flow (Liquid Cash, Bank & Card Funds) */}
                 <div className={`p-3.5 rounded-xl border space-y-1.5 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700/60' : 'bg-slate-50/80 border-slate-200/70'}`}>
                   <div className="flex items-center justify-between font-bold">
-                    <span className="text-slate-800 dark:text-slate-200">1. Liquid Cash, Bank & Card Balances</span>
+                    <span className="text-slate-800 dark:text-slate-200">1. Net Operating Cash Flow (Inflows − Outflows)</span>
                     <span className="font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">Rs. {totalLiquidAssets.toLocaleString()}</span>
                   </div>
                   <div className="space-y-0.5 text-[11px] text-slate-600 dark:text-slate-300">
                     <div className="flex justify-between">
-                      <span>• Cash in Hand (Physical Drawer):</span>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {liquidCashAsset.toLocaleString()}</span>
+                      <span>• Total Liquid Inflows (Customer Collections & Cash Receipts):</span>
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">+ Rs. {cashInflows.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>• Bank Account Balances:</span>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white">Rs. {liquidBankAsset.toLocaleString()}</span>
+                      <span>• Total Liquid Outflows (Supplier Outflows & Cash Refunds Paid):</span>
+                      <span className="font-mono font-bold text-rose-600 dark:text-rose-400">- Rs. {cashTotalOutflows.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>• Card Payment / POS Machine:</span>
-                      <span className="font-mono font-bold text-purple-600 dark:text-purple-400">Rs. {liquidCardAsset.toLocaleString()}</span>
+                    <div className="flex justify-between font-bold pt-1 border-t border-slate-200 dark:border-slate-700">
+                      <span>• Net Operating Cash Flow (Available Liquid Funds):</span>
+                      <span className="font-mono font-black text-slate-900 dark:text-white">Rs. {totalLiquidAssets.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
