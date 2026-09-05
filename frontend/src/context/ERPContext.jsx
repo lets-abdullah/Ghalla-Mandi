@@ -90,7 +90,10 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
     );
 
     const rawMode = String(
-      tx.refundMode || tx.refundmode || tx.mode || tx.paymentMode || 'Cash'
+      tx.refundMode !== undefined && tx.refundMode !== null && tx.refundMode !== '' ? tx.refundMode :
+        tx.refundmode !== undefined && tx.refundmode !== null && tx.refundmode !== '' ? tx.refundmode :
+          tx.mode !== undefined && tx.mode !== null && tx.mode !== '' ? tx.mode :
+            tx.paymentMode !== undefined && tx.paymentMode !== null && tx.paymentMode !== '' ? tx.paymentMode : 'Cash'
     ).trim().toLowerCase();
 
     const isNonLiquid = rawMode.includes('khata') || rawMode.includes('credit') || rawMode.includes('due') || rawMode.includes('pending') || refAmt === 0;
