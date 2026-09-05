@@ -506,10 +506,6 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   const due = Math.max(0, netDueableTotal - paid);
   const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
 
-  const dummyCust = { id: custId, name: partyName, customerType: isRegularCust ? 'Regular Customer' : 'Walk-in Customer' };
-  const custKhata = computeCustomerKhataBalance(dummyCust, allSales.length > 0 ? allSales : [sale], paymentLogs, saleReturns);
-  const autoCustRefund = Number(custKhata.refundLiability || custKhata.advanceCredit || 0);
-
   const relevantSales = (allSales && allSales.length > 0)
     ? (allSales || []).filter(s => {
         const sCustId = s.customerId ? String(s.customerId) : null;
@@ -529,7 +525,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
 
   const isPrimary = String(primarySale.id) === String(sale.id);
   const effectiveRefundCashback = isPrimary
-    ? Math.max(cashRefundAmount, Math.max(autoCustRefund, Math.max(0, rawGrossPaid - netDueableTotal)))
+    ? Math.max(cashRefundAmount, Math.max(0, rawGrossPaid - netDueableTotal))
     : cashRefundAmount;
 
   return {
@@ -690,11 +686,6 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const due = Math.max(0, netDueableTotal - paid);
   const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
 
-  // Calculate canonical overall supplier refund/cashback for this supplier
-  const dummySup = { id: supId, name: supName };
-  const supKhata = computeSupplierKhataBalance(dummySup, allPurchases.length > 0 ? allPurchases : [purchase], paymentLogs, purchaseReturns);
-  const autoSupRefund = Number(supKhata.automaticSupplierRefund || supKhata.refundCashback || 0);
-
   const relevantPurchases = (allPurchases && allPurchases.length > 0)
     ? (allPurchases || []).filter(p => {
         const pSupId = p.supplierId ? String(p.supplierId) : (p.supplierid ? String(p.supplierid) : null);
@@ -710,7 +701,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
 
   const isPrimary = String(primaryPurchase.id) === String(purchase.id);
   const effectiveRefundCashback = isPrimary
-    ? Math.max(cashRefundAmount, Math.max(autoSupRefund, Math.max(0, rawGrossPaid - netDueableTotal)))
+    ? Math.max(cashRefundAmount, Math.max(0, rawGrossPaid - netDueableTotal))
     : cashRefundAmount;
 
   return {
