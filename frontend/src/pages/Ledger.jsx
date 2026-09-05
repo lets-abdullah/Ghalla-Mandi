@@ -1278,7 +1278,7 @@ export const Ledger = () => {
                     <th className="py-3 px-3.5">Ref #</th>
                     <th className="py-3 px-3 text-right">Original Amount</th>
                     <th className="py-3 px-3 text-right">Return Goods</th>
-                    <th className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30">Auto Refund Back</th>
+                    <th className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400">Refund Amount</th>
                     <th className="py-3 px-3 text-right">{isSupplier ? 'Net Purchases' : 'Net Sales'}</th>
                     <th className="py-3 px-3 text-right">{isSupplier ? 'Paid to Supplier' : 'Amount Received'}</th>
                     <th className="py-3 px-3 text-center">Payment Method</th>
@@ -1376,17 +1376,12 @@ export const Ledger = () => {
                             )}
                           </td>
 
-                          {/* 6. Auto Refund Back (SEPARATE COLUMN) */}
-                          <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap bg-emerald-50/40 dark:bg-emerald-950/20">
+                          {/* 6. Refund Amount (Clean Plain Text Field, No Oval Block) */}
+                          <td className="py-3.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                             {isRefund ? (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-black border border-emerald-500/30">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                Rs. {(entry.debit || entry.autoRefundAmount || 0).toLocaleString()}
-                              </span>
+                              `Rs. ${(entry.debit || entry.autoRefundAmount || 0).toLocaleString()}`
                             ) : entry.autoRefundAmount > 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
-                                Rs. {entry.autoRefundAmount.toLocaleString()}
-                              </span>
+                              `Rs. ${entry.autoRefundAmount.toLocaleString()}`
                             ) : (
                               <span className="text-slate-400 font-normal">—</span>
                             )}
