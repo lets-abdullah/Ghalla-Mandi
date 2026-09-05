@@ -79,6 +79,7 @@ export const Ledger = () => {
   const [txTypeFilter, setTxTypeFilter] = useState('All'); // 'All' | 'Sales' | 'Payments' | 'Returns'
   const [txSearchQuery, setTxSearchQuery] = useState('');
   const [statementViewMode, setStatementViewMode] = useState('table'); // Table / columns view strictly enforced
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' = Chronological (Oldest to Newest) | 'desc' = Newest First
 
   // Modals state
   const [viewingEntry, setViewingEntry] = useState(null);
@@ -751,7 +752,8 @@ export const Ledger = () => {
   // Single Customer Chronological Ledger with Verified Running Balance
   const singleCustomerLedger = useMemo(() => {
     if (!statement) return [];
-    return statement.displayEntries.filter(entry => {
+    const sourceEntries = sortOrder === 'asc' ? statement.chronologicalEntries : statement.displayEntries;
+    return sourceEntries.filter(entry => {
       if (!matchDate(entry.rawDate)) return false;
       if (txTypeFilter === 'Sales' && entry.txType !== 'Sales' && entry.txType !== 'Purchases') return false;
       if (txTypeFilter === 'Payments' && entry.txType !== 'Payments') return false;
@@ -764,7 +766,7 @@ export const Ledger = () => {
       }
       return true;
     });
-  }, [statement, dateFilterType, customStartDate, customEndDate, txTypeFilter, txSearchQuery]);
+  }, [statement, sortOrder, dateFilterType, customStartDate, customEndDate, txTypeFilter, txSearchQuery]);
 
   // Handle Switching to a Customer's Ledger
   const handleOpenCustomerLedger = (cust) => {
@@ -1191,7 +1193,7 @@ export const Ledger = () => {
                 <Search className="w-4 h-4 text-slate-400 shrink-0" />
                 <input
                   type="text"
-                  placeholder="Search voucher # or description..."
+                  placeholder="Search reference # or description..."
                   value={txSearchQuery}
                   onChange={(e) => setTxSearchQuery(e.target.value)}
                   className="w-full bg-transparent text-xs font-bold outline-none placeholder:font-normal placeholder-slate-400"
@@ -1199,7 +1201,7 @@ export const Ledger = () => {
               </div>
 
               {/* Date Filter */}
-              <div className="w-full sm:w-44">
+              <div className="w-full sm:w-36">
                 <select
                   value={dateFilterType}
                   onChange={(e) => setDateFilterType(e.target.value)}
@@ -1215,7 +1217,7 @@ export const Ledger = () => {
               </div>
 
               {/* Tx Type Filter */}
-              <div className="w-full sm:w-44">
+              <div className="w-full sm:w-36">
                 <select
                   value={txTypeFilter}
                   onChange={(e) => setTxTypeFilter(e.target.value)}
@@ -1226,6 +1228,19 @@ export const Ledger = () => {
                   <option value="Sales">{isSupplier ? 'Purchases Only' : 'Sales Only'}</option>
                   <option value="Payments">Payments Only</option>
                   <option value="Returns">Returns Only</option>
+                </select>
+              </div>
+
+              {/* Sort Order Selector */}
+              <div className="w-full sm:w-44">
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                >
+                  <option value="asc">Oldest to Newest (1..N)</option>
+                  <option value="desc">Newest to Oldest (N..1)</option>
                 </select>
               </div>
             </div>
@@ -1274,15 +1289,16 @@ export const Ledger = () => {
                 <thead>
                   <tr className={`border-b text-[10px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                     }`}>
-                    <th className="py-3 px-3.5">Date</th>
-                    <th className="py-3 px-3.5">Ref #</th>
-                    <th className="py-3 px-3 text-right">Original Amount</th>
-                    <th className="py-3 px-3 text-right">Return Goods</th>
-                    <th className="py-3 px-3 text-right text-emerald-600 dark:text-emerald-400">Refund Amount</th>
-                    <th className="py-3 px-3 text-right">{isSupplier ? 'Net Purchases' : 'Net Sales'}</th>
-                    <th className="py-3 px-3 text-right">{isSupplier ? 'Paid to Supplier' : 'Amount Received'}</th>
-                    <th className="py-3 px-3 text-center">Payment Method</th>
-                    <th className="py-3 px-3.5 text-right font-black">Running Balance</th>
+                    <th className="py-3.5 px-3.5">Date</th>
+                    <th className="py-3.5 px-3.5">Type</th>
+                    <th className="py-3.5 px-3.5">Reference #</th>
+                    <th className="py-3.5 px-4">Description</th>
+                    <th className="py-3.5 px-3 text-right">Original Amount</th>
+                    <th className="py-3.5 px-3 text-right">Return / Refund</th>
+                    <th className="py-3.5 px-3 text-right">Net Amount</th>
+                    <th className="py-3.5 px-3 text-right">Paid / Received</th>
+                    <th className="py-3.5 px-3 text-center">Payment Method</th>
+                    <th className="py-3.5 px-3.5 text-right font-black">Running Balance</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
@@ -1308,7 +1324,6 @@ export const Ledger = () => {
                         .replace(/:\s*Purchase Return$/i, '')
                         .replace(/:\s*Sale Return$/i, '')
                         .trim();
-                      const hasDistinctNotes = entry.notes && entry.notes.trim() !== '' && entry.notes.trim() !== entry.desc?.trim() && !entry.notes.includes('Original Bill:');
 
                       // Method styling
                       const rawMethod = entry.paymentMethod || 'Cash';
@@ -1322,7 +1337,7 @@ export const Ledger = () => {
                       const methodLabel = isReturn
                         ? 'Return Adjustment'
                         : isRefund
-                          ? (isSupplier ? `Refund In (${rawMethod})` : `Refund Out (${rawMethod})`)
+                          ? (isSupplier ? `Cash` : `Cash`)
                           : isBank
                             ? 'Bank Transfer'
                             : isCard
@@ -1330,6 +1345,29 @@ export const Ledger = () => {
                               : isCash
                                 ? 'Cash'
                                 : rawMethod;
+
+                      // Determine Type Badge
+                      let typeLabel = entry.txType;
+                      let typeBadgeClass = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+                      if (entry.txType === 'Purchases') {
+                        typeLabel = '🛒 Purchase';
+                        typeBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800';
+                      } else if (entry.txType === 'Sales') {
+                        typeLabel = '🛒 Sale';
+                        typeBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800';
+                      } else if (isReturn) {
+                        typeLabel = isSupplier ? '🛍️ Purchase Return' : '🛍️ Sale Return';
+                        typeBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800';
+                      } else if (isRefund) {
+                        typeLabel = isSupplier ? '📥 Refund In' : '📤 Refund Out';
+                        typeBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800';
+                      } else if (entry.txType === 'Payments') {
+                        typeLabel = isSupplier ? '💸 Payment Out' : '💰 Payment In';
+                        typeBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800';
+                      } else if (entry.txType === 'Opening Balance') {
+                        typeLabel = '⚖️ Opening Balance';
+                        typeBadgeClass = 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+                      }
 
                       return (
                         <tr
@@ -1347,12 +1385,24 @@ export const Ledger = () => {
                             {entry.date}
                           </td>
 
-                          {/* 2. Voucher / Ref # */}
+                          {/* 2. Type */}
+                          <td className="py-3.5 px-3.5 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px] font-extrabold ${typeBadgeClass}`}>
+                              {typeLabel}
+                            </span>
+                          </td>
+
+                          {/* 3. Reference # */}
                           <td className="py-3.5 px-3.5 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                             {entry.ref}
                           </td>
 
-                          {/* 4. Original Amount */}
+                          {/* 4. Description */}
+                          <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200 max-w-[240px] truncate" title={cleanDesc}>
+                            {cleanDesc}
+                          </td>
+
+                          {/* 5. Original Amount */}
                           <td className="py-3.5 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                             {entry.originalGross > 0 ? (
                               `Rs. ${entry.originalGross.toLocaleString()}`
@@ -1361,55 +1411,52 @@ export const Ledger = () => {
                             ) : entry.txType === 'Purchases' || entry.txType === 'Sales' ? (
                               `Rs. ${(entry.debit || entry.sales || 0).toLocaleString()}`
                             ) : (
-                              '—'
+                              <span className="text-slate-400 font-normal">—</span>
                             )}
                           </td>
 
-                          {/* 5. Return Goods */}
+                          {/* 6. Return / Refund */}
                           <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
-                            {(entry.txType === 'Returns' || entry.txType === 'Return') ? (
-                              <span className="text-purple-600 dark:text-purple-400 font-bold">
-                                Rs. {(entry.returnAmount || entry.credit || 0).toLocaleString()}
-                              </span>
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-
-                          {/* 6. Refund Amount (Clean Plain Text Field, No Oval Block) */}
-                          <td className="py-3.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                             {isRefund ? (
-                              `Rs. ${(entry.debit || entry.autoRefundAmount || 0).toLocaleString()}`
-                            ) : entry.autoRefundAmount > 0 ? (
-                              `Rs. ${entry.autoRefundAmount.toLocaleString()}`
+                              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
+                                Rs. ${(entry.debit || entry.autoRefundAmount || 0).toLocaleString()}
+                              </span>
+                            ) : isReturn ? (
+                              <span className="text-purple-600 dark:text-purple-400 font-extrabold">
+                                Rs. ${(entry.returnAmount || entry.credit || 0).toLocaleString()}
+                              </span>
                             ) : (
                               <span className="text-slate-400 font-normal">—</span>
                             )}
                           </td>
 
-                          {/* 7. Net Purchases / Sales */}
+                          {/* 7. Net Amount */}
                           <td className="py-3.5 px-3 text-right font-mono font-black text-slate-900 dark:text-white whitespace-nowrap">
                             {(entry.txType === 'Purchases' || entry.txType === 'Sales') ? (
                               `Rs. ${(entry.netTotal || entry.sales || entry.originalGross || entry.debit || 0).toLocaleString()}`
+                            ) : isReturn ? (
+                              `Rs. ${(entry.netTotal || 0).toLocaleString()}`
+                            ) : isRefund ? (
+                              `Rs. ${(entry.netTotal || entry.debit || 0).toLocaleString()}`
                             ) : entry.txType === 'Opening Balance' ? (
                               `Rs. ${entry.debit?.toLocaleString()}`
                             ) : (
-                              '—'
+                              <span className="text-slate-400 font-normal">—</span>
                             )}
                           </td>
 
-                          {/* 8. Paid to Supplier / Received */}
+                          {/* 8. Paid / Received */}
                           <td className="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
                             {isRefund ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                                {isSupplier ? `+ Rs. ${(entry.debit || 0).toLocaleString()}` : `- Rs. ${(entry.debit || 0).toLocaleString()}`} <span className="text-[10px] font-normal">({isSupplier ? 'Refund In' : 'Refund Out'})</span>
+                                {isSupplier ? `+ Rs. ${(entry.debit || 0).toLocaleString()}` : `- Rs. ${(entry.debit || 0).toLocaleString()}`}
                               </span>
                             ) : (entry.txType === 'Payments' || entry.txType === 'Payment' || (entry.payment && entry.payment > 0 && !isReturn)) ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-black">
                                 Rs. {(entry.payment || entry.credit || 0).toLocaleString()}
                               </span>
                             ) : (
-                              '—'
+                              <span className="text-slate-400 font-normal">—</span>
                             )}
                           </td>
 
@@ -1434,15 +1481,15 @@ export const Ledger = () => {
                           <td className="py-3.5 px-3.5 text-right font-mono font-black text-xs whitespace-nowrap">
                             {isZero ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
-                                ✓ Rs. 0 (Settled)
+                                Rs. 0
                               </span>
                             ) : isBalPos ? (
-                              <span className="text-amber-600 dark:text-amber-400 font-black">
-                                {isSupplier ? 'Payable: ' : 'Due: '}Rs. {Math.abs(rawBal).toLocaleString()}
+                              <span className="text-rose-600 dark:text-rose-400 font-black">
+                                Rs. {Math.abs(rawBal).toLocaleString()}
                               </span>
                             ) : (
-                              <span className="text-blue-600 dark:text-blue-400 font-black">
-                                {isSupplier ? 'Refund Due: ' : 'Advance: '}Rs. {Math.abs(rawBal).toLocaleString()}
+                              <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                                Rs. {Math.abs(rawBal).toLocaleString()}
                               </span>
                             )}
                           </td>
@@ -1452,6 +1499,71 @@ export const Ledger = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Bottom Summary Bar */}
+            <div className={`p-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-4 text-center text-xs font-bold ${
+              theme === 'dark' ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div>
+                <div className="text-slate-400 text-[10px] uppercase font-black">Opening Balance (as on start)</div>
+                <div className="font-mono font-bold mt-0.5 text-rose-600 dark:text-rose-400">
+                  Rs. {(statement?.openingBalance || 0).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-400 text-[10px] uppercase font-black">Total Credits (Inflow)</div>
+                <div className="font-mono font-bold mt-0.5 text-emerald-600 dark:text-emerald-400">
+                  Rs. ${(statement?.totalCredit || 0).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-400 text-[10px] uppercase font-black">Total Debits (Outflow)</div>
+                <div className="font-mono font-bold mt-0.5 text-rose-600 dark:text-rose-400">
+                  Rs. ${(statement?.totalDebit || 0).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-400 text-[10px] uppercase font-black">Closing Balance</div>
+                <div className={`font-mono font-black mt-0.5 ${(statement?.closingBalance || 0) === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  Rs. ${(statement?.closingBalance || 0).toLocaleString()}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Guidance Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`p-4 rounded-2xl border flex items-start gap-3 ${
+              theme === 'dark' ? 'bg-slate-800/80 border-slate-700 text-white' : 'bg-blue-50/50 border-blue-100 text-slate-800'
+            }`}>
+              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-xs">About This Ledger</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  This ledger shows all purchases, returns, payments, and refunds related to this party.
+                </p>
+              </div>
+            </div>
+
+            <div className={`p-4 rounded-2xl border flex items-start gap-3 ${
+              (statement?.closingBalance || 0) === 0
+                ? (theme === 'dark' ? 'bg-emerald-950/30 border-emerald-800/60 text-white' : 'bg-emerald-50/50 border-emerald-100 text-slate-800')
+                : (theme === 'dark' ? 'bg-amber-950/30 border-amber-800/60 text-white' : 'bg-amber-50/50 border-amber-100 text-slate-800')
+            }`}>
+              <div className={`p-2 rounded-xl shrink-0 ${(statement?.closingBalance || 0) === 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-xs">Current Status</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {(statement?.closingBalance || 0) === 0
+                    ? `All dues have been cleared. No amount is ${isSupplier ? 'payable to this supplier' : 'due from this customer'}.`
+                    : `Active account balance of Rs. ${(statement?.closingBalance || 0).toLocaleString()} ${statement?.status}.`}
+                </p>
+              </div>
             </div>
           </div>
 
