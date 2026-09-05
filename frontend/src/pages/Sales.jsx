@@ -19,7 +19,8 @@ import {
   RefreshCw,
   Edit3,
   Eye,
-  Plus
+  Plus,
+  TrendingUp
 } from 'lucide-react';
 import { useERP, computeSaleFinancials, computeCustomerKhataBalance, computeWalkinUncollectedDues } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -226,16 +227,18 @@ export const Sales = () => {
     0
   );
 
-  const { totalFilteredCashReceived, totalFilteredOutstandingDue, totalFilteredReturnAmount, totalPartyKhataReceivables, totalWalkinUncollected } = useMemo(() => {
+  const { totalFilteredCashReceived, totalFilteredOutstandingDue, totalFilteredReturnAmount, totalFilteredNetSales, totalPartyKhataReceivables, totalWalkinUncollected } = useMemo(() => {
     let totalCollected = 0;
     let totalOutstanding = 0;
     let totalReturns = 0;
+    let totalNet = 0;
 
     filteredSales.forEach(s => {
       const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
       totalCollected += fin.paid;
       totalOutstanding += fin.due;
       totalReturns += (fin.returnAmount || 0);
+      totalNet += fin.netTotal;
     });
 
     let partyDue = 0;
@@ -254,6 +257,7 @@ export const Sales = () => {
       totalFilteredCashReceived: totalCollected,
       totalFilteredOutstandingDue: selectedCustomerId !== 'All' ? partyDue : (customerTypeFilter === 'Walk-in Customer' ? walkinDue : (customerTypeFilter === 'Regular Customer' ? partyDue : (partyDue + walkinDue))),
       totalFilteredReturnAmount: totalReturns,
+      totalFilteredNetSales: totalNet,
       totalPartyKhataReceivables: partyDue,
       totalWalkinUncollected: walkinDue
     };
@@ -399,7 +403,7 @@ export const Sales = () => {
       </div>
 
       {/* KPI Cards Row (Real-time Filter-Aware - Screen Only) */}
-      <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="no-print grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* 1. Total Sales */}
         <div
           onClick={() => setStatusFilter('All')}
@@ -418,26 +422,7 @@ export const Sales = () => {
           </div>
         </div>
 
-        {/* 2. Cash Received */}
-        <div
-          onClick={() => setStatusFilter('Paid')}
-          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
-            ? 'bg-slate-800 border-blue-500/30 text-white'
-            : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
-            }`}
-          title="Click to filter paid sales"
-        >
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-blue-600" />
-            <span>{t('cashReceived') || 'Cash Received'}</span>
-          </div>
-
-          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
-            Rs. {totalFilteredCashReceived.toLocaleString()}
-          </div>
-        </div>
-
-        {/* 3. Sale Returns */}
+        {/* 2. Sale Returns */}
         <div
           onClick={() => setStatusFilter(statusFilter === 'Returned' ? 'All' : 'Returned')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
@@ -456,7 +441,45 @@ export const Sales = () => {
           </div>
         </div>
 
-        {/* 4. Pending Khata / Receivable */}
+        {/* 3. Net Sales */}
+        <div
+          onClick={() => setStatusFilter('All')}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
+            ? 'bg-slate-800 border-indigo-500/30 text-white'
+            : 'bg-gradient-to-b from-indigo-50/50 to-white border-indigo-200/80'
+            }`}
+          title="Click to view all sales"
+        >
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span>{t('netSales') || 'Net Sales'}</span>
+          </div>
+
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-indigo-600 dark:text-indigo-400">
+            Rs. {totalFilteredNetSales.toLocaleString()}
+          </div>
+        </div>
+
+        {/* 4. Cash Received */}
+        <div
+          onClick={() => setStatusFilter('Paid')}
+          className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
+            ? 'bg-slate-800 border-blue-500/30 text-white'
+            : 'bg-gradient-to-b from-blue-50/50 to-white border-blue-200/80'
+            }`}
+          title="Click to filter paid sales"
+        >
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-blue-600" />
+            <span>{t('cashReceived') || 'Cash Received'}</span>
+          </div>
+
+          <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-blue-600 dark:text-blue-400">
+            Rs. {totalFilteredCashReceived.toLocaleString()}
+          </div>
+        </div>
+
+        {/* 5. Pending Khata / Receivable */}
         <div
           onClick={() => setStatusFilter('Pending')}
           className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all cursor-pointer active:scale-98 ${theme === 'dark'
