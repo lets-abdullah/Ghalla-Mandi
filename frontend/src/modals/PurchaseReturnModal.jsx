@@ -31,6 +31,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
     purchaseReturns = [],
     paymentLogs = [],
     stockMovements = [],
+    liquidBalances,
     recordPurchaseReturn
   } = useERP();
   const { shop } = useAuth();
@@ -240,6 +241,18 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
 
   // Payable debt to supplier cancelled from khata
   const dueCancelled = Math.min(purDue, Math.max(0, currentGoodsValue - cashRefundAmount));
+
+  // Available balance in user-selected refund channel
+  const selectedChannelBalance = useMemo(() => {
+    const balances = liquidBalances || { cashInHand: 0, bankBalance: 0, cardBalance: 0 };
+    const m = String(refundMode || '').trim().toLowerCase();
+    if (m.includes('bank')) return Number(balances.bankBalance || 0);
+    if (m.includes('card')) return Number(balances.cardBalance || 0);
+    return Number(balances.cashInHand || 0);
+  }, [refundMode, liquidBalances]);
+
+  const isLiquidPayoutRequested = refundMode !== 'Credit' && refundMode !== 'Khata Credit' && cashRefundAmount > 0;
+  const isInsufficientBalance = isLiquidPayoutRequested && cashRefundAmount > selectedChannelBalance;
 
   const handleItemSelect = (idx) => {
     setSelectedItemIdx(idx);

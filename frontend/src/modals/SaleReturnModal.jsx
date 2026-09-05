@@ -324,7 +324,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
               </span>
             </div>
             <div className="px-2">
-              <span className="text-[10px] uppercase font-black tracking-wider text-orange-600 dark:text-orange-400 block">Unpaid Due (Khata)</span>
+              <span className="text-[10px] uppercase font-black tracking-wider text-orange-600 dark:text-orange-400 block">Due</span>
               <span className="font-mono font-black text-orange-600 dark:text-orange-400 text-sm sm:text-base mt-1 block">
                 Rs. {saleDue.toLocaleString()}
               </span>
@@ -406,8 +406,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                     type="button"
                     onClick={() => setShowFullReceiptModal(true)}
                     className={`flex-1 py-3.5 px-3 rounded-2xl border font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer ${theme === 'dark'
-                        ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
-                        : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
+                      ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
+                      : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
                       }`}
                   >
                     <Receipt className="w-4 h-4" />
@@ -418,8 +418,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                   type="button"
                   onClick={onClose}
                   className={`w-full py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
-                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-400'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                     }`}
                 >
                   Close
@@ -444,8 +444,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                         type="button"
                         onClick={() => handleItemSelect(idx)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${selectedItemIdx === idx
-                            ? 'bg-orange-500 text-white border-orange-500 shadow-xs font-black'
-                            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-500'
+                          ? 'bg-orange-500 text-white border-orange-500 shadow-xs font-black'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-500'
                           }`}
                       >
                         {it.name} ({it.remainingQty} {it.unit} left)
@@ -529,8 +529,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                         }}
                         onChange={(e) => handleQtyChange(e.target.value)}
                         className={`w-full border-2 rounded-2xl px-4 py-3 text-base font-black font-mono outline-none transition ${theme === 'dark'
-                            ? 'bg-slate-900 border-slate-700 text-white focus:border-orange-500'
-                            : 'bg-white border-slate-200 text-slate-900 focus:border-orange-500'
+                          ? 'bg-slate-900 border-slate-700 text-white focus:border-orange-500'
+                          : 'bg-white border-slate-200 text-slate-900 focus:border-orange-500'
                           }`}
                         required
                       />
@@ -584,8 +584,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                             type="button"
                             onClick={() => setRefundMode(mode.id)}
                             className={`py-3 px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${isSelected
-                                ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black shadow-2xs'
-                                : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                              ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black shadow-2xs'
+                              : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
                               }`}
                           >
                             <Icon className="w-4 h-4 shrink-0" />
