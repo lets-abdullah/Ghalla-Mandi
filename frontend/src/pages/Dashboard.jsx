@@ -210,11 +210,6 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Full Width Clean Recent Transactions Table */}
-      <div className="w-full">
-        <RecentTransactionsTable onViewInvoice={(inv) => setActiveInvoice(inv)} />
-      </div>
-
       {/* Invoice Drawer Modal */}
       {activeInvoice && (
         <InvoiceDrawer invoice={activeInvoice} onClose={() => setActiveInvoice(null)} />

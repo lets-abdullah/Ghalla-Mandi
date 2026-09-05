@@ -50,15 +50,29 @@ export const getDashboardMetrics = async (req, res) => {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
 
     // All-time Net Sales and Purchases
     const allTimeGrossSales = sales.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
     const allTimeSaleReturns = saleReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
-    const totalSales = Math.max(0, allTimeGrossSales - allTimeSaleReturns);
+    const allTimeSalesNet = Math.max(0, allTimeGrossSales - allTimeSaleReturns);
 
     const allTimeGrossPurchases = purchases.reduce((acc, p) => acc + Number(p.grandTotal || p.amount || 0), 0);
     const allTimePurchaseReturns = purchaseReturns.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
     const totalPurchases = Math.max(0, allTimeGrossPurchases - allTimePurchaseReturns);
+
+    // This month's net sales
+    const monthlySalesList = sales.filter(s => {
+      const d = parseTxDate(s.date, s.created_at);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+    const monthlyGross = monthlySalesList.reduce((acc, s) => acc + Number(s.amount || s.grandTotal || 0), 0);
+    const monthlySaleReturns = saleReturns.filter(r => {
+      const d = parseTxDate(r.date, r.created_at);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
+    const monthlyRevenue = Math.max(0, monthlyGross - monthlySaleReturns);
 
     // Today's Sales & Purchases (net of today's returns)
     const todaySalesList = sales.filter(s => isSameDay(parseTxDate(s.date, s.created_at), today));
@@ -73,10 +87,40 @@ export const getDashboardMetrics = async (req, res) => {
     const todayPurchaseReturnsVal = todayPurchaseReturnsList.reduce((acc, r) => acc + Number(r.refundAmount || 0), 0);
     const todayPurchases = Math.max(0, todayGrossPurchases - todayPurchaseReturnsVal);
 
-    // Today's Profit
-    const todayProfitGross = todaySalesList.reduce((acc, s) => acc + Number(s.profit || 0), 0);
+    // Today's Profit — use stored costPrice from cart items (FIFO/MWAC at sale time)
+    // then deduct COGS of today's sale return items
+    let todayGrossRevenue = 0;
+    let todayCOGS = 0;
+    todaySalesList.forEach(s => {
+      const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : []);
+      if (cart.length > 0) {
+        cart.forEach(it => {
+          const itQty = Number(it.qty || it.enteredQty || 0);
+          const itRate = Number(it.rate || 0);
+          const itCost = Number(it.costPrice ?? it.purchasePrice ?? 0);
+          todayGrossRevenue += itQty * itRate;
+          todayCOGS += itQty * itCost;
+        });
+      } else {
+        // Fallback: use stored profit field
+        todayGrossRevenue += Number(s.amount || s.grandTotal || 0);
+        todayCOGS += Math.max(0, Number(s.amount || 0) - Number(s.profit || 0));
+      }
+    });
+
+    // Deduct COGS of today's sale returns (returned items reduce cost)
+    todaySaleReturnsList.forEach(r => {
+      const items = Array.isArray(r.items) && r.items.length > 0 ? r.items : [];
+      items.forEach(it => {
+        const itQty = Number(it.qty || it.enteredQty || 0);
+        const itCost = Number(it.costPrice ?? it.purchasePrice ?? 0);
+        todayCOGS -= itQty * itCost; // Return reduces effective COGS
+      });
+    });
+
     const todayExpenses = expenses.filter(e => isSameDay(parseTxDate(e.date, e.created_at), today)).reduce((acc, e) => acc + Number(e.amount || 0), 0);
-    const todayProfit = todayProfitGross - todayExpenses;
+    const todayGrossProfit = Math.max(0, todayGrossRevenue - todaySaleReturnsVal) - Math.max(0, todayCOGS);
+    const todayProfit = todayGrossProfit - todayExpenses;
 
     const outstandingReceivables = customers.reduce((acc, c) => acc + Math.max(0, Number(c.balance || 0)), 0);
     const outstandingPayables = suppliers.reduce((acc, s) => acc + Math.max(0, Number(s.balance || 0)), 0);
@@ -90,27 +134,33 @@ export const getDashboardMetrics = async (req, res) => {
         minStock: `${p.minStock || 10} ${p.unit || 'KG'}`
       }));
 
-    const recentSales = sales.slice(0, 5).map(s => ({
+    // Recent transactions: interleave sales + purchases sorted by created_at DESC, pick top 5
+    const recentSaleItems = sales.slice(0, 10).map(s => ({
       id: s.id,
       type: 'Sale',
       invoiceNo: s.invoiceNo,
       partyName: s.partyName,
       date: s.date,
+      sortTime: new Date(s.created_at || s.date || 0).getTime(),
       amount: s.amount,
       status: s.status
     }));
 
-    const recentPurchases = purchases.slice(0, 5).map(p => ({
+    const recentPurchaseItems = purchases.slice(0, 10).map(p => ({
       id: p.id,
       type: 'Purchase',
       invoiceNo: p.purchaseNo,
       partyName: p.supplierName,
       date: p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'Today',
+      sortTime: new Date(p.created_at || p.date || 0).getTime(),
       amount: p.grandTotal,
       status: p.paymentStatus
     }));
 
-    const recentTransactions = [...recentSales, ...recentPurchases].slice(0, 5);
+    const recentTransactions = [...recentSaleItems, ...recentPurchaseItems]
+      .sort((a, b) => b.sortTime - a.sortTime)
+      .slice(0, 5)
+      .map(({ sortTime, ...rest }) => rest);
 
     // Actual 7-day dynamic daily trend
     const weeklyChart = [];
@@ -138,7 +188,8 @@ export const getDashboardMetrics = async (req, res) => {
         todaySales,
         todayPurchases,
         todayProfit,
-        monthlyRevenue: totalSales,
+        monthlyRevenue,        // Current month net sales
+        allTimeSales: allTimeSalesNet,  // All-time net sales (separate from monthly)
         outstandingReceivables,
         receivableCustomerCount: customers.filter(c => Number(c.balance || 0) > 0).length,
         outstandingPayables,

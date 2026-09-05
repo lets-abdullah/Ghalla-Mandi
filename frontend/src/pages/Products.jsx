@@ -5,7 +5,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
-import { ProductHistory } from './ProductHistory';
 import { useToast } from '../components/Toast';
 import { EmptyState } from '../components/EmptyState';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -25,20 +24,6 @@ export const Products = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState(null);
   const [deletingCategory, setDeletingCategory] = useState(null);
-
-  // Keyboard Esc Listener for closing active modals or history view
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        if (viewingHistoryProduct) setViewingHistoryProduct(null);
-        else if (showAddCategoryModal) setShowAddCategoryModal(false);
-        else if (showAddModal) setShowAddModal(false);
-        else if (editingProduct) setEditingProduct(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAddCategoryModal, showAddModal, editingProduct, viewingHistoryProduct]);
 
   // New Category Form State
   const [newCatData, setNewCatData] = useState({
@@ -394,15 +379,6 @@ export const Products = () => {
                       </td>
                       <td className="py-3 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* View Full Product History & FIFO Valuation */}
-                          <button
-                            onClick={() => setViewingHistoryProduct(product)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white transition font-extrabold text-xs shadow-2xs cursor-pointer active:scale-95"
-                            title="View Full Product History, Batches & Valuation"
-                          >
-                            <History className="w-3.5 h-3.5" />
-                            <span>History</span>
-                          </button>
                           <button
                             onClick={() => setEditingProduct(product)}
                             className={`p-1.5 rounded-lg transition cursor-pointer ${theme === 'dark' ? 'hover:bg-slate-700 text-slate-300 hover:text-brand-400' : 'hover:bg-slate-100 text-slate-600 hover:text-brand-600'

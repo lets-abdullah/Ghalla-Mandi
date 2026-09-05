@@ -61,7 +61,10 @@ export const createSale = async (req, res) => {
         const itemTotal = qty * rate;
         subtotal += itemTotal;
 
-        const unitProfit = rate - Number(product.purchasePrice || 0);
+        // FIFO/MWAC Profit: use costPrice from item (sent by frontend FIFO engine) if available,
+        // otherwise fall back to current MWAC (product.purchasePrice) at time of sale.
+        const costPrice = Number(item.costPrice ?? item.purchasePrice ?? product.purchasePrice ?? 0);
+        const unitProfit = rate - costPrice;
         totalProfit += unitProfit * qty;
 
         const expectedUnit = product.unit || 'KG';
@@ -94,6 +97,7 @@ export const createSale = async (req, res) => {
           name: product.name,
           qty,
           rate,
+          costPrice,  // Store at time of sale for reproducible profit recalculation
           unit: expectedUnit,
           unitName: expectedUnit,
           totalAmount: itemTotal
@@ -259,7 +263,10 @@ export const updateSale = async (req, res) => {
         const itemTotal = qty * rate;
         subtotal += itemTotal;
 
-        const unitProfit = rate - Number(product.purchasePrice || 0);
+        // FIFO/MWAC Profit on update: use costPrice from item if provided (frontend FIFO engine),
+        // otherwise use current MWAC. After stock restore, the MWAC reflects the restored state.
+        const costPrice = Number(item.costPrice ?? item.purchasePrice ?? product.purchasePrice ?? 0);
+        const unitProfit = rate - costPrice;
         totalProfit += unitProfit * qty;
 
         const itemUnit = item.unitName || item.unit || product.unit || 'KG';
@@ -275,6 +282,7 @@ export const updateSale = async (req, res) => {
           name: product.name,
           qty,
           rate,
+          costPrice,  // Preserve for future recalculations
           unitName: product.unit || 'KG',
           totalAmount: itemTotal
         });

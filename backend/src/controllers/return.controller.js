@@ -9,6 +9,7 @@ import { Purchase } from '../models/purchase.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
 import { run, withTransaction } from '../services/db.service.js';
 import { computeSaleInvoiceFromReturns, computePurchaseInvoiceFromReturns, syncCustomerBalance, syncSupplierBalance } from '../utils/accounting.util.js';
+import { convertToKg } from '../services/unitConversion.service.js';
 
 // =========================================================================
 // SALE RETURNS
@@ -96,9 +97,14 @@ export const createSaleReturn = async (req, res) => {
           totalAmount: itemTotal
         });
 
-        // 1. Restock products in inventory
+        // 1. Restock products in inventory — normalize qty to product base unit
         if (prod) {
-          const newStock = Number(prod.stockQty || 0) + rQty;
+          // IMPORTANT: rQty is in the item's entered unit. Normalize to product base unit
+          // before adding to stockQty, which is always in base unit (e.g. KG).
+          const qtyInKg = convertToKg(rQty, expectedUnit);
+          const baseProductFactor = convertToKg(1, expectedUnit) || 1;
+          const normalizedReturnQty = qtyInKg / baseProductFactor;
+          const newStock = Number(prod.stockQty || 0) + normalizedReturnQty;
           await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
           await AuditLog.create({
             shop_id: req.shop_id,
@@ -372,13 +378,18 @@ export const createPurchaseReturn = async (req, res) => {
           totalAmount: itemTotal
         });
 
-        // 1. Deduct products from inventory
+        // 1. Deduct products from inventory — normalize qty to product base unit
         if (prod) {
+          // IMPORTANT: rQty is in the item's entered unit. Normalize to product base unit
+          // before subtracting from stockQty, which is always in base unit (e.g. KG).
+          const qtyInKg = convertToKg(rQty, expectedUnit);
+          const baseProductFactor = convertToKg(1, expectedUnit) || 1;
+          const normalizedReturnQty = qtyInKg / baseProductFactor;
           const availableStock = Number(prod.stockQty || 0);
-          if (rQty > availableStock) {
+          if (normalizedReturnQty > availableStock + 0.0001) {
             throw new Error(`Insufficient Stock — Available: ${availableStock} ${expectedUnit}. Maximum returnable quantity: ${availableStock} ${expectedUnit}.`);
           }
-          const newStock = availableStock - rQty;
+          const newStock = Math.max(0, availableStock - normalizedReturnQty);
           await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
           await AuditLog.create({
             shop_id: req.shop_id,
@@ -482,7 +493,7 @@ export const updatePurchaseReturn = async (req, res) => {
         await Purchase.findByIdAndUpdate(targetPurchase.id, {
           returnAmount: fin.totalReturnAmt,
           netAmount: fin.netAmt,
-          paymentstatus: fin.status
+          paymentStatus: fin.status
         }, { shop_id: req.shop_id });
       }
 
@@ -512,7 +523,7 @@ export const deletePurchaseReturn = async (req, res) => {
     }
 
     await withTransaction(async (tx) => {
-      // 1. Restore deducted inventory (add back to product stock)
+      // 1. Restore deducted inventory (add back to product stock) — normalize to base unit
       const items = Array.isArray(existing.items) ? existing.items : [];
       for (const item of items) {
         const pId = item.productId || item.id;
@@ -520,7 +531,11 @@ export const deletePurchaseReturn = async (req, res) => {
         if (pId && rQty > 0) {
           const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
           if (prod) {
-            const newStock = Number(prod.stockQty || 0) + rQty;
+            const itemUnit = item.unit || item.unitName || prod.unit || 'KG';
+            const qtyInKg = convertToKg(rQty, itemUnit);
+            const baseProductFactor = convertToKg(1, prod.unit || 'KG') || 1;
+            const normalizedQty = qtyInKg / baseProductFactor;
+            const newStock = Number(prod.stockQty || 0) + normalizedQty;
             await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
             await AuditLog.create({
               shop_id: req.shop_id,

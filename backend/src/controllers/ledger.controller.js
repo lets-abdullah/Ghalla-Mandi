@@ -3,6 +3,8 @@ import { Customer } from '../models/customer.model.js';
 import { Supplier } from '../models/supplier.model.js';
 import { Sale } from '../models/sale.model.js';
 import { Purchase } from '../models/purchase.model.js';
+import { SaleReturn } from '../models/saleReturn.model.js';
+import { PurchaseReturn } from '../models/purchaseReturn.model.js';
 import { withTransaction } from '../services/db.service.js';
 import { syncCustomerBalance, syncSupplierBalance } from '../utils/accounting.util.js';
 
@@ -232,75 +234,109 @@ export const recordPayment = async (req, res) => {
         }
 
         // SUPPLIER PAYMENT & LIQUID CASH RULE: Calculate available liquid funds in real-time
+        // Use same deduplication logic as frontend ERPContext computeLiquidBalances:
+        // - Customer payment logs are the source of truth for logged payments
+        // - POS sales are counted ONLY if they have NO matching payment log (to avoid double-counting)
+        // - Purchase payment logs are the source of truth for supplier payments
+        // - Upfront purchase payments counted ONLY if no matching log exists
         const allShopSales = await Sale.find({ shop_id: req.shop_id });
         const allShopPurchases = await Purchase.find({ shop_id: req.shop_id });
         const allShopLogs = await Ledger.find({ shop_id: req.shop_id });
-        const allShopSaleReturns = await Purchase.find ? (await import('../models/saleReturn.model.js')).SaleReturn.find({ shop_id: req.shop_id }) : [];
-        const allShopPurchaseReturns = await Purchase.find ? (await import('../models/purchaseReturn.model.js')).PurchaseReturn.find({ shop_id: req.shop_id }) : [];
+        const allShopSaleReturns = await SaleReturn.find({ shop_id: req.shop_id });
+        const allShopPurchaseReturns = await PurchaseReturn.find({ shop_id: req.shop_id });
 
         let cInflow = 0, bInflow = 0, kInflow = 0;
         let cOutflow = 0, bOutflow = 0, kOutflow = 0;
 
+        const classifyMode = (modeStr) => {
+          const m = String(modeStr || 'Cash').trim().toLowerCase();
+          if (m.includes('bank') || m === 'transfer' || m === 'bank transfer' || m === 'online transfer' || m === 'neft' || m === 'rtgs') return 'bank';
+          if (m.includes('card') || m === 'pos' || m === 'debit card' || m === 'credit card') return 'card';
+          return 'cash';
+        };
+
+        const addToChannel = (channel, amt, inflowArr, outflowArr, isInflow) => {
+          if (channel === 'bank') isInflow ? (bInflow += amt) : (bOutflow += amt);
+          else if (channel === 'card') isInflow ? (kInflow += amt) : (kOutflow += amt);
+          else isInflow ? (cInflow += amt) : (cOutflow += amt);
+        };
+
+        // Customer inflows: logged payments first
+        const validCustLogs = allShopLogs.filter(l => {
+          const isCust = l.partyType === 'Customer' || l.type === 'Customer';
+          if (!isCust) return false;
+          const mode = String(l.mode || '').trim().toLowerCase();
+          return mode !== 'opening balance' && mode !== 'credit note' && mode !== 'debit note';
+        });
+        validCustLogs.forEach(l => {
+          const amt = Number(l.amount || 0);
+          if (amt > 0) addToChannel(classifyMode(l.mode), amt, null, null, true);
+        });
+
+        // POS sales — only if NOT already covered by a customer payment log
         allShopSales.forEach(s => {
-          const pd = Number(s.paidAmount || 0);
-          if (pd > 0) {
-            const m = String(s.paymentMethod || s.paymentMode || 'Cash').toLowerCase();
-            if (m.includes('bank') || m.includes('transfer')) bInflow += pd;
-            else if (m.includes('card') || m.includes('pos')) kInflow += pd;
-            else cInflow += pd;
+          const hasMatchingLog = validCustLogs.some(l =>
+            (l.saleId && String(l.saleId) === String(s.id)) ||
+            (s.invoiceNo && l.ref && (
+              l.ref.includes(s.invoiceNo) ||
+              l.ref.includes(s.invoiceNo.split('-').pop())
+            ))
+          );
+          if (!hasMatchingLog) {
+            const pd = Number(s.paidAmount || 0);
+            if (pd > 0) addToChannel(classifyMode(s.paymentMethod || s.paymentMode), pd, null, null, true);
           }
         });
 
-        allShopLogs.filter(l => l.partyType === 'Customer' || l.type === 'Customer Payment').forEach(l => {
-          const amt = Number(l.amount || 0);
-          const m = String(l.mode || 'Cash').toLowerCase();
-          if (m.includes('bank') || m.includes('transfer')) bInflow += amt;
-          else if (m.includes('card') || m.includes('pos')) kInflow += amt;
-          else cInflow += amt;
-        });
-
+        // Purchase return refunds from suppliers — add as inflow
         (allShopPurchaseReturns || []).forEach(r => {
-          const amt = Number(r.refundAmount || r.amount || 0);
-          const m = String(r.refundMode || r.mode || 'Cash').toLowerCase();
-          if (m.includes('bank') || m.includes('transfer')) bInflow += amt;
-          else if (m.includes('card') || m.includes('pos')) kInflow += amt;
-          else cInflow += amt;
+          const amt = Number(r.refundAmount || 0);
+          if (amt > 0) addToChannel(classifyMode(r.refundMode || r.mode), amt, null, null, true);
         });
 
-        allShopLogs.filter(l => l.partyType === 'Supplier' || l.type === 'Supplier Payment').forEach(l => {
+        // Supplier outflows: logged supplier payments first
+        const validSupLogs = allShopLogs.filter(l => {
+          const isSup = l.partyType === 'Supplier' || l.type === 'Supplier';
+          if (!isSup) return false;
+          const mode = String(l.mode || '').trim().toLowerCase();
+          return mode !== 'opening balance' && mode !== 'credit note' && mode !== 'debit note';
+        });
+        validSupLogs.forEach(l => {
           const amt = Number(l.amount || 0);
-          const m = String(l.mode || 'Cash').toLowerCase();
-          if (m.includes('bank') || m.includes('transfer')) bOutflow += amt;
-          else if (m.includes('card') || m.includes('pos')) kOutflow += amt;
-          else cOutflow += amt;
+          if (amt > 0) addToChannel(classifyMode(l.mode), amt, null, null, false);
         });
 
+        // Upfront purchases — only if NOT already covered by a supplier payment log
         allShopPurchases.forEach(p => {
-          const pd = Number(p.paidAmount || 0);
-          if (pd > 0) {
-            const m = String(p.paymentMode || p.paymentMethod || 'Cash').toLowerCase();
-            if (m.includes('bank') || m.includes('transfer')) bOutflow += pd;
-            else if (m.includes('card') || m.includes('pos')) kOutflow += pd;
-            else cOutflow += pd;
+          const hasMatchingLog = validSupLogs.some(l =>
+            (l.purchaseId && String(l.purchaseId) === String(p.id)) ||
+            (p.purchaseNo && l.ref && l.ref.includes(p.purchaseNo))
+          );
+          if (!hasMatchingLog) {
+            const isKhata = p.paymentMode === 'Supplier Khata' || p.paymentmode === 'Supplier Khata' || Number(p.paidAmount || 0) === 0;
+            if (!isKhata) {
+              const pd = Number(p.paidAmount || 0);
+              if (pd > 0) addToChannel(classifyMode(p.paymentMode || p.paymentMethod), pd, null, null, false);
+            }
           }
         });
 
+        // Sale return refunds given to customers — outflow
         (allShopSaleReturns || []).forEach(r => {
-          const amt = Number(r.refundAmount || r.amount || 0);
-          const m = String(r.refundMode || r.mode || 'Cash').toLowerCase();
-          if (m.includes('bank') || m.includes('transfer')) bOutflow += amt;
-          else if (m.includes('card') || m.includes('pos')) kOutflow += amt;
-          else cOutflow += amt;
+          const amt = Number(r.refundAmount || 0);
+          if (amt > 0) addToChannel(classifyMode(r.refundMode || r.mode), amt, null, null, false);
         });
+
+        // Expenses — outflow (handled separately if needed in the future)
 
         const availCash = Math.max(0, cInflow - cOutflow);
         const availBank = Math.max(0, bInflow - bOutflow);
         const availCard = Math.max(0, kInflow - kOutflow);
 
-        const modeLower = String(paymentMode || 'Cash').toLowerCase();
+        const modeLower = classifyMode(paymentMode);
         let targetAvail = availCash;
-        if (modeLower.includes('bank') || modeLower.includes('transfer')) targetAvail = availBank;
-        else if (modeLower.includes('card') || modeLower.includes('pos')) targetAvail = availCard;
+        if (modeLower === 'bank') targetAvail = availBank;
+        else if (modeLower === 'card') targetAvail = availCard;
 
         if (amtNum > targetAvail) {
           throw new Error(`Insufficient Balance — Available: Rs. ${targetAvail.toLocaleString()}`);
@@ -428,14 +464,14 @@ export const deleteLedgerEntry = async (req, res) => {
             await Sale.findByIdAndUpdate(sale.id, { paidAmount: newPaid, status: newStatus }, { shop_id: req.shop_id });
           }
         } else {
-          // Unwind general Khata payment from sales (LIFO - latest sales first)
+          // Unwind general Khata payment from sales using FIFO (oldest first, matching original payment order)
           let unwindRemaining = amt;
           const allSales = await Sale.find({ shop_id: req.shop_id });
           const custSales = allSales.filter(s => {
             const matchesCust = (entry.partyId && s.customerId === entry.partyId) ||
               (entry.partyName && s.partyName && s.partyName.trim().toLowerCase() === entry.partyName.trim().toLowerCase());
             return matchesCust && Number(s.paidAmount || 0) > 0;
-          }).sort((a, b) => new Date(b.created_at || b.date || 0).getTime() - new Date(a.created_at || a.date || 0).getTime());
+          }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
 
           for (const s of custSales) {
             if (unwindRemaining <= 0) break;
@@ -465,7 +501,7 @@ export const deleteLedgerEntry = async (req, res) => {
             await Purchase.findByIdAndUpdate(pur.id, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
           }
         } else {
-          // Unwind general Supplier settlement from purchases (LIFO)
+          // Unwind general Supplier settlement from purchases using FIFO (oldest first, matching original payment order)
           let unwindRemaining = amt;
           const allPurchases = await Purchase.find({ shop_id: req.shop_id });
           const supPurchases = allPurchases.filter(p => {
@@ -473,7 +509,7 @@ export const deleteLedgerEntry = async (req, res) => {
               (entry.partyName && p.supplier && p.supplier.trim().toLowerCase() === entry.partyName.trim().toLowerCase()) ||
               (entry.partyName && p.supplierName && p.supplierName.trim().toLowerCase() === entry.partyName.trim().toLowerCase());
             return matchesSup && Number(p.paidAmount || 0) > 0;
-          }).sort((a, b) => new Date(b.created_at || b.date || 0).getTime() - new Date(a.created_at || a.date || 0).getTime());
+          }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
 
           for (const p of supPurchases) {
             if (unwindRemaining <= 0) break;

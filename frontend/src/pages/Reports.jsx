@@ -417,8 +417,10 @@ export const Reports = () => {
       }
       if (salesDateFilter === 'This Week') {
         const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - 7);
-        if (sDay < startOfWeek || sDay > new Date()) return false;
+        // ISO week: Monday = start of week
+        startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+        startOfWeek.setHours(0, 0, 0, 0);
+        if (sDay < startOfWeek || sDay > today) return false;
       }
       if (salesDateFilter === 'This Month') {
         if (sDay.getFullYear() !== today.getFullYear() || sDay.getMonth() !== today.getMonth()) return false;
@@ -766,8 +768,10 @@ export const Reports = () => {
         matchesDate = eDate.getTime() === today.getTime();
       } else if (expDateFilter === 'This Week') {
         const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        matchesDate = eDate >= startOfWeek;
+        // ISO week: Monday = start of week
+        startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+        startOfWeek.setHours(0, 0, 0, 0);
+        matchesDate = eDate >= startOfWeek && eDate <= today;
       } else if (expDateFilter === 'This Month') {
         matchesDate = eDate.getMonth() === today.getMonth() && eDate.getFullYear() === today.getFullYear();
       } else if (expDateFilter === 'Last Month') {
@@ -789,11 +793,24 @@ export const Reports = () => {
   const filteredExpensesTotal = useMemo(() => filteredExpensesList.reduce((sum, e) => sum + e.amount, 0), [filteredExpensesList]);
 
   const expenseCashTotal = useMemo(() => {
-    return filteredExpensesList.filter(e => e.mode === 'Cash').reduce((sum, e) => sum + e.amount, 0);
+    return filteredExpensesList.filter(e => {
+      const m = (e.mode || '').trim().toLowerCase();
+      return m === 'cash' || m === '' || !m;
+    }).reduce((sum, e) => sum + e.amount, 0);
   }, [filteredExpensesList]);
 
   const expenseBankTotal = useMemo(() => {
-    return filteredExpensesList.filter(e => e.mode !== 'Cash').reduce((sum, e) => sum + e.amount, 0);
+    return filteredExpensesList.filter(e => {
+      const m = (e.mode || '').trim().toLowerCase();
+      return m.includes('bank') || m === 'transfer' || m === 'bank transfer' || m === 'online' || m === 'neft' || m === 'rtgs' || m === 'cheque' || m === 'upi';
+    }).reduce((sum, e) => sum + e.amount, 0);
+  }, [filteredExpensesList]);
+
+  const expenseCardTotal = useMemo(() => {
+    return filteredExpensesList.filter(e => {
+      const m = (e.mode || '').trim().toLowerCase();
+      return m.includes('card') || m === 'pos' || m === 'debit card' || m === 'credit card';
+    }).reduce((sum, e) => sum + e.amount, 0);
   }, [filteredExpensesList]);
 
   const paginatedExpenses = useMemo(() => {
@@ -1056,7 +1073,10 @@ export const Reports = () => {
     (sales || []).forEach(s => {
       const hasMatchingLog = validCustPaymentLogs.some(p =>
         (p.saleId && String(p.saleId) === String(s.id)) ||
-        (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+        (s.invoiceNo && p.ref && (
+          p.ref.includes(s.invoiceNo) ||
+          p.ref.includes(s.invoiceNo.split('-').pop())
+        ))
       );
 
       if (!hasMatchingLog) {
@@ -1579,7 +1599,9 @@ export const Reports = () => {
           if (d.getTime() !== y.getTime()) return false;
         } else if (cfDateFilter === 'This Week') {
           const wStart = new Date(now);
-          wStart.setDate(wStart.getDate() - wStart.getDay());
+          // ISO week: Monday = start of week
+          wStart.setDate(wStart.getDate() - ((wStart.getDay() + 6) % 7));
+          wStart.setHours(0, 0, 0, 0);
           if (txDate < wStart) return false;
         } else if (cfDateFilter === 'This Month') {
           if (txDate.getMonth() !== now.getMonth() || txDate.getFullYear() !== now.getFullYear()) return false;
@@ -1845,8 +1867,10 @@ export const Reports = () => {
       }
       if (plDateFilter === 'This Week') {
         const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - 7);
-        if (txDay < startOfWeek || txDay > new Date()) return false;
+        // ISO week: Monday = start of week
+        startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+        startOfWeek.setHours(0, 0, 0, 0);
+        if (txDay < startOfWeek || txDay > today) return false;
       }
       if (plDateFilter === 'This Month') {
         if (txDay.getFullYear() !== today.getFullYear() || txDay.getMonth() !== today.getMonth()) return false;
