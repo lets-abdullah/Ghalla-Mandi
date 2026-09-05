@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { useERP, computeSaleFinancials, computePurchaseFinancials } from '../context/ERPContext';
@@ -18,18 +18,16 @@ export const SalesChart = () => {
     const todayStr = today.toLocaleDateString('en-GB');
 
     if (timeframe === '7D') {
-      // Last 7 days sequence
       const days = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(today.getDate() - i);
         const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-        const dateNum = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
         const rawIso = d.toISOString().split('T')[0];
         const ddmmyyyy = d.toLocaleDateString('en-GB');
 
         days.push({
-          date: `${dayName}, ${dateNum}`,
+          date: `${dayName} ${d.getDate()}`,
           shortDate: `${dayName} ${d.getDate()}`,
           rawIso,
           ddmmyyyy,
@@ -74,7 +72,6 @@ export const SalesChart = () => {
 
       return days;
     } else if (timeframe === '30D') {
-      // 4 Weekly intervals over the last 30 days
       const weeks = [];
       for (let i = 3; i >= 0; i--) {
         const endDay = new Date();
@@ -84,7 +81,7 @@ export const SalesChart = () => {
 
         const label = `Week ${4 - i}`;
         weeks.push({
-          date: `${label} (${startDay.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })})`,
+          date: label,
           shortDate: label,
           startDate: startDay,
           endDate: endDay,
@@ -115,7 +112,6 @@ export const SalesChart = () => {
 
       return weeks;
     } else if (timeframe === '6M') {
-      // Last 6 Months sequence
       const months = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -123,7 +119,7 @@ export const SalesChart = () => {
         const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
         months.push({
-          date: `${monthName} ${d.getFullYear()}`,
+          date: monthName,
           shortDate: monthName,
           yearMonth,
           sales: 0,
@@ -153,7 +149,6 @@ export const SalesChart = () => {
 
       return months;
     } else {
-      // 1Y - 12 Months
       const months = [];
       for (let i = 11; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -161,7 +156,7 @@ export const SalesChart = () => {
         const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
         months.push({
-          date: `${monthName} ${d.getFullYear()}`,
+          date: monthName,
           shortDate: monthName,
           yearMonth,
           sales: 0,
@@ -235,16 +230,17 @@ export const SalesChart = () => {
       isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
     }`}>
       {/* Header with Title and Timeframe Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <div>
-          <h3 className="font-bold text-base tracking-tight flex items-center gap-2">
-            <span>Sales & Purchases Trend</span>
-          </h3>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+            <TrendingUp className="w-4 h-4" />
+          </div>
+          <h3 className="font-bold text-sm sm:text-base tracking-tight">Sales & Purchases Trend</h3>
         </div>
 
         {/* Timeframe Segmented Pills */}
-        <div className={`flex items-center p-1 rounded-xl border self-start sm:self-auto ${
-          isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'
+        <div className={`flex items-center p-1 rounded-xl border ${
+          isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-100/80 border-slate-200'
         }`}>
           {[
             { id: '7D', label: '7D' },
@@ -255,9 +251,9 @@ export const SalesChart = () => {
             <button
               key={t.id}
               onClick={() => setTimeframe(t.id)}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 timeframe === t.id
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -267,27 +263,37 @@ export const SalesChart = () => {
         </div>
       </div>
 
-      {/* Main Line Chart Canvas */}
+      {/* Main Area Chart Canvas */}
       <div className="w-full h-72 min-h-[260px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 15, right: 15, left: -15, bottom: 5 }}>
+          <AreaChart data={chartData} margin={{ top: 15, right: 15, left: -15, bottom: 5 }}>
+            <defs>
+              <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.35}/>
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+              </linearGradient>
+              <linearGradient id="colorPurchases" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35}/>
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0}/>
+              </linearGradient>
+            </defs>
             <CartesianGrid
               strokeDasharray="0"
               vertical={false}
-              stroke={isDark ? '#334155' : '#e2e8f0'}
+              stroke={isDark ? '#334155' : '#f1f5f9'}
             />
             <XAxis
               dataKey="shortDate"
               tickLine={false}
-              axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
-              tick={{ fontSize: 11, fontWeight: 500, fill: isDark ? '#94a3b8' : '#64748b' }}
+              axisLine={{ stroke: isDark ? '#334155' : '#e2e8f0' }}
+              tick={{ fontSize: 11, fontWeight: 600, fill: isDark ? '#94a3b8' : '#64748b' }}
             />
             <YAxis
               domain={[0, 'auto']}
               allowDataOverflow={false}
               tickLine={false}
-              axisLine={{ stroke: isDark ? '#334155' : '#cbd5e1' }}
-              tick={{ fontSize: 11, fontWeight: 500, fill: isDark ? '#94a3b8' : '#64748b' }}
+              axisLine={{ stroke: isDark ? '#334155' : '#e2e8f0' }}
+              tick={{ fontSize: 11, fontWeight: 600, fill: isDark ? '#94a3b8' : '#64748b' }}
               tickFormatter={(val) => {
                 if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
                 if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
@@ -295,25 +301,29 @@ export const SalesChart = () => {
               }}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Line
+            <Area
               type="monotone"
               dataKey="sales"
               name="Sales"
               stroke="#10b981"
               strokeWidth={3}
-              dot={{ r: 5, strokeWidth: 2, fill: '#10b981', stroke: '#ffffff' }}
-              activeDot={{ r: 7, strokeWidth: 2, fill: '#10b981', stroke: '#ffffff' }}
+              fillOpacity={1}
+              fill="url(#colorSales)"
+              dot={{ r: 4, strokeWidth: 2, fill: '#10b981', stroke: '#ffffff' }}
+              activeDot={{ r: 6, strokeWidth: 2, fill: '#10b981', stroke: '#ffffff' }}
             />
-            <Line
+            <Area
               type="monotone"
               dataKey="purchases"
               name="Purchases"
               stroke="#3b82f6"
               strokeWidth={3}
-              dot={{ r: 5, strokeWidth: 2, fill: '#3b82f6', stroke: '#ffffff' }}
-              activeDot={{ r: 7, strokeWidth: 2, fill: '#3b82f6', stroke: '#ffffff' }}
+              fillOpacity={1}
+              fill="url(#colorPurchases)"
+              dot={{ r: 4, strokeWidth: 2, fill: '#3b82f6', stroke: '#ffffff' }}
+              activeDot={{ r: 6, strokeWidth: 2, fill: '#3b82f6', stroke: '#ffffff' }}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
 

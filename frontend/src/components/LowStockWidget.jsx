@@ -22,13 +22,13 @@ export const LowStockWidget = () => {
     }`}>
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/30">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-xl bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400">
               <AlertTriangle className="w-4 h-4" />
             </div>
-            <h3 className="font-bold text-sm">{t('lowStockAlerts')}</h3>
+            <h3 className="font-bold text-sm sm:text-base tracking-tight">{t('lowStockAlerts')}</h3>
           </div>
-          <Link to="/inventory" className="text-xs font-semibold text-brand-500 hover:underline">
+          <Link to="/inventory" className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline">
             {t('viewAll')}
           </Link>
         </div>
@@ -48,20 +48,20 @@ export const LowStockWidget = () => {
                 theme === 'dark' ? 'hover:bg-slate-700/60 hover:border-slate-700' : 'hover:bg-slate-50 hover:border-slate-100'
               }`}>
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center font-extrabold text-xs ${
+                  <div className={`w-10 h-10 rounded-xl border flex items-center justify-center font-extrabold text-xs shrink-0 ${
                     theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-700'
                   }`}>
                     {(item.name || 'P').charAt(0)}
                   </div>
                   <div>
-                    <div className="text-xs font-bold">{item.name}</div>
-                    <div className="text-[11px] text-slate-400 font-medium">
-                      {t('currentStock')}: <span className="font-semibold">{Number(item.stockQty ?? item.stockqty ?? 0).toLocaleString()} {item.unit || item.baseUnit || t('kg')}</span>
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-100">{item.name}</div>
+                    <div className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                      {t('currentStock')}: {Number(item.stockQty ?? item.stockqty ?? 0).toLocaleString()} {item.unit || item.baseUnit || t('kg')}
                     </div>
                   </div>
                 </div>
                 <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
-                  {t('minStockLabel')}: {Number(item.minStock ?? item.minstock ?? 10).toLocaleString()} {item.unit || item.baseUnit || t('kg')}
+                  Min: {Number(item.minStock ?? item.minstock ?? 10).toLocaleString()} {item.unit || item.baseUnit || t('kg')}
                 </span>
               </div>
             ))}

@@ -53,13 +53,13 @@ export const TopProductsWidget = () => {
       }`}>
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
               <TrendingUp className="w-4 h-4" />
             </div>
-            <h3 className="font-bold text-sm">{t('topSellingProducts')}</h3>
+            <h3 className="font-bold text-sm sm:text-base tracking-tight">{t('topSellingProducts')}</h3>
           </div>
-          <Link to="/products" className="text-xs font-semibold text-brand-500 hover:underline">
+          <Link to="/products" className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline">
             {t('catalog')}
           </Link>
         </div>
@@ -83,19 +83,19 @@ export const TopProductsWidget = () => {
               <div key={item.id} className={`flex items-center justify-between p-2 rounded-xl border border-transparent transition ${theme === 'dark' ? 'hover:bg-slate-700/60 hover:border-slate-700' : 'hover:bg-slate-50 hover:border-slate-100'
                 }`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-6 text-center font-extrabold text-xs text-slate-400">
+                  <div className="px-2 py-1 rounded-lg bg-emerald-100/70 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs text-center shrink-0">
                     #{idx + 1}
                   </div>
                   <div>
-                    <div className="text-xs font-bold">{item.name}</div>
-                    <div className="text-[11px] text-slate-400">
-                      {item.totalSoldQty > 0 ? `${item.totalSoldQty.toLocaleString()} ${item.unit || 'KG'} sold` : item.category}
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-100">{item.name}</div>
+                    <div className="text-[11px] text-slate-400 font-medium">
+                      {item.totalSoldQty > 0 ? `${item.totalSoldQty.toLocaleString()} ${item.unit || 'Litre'} sold` : (item.category || 'Commodity')}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-extrabold text-emerald-500">Rs. {(Number(item.sellingPrice ?? item.sellingprice) || 0).toLocaleString()}/{item.unit || item.baseUnit || t('kg')}</div>
-                  <div className="text-[10px] text-slate-400 font-semibold">{(Number(item.stockQty ?? item.stockqty) || 0).toLocaleString()} {item.unit || item.baseUnit || t('kg')} {t('availableStock')}</div>
+                  <div className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">Rs. {(Number(item.sellingPrice ?? item.sellingprice) || 0).toLocaleString()}/{item.unit || item.baseUnit || t('kg')}</div>
+                  <div className="text-[11px] font-bold text-rose-600 dark:text-rose-400">{(Number(item.stockQty ?? item.stockqty) || 0).toLocaleString()} {item.unit || item.baseUnit || t('kg')} Available</div>
                 </div>
               </div>
             ))}
