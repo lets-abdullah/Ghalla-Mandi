@@ -184,6 +184,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
   const [returnQty, setReturnQty] = useState('');
   const [refundMode, setRefundMode] = useState('Cash');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const [completedReturn, setCompletedReturn] = useState(null);
   const [showFullReceiptModal, setShowFullReceiptModal] = useState(false);
 
@@ -203,6 +204,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
       setSelectedItemIdx(0);
       setReturnQty(it.maxReturnableQty > 0 ? it.maxReturnableQty : '');
       setRefundMode(defaultRefundMode);
+      setSubmitError(null);
       setCompletedReturn(null);
       setShowFullReceiptModal(false);
     }
@@ -223,10 +225,10 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
   const isFullyReturned = remainingBillQty <= 0;
   const isOutOfStock = currentAvailableStock <= 0;
 
-  // Validation state: strictly capped by warehouse stock
+  // Validation state: strictly capped by warehouse stock (suppressed while submitting or when completed to avoid false error flashes)
   const isExceedingStock = numReturnQty > currentAvailableStock;
   const isExceedingBill = numReturnQty > remainingBillQty;
-  const hasValidationError = isExceedingStock || isExceedingBill;
+  const hasValidationError = !isSubmitting && !completedReturn && (isExceedingStock || isExceedingBill);
 
   let validationErrorMessage = '';
   if (isExceedingStock) {
@@ -252,7 +254,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
   const dueCancelled = Math.min(purDue, Math.max(0, currentGoodsValue - cashRefundAmount));
 
   const isLiquidPayoutRequested = refundMode !== 'Credit' && refundMode !== 'Khata Credit' && cashRefundAmount > 0;
-  const isInsufficientBalance = isLiquidPayoutRequested && cashRefundAmount > selectedChannelBalance;
+  const isInsufficientBalance = !isSubmitting && !completedReturn && isLiquidPayoutRequested && cashRefundAmount > selectedChannelBalance;
 
   const handleItemSelect = (idx) => {
     setSelectedItemIdx(idx);
@@ -281,7 +283,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSubmitting || numReturnQty <= 0 || isFullyReturned || isOutOfStock) return;
+    if (isSubmitting || completedReturn || numReturnQty <= 0 || isFullyReturned || isOutOfStock) return;
 
     if (numReturnQty > currentAvailableStock) {
       toast.error(`Insufficient Warehouse Stock — Available: ${currentAvailableStock} ${itemUnit}. Maximum returnable: ${maxReturnableQty} ${itemUnit}.`);
@@ -297,12 +299,13 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
     const supName = purchase.supplierName || purchase.supplier || 'Supplier Firm';
 
     setIsSubmitting(true);
-    try {
-      // Auto return cash/bank if payment was made, else Khata credit
-      const activeRefundMode = cashRefundAmount > 0
-        ? (refundMode === 'Bank Account' || refundMode === 'Bank' ? 'Bank' : 'Cash')
-        : 'Khata Credit';
+    setSubmitError(null);
 
+    const activeRefundMode = cashRefundAmount > 0
+      ? (refundMode === 'Bank Account' || refundMode === 'Bank' ? 'Bank' : 'Cash')
+      : 'Khata Credit';
+
+    try {
       const returnRecord = await recordPurchaseReturn({
         purchaseId: purchase.id,
         purchaseNo: purchase.purchaseNo || 'Direct Purchase Return',
@@ -324,7 +327,6 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
         date: new Date().toLocaleDateString('en-GB')
       });
 
-      toast.success(`Purchase return of ${numReturnQty} ${itemUnit} recorded successfully.`);
       setCompletedReturn({
         ...returnRecord,
         supplierName: supName,
@@ -341,9 +343,12 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
         purDue: purDue,
         reason: 'Purchase Return'
       });
+      toast.success(`Purchase return of ${numReturnQty} ${itemUnit} recorded successfully.`);
     } catch (err) {
       console.error('Failed to process purchase return:', err);
-      toast.error(err.message || 'Failed to process purchase return.');
+      const errMsg = err.message || 'Failed to process purchase return.';
+      setSubmitError(errMsg);
+      toast.error(errMsg);
     } finally {
       setIsSubmitting(false);
     }
