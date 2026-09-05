@@ -491,6 +491,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   const isReturned = isFullyReturned;
   const due = Math.max(0, netDueableTotal - paid);
   const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
+  const effectiveRefundCashback = Math.max(cashRefundAmount, Math.max(0, rawGrossPaid - netDueableTotal));
 
   return {
     total: Math.round(total),
@@ -498,7 +499,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
     netTotal: Math.round(netDueableTotal),
     paid: Math.round(paid),
     returnAmount: Math.round(returnAmount),
-    refundCashback: Math.round(cashRefundAmount),
+    refundCashback: Math.round(effectiveRefundCashback),
     due: Math.round(due),
     status,
     isReturned,
@@ -635,7 +636,29 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const isReturned = isFullyReturned;
   const due = Math.max(0, netDueableTotal - paid);
   const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
-  const effectiveRefundCashback = Math.max(cashRefundAmount, Math.max(0, rawGrossPaid - netDueableTotal));
+
+  // Calculate canonical overall supplier refund/cashback for this supplier
+  const dummySup = { id: supId, name: supName };
+  const supKhata = computeSupplierKhataBalance(dummySup, allPurchases.length > 0 ? allPurchases : [purchase], paymentLogs, purchaseReturns);
+  const autoSupRefund = Number(supKhata.automaticSupplierRefund || supKhata.refundCashback || 0);
+
+  const relevantPurchases = (allPurchases && allPurchases.length > 0)
+    ? (allPurchases || []).filter(p => {
+        const pSupId = p.supplierId ? String(p.supplierId) : (p.supplierid ? String(p.supplierid) : null);
+        const pSupName = (p.supplier || p.supplierName || p.suppliername || '').trim().toLowerCase();
+        return (supId && pSupId && pSupId === supId) || (supName && pSupName && pSupName === supName);
+      })
+    : [purchase];
+
+  const primaryPurchase = relevantPurchases.find(p => {
+    const pReturns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(p.id)) || (r.purchaseNo && r.purchaseNo === p.purchaseNo));
+    return pReturns.length > 0;
+  }) || relevantPurchases[0] || purchase;
+
+  const isPrimary = String(primaryPurchase.id) === String(purchase.id);
+  const effectiveRefundCashback = isPrimary
+    ? Math.max(cashRefundAmount, Math.max(autoSupRefund, Math.max(0, rawGrossPaid - netDueableTotal)))
+    : cashRefundAmount;
 
   return {
     total: Math.round(total),
