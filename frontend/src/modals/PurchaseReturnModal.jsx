@@ -352,19 +352,19 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
           {/* Header */}
           <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black border border-amber-500/20">
-                <RotateCcw className="w-5 h-5" />
+              <div className="w-11 h-11 rounded-2xl bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black border border-orange-200/60 dark:border-orange-800/40 shrink-0">
+                <RotateCcw className="w-5.5 h-5.5" />
               </div>
               <div>
-                <h3 className="text-base font-black tracking-tight text-slate-900 dark:text-white">
-                  Process Purchase Return
+                <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                  Purchase Return
                 </h3>
                 <p className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mt-0.5">
-                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                  <span className="font-bold text-orange-600 dark:text-orange-400">
                     {purchase.purchaseNo ? `Bill #${purchase.purchaseNo}` : 'Procurement Return'}
                   </span>
                   <span>•</span>
-                  <span className="truncate max-w-[170px]">{purchase.supplierName || purchase.supplier || 'Supplier'}</span>
+                  <span className="truncate max-w-[180px] font-bold text-slate-600 dark:text-slate-300">{purchase.supplierName || purchase.supplier || 'Oil Supplier'}</span>
                 </p>
               </div>
             </div>
@@ -377,23 +377,23 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
             </button>
           </div>
 
-          {/* Bill Financial Status Bar */}
-          <div className="mt-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs">
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Bill</span>
-              <span className="font-mono font-black text-slate-900 dark:text-white text-sm">
+          {/* Bill Financial Status 3-Column Bar Card */}
+          <div className="mt-3 p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-700 text-center">
+            <div className="px-2">
+              <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">Total Bill</span>
+              <span className="font-mono font-black text-slate-900 dark:text-white text-sm sm:text-base mt-1 block">
                 Rs. {purTotal.toLocaleString()}
               </span>
             </div>
-            <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Paid to Supplier</span>
-              <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+            <div className="px-2">
+              <span className="text-[10px] uppercase font-black tracking-wider text-emerald-600 dark:text-emerald-400 block">Paid to Supplier</span>
+              <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
                 Rs. {purPaid.toLocaleString()}
               </span>
             </div>
-            <div className="text-right">
-              <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block">Payable Due (Khata)</span>
-              <span className="font-mono font-black text-amber-600 dark:text-amber-400 text-sm">
+            <div className="px-2">
+              <span className="text-[10px] uppercase font-black tracking-wider text-orange-600 dark:text-orange-400 block">Payable Due (Khata)</span>
+              <span className="font-mono font-black text-orange-600 dark:text-orange-400 text-sm sm:text-base mt-1 block">
                 Rs. {purDue.toLocaleString()}
               </span>
             </div>
@@ -412,7 +412,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 <h4 className="text-lg font-black text-slate-900 dark:text-white">
                   Purchase Return Recorded
                 </h4>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-1 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-mono font-black text-xs">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-1 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 font-mono font-black text-xs">
                   <span>Voucher #:</span>
                   <span>{completedReturn.returnNo || 'Recorded'}</span>
                 </div>
@@ -442,7 +442,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                   </span>
                 </div>
                 {dueCancelled > 0 && (
-                  <div className="flex justify-between items-center text-amber-600 dark:text-amber-400">
+                  <div className="flex justify-between items-center text-orange-600 dark:text-orange-400">
                     <span className="font-medium">Payable Due Cancelled:</span>
                     <span className="font-bold font-mono">- Rs. {dueCancelled.toLocaleString()} (Supplier Khata)</span>
                   </div>
@@ -465,7 +465,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                   <button
                     type="button"
                     onClick={handleDirectPrint}
-                    className="flex-1 py-3 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition cursor-pointer"
+                    className="flex-1 py-3.5 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition cursor-pointer"
                   >
                     <Printer className="w-4 h-4" />
                     <span>Print Voucher</span>
@@ -473,7 +473,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                   <button
                     type="button"
                     onClick={() => setShowFullReceiptModal(true)}
-                    className={`flex-1 py-3 px-3 rounded-xl border font-extrabold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${theme === 'dark'
+                    className={`flex-1 py-3.5 px-3 rounded-2xl border font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer ${theme === 'dark'
                       ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
                       : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
                       }`}
@@ -485,7 +485,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`w-full py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
+                  className={`w-full py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
                     ? 'bg-slate-800 hover:bg-slate-700 text-slate-400'
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                     }`}
@@ -498,59 +498,40 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
             /* ========================================================================= */
             /* RETURN ENTRY FORM */
             /* ========================================================================= */
-            <form onSubmit={handleSubmit} className="space-y-4 py-3">
-              {/* Product Info & Stock Status */}
-              <div className={`p-4 rounded-2xl border space-y-3 ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+            <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+              {/* Product Row Bar */}
+              <div className={`p-3.5 sm:p-4 rounded-2xl border flex items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50/80 border-slate-200/80'
                 }`}>
-                {purchaseItems.length > 1 && (
-                  <div className="flex items-center gap-2 flex-wrap pb-2 border-b border-slate-200 dark:border-slate-700">
-                    <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
-                      Select Item:
-                    </span>
-                    {purchaseItems.map((it, idx) => (
-                      <button
-                        key={it.id}
-                        type="button"
-                        onClick={() => handleItemSelect(idx)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${selectedItemIdx === idx
-                          ? 'bg-amber-500 text-white border-amber-500 shadow-xs font-black'
-                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-500'
-                          }`}
-                      >
-                        {it.name} (Max: {it.maxReturnableQty} {it.unit})
-                      </button>
-                    ))}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-orange-100 dark:bg-orange-950/40 border border-orange-200/60 text-orange-600 flex items-center justify-center shrink-0">
+                    <Package className="w-5 h-5" />
                   </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-amber-500" />
-                    <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  <div>
+                    <span className="text-sm font-black text-slate-900 dark:text-white block">
                       {currentItem.name}
                     </span>
+                    <span className="font-mono text-xs font-bold text-slate-400 block mt-0.5">
+                      Rs. {itemRate.toLocaleString()} / {itemUnit}
+                    </span>
                   </div>
-                  <span className="font-mono text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-200/60 dark:bg-slate-700 px-2 py-0.5 rounded-md">
-                    Rs. {itemRate.toLocaleString()}/{itemUnit}
-                  </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Purchased</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 font-mono mt-0.5 block">
+                <div className="flex items-center gap-4 text-center text-xs">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Purchased</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 font-mono mt-0.5 block text-xs sm:text-sm">
                       {origQty} {itemUnit}
                     </span>
                   </div>
-                  <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Warehouse Stock</span>
-                    <span className={`font-mono font-bold mt-0.5 block ${currentAvailableStock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Stock</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block text-xs sm:text-sm">
                       {currentAvailableStock} {itemUnit}
                     </span>
                   </div>
-                  <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Max Returnable</span>
-                    <span className="font-black text-amber-600 dark:text-amber-400 font-mono mt-0.5 block">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Max Returnable</span>
+                    <span className="font-black text-orange-600 dark:text-orange-400 font-mono mt-0.5 block text-xs sm:text-sm">
                       {maxReturnableQty} {itemUnit}
                     </span>
                   </div>
@@ -569,21 +550,21 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 </div>
               ) : (
                 <>
-                  {/* Return Quantity & Refund Amount Inputs */}
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Return Quantity ({itemUnit}) *
-                        </label>
-                        <button
-                          type="button"
-                          onClick={handleSetMaxQty}
-                          className="text-[11px] font-black text-brand-600 dark:text-brand-400 hover:underline cursor-pointer bg-brand-500/10 px-2 py-0.5 rounded-md"
-                        >
-                          MAX ({maxReturnableQty})
-                        </button>
-                      </div>
+                  {/* Return Quantity Input Section */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                        RETURN QUANTITY ({itemUnit.toUpperCase()}) *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleSetMaxQty}
+                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full"
+                      >
+                        MAX ({maxReturnableQty})
+                      </button>
+                    </div>
+                    <div className="relative flex items-center">
                       <input
                         type="text"
                         inputMode="numeric"
@@ -596,132 +577,112 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                           if (e.key === '.' || e.key === ',') e.preventDefault();
                         }}
                         onChange={(e) => handleQtyChange(e.target.value)}
-                        className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-black font-mono outline-none transition ${hasValidationError
+                        className={`w-full border-2 rounded-2xl pl-4 pr-14 py-3 text-base font-black font-mono outline-none transition ${hasValidationError
                           ? 'border-rose-500 bg-rose-500/10 text-rose-600 focus:ring-2 focus:ring-rose-500/20'
                           : theme === 'dark'
-                            ? 'bg-slate-800 border-slate-700 text-white focus:border-brand-500'
-                            : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-brand-500'
+                            ? 'bg-slate-900 border-slate-700 text-white focus:border-orange-500'
+                            : 'bg-white border-slate-200 text-slate-900 focus:border-orange-500'
                           }`}
                         required
                       />
+                      <span className="absolute right-4 font-bold text-slate-400 text-xs pointer-events-none">
+                        {itemUnit}
+                      </span>
                     </div>
-
-                    {/* Accurate Financial Calculation Breakdown */}
-                    {numReturnQty > 0 && (
-                      <div className="p-3.5 rounded-2xl border bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 space-y-2 text-xs">
-                        <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                          <span>Total Goods Value ({numReturnQty} {itemUnit} × Rs. {itemRate}):</span>
-                          <span className="font-mono font-bold text-slate-900 dark:text-white">
-                            Rs. {currentGoodsValue.toLocaleString()}
-                          </span>
-                        </div>
-
-                        {dueCancelled > 0 && (
-                          <div className="flex justify-between items-center text-amber-600 dark:text-amber-400">
-                            <span>Payable Due Cancelled (Supplier Khata):</span>
-                            <span className="font-mono font-extrabold">- Rs. {dueCancelled.toLocaleString()}</span>
-                          </div>
-                        )}
-
-                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                          <div>
-                            <span className="font-black text-slate-900 dark:text-white uppercase block text-xs">
-                              {cashRefundAmount > 0 ? 'Auto Cash Refund to You:' : 'Supplier Khata Cleared:'}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-semibold">
-                              {cashRefundAmount > 0
-                                ? 'Auto refunded back from supplier • Not kept in Khata'
-                                : 'Return amount adjusted against unpaid purchase due'}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400">
-                              Rs. {cashRefundAmount.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-
-                        {cashRefundAmount === 0 && (
-                          <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] font-semibold flex items-center gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                            <span>This purchase had Rs. 0 upfront payment. Entire return amount of Rs. {dueCancelled.toLocaleString()} is cleared from Supplier Khata payable debt.</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Inline Error when user exceeds available stock or bill */}
+                  {/* Card 3: 3-Column Payout Calculation Bar */}
+                  <div className="p-3.5 sm:p-4 rounded-2xl border bg-slate-50/80 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-700 text-center">
+                    <div className="px-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Return Value</span>
+                      <span className="font-mono font-black text-slate-900 dark:text-white text-sm sm:text-base mt-1 block">
+                        Rs. {currentGoodsValue.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="px-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 block">Payable After Return</span>
+                      <span className="font-mono font-black text-orange-600 dark:text-orange-400 text-sm sm:text-base mt-1 block">
+                        Rs. {Math.max(0, purDue - currentGoodsValue).toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">(To be paid)</span>
+                    </div>
+                    <div className="px-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Supplier Refund / Cashback</span>
+                      <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
+                        Rs. {cashRefundAmount.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Inline Error */}
                   {hasValidationError && (
-                    <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-1.5 animate-in fade-in">
-                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                       <span>{validationErrorMessage}</span>
                     </div>
                   )}
 
-                  {/* Payment Method Selector (Only shown if cash was paid previously) */}
-                  {cashRefundAmount > 0 ? (
-                    <div className="space-y-1.5 pt-1">
-                      <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                        Refund Receiving Method (Auto Back to You) *
+                  {/* Refund / Cashback Payment Method Selector */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
+                        REFUND / CASHBACK PAYMENT METHOD
                       </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { id: 'Cash', label: 'Cash Drawer', icon: Banknote },
-                          { id: 'Bank Account', label: 'Bank Account', icon: Landmark }
-                        ].map((mode) => {
-                          const Icon = mode.icon;
-                          const isSelected = refundMode === mode.id || (mode.id === 'Bank Account' && refundMode === 'Bank');
-                          return (
-                            <button
-                              key={mode.id}
-                              type="button"
-                              onClick={() => setRefundMode(mode.id)}
-                              className={`py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border ${isSelected
-                                ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400 shadow-2xs font-extrabold ring-1 ring-amber-500/30'
-                                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
-                                }`}
-                            >
-                              <Icon className="w-4 h-4 shrink-0" />
-                              <span className="truncate">{mode.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold flex items-center gap-2">
-                      <Wallet className="w-4 h-4 text-slate-500" />
-                      <span>Settlement Mode: Automatically adjusted against Supplier Khata Payable Due</span>
-                    </div>
-                  )}
-
-                  {/* Live Stock Impact Note */}
-                  {!hasValidationError && numReturnQty > 0 && numReturnQty <= maxReturnableQty && (
-                    <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 pt-0.5 flex justify-between items-center">
-                      <span>Warehouse stock after return:</span>
-                      <span className={`font-mono font-black ${currentAvailableStock - numReturnQty === 0 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                        {currentAvailableStock - numReturnQty} {itemUnit}
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                        Available Balance: Rs. {selectedChannelBalance.toLocaleString()}
                       </span>
                     </div>
-                  )}
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {[
+                        { id: 'Cash', label: 'Cash', icon: Banknote },
+                        { id: 'Bank Account', label: 'Bank Account', icon: Landmark },
+                        { id: 'Card', label: 'Card', icon: CreditCard }
+                      ].map((mode) => {
+                        const Icon = mode.icon;
+                        const isSelected = refundMode === mode.id || (mode.id === 'Bank Account' && refundMode === 'Bank');
+                        return (
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() => setRefundMode(mode.id)}
+                            className={`py-3 px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${isSelected
+                              ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black shadow-2xs'
+                              : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                              }`}
+                          >
+                            <Icon className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{mode.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {isInsufficientBalance && (
+                      <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2.5 shadow-2xs mt-2">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                        <span>
+                          Insufficient balance in {refundMode === 'Bank' ? 'Bank Account' : refundMode}. Available: Rs. {selectedChannelBalance.toLocaleString()}. Required: Rs. {cashRefundAmount.toLocaleString()}.
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
 
               {/* Footer Actions */}
-              <div className="flex gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`w-1/3 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition cursor-pointer ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                     }`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || numReturnQty <= 0 || isFullyReturned || isOutOfStock || hasValidationError}
-                  className="w-2/3 py-2.5 rounded-xl font-black text-xs bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20 transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed active:scale-98"
+                  disabled={isSubmitting || numReturnQty <= 0 || isFullyReturned || isOutOfStock || hasValidationError || isInsufficientBalance}
+                  className="w-full py-3.5 rounded-2xl font-black text-sm bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md shadow-orange-500/20 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-98"
                 >
                   {isSubmitting ? (
                     <span>Processing Return...</span>

@@ -30,7 +30,9 @@ import {
   BookOpen,
   CreditCard,
   Printer,
-  AlertCircle
+  AlertCircle,
+  Banknote,
+  AlertTriangle
 } from 'lucide-react';
 import { useERP, computeSupplierKhataBalance, computeAllSuppliersFinancials, computePurchaseFinancials, computeLiquidBalances } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -1905,190 +1907,236 @@ export const Suppliers = () => {
       {/* ========================================================================= */}
       {/* 4. PAY SUPPLIER MODAL (Cash / Bank Settlement Drawer) */}
       {/* ========================================================================= */}
-      {payingSupplier && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setPayingSupplier(null); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                  <CreditCard className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold">Pay Supplier</h3>
-                  <p className="text-[11px] text-slate-400 font-bold">Settle supplier payable liability</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPayingSupplier(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {payingSupplier && (() => {
+        const rawBal = Number(payingSupplier.balance || 0);
+        const currentPayable = rawBal < 1 ? 0 : Math.round(rawBal);
+        const numAmt = parseInt(payAmount, 10) || 0;
+        const remainingAfter = Math.max(0, currentPayable - numAmt);
+        const isInsufficientBalance = numAmt > availableLiquidForPayMode.amount;
 
-            {/* Supplier Info Badge */}
-            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 space-y-1">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-extrabold text-slate-900 dark:text-white">{payingSupplier.name}</span>
-                <span className="text-[10px] font-bold text-slate-400">{payingSupplier.city || 'Local Mandi'}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-slate-500 font-semibold">Outstanding Payable:</span>
-                <span className="font-mono font-black text-rose-600 dark:text-rose-400">
-                  Rs. {Number(payingSupplier.balance || 0).toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <form onSubmit={handleExecuteSupplierPayment} className="space-y-3.5">
-              {/* Payment Amount */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-400">Payment Amount (PKR) *</label>
-                  {Number(payAmount || 0) === Number(payingSupplier.balance || 0) && Number(payingSupplier.balance || 0) > 0 ? (
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Settling</span>
-                  ) : Number(payAmount || 0) > 0 ? (
-                    <span className="text-[10px] font-bold text-amber-500">Partial Settlement</span>
-                  ) : null}
-                </div>
-                <div className="relative">
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    step="1"
-                    max={Math.max(0, Math.round(Number(payingSupplier.balance || 0))) > 0 ? Math.max(0, Math.round(Number(payingSupplier.balance || 0))) : undefined}
-                    value={payAmount}
-                    onKeyDown={(e) => {
-                      if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
-                        e.preventDefault();
-                      }
-                    }}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/[^0-9]/g, '');
-                      const maxPayable = Math.max(0, Math.round(Number(payingSupplier?.balance || 0)));
-                      if (raw === '') {
-                        setPayAmount('');
-                        return;
-                      }
-                      const num = parseInt(raw, 10) || 0;
-                      if (maxPayable > 0 && num > maxPayable) {
-                        setPayAmount(maxPayable.toString());
-                      } else {
-                        setPayAmount(num.toString());
-                      }
-                    }}
-                    placeholder={`e.g. ${Math.round(Number(payingSupplier.balance || 0))}`}
-                    autoFocus
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-brand-500 font-mono ${Number(payAmount || 0) >= Number(payingSupplier.balance || 0) && Number(payingSupplier.balance || 0) > 0
-                      ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
-                      : 'text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
-                      }`}
-                  />
-                </div>
-                <div className="mt-1 flex items-center justify-between text-[10px] font-semibold">
-                  <span className="text-slate-400">
-                    {Number(payAmount || 0) > 0
-                      ? `Remaining Payable after payment: Rs. ${Math.max(0, Number(payingSupplier.balance || 0) - Number(payAmount || 0)).toLocaleString()}`
-                      : 'Enter amount to reduce supplier liability.'}
-                  </span>
-                  {Number(payingSupplier.balance || 0) > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setPayAmount(payingSupplier.balance.toString())}
-                      className="text-brand-500 hover:underline font-bold cursor-pointer"
-                    >
-                      Pay Full (Rs. {Number(payingSupplier.balance).toLocaleString()})
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Payment Mode Selector (Cash vs Bank vs Card) */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-400 block">Payment Account / Mode *</label>
-                  <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border ${availableLiquidForPayMode.amount > 0
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                    : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                    }`}>
-                    Avail: Rs. {availableLiquidForPayMode.amount.toLocaleString()}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {['Cash', 'Bank', 'Card'].map(mode => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setPayMode(mode)}
-                      className={`py-2 px-3 rounded-xl text-xs font-black transition border cursor-pointer ${payMode === mode
-                        ? 'bg-brand-500 text-white border-brand-600 shadow-xs'
-                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
-                        }`}
-                    >
-                      {mode === 'Bank' ? 'Bank Transfer' : mode === 'Cash' ? 'Cash in Hand' : 'Card'}
-                    </button>
-                  ))}
-                </div>
-                {Number(payAmount || 0) > availableLiquidForPayMode.amount && (
-                  <div className="mt-1.5 p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-[11px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
-                    <span>⚠️ Insufficient Balance — Available: Rs. {availableLiquidForPayMode.amount.toLocaleString()} ({availableLiquidForPayMode.label})</span>
+        return (
+          <div
+            onClick={(e) => { if (e.target === e.currentTarget) setPayingSupplier(null); }}
+            className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          >
+            <div className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 card-shadow border my-auto transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}>
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black border border-emerald-200/60 dark:border-emerald-800/40 shrink-0">
+                    <CreditCard className="w-5.5 h-5.5" />
                   </div>
-                )}
-              </div>
-
-              {/* Payment Date */}
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Payment Date</label>
-                <input
-                  type="date"
-                  value={payDate}
-                  onChange={(e) => setPayDate(e.target.value)}
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-              </div>
-
-              {/* Note / Remarks */}
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Note / Reference (Optional)</label>
-                <input
-                  type="text"
-                  value={payNote}
-                  onChange={(e) => setPayNote(e.target.value)}
-                  placeholder="e.g. Paid via cheque #, cash voucher..."
-                  className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/80">
+                  <div>
+                    <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                      Pay Supplier
+                    </h3>
+                    <p className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mt-0.5">
+                      <span className="font-bold text-slate-700 dark:text-slate-200">{payingSupplier.name}</span>
+                      <span>•</span>
+                      <span className="text-slate-400 font-semibold">{payingSupplier.businessName || payingSupplier.city || 'Supplier Account'}</span>
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => setPayingSupplier(null)}
-                  className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
+                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isProcessingPay}
-                  className="w-1/2 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-1.5 active:scale-98"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isProcessingPay ? 'Recording...' : 'Confirm Payment'}</span>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* 3-Column Financial Summary Card */}
+              <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-700 text-center">
+                <div className="px-2">
+                  <span className="text-[10px] uppercase font-black tracking-wider text-rose-600 dark:text-rose-400 block">Outstanding Payable</span>
+                  <span className="font-mono font-black text-rose-600 dark:text-rose-400 text-sm sm:text-base mt-1 block">
+                    Rs. {currentPayable.toLocaleString()}
+                  </span>
+                </div>
+                <div className="px-2">
+                  <span className="text-[10px] uppercase font-black tracking-wider text-emerald-600 dark:text-emerald-400 block">Payment Amount</span>
+                  <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
+                    Rs. {numAmt.toLocaleString()}
+                  </span>
+                </div>
+                <div className="px-2">
+                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">Remaining Payable</span>
+                  <span className={`font-mono font-black text-sm sm:text-base mt-1 block ${remainingAfter === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                    Rs. {remainingAfter.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <form onSubmit={handleExecuteSupplierPayment} className="space-y-4 mt-4">
+                {/* Payment Amount Input */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
+                      PAYMENT AMOUNT (RS.) *
+                    </label>
+                    {currentPayable > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setPayAmount(currentPayable.toString())}
+                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                      >
+                        Full Amount (Rs. {currentPayable.toLocaleString()})
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      required
+                      autoFocus
+                      value={payAmount}
+                      onWheel={(e) => e.target.blur()}
+                      onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => {
+                        if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        if (raw === '') {
+                          setPayAmount('');
+                          return;
+                        }
+                        const num = parseInt(raw, 10) || 0;
+                        if (currentPayable > 0 && num > currentPayable) {
+                          setPayAmount(currentPayable.toString());
+                        } else {
+                          setPayAmount(num.toString());
+                        }
+                      }}
+                      placeholder={`Max Rs. ${currentPayable.toLocaleString()}`}
+                      className={`w-full border-2 rounded-2xl px-4 py-3 text-base font-black font-mono outline-none transition ${theme === 'dark'
+                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                        }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Payment Method Selector Cards */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
+                      PAYMENT METHOD *
+                    </label>
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                      Avail: Rs. {availableLiquidForPayMode.amount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {[
+                      { id: 'Cash', label: 'Cash in Hand', icon: Banknote },
+                      { id: 'Bank', label: 'Bank Transfer', icon: Landmark },
+                      { id: 'Card', label: 'Card', icon: CreditCard }
+                    ].map((mode) => {
+                      const Icon = mode.icon;
+                      const isSelected = payMode === mode.id || (mode.id === 'Bank' && (payMode === 'Bank Transfer' || payMode === 'Bank Account'));
+                      return (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => setPayMode(mode.id)}
+                          className={`relative py-3 px-2 sm:px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${isSelected
+                              ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-black shadow-2xs'
+                              : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                            }`}
+                        >
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{mode.label}</span>
+                          {isSelected && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 absolute top-1.5 right-1.5 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Insufficient Balance Alert Banner */}
+                {isInsufficientBalance && (
+                  <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2.5 shadow-2xs">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                    <span>⚠️ Insufficient Balance — Available: Rs. {availableLiquidForPayMode.amount.toLocaleString()} ({availableLiquidForPayMode.label})</span>
+                  </div>
+                )}
+
+                {/* Settlement Banner */}
+                {remainingAfter === 0 && numAmt > 0 && !isInsufficientBalance && (
+                  <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-2.5 shadow-2xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>✓ Balance after payment: Rs. 0 (Fully Settled)</span>
+                  </div>
+                )}
+
+                {/* Date & Note Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1">
+                      PAYMENT DATE
+                    </label>
+                    <input
+                      type="date"
+                      value={payDate}
+                      onChange={(e) => setPayDate(e.target.value)}
+                      className={`w-full border-2 rounded-2xl px-3.5 py-2 text-xs font-bold outline-none transition ${theme === 'dark'
+                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                        }`}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1">
+                      NOTE / REFERENCE (OPTIONAL)
+                    </label>
+                    <input
+                      type="text"
+                      value={payNote}
+                      onChange={(e) => setPayNote(e.target.value)}
+                      placeholder="e.g. Paid via cheque #, cash voucher..."
+                      className={`w-full border-2 rounded-2xl px-3.5 py-2 text-xs font-semibold outline-none transition ${theme === 'dark'
+                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                        }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setPayingSupplier(null)}
+                    className={`w-1/2 py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
+                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isProcessingPay}
+                    className="w-1/2 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition cursor-pointer active:scale-98 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{isProcessingPay ? 'Processing...' : 'Confirm Payment'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* 4. QUICK ADD NEW PRODUCT MODAL (Layered on top of Supplier dialog at z-[100]) */}

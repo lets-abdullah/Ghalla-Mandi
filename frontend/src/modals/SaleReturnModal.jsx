@@ -284,19 +284,19 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
           {/* Header */}
           <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black border border-orange-500/20">
-                <RotateCcw className="w-5 h-5" />
+              <div className="w-11 h-11 rounded-2xl bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black border border-orange-200/60 dark:border-orange-800/40 shrink-0">
+                <RotateCcw className="w-5.5 h-5.5" />
               </div>
               <div>
-                <h3 className="text-base font-black tracking-tight text-slate-900 dark:text-white">
-                  Process Sale Return
+                <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                  Sale Return
                 </h3>
                 <p className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mt-0.5">
-                  <span className="font-mono font-bold text-orange-600 dark:text-orange-400">
-                    {activeSale.invoiceNo ? `Invoice #${activeSale.invoiceNo}` : 'Direct Sale'}
+                  <span className="font-bold text-orange-600 dark:text-orange-400">
+                    {activeSale.invoiceNo ? `Invoice: ${activeSale.invoiceNo}` : 'Direct Sale'}
                   </span>
                   <span>•</span>
-                  <span className="truncate max-w-[170px]">{activeSale.partyName || activeSale.customerName || 'Customer Party'}</span>
+                  <span className="truncate max-w-[180px] font-bold text-slate-600 dark:text-slate-300">{activeSale.partyName || activeSale.customerName || 'Customer Party'}</span>
                 </p>
               </div>
             </div>
@@ -309,23 +309,23 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
             </button>
           </div>
 
-          {/* Bill Financial Status Bar */}
-          <div className="mt-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs">
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Bill</span>
-              <span className="font-mono font-black text-slate-900 dark:text-white text-sm">
+          {/* Bill Financial Status 3-Column Bar Card */}
+          <div className="mt-3 p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-700 text-center">
+            <div className="px-2">
+              <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">Total Bill</span>
+              <span className="font-mono font-black text-slate-900 dark:text-white text-sm sm:text-base mt-1 block">
                 Rs. {saleTotal.toLocaleString()}
               </span>
             </div>
-            <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Customer Paid</span>
-              <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+            <div className="px-2">
+              <span className="text-[10px] uppercase font-black tracking-wider text-emerald-600 dark:text-emerald-400 block">Customer Paid</span>
+              <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
                 Rs. {salePaid.toLocaleString()}
               </span>
             </div>
-            <div className="text-right">
-              <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block">Unpaid Due (Khata)</span>
-              <span className="font-mono font-black text-amber-600 dark:text-amber-400 text-sm">
+            <div className="px-2">
+              <span className="text-[10px] uppercase font-black tracking-wider text-orange-600 dark:text-orange-400 block">Unpaid Due (Khata)</span>
+              <span className="font-mono font-black text-orange-600 dark:text-orange-400 text-sm sm:text-base mt-1 block">
                 Rs. {saleDue.toLocaleString()}
               </span>
             </div>
@@ -374,7 +374,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                   </span>
                 </div>
                 {dueCancelled > 0 && (
-                  <div className="flex justify-between items-center text-amber-600 dark:text-amber-400">
+                  <div className="flex justify-between items-center text-orange-600 dark:text-orange-400">
                     <span className="font-medium">Unpaid Due Cancelled:</span>
                     <span className="font-bold font-mono">- Rs. {dueCancelled.toLocaleString()} (Khata Cleared)</span>
                   </div>
@@ -396,7 +396,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                   <button
                     type="button"
                     onClick={handleDirectPrint}
-                    className="flex-1 py-3 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md shadow-brand-600/20 transition cursor-pointer active:scale-98"
+                    className="flex-1 py-3.5 px-3 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-brand-600/20 transition cursor-pointer active:scale-98"
                     title="Print Receipt immediately (Thermal 80mm)"
                   >
                     <Printer className="w-4 h-4" />
@@ -405,7 +405,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                   <button
                     type="button"
                     onClick={() => setShowFullReceiptModal(true)}
-                    className={`flex-1 py-3 px-3 rounded-xl border font-extrabold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${theme === 'dark'
+                    className={`flex-1 py-3.5 px-3 rounded-2xl border font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer ${theme === 'dark'
                         ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
                         : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
                       }`}
@@ -417,7 +417,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`w-full py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
+                  className={`w-full py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
                       ? 'bg-slate-800 hover:bg-slate-700 text-slate-400'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                     }`}
@@ -430,11 +430,11 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
             /* ========================================================================= */
             /* RETURN ENTRY FORM */
             /* ========================================================================= */
-            <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+            <form onSubmit={handleSubmit} className="space-y-4 pt-1">
               {/* Multi-item selector tabs */}
               {saleItems.length > 1 && (
                 <div>
-                  <label className="text-xs font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">
+                  <label className="text-xs font-black text-slate-400 block mb-1.5 uppercase tracking-wider">
                     Select Produce Item
                   </label>
                   <div className="flex flex-wrap gap-1.5">
@@ -455,37 +455,39 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                 </div>
               )}
 
-              {/* Single Clean Summary Card */}
-              <div className={`p-4 rounded-2xl border space-y-3 ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+              {/* Card 2: Product Row Bar */}
+              <div className={`p-3.5 sm:p-4 rounded-2xl border flex items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50/80 border-slate-200/80'
                 }`}>
-                <div className="flex items-center justify-between border-b pb-2.5 border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-orange-500" />
-                    <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-orange-100 dark:bg-orange-950/40 border border-orange-200/60 text-orange-600 flex items-center justify-center shrink-0">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-black text-slate-900 dark:text-white block">
                       {currentItem.name}
                     </span>
+                    <span className="font-mono text-xs font-bold text-slate-400 block mt-0.5">
+                      Rs. {itemRate.toLocaleString()} / {itemUnit}
+                    </span>
                   </div>
-                  <span className="font-mono text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-200/60 dark:bg-slate-700 px-2 py-0.5 rounded-md">
-                    Rs. {itemRate.toLocaleString()}/{itemUnit}
-                  </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Original Sold</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 font-mono mt-0.5 block">
+                <div className="flex items-center gap-4 text-center text-xs">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Sold</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 font-mono mt-0.5 block text-xs sm:text-sm">
                       {origQty} {itemUnit}
                     </span>
                   </div>
-                  <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Previously Ret.</span>
-                    <span className="font-bold text-purple-600 dark:text-purple-400 font-mono mt-0.5 block">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Returned</span>
+                    <span className="font-bold text-purple-600 dark:text-purple-400 font-mono mt-0.5 block text-xs sm:text-sm">
                       {alreadyReturned} {itemUnit}
                     </span>
                   </div>
-                  <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700/60">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Returnable</span>
-                    <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Returnable</span>
+                    <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block text-xs sm:text-sm">
                       {remainingQty} {itemUnit}
                     </span>
                   </div>
@@ -499,21 +501,21 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                 </div>
               ) : (
                 <>
-                  {/* Return Quantity & Refund Amount Inputs */}
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Return Quantity ({itemUnit}) *
-                        </label>
-                        <button
-                          type="button"
-                          onClick={handleSetMaxQty}
-                          className="text-[11px] font-black text-brand-600 dark:text-brand-400 hover:underline cursor-pointer bg-brand-500/10 px-2 py-0.5 rounded-md"
-                        >
-                          MAX ({remainingQty})
-                        </button>
-                      </div>
+                  {/* Return Quantity Input Section */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                        RETURN QUANTITY ({itemUnit.toUpperCase()})
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleSetMaxQty}
+                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                      >
+                        Max: {remainingQty} {itemUnit}
+                      </button>
+                    </div>
+                    <div className="relative">
                       <input
                         type="text"
                         inputMode="numeric"
@@ -526,118 +528,91 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                           if (e.key === '.' || e.key === ',') e.preventDefault();
                         }}
                         onChange={(e) => handleQtyChange(e.target.value)}
-                        className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-black font-mono outline-none transition ${theme === 'dark'
-                            ? 'bg-slate-800 border-slate-700 text-white focus:border-brand-500'
-                            : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-brand-500'
+                        className={`w-full border-2 rounded-2xl px-4 py-3 text-base font-black font-mono outline-none transition ${theme === 'dark'
+                            ? 'bg-slate-900 border-slate-700 text-white focus:border-orange-500'
+                            : 'bg-white border-slate-200 text-slate-900 focus:border-orange-500'
                           }`}
                         required
                       />
                     </div>
+                  </div>
 
-                    {/* Accurate Financial Calculation Breakdown */}
-                    {numReturnQty > 0 && (
-                      <div className="p-3.5 rounded-2xl border bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 space-y-2 text-xs">
-                        <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                          <span>Total Goods Value ({numReturnQty} {itemUnit} × Rs. {itemRate}):</span>
-                          <span className="font-mono font-bold text-slate-900 dark:text-white">
-                            Rs. {currentGoodsValue.toLocaleString()}
-                          </span>
-                        </div>
+                  {/* Card 3: 3-Column Return Calculation Summary Bar */}
+                  <div className="p-3.5 sm:p-4 rounded-2xl border bg-slate-50/80 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-700 text-center">
+                    <div className="px-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Goods Value</span>
+                      <span className="font-mono font-black text-slate-900 dark:text-white text-sm sm:text-base mt-1 block">
+                        Rs. {currentGoodsValue.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="px-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 block">Unpaid Due Cancelled</span>
+                      <span className="font-mono font-black text-orange-600 dark:text-orange-400 text-sm sm:text-base mt-1 block">
+                        - Rs. {dueCancelled.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="px-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Cash Refund to Customer</span>
+                      <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
+                        Rs. {cashRefundAmount.toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">(Capped at paid amount)</span>
+                    </div>
+                  </div>
 
-                        {dueCancelled > 0 && (
-                          <div className="flex justify-between items-center text-amber-600 dark:text-amber-400">
-                            <span>Unpaid Due Cancelled (Udhar Khatam):</span>
-                            <span className="font-mono font-extrabold">- Rs. {dueCancelled.toLocaleString()}</span>
-                          </div>
-                        )}
+                  {/* Refund Payment Method Selector */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
+                        REFUND PAYMENT METHOD
+                      </label>
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                        Avail: Rs. {selectedChannelBalance.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {[
+                        { id: 'Cash', label: 'Cash', icon: Banknote },
+                        { id: 'Bank Account', label: 'Bank Account', icon: Landmark },
+                        { id: 'Card', label: 'Card', icon: CreditCard }
+                      ].map((mode) => {
+                        const Icon = mode.icon;
+                        const isSelected = refundMode === mode.id || (mode.id === 'Bank Account' && refundMode === 'Bank');
+                        return (
+                          <button
+                            key={mode.id}
+                            type="button"
+                            onClick={() => setRefundMode(mode.id)}
+                            className={`py-3 px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${isSelected
+                                ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black shadow-2xs'
+                                : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                              }`}
+                          >
+                            <Icon className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{mode.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
 
-                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                          <div>
-                            <span className="font-black text-slate-900 dark:text-white uppercase block text-xs">
-                              Actual Cash Refund to Customer:
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-semibold">
-                              Strictly capped at customer's paid amount (Rs. {salePaid.toLocaleString()})
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400">
-                              Rs. {cashRefundAmount.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-
-                        {cashRefundAmount === 0 && (
-                          <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] font-semibold flex items-center gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                            <span>Customer paid Rs. 0 or bill has remaining due. Full return value is adjusted against Khata due (0 cash payout).</span>
-                          </div>
-                        )}
+                    {isInsufficientBalance && (
+                      <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2.5 shadow-2xs mt-2">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                        <span>
+                          Insufficient balance in {refundMode === 'Bank' ? 'Bank Account' : refundMode}. Available: Rs. {selectedChannelBalance.toLocaleString()}. Required: Rs. {cashRefundAmount.toLocaleString()}.
+                        </span>
                       </div>
                     )}
                   </div>
-
-                  {/* Payment Method Selector (Only active if there is cash to refund) */}
-                  {cashRefundAmount > 0 ? (
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                          Refund Payment Method *
-                        </label>
-                        <span className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400">
-                          Avail: Rs. {selectedChannelBalance.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { id: 'Cash', label: 'Cash', icon: Banknote },
-                          { id: 'Bank Account', label: 'Bank Account', icon: Landmark },
-                          { id: 'Card', label: 'Card', icon: CreditCard }
-                        ].map((mode) => {
-                          const Icon = mode.icon;
-                          const isSelected = refundMode === mode.id || (mode.id === 'Bank Account' && refundMode === 'Bank');
-                          return (
-                            <button
-                              key={mode.id}
-                              type="button"
-                              onClick={() => setRefundMode(mode.id)}
-                              className={`py-2.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border ${isSelected
-                                  ? 'bg-orange-500/10 border-orange-500 text-orange-600 dark:text-orange-400 shadow-2xs font-extrabold ring-1 ring-orange-500/30'
-                                  : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
-                                }`}
-                            >
-                              <Icon className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">{mode.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {isInsufficientBalance && (
-                        <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-1.5 animate-in fade-in mt-2">
-                          <AlertTriangle className="w-4 h-4 shrink-0" />
-                          <span>
-                            Insufficient Balance in {refundMode} — Available: Rs. {selectedChannelBalance.toLocaleString()}.
-                            Required: Rs. {cashRefundAmount.toLocaleString()}. Please select another payment method with sufficient balance.
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold flex items-center gap-2">
-                      <Wallet className="w-4 h-4 text-slate-500" />
-                      <span>Settlement Mode: Khata Credit / Due Adjustment</span>
-                    </div>
-                  )}
                 </>
               )}
 
               {/* Footer Actions */}
-              <div className="flex gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`w-1/3 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition cursor-pointer ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                     }`}
                 >
                   Cancel
@@ -645,7 +620,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                 <button
                   type="submit"
                   disabled={isSubmitting || numReturnQty <= 0 || isFullyReturned || isInsufficientBalance}
-                  className="w-2/3 py-2.5 rounded-xl font-black text-xs bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-500/20 transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed active:scale-98"
+                  className="w-full py-3.5 rounded-2xl font-black text-sm bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md shadow-orange-500/20 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-98"
                 >
                   {isSubmitting ? (
                     <span>Processing Return...</span>
