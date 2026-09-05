@@ -512,4 +512,88 @@ describe('Supplier & Customer Payment Allocation and Isolation Tests', () => {
     assert.strictEqual(finB.due, 0);
     assert.strictEqual(finB.refundCashback, 3000, 'Refund of 3000 must be generated when paid (5000) exceeds net (2000)');
   });
+
+  it('Scenario 7: Supplier Khata purchase with 8000 return and 3000 unlinked general payment generates 1000 refund/cashback and 0 due on subsequent purchase', () => {
+    const { computePurchaseFinancials, computeSupplierKhataBalance, computeAllSuppliersFinancials } = ERP;
+
+    const supplier = { id: 'SUP-01', name: 'Al-Madina Traders', balance: 0, openingBalance: 0 };
+
+    // Purchase 1 made on Khata with 0 initial paid
+    const purchase1 = {
+      id: 'PUR-1',
+      purchaseNo: 'PUR-2026-0001',
+      supplierId: 'SUP-01',
+      supplier: 'Al-Madina Traders',
+      amount: 10000,
+      paidAmount: 0,
+      paymentMode: 'Supplier Khata',
+      status: 'Pending',
+      date: '2026-01-01T10:00:00.000Z',
+      createdAt: '2026-01-01T10:00:00.000Z'
+    };
+
+    // Return of 8,000 on Purchase 1
+    const purchaseReturns = [
+      {
+        id: 'PRET-1',
+        returnNo: 'RET-001',
+        purchaseId: 'PUR-1',
+        purchaseNo: 'PUR-2026-0001',
+        supplierId: 'SUP-01',
+        supplierName: 'Al-Madina Traders',
+        amount: 8000,
+        refundMode: 'Khata Credit',
+        date: '2026-01-01T11:00:00.000Z',
+        createdAt: '2026-01-01T11:00:00.000Z'
+      }
+    ];
+
+    // Unlinked payment log of 3,000 (PAY-6775) made against supplier khata
+    const paymentLogs = [
+      {
+        id: 'PAY-6775',
+        ref: 'PAY-6775',
+        partyId: 'SUP-01',
+        partyName: 'Al-Madina Traders',
+        type: 'Supplier',
+        amount: 3000,
+        mode: 'Cash',
+        date: '2026-01-01T12:00:00.000Z',
+        createdAt: '2026-01-01T12:00:00.000Z'
+      }
+    ];
+
+    // Subsequent purchase days later
+    const purchase2 = {
+      id: 'PUR-2',
+      purchaseNo: 'PUR-2026-0002',
+      supplierId: 'SUP-01',
+      supplier: 'Al-Madina Traders',
+      amount: 10000,
+      paidAmount: 0,
+      paymentMode: 'Supplier Khata',
+      status: 'Pending',
+      date: '2026-01-05T10:00:00.000Z',
+      createdAt: '2026-01-05T10:00:00.000Z'
+    };
+
+    const allPurchases = [purchase1, purchase2];
+
+    const fin1 = computePurchaseFinancials(purchase1, purchaseReturns, paymentLogs, allPurchases);
+    assert.strictEqual(fin1.grossTotal, 10000, 'Purchase 1 gross total must be 10000');
+    assert.strictEqual(fin1.returnAmount, 8000, 'Purchase 1 return amount must be 8000');
+    assert.strictEqual(fin1.netTotal, 2000, 'Purchase 1 net total must be 2000');
+    assert.strictEqual(fin1.paid, 3000, 'Purchase 1 paid must be 3000 (from PAY-6775)');
+    assert.strictEqual(fin1.refundCashback, 1000, 'Purchase 1 refund cashback must be 1000 (3000 paid - 2000 net)');
+    assert.strictEqual(fin1.due, 0, 'Purchase 1 due must be 0');
+
+    const fin2 = computePurchaseFinancials(purchase2, purchaseReturns, paymentLogs, allPurchases);
+    assert.strictEqual(fin2.paid, 0, 'Purchase 2 paid must be 0');
+    assert.strictEqual(fin2.due, 10000, 'Purchase 2 due must be 10000');
+
+    const allFin = computeAllSuppliersFinancials([supplier], allPurchases, paymentLogs, purchaseReturns);
+    assert.strictEqual(allFin.totalSupplierRefundsReceived, 1000, 'All suppliers total refund received must be 1000');
+    assert.strictEqual(allFin.totalPayables, 10000, 'All suppliers total payables must be 10000');
+  });
 });
+

@@ -158,7 +158,16 @@ export const PurchaseReturns = () => {
                   const m = String(ret.refundMode || ret.mode || '').trim().toLowerCase();
                   const isCredit = m === 'credit' || m === 'khata credit' || m === 'khata';
                   const retAmt = Number(ret.refundAmount !== undefined ? ret.refundAmount : (ret.refundamount !== undefined ? ret.refundamount : (ret.amount || 0)));
-                  const cashRefundReceived = !isCredit ? retAmt : 0;
+                  let cashRefundReceived = !isCredit ? retAmt : 0;
+
+                  const matchingPurchase = (purchases || []).find(p =>
+                    (ret.purchaseId && String(p.id) === String(ret.purchaseId)) ||
+                    (ret.purchaseNo && p.purchaseNo && ret.purchaseNo === p.purchaseNo)
+                  );
+                  if (matchingPurchase) {
+                    const pFin = computePurchaseFinancials(matchingPurchase, purchaseReturns, paymentLogs, purchases);
+                    cashRefundReceived = Math.max(cashRefundReceived, pFin.refundCashback || 0);
+                  }
 
                   return (
                     <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>

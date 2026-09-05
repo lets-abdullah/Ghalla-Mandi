@@ -29,7 +29,7 @@ import {
   FileText,
   Clock
 } from 'lucide-react';
-import { useERP, computeLedgerStatement, computeAllCustomersFinancials, computeAllSuppliersFinancials, computeSaleFinancials, computePurchaseFinancials, resolveTransactionPayment } from '../context/ERPContext';
+import { useERP, computeLedgerStatement, computeAllCustomersFinancials, computeAllSuppliersFinancials, computeSaleFinancials, computePurchaseFinancials, resolveTransactionPayment, extractMerchandiseReturnValue } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
@@ -810,6 +810,36 @@ export const Ledger = () => {
         });
       });
 
+      // 3. Unlinked Standalone Purchase Returns
+      const partyReturns = (purchaseReturns || []).filter(r => {
+        const rSupId = r.supplierId ? String(r.supplierId) : (r.supplierid ? String(r.supplierid) : null);
+        const rSupName = (r.supplier || r.supplierName || r.suppliername || '').trim().toLowerCase();
+        const isParty = (partyId && rSupId && rSupId === partyId) || (partyName && rSupName && rSupName === partyName);
+        if (!isParty) return false;
+        const isLinkedToKnownPurchase = partyPurchases.some(p => (r.purchaseId && String(r.purchaseId) === String(p.id)) || (r.purchaseNo && r.purchaseNo === p.purchaseNo));
+        return !isLinkedToKnownPurchase;
+      });
+
+      partyReturns.forEach(r => {
+        const retVal = extractMerchandiseReturnValue(r);
+        const refAmt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : 0));
+        rows.push({
+          id: `ret-${r.id}`,
+          rawDate: r.date || r.createdAt,
+          date: r.date || 'N/A',
+          billNo: r.returnNo || `RET-${r.id}`,
+          totalPurchase: 0,
+          paid: 0,
+          due: 0,
+          purchaseReturn: retVal,
+          netPurchase: -retVal,
+          refundCashback: refAmt,
+          status: refAmt > 0 ? 'Refunded' : 'Returned',
+          isStandaloneReturn: true,
+          rawTx: r
+        });
+      });
+
     } else {
       // CUSTOMER MODE
       const opBal = Number(activeCustomer.openingBalance !== undefined ? activeCustomer.openingBalance : (activeCustomer.openingbalance !== undefined ? activeCustomer.openingbalance : 0));
@@ -913,6 +943,36 @@ export const Ledger = () => {
           status: 'Settled',
           isStandalonePayment: true,
           rawTx: pl
+        });
+      });
+
+      // 3. Unlinked Standalone Sale Returns
+      const partyReturns = (saleReturns || []).filter(r => {
+        const rCustId = r.customerId ? String(r.customerId) : (r.customerid ? String(r.customerid) : null);
+        const rCustName = (r.customer || r.customerName || r.customername || r.partyName || '').trim().toLowerCase();
+        const isParty = (partyId && rCustId && rCustId === partyId) || (partyName && rCustName && rCustName === partyName);
+        if (!isParty) return false;
+        const isLinkedToKnownSale = partySales.some(s => (r.saleId && String(r.saleId) === String(s.id)) || (r.invoiceNo && r.invoiceNo === s.invoiceNo));
+        return !isLinkedToKnownSale;
+      });
+
+      partyReturns.forEach(r => {
+        const retVal = extractMerchandiseReturnValue(r);
+        const refAmt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : 0));
+        rows.push({
+          id: `ret-${r.id}`,
+          rawDate: r.date || r.createdAt,
+          date: r.date || 'N/A',
+          billNo: r.returnNo || `RET-${r.id}`,
+          totalPurchase: 0,
+          paid: 0,
+          due: 0,
+          purchaseReturn: retVal,
+          netPurchase: -retVal,
+          refundCashback: refAmt,
+          status: refAmt > 0 ? 'Refunded' : 'Returned',
+          isStandaloneReturn: true,
+          rawTx: r
         });
       });
     }

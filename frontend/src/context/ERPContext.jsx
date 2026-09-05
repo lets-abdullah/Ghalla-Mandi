@@ -512,14 +512,15 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
 
         const sIdKey = String(s.id);
         const alreadyAllocated = generalAllocMap[sIdKey] || 0;
-        const sRemainingDue = Math.max(0, sNetTotal - sSpecificPaid - alreadyAllocated);
+        const currentTotalPaid = sSpecificPaid + alreadyAllocated;
 
         // Rule 9: Never allocate a payment to a sale that was already fully settled/returned before payment occurred
-        if (sRemainingDue <= 0) {
+        if (currentTotalPaid >= sNetTotal) {
           continue;
         }
 
-        const alloc = Math.min(sRemainingDue, plCash);
+        const maxCapacity = Math.max(0, sTotal - currentTotalPaid);
+        const alloc = Math.min(maxCapacity, plCash);
         generalAllocMap[sIdKey] = alreadyAllocated + alloc;
         plCash -= alloc;
       }
@@ -706,14 +707,15 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
 
         const pIdKey = String(p.id);
         const alreadyAllocated = generalAllocMap[pIdKey] || 0;
-        const pRemainingDue = Math.max(0, pNetTotal - pSpecificPaid - alreadyAllocated);
+        const currentTotalPaid = pSpecificPaid + alreadyAllocated;
 
         // Rule 9: Never allocate a payment to a purchase that was already fully settled/returned before the payment occurred
-        if (pRemainingDue <= 0) {
+        if (currentTotalPaid >= pNetTotal) {
           continue;
         }
 
-        const alloc = Math.min(pRemainingDue, plCash);
+        const maxCapacity = Math.max(0, pTotal - currentTotalPaid);
+        const alloc = Math.min(maxCapacity, plCash);
         generalAllocMap[pIdKey] = alreadyAllocated + alloc;
         plCash -= alloc;
       }
@@ -1577,7 +1579,32 @@ export const computeSupplierKhataBalance = (supplier, purchases = [], paymentLog
 };
 
 export const computeAllSuppliersFinancials = (suppliers = [], purchases = [], paymentLogs = [], purchaseReturns = []) => {
-  const allSuppliers = (suppliers || []).map(sup => {
+  const knownSupplierMap = new Map();
+  (suppliers || []).forEach(s => {
+    const key = (s.id ? String(s.id) : (s.name || '')).trim().toLowerCase();
+    if (key) knownSupplierMap.set(key, s);
+  });
+
+  (purchases || []).forEach(p => {
+    const supId = p.supplierId ? String(p.supplierId) : (p.supplierid ? String(p.supplierid) : null);
+    const supName = (p.supplier || p.supplierName || p.suppliername || '').trim();
+    const key = (supId || supName).toLowerCase();
+    if (key && !knownSupplierMap.has(key)) {
+      knownSupplierMap.set(key, { id: supId || key, name: supName || 'Supplier', openingBalance: 0 });
+    }
+  });
+
+  (purchaseReturns || []).forEach(r => {
+    const supId = r.supplierId ? String(r.supplierId) : (r.supplierid ? String(r.supplierid) : null);
+    const supName = (r.supplier || r.supplierName || r.suppliername || '').trim();
+    const key = (supId || supName).toLowerCase();
+    if (key && !knownSupplierMap.has(key)) {
+      knownSupplierMap.set(key, { id: supId || key, name: supName || 'Supplier', openingBalance: 0 });
+    }
+  });
+
+  const allSuppliersList = Array.from(knownSupplierMap.values());
+  const allSuppliers = allSuppliersList.map(sup => {
     const fin = computeSupplierKhataBalance(sup, purchases, paymentLogs, purchaseReturns);
     return {
       ...sup,
