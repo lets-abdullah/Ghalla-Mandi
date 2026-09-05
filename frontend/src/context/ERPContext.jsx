@@ -824,6 +824,7 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
   // Upfront POS payments on sales that do not have a separate payment log in paymentLogs
   let unloggedUpfrontCash = 0;
   custSales.forEach(s => {
+    const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
     const upfrontRes = resolveTransactionPayment(s, 'Sale');
     const sUpfront = upfrontRes.totalLiquid || Number(s.paidAmount !== undefined ? s.paidAmount : (s.cashPaid || 0));
 
