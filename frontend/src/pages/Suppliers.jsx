@@ -693,7 +693,7 @@ export const Suppliers = () => {
       </div>
 
       {/* KPI Cards Row (Screen Only) */}
-      <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="no-print grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* 1. Total Suppliers */}
         <div
           onClick={() => { setStatusFilter('All'); setSelectedProductFilter('All'); setSelectedSupplierFilter('All'); }}
