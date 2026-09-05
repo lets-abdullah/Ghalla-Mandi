@@ -29,18 +29,18 @@ export const PurchaseReturns = () => {
   const [selectedReceiptReturn, setSelectedReceiptReturn] = useState(null);
 
   const filteredReturns = useMemo(() => {
-    return [...purchaseReturns].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+    return [...(purchaseReturns || [])].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
   }, [purchaseReturns]);
 
   // 1. Total Merchandise Purchase Returned Stock Value
   const totalReturnedPurchasesValue = useMemo(() => {
-    return purchaseReturns.reduce((sum, r) => sum + extractMerchandiseReturnValue(r), 0);
+    return (purchaseReturns || []).reduce((sum, r) => sum + Number(extractMerchandiseReturnValue(r) || 0), 0);
   }, [purchaseReturns]);
 
   // 2. Total Actual Cash Refunds Received from Suppliers
   const totalCashRefundsReceived = useMemo(() => {
     const purchaseMap = new Map();
-    purchaseReturns.forEach(r => {
+    (purchaseReturns || []).forEach(r => {
       const matchingPurchase = (purchases || []).find(p => (r.purchaseId && String(p.id) === String(r.purchaseId)) || (r.purchaseNo && p.purchaseNo && r.purchaseNo === p.purchaseNo));
       if (matchingPurchase) {
         if (!purchaseMap.has(String(matchingPurchase.id))) {
@@ -57,10 +57,10 @@ export const PurchaseReturns = () => {
     let sumCashRefunds = 0;
     purchaseMap.forEach((val) => {
       if (val.isStandalone) {
-        sumCashRefunds += val.amount;
+        sumCashRefunds += Number(val.amount || 0);
       } else {
         const fin = computePurchaseFinancials(val, purchaseReturns, paymentLogs, purchases);
-        sumCashRefunds += fin.refundCashback;
+        sumCashRefunds += Number(fin?.refundCashback || 0);
       }
     });
     return sumCashRefunds;
@@ -110,7 +110,7 @@ export const PurchaseReturns = () => {
             <span>Total Returned Stock</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
-            Rs. {totalReturnedPurchasesValue.toLocaleString()}
+            Rs. {Number(totalReturnedPurchasesValue || 0).toLocaleString()}
           </div>
           <div className="text-[11px] font-semibold text-slate-400 mt-1">Commodities returned to suppliers</div>
         </div>
@@ -122,7 +122,7 @@ export const PurchaseReturns = () => {
             <span>Total Cash Refunds Received</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
-            Rs. {totalCashRefundsReceived.toLocaleString()}
+            Rs. {Number(totalCashRefundsReceived || 0).toLocaleString()}
           </div>
           <div className="text-[11px] font-semibold text-slate-400 mt-1">Direct physical cash received back from suppliers</div>
         </div>
@@ -136,8 +136,8 @@ export const PurchaseReturns = () => {
         filterSummary="Direct Cash Refunds vs Payable Deductions"
         stats={[
           { label: 'Total Returns', value: filteredReturns.length },
-          { label: 'Total Return Value', value: `Rs. ${totalReturnedPurchasesValue.toLocaleString()}` },
-          { label: 'Cash Refunds Received', value: `Rs. ${totalCashRefundsReceived.toLocaleString()}` }
+          { label: 'Total Return Value', value: `Rs. ${Number(totalReturnedPurchasesValue || 0).toLocaleString()}` },
+          { label: 'Cash Refunds Received', value: `Rs. ${Number(totalCashRefundsReceived || 0).toLocaleString()}` }
         ]}
       />
 
@@ -169,13 +169,13 @@ export const PurchaseReturns = () => {
                 </tr>
               ) : (
                 filteredReturns.map(ret => {
-                  const retMerchValue = extractMerchandiseReturnValue(ret);
-                  const matchingPurchase = (purchases || []).filter(p => (ret.purchaseId && String(p.id) === String(ret.purchaseId)) || (ret.purchaseNo && p.purchaseNo && ret.purchaseNo === p.purchaseNo))[0];
+                  const retMerchValue = Number(extractMerchandiseReturnValue(ret) || 0);
+                  const matchingPurchase = (purchases || []).find(p => (ret.purchaseId && String(p.id) === String(ret.purchaseId)) || (ret.purchaseNo && p.purchaseNo && ret.purchaseNo === p.purchaseNo));
 
                   let cashRefundReceived = 0;
                   if (matchingPurchase) {
                     const fin = computePurchaseFinancials(matchingPurchase, purchaseReturns, paymentLogs, purchases);
-                    cashRefundReceived = fin.refundCashback;
+                    cashRefundReceived = Number(fin?.refundCashback || 0);
                   } else {
                     const isLiquidCash = String(ret.refundMode || '').trim().toLowerCase() === 'cash';
                     cashRefundReceived = isLiquidCash ? Number(ret.refundAmount || 0) : 0;

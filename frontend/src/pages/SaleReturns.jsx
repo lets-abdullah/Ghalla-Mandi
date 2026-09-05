@@ -29,18 +29,18 @@ export const SaleReturns = () => {
   const [selectedReceiptReturn, setSelectedReceiptReturn] = useState(null);
 
   const filteredReturns = useMemo(() => {
-    return [...saleReturns].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+    return [...(saleReturns || [])].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
   }, [saleReturns]);
 
   // 1. Total Merchandise Sales Returned Value
   const totalReturnedSalesValue = useMemo(() => {
-    return saleReturns.reduce((sum, r) => sum + extractMerchandiseReturnValue(r), 0);
+    return (saleReturns || []).reduce((sum, r) => sum + Number(extractMerchandiseReturnValue(r) || 0), 0);
   }, [saleReturns]);
 
   // 2. Total Actual Cash Refunds Paid Out to Customers
   const totalCashRefundsPaid = useMemo(() => {
     const saleMap = new Map();
-    saleReturns.forEach(r => {
+    (saleReturns || []).forEach(r => {
       const matchingSale = (sales || []).find(s => (r.saleId && String(s.id) === String(r.saleId)) || (r.invoiceNo && s.invoiceNo && r.invoiceNo === s.invoiceNo));
       if (matchingSale) {
         if (!saleMap.has(String(matchingSale.id))) {
@@ -57,10 +57,10 @@ export const SaleReturns = () => {
     let sumCashRefunds = 0;
     saleMap.forEach((val) => {
       if (val.isStandalone) {
-        sumCashRefunds += val.amount;
+        sumCashRefunds += Number(val.amount || 0);
       } else {
         const fin = computeSaleFinancials(val, saleReturns, paymentLogs, sales);
-        sumCashRefunds += fin.refundCashback;
+        sumCashRefunds += Number(fin?.refundCashback || 0);
       }
     });
     return sumCashRefunds;
@@ -110,7 +110,7 @@ export const SaleReturns = () => {
             <span>Total Returned Sales</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-orange-600 dark:text-orange-400">
-            Rs. {totalReturnedSalesValue.toLocaleString()}
+            Rs. {Number(totalReturnedSalesValue || 0).toLocaleString()}
           </div>
           <div className="text-[11px] font-semibold text-slate-400 mt-1">Returned produce restocked into inventory</div>
         </div>
@@ -122,7 +122,7 @@ export const SaleReturns = () => {
             <span>Total Cash Refunds Paid</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
-            Rs. {totalCashRefundsPaid.toLocaleString()}
+            Rs. {Number(totalCashRefundsPaid || 0).toLocaleString()}
           </div>
           <div className="text-[11px] font-semibold text-slate-400 mt-1">Direct physical cash refunded out of pocket</div>
         </div>
@@ -136,8 +136,8 @@ export const SaleReturns = () => {
         filterSummary="Direct Cash Refunds vs Due Adjustments"
         stats={[
           { label: 'Total Returns', value: filteredReturns.length },
-          { label: 'Total Return Value', value: `Rs. ${totalReturnedSalesValue.toLocaleString()}` },
-          { label: 'Cash Refunds Paid', value: `Rs. ${totalCashRefundsPaid.toLocaleString()}` }
+          { label: 'Total Return Value', value: `Rs. ${Number(totalReturnedSalesValue || 0).toLocaleString()}` },
+          { label: 'Cash Refunds Paid', value: `Rs. ${Number(totalCashRefundsPaid || 0).toLocaleString()}` }
         ]}
       />
 
@@ -169,13 +169,13 @@ export const SaleReturns = () => {
                 </tr>
               ) : (
                 filteredReturns.map(ret => {
-                  const retMerchValue = extractMerchandiseReturnValue(ret);
+                  const retMerchValue = Number(extractMerchandiseReturnValue(ret) || 0);
                   const matchingSale = (sales || []).find(s => (ret.saleId && String(s.id) === String(ret.saleId)) || (ret.invoiceNo && s.invoiceNo && ret.invoiceNo === s.invoiceNo));
 
                   let cashRefundPaid = 0;
                   if (matchingSale) {
                     const fin = computeSaleFinancials(matchingSale, saleReturns, paymentLogs, sales);
-                    cashRefundPaid = fin.refundCashback;
+                    cashRefundPaid = Number(fin?.refundCashback || 0);
                   } else {
                     const isLiquidCash = String(ret.refundMode || '').trim().toLowerCase() === 'cash';
                     cashRefundPaid = isLiquidCash ? Number(ret.refundAmount || 0) : 0;
