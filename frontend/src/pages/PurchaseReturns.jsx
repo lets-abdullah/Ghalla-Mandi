@@ -11,7 +11,7 @@ import {
   Receipt,
   FileText
 } from 'lucide-react';
-import { useERP, computePurchaseFinancials, extractMerchandiseReturnValue } from '../context/ERPContext';
+import { useERP, computePurchaseFinancials, computeAllSuppliersFinancials, extractMerchandiseReturnValue } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PurchaseReturnModal } from '../modals/PurchaseReturnModal';
@@ -20,7 +20,7 @@ import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 
 export const PurchaseReturns = () => {
-  const { purchases = [], purchaseReturns = [], paymentLogs = [] } = useERP();
+  const { suppliers = [], purchases = [], purchaseReturns = [], paymentLogs = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -39,14 +39,17 @@ export const PurchaseReturns = () => {
 
   // 2. Total Actual Cash Refunds Received from Suppliers
   const totalCashRefundsReceived = useMemo(() => {
-    return (purchaseReturns || []).reduce((sum, r) => {
+    const explicitRefunds = (purchaseReturns || []).reduce((sum, r) => {
       const m = String(r.refundMode || r.mode || '').trim().toLowerCase();
       const isCredit = m === 'credit' || m === 'khata credit' || m === 'khata';
       const amt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : (r.amount || 0)));
       if (!isCredit && amt > 0) return sum + amt;
       return sum;
     }, 0);
-  }, [purchaseReturns]);
+    const supFin = computeAllSuppliersFinancials(suppliers, purchases, paymentLogs, purchaseReturns);
+    const autoRefunds = supFin.totalSupplierRefundsReceived || 0;
+    return Math.max(explicitRefunds, autoRefunds);
+  }, [purchaseReturns, suppliers, purchases, paymentLogs]);
 
   return (
     <div className="space-y-6">

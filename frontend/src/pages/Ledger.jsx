@@ -1573,7 +1573,7 @@ export const Ledger = () => {
               <div>
                 <div className="text-slate-400 text-[10px] uppercase font-black">{isSupplier ? 'Paid' : 'Received'}</div>
                 <div className="font-mono font-bold mt-0.5 text-emerald-600 dark:text-emerald-400">
-                  Rs. {(activeCustomer?.totalCredit || consolidatedTotals.paid || 0).toLocaleString()}
+                  Rs. {(consolidatedTotals.paid || 0).toLocaleString()}
                 </div>
               </div>
               <div>

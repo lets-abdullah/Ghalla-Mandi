@@ -635,6 +635,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const isReturned = isFullyReturned;
   const due = Math.max(0, netDueableTotal - paid);
   const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
+  const effectiveRefundCashback = Math.max(cashRefundAmount, Math.max(0, rawGrossPaid - netDueableTotal));
 
   return {
     total: Math.round(total),
@@ -642,7 +643,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     netTotal: Math.round(netDueableTotal),
     paid: Math.round(paid),
     returnAmount: Math.round(returnAmount),
-    refundCashback: Math.round(cashRefundAmount),
+    refundCashback: Math.round(effectiveRefundCashback),
     due: Math.round(due),
     status,
     isReturned,
