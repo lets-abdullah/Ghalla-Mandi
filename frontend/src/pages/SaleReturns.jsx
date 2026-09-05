@@ -39,32 +39,14 @@ export const SaleReturns = () => {
 
   // 2. Total Actual Cash Refunds Paid Out to Customers
   const totalCashRefundsPaid = useMemo(() => {
-    const saleMap = new Map();
-    (saleReturns || []).forEach(r => {
-      const matchingSale = (sales || []).find(s => (r.saleId && String(s.id) === String(r.saleId)) || (r.invoiceNo && s.invoiceNo && r.invoiceNo === s.invoiceNo));
-      if (matchingSale) {
-        if (!saleMap.has(String(matchingSale.id))) {
-          saleMap.set(String(matchingSale.id), matchingSale);
-        }
-      } else {
-        const isLiquidCash = String(r.refundMode || '').trim().toLowerCase() === 'cash';
-        if (isLiquidCash) {
-          saleMap.set(`standalone-${r.id}`, { isStandalone: true, amount: Number(r.refundAmount || 0) });
-        }
-      }
-    });
-
-    let sumCashRefunds = 0;
-    saleMap.forEach((val) => {
-      if (val.isStandalone) {
-        sumCashRefunds += Number(val.amount || 0);
-      } else {
-        const fin = computeSaleFinancials(val, saleReturns, paymentLogs, sales);
-        sumCashRefunds += Number(fin?.refundCashback || 0);
-      }
-    });
-    return sumCashRefunds;
-  }, [sales, saleReturns, paymentLogs]);
+    return (saleReturns || []).reduce((sum, r) => {
+      const m = String(r.refundMode || r.mode || '').trim().toLowerCase();
+      const isCredit = m === 'credit' || m === 'khata credit' || m === 'khata';
+      const amt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : (r.amount || 0)));
+      if (!isCredit && amt > 0) return sum + amt;
+      return sum;
+    }, 0);
+  }, [saleReturns]);
 
   return (
     <div className="space-y-6">
@@ -170,16 +152,10 @@ export const SaleReturns = () => {
               ) : (
                 filteredReturns.map(ret => {
                   const retMerchValue = Number(extractMerchandiseReturnValue(ret) || 0);
-                  const matchingSale = (sales || []).find(s => (ret.saleId && String(s.id) === String(ret.saleId)) || (ret.invoiceNo && s.invoiceNo && ret.invoiceNo === s.invoiceNo));
-
-                  let cashRefundPaid = 0;
-                  if (matchingSale) {
-                    const fin = computeSaleFinancials(matchingSale, saleReturns, paymentLogs, sales);
-                    cashRefundPaid = Number(fin?.refundCashback || 0);
-                  } else {
-                    const isLiquidCash = String(ret.refundMode || '').trim().toLowerCase() === 'cash';
-                    cashRefundPaid = isLiquidCash ? Number(ret.refundAmount || 0) : 0;
-                  }
+                  const m = String(ret.refundMode || ret.mode || '').trim().toLowerCase();
+                  const isCredit = m === 'credit' || m === 'khata credit' || m === 'khata';
+                  const retAmt = Number(ret.refundAmount !== undefined ? ret.refundAmount : (ret.refundamount !== undefined ? ret.refundamount : (ret.amount || 0)));
+                  const cashRefundPaid = !isCredit ? retAmt : 0;
 
                   return (
                     <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>

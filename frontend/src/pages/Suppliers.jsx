@@ -264,7 +264,7 @@ export const Suppliers = () => {
 
   // Available liquid balance for selected payment account
   const availableLiquidForPayMode = useMemo(() => {
-    const current = liquidBalances || computeLiquidBalances(sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns);
+    const current = liquidBalances || computeLiquidBalances(sales, purchases, saleReturns, purchaseReturns, paymentLogs, expenses);
     const m = String(payMode || 'Cash').toLowerCase();
     if (m.includes('bank') || m.includes('transfer')) return { label: 'Bank Account', amount: current.bankBalance };
     if (m.includes('card') || m.includes('pos')) return { label: 'Card Account', amount: current.cardBalance };

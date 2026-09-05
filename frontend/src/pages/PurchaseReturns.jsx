@@ -39,32 +39,14 @@ export const PurchaseReturns = () => {
 
   // 2. Total Actual Cash Refunds Received from Suppliers
   const totalCashRefundsReceived = useMemo(() => {
-    const purchaseMap = new Map();
-    (purchaseReturns || []).forEach(r => {
-      const matchingPurchase = (purchases || []).find(p => (r.purchaseId && String(p.id) === String(r.purchaseId)) || (r.purchaseNo && p.purchaseNo && r.purchaseNo === p.purchaseNo));
-      if (matchingPurchase) {
-        if (!purchaseMap.has(String(matchingPurchase.id))) {
-          purchaseMap.set(String(matchingPurchase.id), matchingPurchase);
-        }
-      } else {
-        const isLiquidCash = String(r.refundMode || '').trim().toLowerCase() === 'cash';
-        if (isLiquidCash) {
-          purchaseMap.set(`standalone-${r.id}`, { isStandalone: true, amount: Number(r.refundAmount || 0) });
-        }
-      }
-    });
-
-    let sumCashRefunds = 0;
-    purchaseMap.forEach((val) => {
-      if (val.isStandalone) {
-        sumCashRefunds += Number(val.amount || 0);
-      } else {
-        const fin = computePurchaseFinancials(val, purchaseReturns, paymentLogs, purchases);
-        sumCashRefunds += Number(fin?.refundCashback || 0);
-      }
-    });
-    return sumCashRefunds;
-  }, [purchases, purchaseReturns, paymentLogs]);
+    return (purchaseReturns || []).reduce((sum, r) => {
+      const m = String(r.refundMode || r.mode || '').trim().toLowerCase();
+      const isCredit = m === 'credit' || m === 'khata credit' || m === 'khata';
+      const amt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : (r.amount || 0)));
+      if (!isCredit && amt > 0) return sum + amt;
+      return sum;
+    }, 0);
+  }, [purchaseReturns]);
 
   return (
     <div className="space-y-6">
@@ -170,16 +152,10 @@ export const PurchaseReturns = () => {
               ) : (
                 filteredReturns.map(ret => {
                   const retMerchValue = Number(extractMerchandiseReturnValue(ret) || 0);
-                  const matchingPurchase = (purchases || []).find(p => (ret.purchaseId && String(p.id) === String(ret.purchaseId)) || (ret.purchaseNo && p.purchaseNo && ret.purchaseNo === p.purchaseNo));
-
-                  let cashRefundReceived = 0;
-                  if (matchingPurchase) {
-                    const fin = computePurchaseFinancials(matchingPurchase, purchaseReturns, paymentLogs, purchases);
-                    cashRefundReceived = Number(fin?.refundCashback || 0);
-                  } else {
-                    const isLiquidCash = String(ret.refundMode || '').trim().toLowerCase() === 'cash';
-                    cashRefundReceived = isLiquidCash ? Number(ret.refundAmount || 0) : 0;
-                  }
+                  const m = String(ret.refundMode || ret.mode || '').trim().toLowerCase();
+                  const isCredit = m === 'credit' || m === 'khata credit' || m === 'khata';
+                  const retAmt = Number(ret.refundAmount !== undefined ? ret.refundAmount : (ret.refundamount !== undefined ? ret.refundamount : (ret.amount || 0)));
+                  const cashRefundReceived = !isCredit ? retAmt : 0;
 
                   return (
                     <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>

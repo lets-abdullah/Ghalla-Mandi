@@ -195,13 +195,46 @@ export const resolveTransactionPayment = (tx, txType = 'Sale') => {
 };
 
 export const computeLiquidBalances = (
-  sales = [],
-  purchases = [],
-  saleReturns = [],
-  purchaseReturns = [],
-  paymentLogs = [],
-  expenses = []
+  arg1 = [],
+  arg2 = [],
+  arg3 = [],
+  arg4 = [],
+  arg5 = [],
+  arg6 = []
 ) => {
+  let sales = [];
+  let purchases = [];
+  let saleReturns = [];
+  let purchaseReturns = [];
+  let paymentLogs = [];
+  let expenses = [];
+
+  if (arg1 && typeof arg1 === 'object' && !Array.isArray(arg1)) {
+    sales = arg1.sales || [];
+    purchases = arg1.purchases || [];
+    saleReturns = arg1.saleReturns || [];
+    purchaseReturns = arg1.purchaseReturns || [];
+    paymentLogs = arg1.paymentLogs || [];
+    expenses = arg1.expenses || [];
+  } else {
+    sales = Array.isArray(arg1) ? arg1 : [];
+    purchases = Array.isArray(arg2) ? arg2 : [];
+
+    // Detect if arg3 was passed as paymentLogs (swapped argument order fix)
+    const arg3IsPaymentLogs = Array.isArray(arg3) && arg3.some(p => p && (p.type === 'Customer Payment' || p.type === 'Supplier Payment' || p.partyType));
+    if (arg3IsPaymentLogs) {
+      paymentLogs = arg3;
+      expenses = Array.isArray(arg4) ? arg4 : [];
+      saleReturns = Array.isArray(arg5) ? arg5 : [];
+      purchaseReturns = Array.isArray(arg6) ? arg6 : [];
+    } else {
+      saleReturns = Array.isArray(arg3) ? arg3 : [];
+      purchaseReturns = Array.isArray(arg4) ? arg4 : [];
+      paymentLogs = Array.isArray(arg5) ? arg5 : [];
+      expenses = Array.isArray(arg6) ? arg6 : [];
+    }
+  }
+
   let cInflow = 0, bInflow = 0, kInflow = 0;
   let cOutflow = 0, bOutflow = 0, kOutflow = 0;
 
@@ -436,6 +469,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
     netTotal: Math.round(netDueableTotal),
     paid: Math.round(paid),
     returnAmount: Math.round(returnAmount),
+    refundCashback: Math.round(cashRefundAmount),
     due: Math.round(due),
     status,
     isReturned,
@@ -450,6 +484,13 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
 
   const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
   const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0) : Number(purchase.returnAmount || 0);
+  const cashRefundAmount = returns.reduce((acc, r) => {
+    const m = String(r.refundMode || r.mode || '').trim().toLowerCase();
+    const isCredit = m === 'credit' || m === 'khata credit' || m === 'khata';
+    const amt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : (r.amount || 0)));
+    if (!isCredit && amt > 0) return acc + amt;
+    return acc;
+  }, 0);
   const netDueableTotal = Math.max(0, total - returnAmount);
 
   // Categorize specific payment logs for this purchase
@@ -571,6 +612,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     netTotal: Math.round(netDueableTotal),
     paid: Math.round(paid),
     returnAmount: Math.round(returnAmount),
+    refundCashback: Math.round(cashRefundAmount),
     due: Math.round(due),
     status,
     isReturned,
@@ -2982,7 +3024,7 @@ export const ERPProvider = ({ children }) => {
       }
 
       // SUPPLIER PAYMENT & LIQUID CASH RULE: Check available liquid balance before processing payment
-      const currentLiquid = computeLiquidBalances(sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns);
+      const currentLiquid = computeLiquidBalances(sales, purchases, saleReturns, purchaseReturns, paymentLogs, expenses);
       const modeLower = String(paymentMode || 'Cash').trim().toLowerCase();
       let availableLiquid = currentLiquid.cashInHand;
       let accountLabel = 'Cash in Hand';
@@ -3127,7 +3169,7 @@ export const ERPProvider = ({ children }) => {
 
     // SUPPLIER PAYMENT & LIQUID CASH RULE: Check available liquid balance before processing upfront payment
     if (payload.paidAmount > 0) {
-      const currentLiquid = computeLiquidBalances(sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns);
+      const currentLiquid = computeLiquidBalances(sales, purchases, saleReturns, purchaseReturns, paymentLogs, expenses);
       const modeLower = String(payload.paymentMode).trim().toLowerCase();
       let availableLiquid = currentLiquid.cashInHand;
 

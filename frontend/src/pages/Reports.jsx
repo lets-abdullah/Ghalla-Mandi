@@ -4404,9 +4404,6 @@ export const Reports = () => {
                   <BarChart3 className="w-4 h-4" />
                   <span>YOUR FINANCIAL POSITION</span>
                 </h3>
-                <span className="text-sm font-mono font-black text-blue-600 dark:text-blue-400">
-                  Rs. {(totalLiabilities + totalEquity).toLocaleString()}
-                </span>
               </div>
 
               <div className="space-y-3 text-xs">
