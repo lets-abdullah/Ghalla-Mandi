@@ -371,7 +371,8 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   const res = resolveTransactionPayment(sale, 'Sale');
   const upfrontPaid = res.totalLiquid;
   const totalMatchingLogs = matchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-  let rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs);
+  const specificPaid = Math.max(upfrontPaid, totalMatchingLogs);
+  let rawGrossPaid = specificPaid;
 
   // Unlinked general customer payments (e.g. Khata payments) allocation
   const custId = sale.customerId ? String(sale.customerId) : null;
@@ -453,7 +454,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
       availableGeneralCash -= alloc;
     }
 
-    rawGrossPaid = Math.max(upfrontPaid, totalMatchingLogs + generalAllocatedToThisSale);
+    rawGrossPaid = specificPaid + generalAllocatedToThisSale;
   }
 
   const paid = Math.min(netDueableTotal, rawGrossPaid);
@@ -526,7 +527,8 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const totalMatchingLogs = matchingLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
   const isKhataPurchase = (purchase.paymentMode === 'Supplier Khata' || purchase.paymentmode === 'Supplier Khata') || (Number(purchase.paidAmount || purchase.paidamount || 0) === 0);
   const baseUpfront = isKhataPurchase ? 0 : upfrontPaid;
-  let rawGrossPaid = Math.max(baseUpfront, totalMatchingLogs);
+  const specificPaid = Math.max(baseUpfront, totalMatchingLogs);
+  let rawGrossPaid = specificPaid;
 
   // Unlinked general supplier settlement payments allocation
   const supId = purchase.supplierId ? String(purchase.supplierId) : (purchase.supplierid ? String(purchase.supplierid) : null);
@@ -594,7 +596,7 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
       availableGeneralCash -= alloc;
     }
 
-    rawGrossPaid = Math.max(baseUpfront, totalMatchingLogs + generalAllocatedToThisPurchase);
+    rawGrossPaid = specificPaid + generalAllocatedToThisPurchase;
   } else if (isKhataPurchase && totalMatchingLogs === 0) {
     rawGrossPaid = 0;
   }

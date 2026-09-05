@@ -29,7 +29,7 @@ import {
   FileText,
   Clock
 } from 'lucide-react';
-import { useERP, computeLedgerStatement, computeAllCustomersFinancials, computeAllSuppliersFinancials, computeSaleFinancials, computePurchaseFinancials } from '../context/ERPContext';
+import { useERP, computeLedgerStatement, computeAllCustomersFinancials, computeAllSuppliersFinancials, computeSaleFinancials, computePurchaseFinancials, resolveTransactionPayment } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PrintHeader } from '../components/PrintHeader';
@@ -204,9 +204,6 @@ export const Ledger = () => {
         return n === 'walk-in customer' || n === 'walk in customer' || n === 'walk-in' || n === 'walkin' || n === 'walk in' || n === 'walk-in-customer';
       };
 
-      const directPaidSaleIds = new Set();
-      const directPaidInvoiceNos = new Set();
-
       (sales || []).forEach(s => {
         const rawParty = (s.partyName || s.customerName || 'Walk-in Customer').trim();
         const rawPartyLower = rawParty.toLowerCase();
@@ -234,13 +231,6 @@ export const Ledger = () => {
         const isPartiallyReturned = sReturn > 0 && sStatus !== 'Returned';
         const isFullyReturned = sStatus === 'Returned' || (sReturn >= sGross && sGross > 0);
 
-        const isDirectCompletePaid = sGross > 0 && sDue === 0 && (sPaid >= sGross || sStatus === 'Paid') && !isPartiallyReturned && !isFullyReturned;
-
-        if (isDirectCompletePaid) {
-          if (s.id) directPaidSaleIds.add(String(s.id));
-          if (s.invoiceNo) directPaidInvoiceNos.add(String(s.invoiceNo));
-        }
-
         const itemsSummary = Array.isArray(s.cart) && s.cart.length > 0
           ? s.cart.map(i => `${i.name} (${i.qty} ${i.unitName || i.unit || 'KG'})`).join(', ')
           : (typeof s.items === 'string' ? s.items : 'Commodity Sale');
@@ -255,110 +245,70 @@ export const Ledger = () => {
 
         const methodLabel = s.paymentMethod || s.paymentMode || 'Cash';
 
-        if (isDirectCompletePaid) {
+        // Sale Invoice Entry (Debit)
+        entries.push({
+          id: `sale-${s.id}`,
+          rawDate: s.date,
+          date: s.date || 'N/A',
+          partyId,
+          partyName,
+          customerType: custType,
+          ref: s.invoiceNo || 'SALE',
+          txType: 'Sales',
+          desc: descText,
+          sales: sNet,
+          originalGross: sGross,
+          netTotal: sNet,
+          returnAmount: sReturn,
+          paidAmount: sPaid,
+          dueAmount: sDue,
+          invoiceStatus: sStatus,
+          isPartiallyReturned,
+          isFullyReturned,
+          payment: 0,
+          debit: Number(s.amount ?? s.grandTotal ?? 0),
+          credit: 0,
+          paymentMethod: methodLabel,
+          paymentAccount: methodLabel,
+          notes: historyNote
+        });
+
+        // Upfront cash paid on POS counter (only if unlogged in paymentLogs)
+        const hasSpecificInvoiceLog = (paymentLogs || []).some(p =>
+          (p.type === 'Customer' || p.partyType === 'Customer') &&
+          (
+            (p.saleId && String(p.saleId) === String(s.id)) ||
+            (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+          )
+        );
+
+        const upfrontRes = resolveTransactionPayment(s, 'Sale');
+        const upfrontPaid = upfrontRes.totalLiquid;
+
+        if (upfrontPaid > 0 && !hasSpecificInvoiceLog) {
           entries.push({
-            id: `sale-${s.id}`,
+            id: `pay-direct-${s.id}`,
             rawDate: s.date,
             date: s.date || 'N/A',
             partyId,
             partyName,
             customerType: custType,
-            ref: s.invoiceNo || 'SALE',
-            txType: 'Sales',
-            desc: descText,
-            sales: sGross,
-            originalGross: sGross,
-            netTotal: sNet,
-            returnAmount: sReturn,
-            paidAmount: sGross,
-            dueAmount: 0,
-            invoiceStatus: 'Paid',
-            isPartiallyReturned: false,
-            isFullyReturned: false,
-            payment: sGross,
-            debit: sGross,
-            credit: sGross,
-            paymentMethod: methodLabel,
-            paymentAccount: methodLabel,
-            status: 'Settled',
-            notes: historyNote || `Direct Complete Payment via ${methodLabel}`
+            ref: `RCP-${s.invoiceNo || s.id}`,
+            txType: 'Payments',
+            desc: `POS Counter Payment against ${s.invoiceNo || 'Sale'}`,
+            sales: 0,
+            payment: upfrontPaid,
+            debit: 0,
+            credit: upfrontPaid,
+            items: s.cart || s.items || [],
+            productNames: '',
+            notes: s.paymentMode || s.paymentMethod || 'Counter Payment'
           });
-        } else {
-          // Sale Invoice Entry (Debit)
-          entries.push({
-            id: `sale-${s.id}`,
-            rawDate: s.date,
-            date: s.date || 'N/A',
-            partyId,
-            partyName,
-            customerType: custType,
-            ref: s.invoiceNo || 'SALE',
-            txType: 'Sales',
-            desc: descText,
-            sales: sNet,
-            originalGross: sGross,
-            netTotal: sNet,
-            returnAmount: sReturn,
-            paidAmount: sPaid,
-            dueAmount: sDue,
-            invoiceStatus: sStatus,
-            isPartiallyReturned,
-            isFullyReturned,
-            payment: 0,
-            debit: Number(s.amount ?? s.grandTotal ?? 0),
-            credit: 0,
-            paymentMethod: methodLabel,
-            paymentAccount: methodLabel,
-            notes: historyNote
-          });
-
-          // Upfront cash paid on POS counter (only if unlogged in paymentLogs)
-          const hasSpecificInvoiceLog = (paymentLogs || []).some(p =>
-            (p.type === 'Customer' || p.partyType === 'Customer') &&
-            (
-              (p.saleId && String(p.saleId) === String(s.id)) ||
-              (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
-            )
-          );
-
-          let paidAmt = 0;
-          const customerPayments = (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer');
-          if (customerPayments.length === 0) {
-            const isMarkedPaid = s.status === 'Paid' || s.paymentStatus === 'Paid';
-            const sTotal = Number(s.amount ?? s.grandTotal ?? 0);
-            paidAmt = isMarkedPaid ? sTotal : Number(s.cashReceived !== undefined ? s.cashReceived : (s.paidAmount || 0));
-          } else if (!hasSpecificInvoiceLog && s.cashReceived !== undefined && Number(s.cashReceived) > 0) {
-            paidAmt = Number(s.cashReceived);
-          }
-
-          if (paidAmt > 0 && !hasSpecificInvoiceLog) {
-            entries.push({
-              id: `pay-direct-${s.id}`,
-              rawDate: s.date,
-              date: s.date || 'N/A',
-              partyId,
-              partyName,
-              customerType: custType,
-              ref: `RCP-${s.invoiceNo || s.id}`,
-              txType: 'Payments',
-              desc: `POS Counter Payment against ${s.invoiceNo || 'Sale'}`,
-              sales: 0,
-              payment: paidAmt,
-              debit: 0,
-              credit: paidAmt,
-              items: s.cart || s.items || [],
-              productNames: '',
-              notes: s.paymentMode || 'Counter Payment'
-            });
-          }
         }
       });
 
       // 2. Standalone Customer Payment Logs (Credit)
       (paymentLogs || []).filter(p => p.type === 'Customer' || p.partyType === 'Customer').forEach(p => {
-        if (p.saleId && directPaidSaleIds.has(String(p.saleId))) return;
-        if (p.ref && Array.from(directPaidInvoiceNos).some(inv => p.ref.includes(inv) || inv.includes(p.ref.replace('POS-PAY-', '')))) return;
-        if (p.note && Array.from(directPaidInvoiceNos).some(inv => p.note.includes(inv))) return;
 
         const rawParty = (p.partyName || 'Customer').trim();
         const rawPartyLower = rawParty.toLowerCase();
