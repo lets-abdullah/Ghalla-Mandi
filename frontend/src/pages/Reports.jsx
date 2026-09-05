@@ -1466,10 +1466,7 @@ export const Reports = () => {
         runningCash,
         runningBank,
         runningCard,
-        runningTotal: runningCash + runningBank + runningCard,
-        runningBankOverdraft: Math.max(0, -runningBank),
-        runningCashDeficit: Math.max(0, -runningCash),
-        runningCardDeficit: Math.max(0, -runningCard)
+        runningTotal: runningCash + runningBank + runningCard
       };
     });
   }, [liquidTransactionsList]);
@@ -1482,24 +1479,15 @@ export const Reports = () => {
     const cfLiquidCashAsset = Math.max(0, cfClosingCash);
     const cfLiquidBankAsset = Math.max(0, cfClosingBank);
     const cfLiquidCardAsset = Math.max(0, cfClosingCard);
-    const cfBankOverdraftLiability = Math.abs(Math.min(0, cfClosingBank));
-    const cfCashDeficitLiability = Math.abs(Math.min(0, cfClosingCash));
-    const cfCardDeficitLiability = Math.abs(Math.min(0, cfClosingCard));
 
     const bsCashAsset = liquidCashAsset;
     const bsBankAsset = liquidBankAsset;
     const bsCardAsset = liquidCardAsset;
-    const bsOverdraftLiability = bankOverdraftLiability;
-    const bsCashDeficit = cashDeficitLiability;
-    const bsCardDeficit = cardDeficitLiability;
 
     const diffCash = Math.abs(cfLiquidCashAsset - bsCashAsset);
     const diffBank = Math.abs(cfLiquidBankAsset - bsBankAsset);
     const diffCard = Math.abs(cfLiquidCardAsset - bsCardAsset);
-    const diffOverdraft = Math.abs(cfBankOverdraftLiability - bsOverdraftLiability);
-    const diffCashDeficit = Math.abs(cfCashDeficitLiability - bsCashDeficit);
-    const diffCardDeficit = Math.abs(cfCardDeficitLiability - bsCardDeficit);
-    const totalMismatch = diffCash + diffBank + diffCard + diffOverdraft + diffCashDeficit + diffCardDeficit;
+    const totalMismatch = diffCash + diffBank + diffCard;
 
     return {
       cfClosingCash,
@@ -1508,25 +1496,16 @@ export const Reports = () => {
       cfLiquidCashAsset,
       cfLiquidBankAsset,
       cfLiquidCardAsset,
-      cfBankOverdraftLiability,
-      cfCashDeficitLiability,
-      cfCardDeficitLiability,
       bsCashAsset,
       bsBankAsset,
       bsCardAsset,
-      bsOverdraftLiability,
-      bsCashDeficit,
-      bsCardDeficit,
       diffCash,
       diffBank,
       diffCard,
-      diffOverdraft,
-      diffCashDeficit,
-      diffCardDeficit,
       totalMismatch,
       isReconciled: totalMismatch < 0.01
     };
-  }, [cashInHand, bankBalance, cardBalance, liquidCashAsset, liquidBankAsset, liquidCardAsset, bankOverdraftLiability, cashDeficitLiability, cardDeficitLiability]);
+  }, [cashInHand, bankBalance, cardBalance, liquidCashAsset, liquidBankAsset, liquidCardAsset]);
 
   // Alert on Cash Flow / Balance Sheet Mismatch in console
   useEffect(() => {
@@ -2394,7 +2373,7 @@ export const Reports = () => {
         ], COLS);
       });
 
-      csvContent += makeRow(['CLOSING CASH IN HAND', num(cashInHand), 'CLOSING BANK ASSET', num(Math.max(0, bankBalance)), 'CLOSING CARD ASSET', num(liquidCardAsset), 'BANK OVERDRAFT LIABILITY', num(bankOverdraftLiability), 'TOTAL MOVEMENTS LOGGED', `${(chronologicalCashFlow || []).length} Entries`], COLS);
+      csvContent += makeRow(['CLOSING CASH IN HAND', num(cashInHand), 'CLOSING BANK ASSET', num(Math.max(0, bankBalance)), 'CLOSING CARD ASSET', num(liquidCardAsset), 'TOTAL MOVEMENTS LOGGED', `${(chronologicalCashFlow || []).length} Entries`], COLS);
 
     } else if (reportType === 'Expenses') {
       const COLS = 7;
@@ -2494,7 +2473,7 @@ export const Reports = () => {
             {reportType === 'Expenses' && 'Expense register and financial summary'}
             {reportType === 'ProfitLoss' && 'Income, purchase costs, expenses, and net profit'}
             {reportType === 'BalanceSheet' && 'Summary of assets, liabilities, and net worth'}
-            {reportType === 'CashFlow' && 'Itemized ledger tracking of cash in hand, bank accounts, and overdrafts'}
+            {reportType === 'CashFlow' && 'Itemized ledger tracking of cash in hand, bank accounts, and card payments'}
           </p>
         </div>
 
