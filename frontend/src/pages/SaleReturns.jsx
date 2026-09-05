@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   RotateCcw,
   RefreshCw,
   Plus,
   Printer,
-  DollarSign,
+  Wallet,
   Package,
   CreditCard,
   Receipt,
   FileText
 } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computeSaleFinancials, extractMerchandiseReturnValue } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { SaleReturnModal } from '../modals/SaleReturnModal';
@@ -20,7 +20,7 @@ import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 
 export const SaleReturns = () => {
-  const { saleReturns = [] } = useERP();
+  const { sales = [], saleReturns = [], paymentLogs = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -28,8 +28,43 @@ export const SaleReturns = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedReceiptReturn, setSelectedReceiptReturn] = useState(null);
 
-  const filteredReturns = [...saleReturns].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-  const totalRefundAmount = saleReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+  const filteredReturns = useMemo(() => {
+    return [...saleReturns].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+  }, [saleReturns]);
+
+  // 1. Total Merchandise Sales Returned Value
+  const totalReturnedSalesValue = useMemo(() => {
+    return saleReturns.reduce((sum, r) => sum + extractMerchandiseReturnValue(r), 0);
+  }, [saleReturns]);
+
+  // 2. Total Actual Cash Refunds Paid Out to Customers
+  const totalCashRefundsPaid = useMemo(() => {
+    const saleMap = new Map();
+    saleReturns.forEach(r => {
+      const matchingSale = (sales || []).find(s => (r.saleId && String(s.id) === String(r.saleId)) || (r.invoiceNo && s.invoiceNo && r.invoiceNo === s.invoiceNo));
+      if (matchingSale) {
+        if (!saleMap.has(String(matchingSale.id))) {
+          saleMap.set(String(matchingSale.id), matchingSale);
+        }
+      } else {
+        const isLiquidCash = String(r.refundMode || '').trim().toLowerCase() === 'cash';
+        if (isLiquidCash) {
+          saleMap.set(`standalone-${r.id}`, { isStandalone: true, amount: Number(r.refundAmount || 0) });
+        }
+      }
+    });
+
+    let sumCashRefunds = 0;
+    saleMap.forEach((val) => {
+      if (val.isStandalone) {
+        sumCashRefunds += val.amount;
+      } else {
+        const fin = computeSaleFinancials(val, saleReturns, paymentLogs, sales);
+        sumCashRefunds += fin.refundCashback;
+      }
+    });
+    return sumCashRefunds;
+  }, [sales, saleReturns, paymentLogs]);
 
   return (
     <div className="space-y-6">
@@ -38,10 +73,10 @@ export const SaleReturns = () => {
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             <RotateCcw className="w-6 h-6 text-orange-500" />
-            <span>Sale Returns (Cash Refunds)</span>
+            <span>Sale Returns & Cash Refunds</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Record customer produce return items and direct cash refund payouts
+            Record customer produce return items and calculate cash refund payouts vs due adjustments
           </p>
         </div>
 
@@ -75,7 +110,7 @@ export const SaleReturns = () => {
             <span>Total Returned Sales</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-orange-600 dark:text-orange-400">
-            Rs. {totalRefundAmount.toLocaleString()}
+            Rs. {totalReturnedSalesValue.toLocaleString()}
           </div>
           <div className="text-[11px] font-semibold text-slate-400 mt-1">Returned produce restocked into inventory</div>
         </div>
@@ -83,13 +118,13 @@ export const SaleReturns = () => {
         {/* 2. Direct Cash Payouts */}
         <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-rose-500/30 text-white' : 'bg-gradient-to-b from-rose-50/50 to-white border-rose-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-rose-600" />
+            <Wallet className="w-4 h-4 text-rose-600" />
             <span>Total Cash Refunds Paid</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
-            Rs. {totalRefundAmount.toLocaleString()}
+            Rs. {totalCashRefundsPaid.toLocaleString()}
           </div>
-          <div className="text-[11px] font-semibold text-slate-400 mt-1">Direct physical cash refunded at counter</div>
+          <div className="text-[11px] font-semibold text-slate-400 mt-1">Direct physical cash refunded out of pocket</div>
         </div>
       </div>
 
@@ -98,11 +133,11 @@ export const SaleReturns = () => {
       {/* ========================================================================= */}
       <PrintHeader
         title="Sale Returns & Customer Refunds Statement"
-        filterSummary="Direct Cash Refunds"
+        filterSummary="Direct Cash Refunds vs Due Adjustments"
         stats={[
           { label: 'Total Returns', value: filteredReturns.length },
-          { label: 'Total Refund Value', value: `Rs. ${totalRefundAmount.toLocaleString()}` },
-          { label: 'Cash Refunds Paid', value: `Rs. ${totalRefundAmount.toLocaleString()}` }
+          { label: 'Total Return Value', value: `Rs. ${totalReturnedSalesValue.toLocaleString()}` },
+          { label: 'Cash Refunds Paid', value: `Rs. ${totalCashRefundsPaid.toLocaleString()}` }
         ]}
       />
 
@@ -134,23 +169,33 @@ export const SaleReturns = () => {
                 </tr>
               ) : (
                 filteredReturns.map(ret => {
-                  const retAmt = Number(ret.refundAmount || 0);
+                  const retMerchValue = extractMerchandiseReturnValue(ret);
+                  const matchingSale = (sales || []).find(s => (ret.saleId && String(s.id) === String(ret.saleId)) || (ret.invoiceNo && s.invoiceNo && ret.invoiceNo === s.invoiceNo));
+
+                  let cashRefundPaid = 0;
+                  if (matchingSale) {
+                    const fin = computeSaleFinancials(matchingSale, saleReturns, paymentLogs, sales);
+                    cashRefundPaid = fin.refundCashback;
+                  } else {
+                    const isLiquidCash = String(ret.refundMode || '').trim().toLowerCase() === 'cash';
+                    cashRefundPaid = isLiquidCash ? Number(ret.refundAmount || 0) : 0;
+                  }
 
                   return (
                     <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
                       <td className="py-3 px-4 font-mono font-bold text-orange-600 dark:text-orange-400">{ret.returnNo}</td>
                       <td className="py-3 px-4 text-slate-500 font-mono text-xs">{ret.date}</td>
-                      <td className="py-3 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">{ret.invoiceNo}</td>
-                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{ret.customerName}</td>
+                      <td className="py-3 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">{ret.invoiceNo || 'N/A'}</td>
+                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{ret.customerName || 'Customer'}</td>
                       <td className="py-3 px-4 text-right font-black font-mono text-purple-600 dark:text-purple-400">
-                        Rs. {retAmt.toLocaleString()}
+                        Rs. {retMerchValue.toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-right font-black font-mono text-emerald-600 dark:text-emerald-400">
-                        Rs. {retAmt.toLocaleString()}
+                        Rs. {cashRefundPaid.toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
-                          Cash Refunded
+                        <span className={`font-extrabold text-xs ${cashRefundPaid > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>
+                          {cashRefundPaid > 0 ? 'Cash Refunded' : 'Due Adjusted'}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center no-print">
@@ -168,7 +213,6 @@ export const SaleReturns = () => {
                 })
               )}
             </tbody>
-
           </table>
         </div>
       </div>

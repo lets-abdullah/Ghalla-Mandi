@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   RotateCcw,
   RefreshCw,
   Plus,
   Printer,
-  DollarSign,
+  Wallet,
   Package,
   CreditCard,
   Receipt,
   FileText
 } from 'lucide-react';
-import { useERP } from '../context/ERPContext';
+import { useERP, computePurchaseFinancials, extractMerchandiseReturnValue } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PurchaseReturnModal } from '../modals/PurchaseReturnModal';
@@ -20,7 +20,7 @@ import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 
 export const PurchaseReturns = () => {
-  const { purchaseReturns = [] } = useERP();
+  const { purchases = [], purchaseReturns = [], paymentLogs = [] } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -28,8 +28,43 @@ export const PurchaseReturns = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedReceiptReturn, setSelectedReceiptReturn] = useState(null);
 
-  const filteredReturns = [...purchaseReturns].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-  const totalReturnAmount = purchaseReturns.reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+  const filteredReturns = useMemo(() => {
+    return [...purchaseReturns].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+  }, [purchaseReturns]);
+
+  // 1. Total Merchandise Purchase Returned Stock Value
+  const totalReturnedPurchasesValue = useMemo(() => {
+    return purchaseReturns.reduce((sum, r) => sum + extractMerchandiseReturnValue(r), 0);
+  }, [purchaseReturns]);
+
+  // 2. Total Actual Cash Refunds Received from Suppliers
+  const totalCashRefundsReceived = useMemo(() => {
+    const purchaseMap = new Map();
+    purchaseReturns.forEach(r => {
+      const matchingPurchase = (purchases || []).find(p => (r.purchaseId && String(p.id) === String(r.purchaseId)) || (r.purchaseNo && p.purchaseNo && r.purchaseNo === p.purchaseNo));
+      if (matchingPurchase) {
+        if (!purchaseMap.has(String(matchingPurchase.id))) {
+          purchaseMap.set(String(matchingPurchase.id), matchingPurchase);
+        }
+      } else {
+        const isLiquidCash = String(r.refundMode || '').trim().toLowerCase() === 'cash';
+        if (isLiquidCash) {
+          purchaseMap.set(`standalone-${r.id}`, { isStandalone: true, amount: Number(r.refundAmount || 0) });
+        }
+      }
+    });
+
+    let sumCashRefunds = 0;
+    purchaseMap.forEach((val) => {
+      if (val.isStandalone) {
+        sumCashRefunds += val.amount;
+      } else {
+        const fin = computePurchaseFinancials(val, purchaseReturns, paymentLogs, purchases);
+        sumCashRefunds += fin.refundCashback;
+      }
+    });
+    return sumCashRefunds;
+  }, [purchases, purchaseReturns, paymentLogs]);
 
   return (
     <div className="space-y-6">
@@ -38,10 +73,10 @@ export const PurchaseReturns = () => {
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             <RotateCcw className="w-6 h-6 text-rose-500" />
-            <span>Purchase Returns (Cash Refunds)</span>
+            <span>Purchase Returns & Supplier Refunds</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Record supplier commodity returns and direct cash refunds received
+            Record supplier commodity returns and calculate cash refunds received vs payable deductions
           </p>
         </div>
 
@@ -75,7 +110,7 @@ export const PurchaseReturns = () => {
             <span>Total Returned Stock</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-rose-600 dark:text-rose-400">
-            Rs. {totalReturnAmount.toLocaleString()}
+            Rs. {totalReturnedPurchasesValue.toLocaleString()}
           </div>
           <div className="text-[11px] font-semibold text-slate-400 mt-1">Commodities returned to suppliers</div>
         </div>
@@ -83,13 +118,13 @@ export const PurchaseReturns = () => {
         {/* 2. Direct Cash Received */}
         <div className={`border rounded-2xl p-4 sm:p-5 card-shadow card-hover transition-all ${theme === 'dark' ? 'bg-slate-800 border-emerald-500/30 text-white' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-200/80'}`}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-emerald-600" />
+            <Wallet className="w-4 h-4 text-emerald-600" />
             <span>Total Cash Refunds Received</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-emerald-600 dark:text-emerald-400">
-            Rs. {totalReturnAmount.toLocaleString()}
+            Rs. {totalCashRefundsReceived.toLocaleString()}
           </div>
-          <div className="text-[11px] font-semibold text-slate-400 mt-1">Direct physical cash received from suppliers</div>
+          <div className="text-[11px] font-semibold text-slate-400 mt-1">Direct physical cash received back from suppliers</div>
         </div>
       </div>
 
@@ -98,11 +133,11 @@ export const PurchaseReturns = () => {
       {/* ========================================================================= */}
       <PrintHeader
         title="Purchase Returns & Supplier Refunds Statement"
-        filterSummary="Direct Cash Refunds"
+        filterSummary="Direct Cash Refunds vs Payable Deductions"
         stats={[
           { label: 'Total Returns', value: filteredReturns.length },
-          { label: 'Total Return Value', value: `Rs. ${totalReturnAmount.toLocaleString()}` },
-          { label: 'Cash Refunds Received', value: `Rs. ${totalReturnAmount.toLocaleString()}` }
+          { label: 'Total Return Value', value: `Rs. ${totalReturnedPurchasesValue.toLocaleString()}` },
+          { label: 'Cash Refunds Received', value: `Rs. ${totalCashRefundsReceived.toLocaleString()}` }
         ]}
       />
 
@@ -134,23 +169,33 @@ export const PurchaseReturns = () => {
                 </tr>
               ) : (
                 filteredReturns.map(ret => {
-                  const retAmt = Number(ret.refundAmount || 0);
+                  const retMerchValue = extractMerchandiseReturnValue(ret);
+                  const matchingPurchase = (purchases || []).filter(p => (ret.purchaseId && String(p.id) === String(ret.purchaseId)) || (ret.purchaseNo && p.purchaseNo && ret.purchaseNo === p.purchaseNo))[0];
+
+                  let cashRefundReceived = 0;
+                  if (matchingPurchase) {
+                    const fin = computePurchaseFinancials(matchingPurchase, purchaseReturns, paymentLogs, purchases);
+                    cashRefundReceived = fin.refundCashback;
+                  } else {
+                    const isLiquidCash = String(ret.refundMode || '').trim().toLowerCase() === 'cash';
+                    cashRefundReceived = isLiquidCash ? Number(ret.refundAmount || 0) : 0;
+                  }
 
                   return (
                     <tr key={ret.id} className={theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50'}>
                       <td className="py-3 px-4 font-mono font-bold text-rose-600 dark:text-rose-400">{ret.returnNo}</td>
                       <td className="py-3 px-4 text-slate-500 font-mono text-xs">{ret.date}</td>
-                      <td className="py-3 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">{ret.purchaseNo}</td>
-                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{ret.supplierName}</td>
+                      <td className="py-3 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">{ret.purchaseNo || 'N/A'}</td>
+                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{ret.supplierName || 'Supplier'}</td>
                       <td className="py-3 px-4 text-right font-black font-mono text-purple-600 dark:text-purple-400">
-                        Rs. {retAmt.toLocaleString()}
+                        Rs. {retMerchValue.toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-right font-black font-mono text-emerald-600 dark:text-emerald-400">
-                        Rs. {retAmt.toLocaleString()}
+                        Rs. {cashRefundReceived.toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
-                          Cash Received
+                        <span className={`font-extrabold text-xs ${cashRefundReceived > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>
+                          {cashRefundReceived > 0 ? 'Cash Received' : 'Due Adjusted'}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center no-print">
@@ -168,7 +213,6 @@ export const PurchaseReturns = () => {
                 })
               )}
             </tbody>
-
           </table>
         </div>
       </div>
