@@ -405,7 +405,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
               </span>
             </div>
             <div className="px-2">
-              <span className="text-[10px] uppercase font-black tracking-wider text-orange-600 dark:text-orange-400 block">Payable Due (Khata)</span>
+              <span className="text-[10px] uppercase font-black tracking-wider text-orange-600 dark:text-orange-400 block">Payable Due</span>
               <span className="font-mono font-black text-orange-600 dark:text-orange-400 text-sm sm:text-base mt-1 block">
                 Rs. {purDue.toLocaleString()}
               </span>
@@ -620,7 +620,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                       <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">(To be paid)</span>
                     </div>
                     <div className="px-1.5">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Supplier Refund / Cashback</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Refund / Cashback</span>
                       <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
                         Rs. {cashRefundAmount.toLocaleString()}
                       </span>

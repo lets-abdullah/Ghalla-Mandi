@@ -128,15 +128,6 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
   const [completedReturn, setCompletedReturn] = useState(null);
   const [showFullReceiptModal, setShowFullReceiptModal] = useState(false);
 
-  // Available balance in user-selected refund channel
-  const selectedChannelBalance = useMemo(() => {
-    const balances = liquidBalances || { cashInHand: 0, bankBalance: 0, cardBalance: 0 };
-    const m = String(refundMode || '').trim().toLowerCase();
-    if (m.includes('bank')) return Number(balances.bankBalance || 0);
-    if (m.includes('card')) return Number(balances.cardBalance || 0);
-    return Number(balances.cashInHand || 0);
-  }, [refundMode, liquidBalances]);
-
   // Sync state whenever active sale or items change
   useEffect(() => {
     if (saleItems.length > 0) {
@@ -176,6 +167,15 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
 
   // Unpaid debt cancelled / waived from customer's khata
   const dueCancelled = Math.min(saleDue, Math.max(0, currentGoodsValue - cashRefundAmount));
+
+  // Available balance in user-selected refund channel
+  const selectedChannelBalance = useMemo(() => {
+    const balances = liquidBalances || { cashInHand: 0, bankBalance: 0, cardBalance: 0 };
+    const m = String(refundMode || '').trim().toLowerCase();
+    if (m.includes('bank')) return Number(balances.bankBalance || 0);
+    if (m.includes('card')) return Number(balances.cardBalance || 0);
+    return Number(balances.cashInHand || 0);
+  }, [refundMode, liquidBalances]);
 
   const isLiquidPayoutRequested = refundMode !== 'Credit' && refundMode !== 'Khata Credit' && cashRefundAmount > 0;
   const isInsufficientBalance = isLiquidPayoutRequested && cashRefundAmount > selectedChannelBalance;
@@ -324,7 +324,7 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
               </span>
             </div>
             <div className="px-2">
-              <span className="text-[10px] uppercase font-black tracking-wider text-orange-600 dark:text-orange-400 block">Due</span>
+              <span className="text-[10px] uppercase font-black tracking-wider text-orange-600 dark:text-orange-400 block">Receivable Due</span>
               <span className="font-mono font-black text-orange-600 dark:text-orange-400 text-sm sm:text-base mt-1 block">
                 Rs. {saleDue.toLocaleString()}
               </span>
@@ -556,7 +556,6 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                       <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
                         Rs. {cashRefundAmount.toLocaleString()}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">(Capped at paid amount)</span>
                     </div>
                   </div>
 

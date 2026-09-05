@@ -24,7 +24,7 @@ import {
   Receipt,
   Eye
 } from 'lucide-react';
-import { useERP, computePurchaseFinancials, computeSupplierKhataBalance, computeAllSuppliersFinancials } from '../context/ERPContext';
+import { useERP, computePurchaseFinancials, computeSupplierKhataBalance, computeAllSuppliersFinancials, computeLiquidBalances } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { PurchaseReceiptModal } from '../modals/PurchaseReceiptModal';
@@ -44,7 +44,11 @@ export const Purchases = () => {
     categories = [],
     purchases = [],
     purchaseReturns = [],
+    sales = [],
+    saleReturns = [],
+    expenses = [],
     paymentLogs = [],
+    liquidBalances,
     createPurchase,
     updatePurchase,
     recordPayment,
@@ -469,6 +473,15 @@ export const Purchases = () => {
     });
   };
 
+  // Available liquid balance for selected payment mode
+  const availableLiquidForPayMode = useMemo(() => {
+    const current = liquidBalances || (computeLiquidBalances ? computeLiquidBalances(sales, purchases || [], saleReturns || [], purchaseReturns || [], paymentLogs, expenses || []) : { cashInHand: 0, bankBalance: 0, cardBalance: 0 });
+    const m = String(payForm.paymentMode || 'Cash').toLowerCase();
+    if (m.includes('bank') || m.includes('transfer')) return { label: 'Bank Account', amount: Number(current.bankBalance || 0) };
+    if (m.includes('card') || m.includes('pos')) return { label: 'Card Account', amount: Number(current.cardBalance || 0) };
+    return { label: 'Cash in Hand', amount: Number(current.cashInHand || 0) };
+  }, [liquidBalances, sales, purchases, saleReturns, purchaseReturns, paymentLogs, expenses, payForm.paymentMode]);
+
   const handlePaySubmit = async (e) => {
     e.preventDefault();
     if (!payModalPurchase || isSubmitting) return;
@@ -478,6 +491,11 @@ export const Purchases = () => {
 
     if (payVal > fin.due) {
       toast.error(`Paid amount cannot exceed remaining due of Rs. ${fin.due.toLocaleString()}`);
+      return;
+    }
+
+    if (payVal > availableLiquidForPayMode.amount) {
+      toast.error(`Insufficient Balance in ${availableLiquidForPayMode.label} — Available: Rs. ${availableLiquidForPayMode.amount.toLocaleString()}`);
       return;
     }
 

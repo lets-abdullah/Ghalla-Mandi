@@ -348,22 +348,22 @@ export const Suppliers = () => {
     const maxDue = rawDue < 1 ? 0 : Math.round(rawDue);
 
     if (amt <= 0) {
-      alert('Please enter a valid whole payment amount.');
+      toast.warning('Please enter a valid whole payment amount.');
       return;
     }
 
     if (maxDue <= 0) {
-      alert('This supplier account is already fully settled (Rs. 0 balance). No payment is required.');
+      toast.warning('This supplier account is already fully settled (Rs. 0 balance). No payment is required.');
       return;
     }
 
     if (amt > maxDue) {
-      alert(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed the supplier's outstanding payable balance of Rs. ${maxDue.toLocaleString()}.`);
+      toast.warning(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed the supplier's outstanding payable balance of Rs. ${maxDue.toLocaleString()}.`);
       return;
     }
 
     if (amt > availableLiquidForPayMode.amount) {
-      alert(`Insufficient Balance — Available: Rs. ${availableLiquidForPayMode.amount.toLocaleString()}`);
+      toast.error(`Insufficient Balance in ${availableLiquidForPayMode.label} — Available: Rs. ${availableLiquidForPayMode.amount.toLocaleString()}`);
       return;
     }
 
@@ -378,11 +378,12 @@ export const Suppliers = () => {
         note: payNote
       });
 
+      toast.success(`Payment of Rs. ${amt.toLocaleString()} recorded for ${payingSupplier.name}!`);
       setPayingSupplier(null);
       setPayAmount('');
       setPayNote('');
     } catch (err) {
-      alert(err.message || 'Failed to record payment to supplier');
+      toast.error(err.message || 'Failed to record payment to supplier');
     } finally {
       setIsProcessingPay(false);
     }
@@ -2125,8 +2126,8 @@ export const Suppliers = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={isProcessingPay}
-                    className="w-1/2 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition cursor-pointer active:scale-98 disabled:opacity-50"
+                    disabled={isProcessingPay || isInsufficientBalance || numAmt <= 0}
+                    className="w-1/2 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition cursor-pointer active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>{isProcessingPay ? 'Processing...' : 'Confirm Payment'}</span>

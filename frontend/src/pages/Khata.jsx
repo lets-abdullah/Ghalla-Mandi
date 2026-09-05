@@ -273,6 +273,11 @@ export const Khata = () => {
       return;
     }
 
+    if (!isCustomer && amt > availableLiquidForPayMode.amount) {
+      toast.error(`Insufficient Balance in ${availableLiquidForPayMode.label} — Available: Rs. ${availableLiquidForPayMode.amount.toLocaleString()}`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await recordPayment({
@@ -775,8 +780,8 @@ export const Khata = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting || currentInputAmount <= 0}
-                    className="w-1/2 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition cursor-pointer active:scale-98 disabled:opacity-50"
+                    disabled={isSubmitting || currentInputAmount <= 0 || (!isCustomer && isInsufficientBalance)}
+                    className="w-1/2 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition cursor-pointer active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>{isSubmitting ? 'Recording...' : 'Confirm Payment'}</span>
