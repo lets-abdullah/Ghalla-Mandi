@@ -129,11 +129,6 @@ export const Dashboard = () => {
         <KPICard
           title="Today's Sales"
           amount={`Rs. ${netTodaySales.toLocaleString()}`}
-          subtext={
-            netTodaySales > 0
-              ? `${todaySales.length} sale${todaySales.length === 1 ? '' : 's'} today • Net Total: Rs. ${netAllTimeSales.toLocaleString()}`
-              : `Total Sales: Rs. ${netAllTimeSales.toLocaleString()} (${sales.length} orders)`
-          }
           icon={ShoppingBag}
           color="emerald"
           onClick={() => navigate('/sales')}
@@ -143,11 +138,6 @@ export const Dashboard = () => {
         <KPICard
           title="Today's Purchases"
           amount={`Rs. ${netTodayPurchases.toLocaleString()}`}
-          subtext={
-            netTodayPurchases > 0
-              ? `${todayPurchases.length} purchase${todayPurchases.length === 1 ? '' : 's'} today • Net Total: Rs. ${netAllTimePurchases.toLocaleString()}`
-              : `Total Purchases: Rs. ${netAllTimePurchases.toLocaleString()} (${purchases.length} inward)`
-          }
           icon={ShoppingCart}
           color="blue"
           onClick={() => navigate('/purchases')}
@@ -157,9 +147,7 @@ export const Dashboard = () => {
         <KPICard
           title="Stock & Inventory"
           amount={`Rs. ${totalInventoryValue.toLocaleString()}`}
-          subtext={`${totalStockQty.toLocaleString()} units • ${products.length} commodities`}
           icon={TrendingUp}
-          color="slate"
           onClick={() => navigate('/reports?type=Stock')}
         />
 
@@ -167,13 +155,7 @@ export const Dashboard = () => {
         <KPICard
           title="Customer Receivables"
           amount={`Rs. ${totalCustomerDues.toLocaleString()}`}
-          subtext={
-            walkinDues > 0
-              ? `Party Khata: Rs. ${regularDues.toLocaleString()} • Counter: Rs. ${walkinDues.toLocaleString()}`
-              : (totalCustomerDues > 0 ? `${totalDueAccountsCount} customer accounts with dues` : 'All customer accounts settled (Rs. 0)')
-          }
           icon={Users}
-          color="amber"
           onClick={() => navigate('/khata')}
         />
 
@@ -181,13 +163,7 @@ export const Dashboard = () => {
         <KPICard
           title="Supplier Payables"
           amount={`Rs. ${totalPayables.toLocaleString()}`}
-          subtext={
-            totalPayables > 0
-              ? `${dueSuppliersCount} suppliers with pending dues`
-              : 'All supplier accounts settled (Rs. 0)'
-          }
           icon={CreditCard}
-          color="rose"
           onClick={() => navigate('/suppliers')}
         />
       </div>

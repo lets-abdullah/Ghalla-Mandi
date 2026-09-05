@@ -352,24 +352,6 @@ export const Inventory = () => {
             </select>
           </div>
 
-          {/* 4. Search Bar */}
-          <div className="flex-1 min-w-[140px]">
-            <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
-              Search
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Product, reference, invoice..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full border rounded-xl pl-8 pr-3 py-2 text-xs font-bold outline-none focus:border-brand-500 h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              />
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            </div>
-          </div>
-
           {/* Inline Reset Button */}
           {hasActiveFilters && (
             <button

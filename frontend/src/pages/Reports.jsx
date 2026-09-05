@@ -4331,15 +4331,15 @@ export const Reports = () => {
                   </div>
                   <div className="space-y-0.5 text-[11px] text-slate-600 dark:text-slate-300">
                     <div className="flex justify-between">
-                      <span>• Total Liquid Inflows (Cash, Bank & Card Receipts):</span>
+                      <span>• Total Liquid Inflows:</span>
                       <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">+ Rs. {totalCombinedLiquidInflows.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>• Total Liquid Outflows (Supplier, Expenses & Refunds Paid):</span>
+                      <span>• Total Liquid Outflows:</span>
                       <span className="font-mono font-bold text-rose-600 dark:text-rose-400">- Rs. {totalCombinedLiquidOutflows.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-bold pt-1 border-t border-slate-200 dark:border-slate-700">
-                      <span>• Net Operating Cash Flow (Available Liquid Funds):</span>
+                      <span>• Net Operating Cash Flow:</span>
                       <span className="font-mono font-black text-slate-900 dark:text-white">Rs. {totalLiquidAssets.toLocaleString()}</span>
                     </div>
                   </div>

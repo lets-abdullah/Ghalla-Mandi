@@ -373,38 +373,18 @@ export const Khata = () => {
             </div>
           )}
 
-          {/* Quick Balance Filter Pills */}
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={() => setBalanceStatusFilter('All')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${balanceStatusFilter === 'All'
-                ? 'bg-brand-500 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          {/* Balance Status Filter Dropdown */}
+          <div className="w-full sm:w-[180px]">
+            <select
+              value={balanceStatusFilter}
+              onChange={(e) => setBalanceStatusFilter(e.target.value)}
+              className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer h-[38px] ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                 }`}
             >
-              Active Dues ({activeDueCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => setBalanceStatusFilter('Clear')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${balanceStatusFilter === 'Clear'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              Settled ({settledAccountsCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => setBalanceStatusFilter('Total')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${balanceStatusFilter === 'Total'
-                ? 'bg-slate-700 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-            >
-              All
-            </button>
+              <option value="All">Active Dues ({activeDueCount})</option>
+              <option value="Clear">Settled ({settledAccountsCount})</option>
+              <option value="Total">All Accounts ({activeDueCount + settledAccountsCount})</option>
+            </select>
           </div>
 
           {/* Inline Reset Button */}

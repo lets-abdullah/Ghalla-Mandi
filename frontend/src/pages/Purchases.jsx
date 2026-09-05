@@ -668,7 +668,7 @@ export const Purchases = () => {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <ShoppingCart className="w-6 h-6 text-brand-500" />
-            <span>Purchases / Stock Inward</span>
+            <span>Purchases</span>
           </h1>
           <p className="text-xs text-slate-400 font-bold mt-0.5">
             Record incoming stock, weight, bags, and supplier purchase deals

@@ -560,16 +560,6 @@ export const CreateOrder = () => {
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
-
-              {/* Grid Toggle */}
-              <button
-                type="button"
-                onClick={() => setViewMode(prev => prev === 'grid' ? 'compact' : 'grid')}
-                className="p-2.5 rounded-2xl border border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/30 hover:bg-blue-100/50 transition cursor-pointer shrink-0"
-                title={viewMode === 'grid' ? t('compactView') : t('gridView')}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
             </div>
 
             {/* + New Sale action */}
@@ -1234,8 +1224,8 @@ export const CreateOrder = () => {
                   setShowCustomerModal(false);
                 }}
                 className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${customerType === 'Walk-in Customer' && !selectedParty
-                    ? 'border-brand-500 bg-brand-500/10 text-brand-500 font-black'
-                    : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 border-slate-200 dark:border-slate-700'
+                  ? 'border-brand-500 bg-brand-500/10 text-brand-500 font-black'
+                  : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 border-slate-200 dark:border-slate-700'
                   }`}
               >
                 <div>
@@ -1255,8 +1245,8 @@ export const CreateOrder = () => {
                       setShowCustomerModal(false);
                     }}
                     className={`p-3 rounded-2xl border cursor-pointer transition flex items-center justify-between ${selectedParty?.id === c.id
-                        ? 'border-brand-500 bg-brand-500/10 text-brand-500 font-black'
-                        : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 border-slate-200 dark:border-slate-700'
+                      ? 'border-brand-500 bg-brand-500/10 text-brand-500 font-black'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 border-slate-200 dark:border-slate-700'
                       }`}
                   >
                     <div>
