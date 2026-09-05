@@ -221,7 +221,7 @@ export const Ledger = () => {
         const partyId = custObj ? String(custObj.id) : (s.customerId ? String(s.customerId) : `walkin-${rawParty}`);
         const partyName = custObj?.name || rawParty;
 
-        const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
+        const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
         const sGross = fin.grossTotal;
         const sNet = fin.netTotal;
         const sReturn = fin.returnAmount;
@@ -429,7 +429,7 @@ export const Ledger = () => {
         const partyId = p.supplierId ? String(p.supplierId) : (supObj?.id ? String(supObj.id) : null);
         const pItems = p.cart || p.items || [];
 
-        const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
+        const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
         const pGross = fin.grossTotal;
         const pNet = fin.netTotal;
         const pReturn = fin.returnAmount;

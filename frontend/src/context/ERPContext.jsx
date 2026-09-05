@@ -345,7 +345,7 @@ export const extractMerchandiseReturnValue = (r) => {
       }
     } catch (e) {}
   }
-  return Number(r.totalGoodsValue || r.refundAmount || 0);
+  return Number(r.totalGoodsValue || r.merchandiseValue || r.returnAmount || r.amount || r.refundAmount || 0);
 };
 
 export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], allSales = []) => {
@@ -402,12 +402,26 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
     // Check if this log is already specifically linked to ANY sale invoice
     const hasSpecificInvoice = Boolean(
       pl.saleId ||
+      pl.saleid ||
       (pl.ref && (pl.ref.includes('INV-') || pl.ref.includes('SAL-') || pl.ref.includes('POS-PAY')))
     );
     if (hasSpecificInvoice) return false;
 
+    // Check if this log matches as upfront checkout log of any sale
+    const isUpfrontOfAny = (allSales && allSales.length > 0 ? allSales : [sale]).some(s => {
+      const sUp = resolveTransactionPayment(s, 'Sale').totalLiquid;
+      if (sUp <= 0) return false;
+      const sCustId = s.customerId ? String(s.customerId) : (s.customerid ? String(s.customerid) : null);
+      const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
+      const sMatch = isRegularCust
+        ? ((custId && sCustId && sCustId === custId) || (partyName && sPartyName === partyName && !sPartyName.includes('walk-in')))
+        : ((custId && sCustId && sCustId === custId) || (partyName && sPartyName === partyName));
+      return sMatch && Number(pl.amount || 0) === sUp;
+    });
+    if (isUpfrontOfAny) return false;
+
     // Match party
-    const pPartyId = pl.partyId ? String(pl.partyId) : null;
+    const pPartyId = pl.partyId ? String(pl.partyId) : (pl.partyid ? String(pl.partyid) : null);
     const pPartyName = (pl.partyName || '').trim().toLowerCase();
     if (isRegularCust) {
       return (custId && pPartyId && pPartyId === custId) ||
@@ -421,11 +435,9 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   let generalAllocatedToThisSale = 0;
 
   if (unlinkedGeneralLogs.length > 0) {
-    const saleTime = parseNormalizedTimestamp(sale.date, sale.created_at || sale.createdAt) || (Number(sale.id) || 0);
-
     const relevantSales = (allSales && allSales.length > 0)
       ? (allSales || []).filter(s => {
-        const sCustId = s.customerId ? String(s.customerId) : null;
+        const sCustId = s.customerId ? String(s.customerId) : (s.customerid ? String(s.customerid) : null);
         const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
         if (isRegularCust) {
           return (custId && sCustId && sCustId === custId) || (partyName && sPartyName === partyName && !sPartyName.includes('walk-in'));
@@ -439,43 +451,53 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
       })
       : [sale];
 
+    // Track cumulative allocated general cash across sales
+    const generalAllocMap = {};
+
     unlinkedGeneralLogs.forEach(pl => {
       const plTime = parseNormalizedTimestamp(pl.date, pl.created_at || pl.createdAt) || (Number(pl.id) || 0);
       let plCash = Number(pl.amount || 0);
       if (plCash <= 0) return;
 
-      // Rule #3: A payment must never be allocated to an invoice that did not exist or was not outstanding when the payment occurred.
-      if (plTime > 0 && saleTime > 0 && saleTime > (plTime + 1000) && String(sale.id) !== String(relevantSales[0]?.id)) {
-        return;
-      }
-
-      const eligibleSales = relevantSales.filter(s => {
-        const sTime = parseNormalizedTimestamp(s.date, s.created_at || s.createdAt) || (Number(s.id) || 0);
-        return plTime === 0 || sTime === 0 || sTime <= (plTime + 1000) || String(s.id) === String(relevantSales[0]?.id);
-      });
-
-      for (const s of eligibleSales) {
+      for (const s of relevantSales) {
         if (plCash <= 0) break;
+
+        const sTime = parseNormalizedTimestamp(s.date, s.created_at || s.createdAt) || (Number(s.id) || 0);
+
+        // Rule 8: Never allocate a payment to an invoice created after the payment date
+        if (plTime > 0 && sTime > 0 && sTime > (plTime + 60000)) {
+          continue;
+        }
+
         const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
         const sReturns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(s.id)) || (r.invoiceNo && r.invoiceNo === s.invoiceNo));
         const sRetAmt = sReturns.length > 0 ? sReturns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0) : Number(s.returnAmount || 0);
         const sNetTotal = Math.max(0, sTotal - sRetAmt);
 
-        const sSpecificLogs = (paymentLogs || []).filter(plog =>
-          (plog.type === 'Customer' || plog.partyType === 'Customer') &&
-          (
+        const sSpecificLogs = (paymentLogs || []).filter(plog => {
+          if (plog.type !== 'Customer' && plog.partyType !== 'Customer') return false;
+          if (plog.mode === 'Opening Balance' || plog.mode === 'Credit Note' || String(plog.ref || '').includes('POS-PAY')) return false;
+
+          const idMatch = Boolean(
             (plog.saleId && String(plog.saleId) === String(s.id)) ||
+            (plog.saleid && String(plog.saleid) === String(s.id)) ||
             (s.invoiceNo && plog.ref && plog.ref.includes(s.invoiceNo))
-          ) &&
-          plog.mode !== 'Opening Balance' &&
-          plog.mode !== 'Credit Note' &&
-          !String(plog.ref || '').includes('POS-PAY')
-        );
+          );
+          if (idMatch) return true;
+          const plogPartyId = plog.partyId ? String(plog.partyId) : (plog.partyid ? String(plog.partyid) : null);
+          const plogPartyName = (plog.partyName || plog.partyname || '').trim().toLowerCase();
+          const sCustId = s.customerId ? String(s.customerId) : (s.customerid ? String(s.customerid) : null);
+          const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
+          const partyMatch = (sCustId && plogPartyId && plogPartyId === sCustId) || (sPartyName && plogPartyName && plogPartyName === sPartyName);
+          const sUp = resolveTransactionPayment(s, 'Sale').totalLiquid;
+          return partyMatch && Number(plog.amount || 0) === sUp && sUp > 0;
+        });
 
         const sHasPosLog = (paymentLogs || []).some(plog =>
           (plog.type === 'Customer' || plog.partyType === 'Customer') &&
           (
             (plog.saleId && String(plog.saleId) === String(s.id)) ||
+            (plog.saleid && String(plog.saleid) === String(s.id)) ||
             (s.invoiceNo && plog.ref && plog.ref.includes(s.invoiceNo))
           ) &&
           String(plog.ref || '').includes('POS-PAY')
@@ -487,15 +509,23 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
           : resolveTransactionPayment(s, 'Sale').totalLiquid;
 
         const sSpecificPaid = sUpfront + sSpecificLogs.reduce((acc, plog) => acc + Number(plog.amount || 0), 0);
-        const sRemainingDue = Math.max(0, sNetTotal - sSpecificPaid);
+
+        const sIdKey = String(s.id);
+        const alreadyAllocated = generalAllocMap[sIdKey] || 0;
+        const sRemainingDue = Math.max(0, sNetTotal - sSpecificPaid - alreadyAllocated);
+
+        // Rule 9: Never allocate a payment to a sale that was already fully settled/returned before payment occurred
+        if (sRemainingDue <= 0) {
+          continue;
+        }
 
         const alloc = Math.min(sRemainingDue, plCash);
-        if (String(s.id) === String(sale.id)) {
-          generalAllocatedToThisSale += alloc;
-        }
+        generalAllocMap[sIdKey] = alreadyAllocated + alloc;
         plCash -= alloc;
       }
     });
+
+    generalAllocatedToThisSale = generalAllocMap[String(sale.id)] || 0;
   }
 
   const rawGrossPaid = specificPaid + generalAllocatedToThisSale;
@@ -506,27 +536,8 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   const due = Math.max(0, netDueableTotal - paid);
   const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
 
-  const relevantSales = (allSales && allSales.length > 0)
-    ? (allSales || []).filter(s => {
-        const sCustId = s.customerId ? String(s.customerId) : null;
-        const sPartyName = (s.partyName || s.customerName || '').trim().toLowerCase();
-        if (isRegularCust) {
-          return (custId && sCustId && sCustId === custId) || (partyName && sPartyName === partyName && !sPartyName.includes('walk-in'));
-        } else {
-          return (custId && sCustId && sCustId === custId) || (partyName && sPartyName === partyName);
-        }
-      })
-    : [sale];
-
-  const primarySale = relevantSales.find(s => {
-    const sReturns = (saleReturns || []).filter(r => (r.saleId && String(r.saleId) === String(s.id)) || (r.invoiceNo && r.invoiceNo === s.invoiceNo));
-    return sReturns.length > 0;
-  }) || relevantSales[0] || sale;
-
-  const isPrimary = String(primarySale.id) === String(sale.id);
-  const effectiveRefundCashback = isPrimary
-    ? Math.max(cashRefundAmount, Math.max(0, rawGrossPaid - netDueableTotal))
-    : cashRefundAmount;
+  // Rule 13: Do NOT generate a Customer Refund/Liability unless Actual Payments Allocated > Net Sale after returns
+  const effectiveRefundCashback = Math.max(cashRefundAmount, Math.max(0, rawGrossPaid - netDueableTotal));
 
   return {
     total: Math.round(total),
@@ -551,9 +562,9 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0) : Number(purchase.returnAmount || 0);
   const cashRefundAmount = returns.reduce((acc, r) => {
     const m = String(r.refundMode || r.mode || '').trim().toLowerCase();
-    const isCredit = m === 'credit' || m === 'khata credit' || m === 'khata';
-    const amt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : (r.amount || 0)));
-    if (!isCredit && amt > 0) return acc + amt;
+    const isLiquid = m === 'cash' || m === 'bank' || m === 'cash refund' || m === 'bank transfer';
+    const amt = Number(r.refundAmount !== undefined ? r.refundAmount : (r.refundamount !== undefined ? r.refundamount : 0));
+    if (isLiquid && amt > 0) return acc + amt;
     return acc;
   }, 0);
   const netDueableTotal = Math.max(0, total - returnAmount);
@@ -617,6 +628,17 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     );
     if (hasSpecificPurchase) return false;
 
+    // Check if this log matches as upfront checkout log of any purchase
+    const isUpfrontOfAny = (allPurchases && allPurchases.length > 0 ? allPurchases : [purchase]).some(p => {
+      const pUp = resolveTransactionPayment(p, 'Purchase').totalLiquid;
+      if (pUp <= 0) return false;
+      const pSupId = p.supplierId ? String(p.supplierId) : (p.supplierid ? String(p.supplierid) : null);
+      const pSupName = (p.supplier || p.supplierName || p.suppliername || '').trim().toLowerCase();
+      const pMatch = (supId && pSupId && pSupId === supId) || (supName && pSupName && pSupName === supName);
+      return pMatch && Number(pl.amount || 0) === pUp;
+    });
+    if (isUpfrontOfAny) return false;
+
     const pPartyId = pl.partyId ? String(pl.partyId) : (pl.partyid ? String(pl.partyid) : null);
     const pPartyName = (pl.partyName || pl.partyname || '').trim().toLowerCase();
     return (supId && pPartyId && pPartyId === supId) || (supName && pPartyName === supName);
@@ -639,23 +661,24 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
       })
       : [purchase];
 
+    // Track cumulative allocated general cash across purchases
+    const generalAllocMap = {};
+
     unlinkedGeneralLogs.forEach(pl => {
       const plTime = parseNormalizedTimestamp(pl.date, pl.created_at || pl.createdAt) || (Number(pl.id) || 0);
       let plCash = Number(pl.amount || 0);
       if (plCash <= 0) return;
 
-      // Rule #3: A payment must never be allocated to an invoice that did not exist or was not outstanding when the payment occurred.
-      if (plTime > 0 && purchaseTime > 0 && purchaseTime > (plTime + 1000) && String(purchase.id) !== String(relevantPurchases[0]?.id)) {
-        return;
-      }
-
-      const eligiblePurchases = relevantPurchases.filter(p => {
-        const pTime = parseNormalizedTimestamp(p.date, p.created_at || p.createdAt) || (Number(p.id) || 0);
-        return plTime === 0 || pTime === 0 || pTime <= (plTime + 1000) || String(p.id) === String(relevantPurchases[0]?.id);
-      });
-
-      for (const p of eligiblePurchases) {
+      for (const p of relevantPurchases) {
         if (plCash <= 0) break;
+
+        const pTime = parseNormalizedTimestamp(p.date, p.created_at || p.createdAt) || (Number(p.id) || 0);
+
+        // Rule 8: Never allocate a payment to a purchase that was created after the payment date
+        if (plTime > 0 && pTime > 0 && pTime > (plTime + 60000)) {
+          continue;
+        }
+
         const pTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : 0));
         const pReturns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(p.id)) || (r.purchaseNo && r.purchaseNo === p.purchaseNo));
         const pRetAmt = pReturns.length > 0 ? pReturns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0) : Number(p.returnAmount || 0);
@@ -663,26 +686,40 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
 
         const pMatchingLogs = (paymentLogs || []).filter(plog => {
           if (isExcludedSupplierLog(plog)) return false;
-
-          return (
+          const idMatch = Boolean(
             (plog.purchaseId && String(plog.purchaseId) === String(p.id)) ||
             (plog.purchaseid && String(plog.purchaseid) === String(p.id)) ||
-            (p.purchaseNo && plog.ref && plog.ref.includes(p.purchaseNo))
+            (p.purchaseNo && plog.ref && plog.ref.includes(p.purchaseNo)) ||
+            (p.invoiceNo && plog.ref && plog.ref.includes(p.invoiceNo))
           );
+          if (idMatch) return true;
+          const plogPartyId = plog.partyId ? String(plog.partyId) : (plog.partyid ? String(plog.partyid) : null);
+          const plogPartyName = (plog.partyName || plog.partyname || '').trim().toLowerCase();
+          const pPartyMatch = (supId && plogPartyId && plogPartyId === supId) || (supName && plogPartyName && plogPartyName === supName);
+          const pUp = resolveTransactionPayment(p, 'Purchase').totalLiquid;
+          return pPartyMatch && Number(plog.amount || 0) === pUp && pUp > 0;
         });
+
         const pIsKhata = (p.paymentMode === 'Supplier Khata' || p.paymentmode === 'Supplier Khata') || (Number(p.paidAmount || p.paidamount || 0) === 0);
         const pUpfront = pIsKhata ? 0 : resolveTransactionPayment(p, 'Purchase').totalLiquid;
         const pSpecificPaid = Math.max(pUpfront, pMatchingLogs.reduce((acc, plog) => acc + Number(plog.amount || 0), 0));
-        const pRemainingDue = Math.max(0, pNetTotal - pSpecificPaid);
+
+        const pIdKey = String(p.id);
+        const alreadyAllocated = generalAllocMap[pIdKey] || 0;
+        const pRemainingDue = Math.max(0, pNetTotal - pSpecificPaid - alreadyAllocated);
+
+        // Rule 9: Never allocate a payment to a purchase that was already fully settled/returned before the payment occurred
+        if (pRemainingDue <= 0) {
+          continue;
+        }
 
         const alloc = Math.min(pRemainingDue, plCash);
-        if (String(p.id) === String(purchase.id)) {
-          generalAllocatedToThisPurchase += alloc;
-        }
+        generalAllocMap[pIdKey] = alreadyAllocated + alloc;
         plCash -= alloc;
       }
     });
 
+    generalAllocatedToThisPurchase = generalAllocMap[String(purchase.id)] || 0;
     rawGrossPaid = specificPaid + generalAllocatedToThisPurchase;
   } else if (isKhataPurchase && totalMatchingLogs === 0) {
     rawGrossPaid = 0;
@@ -695,23 +732,8 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const due = Math.max(0, netDueableTotal - paid);
   const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
 
-  const relevantPurchases = (allPurchases && allPurchases.length > 0)
-    ? (allPurchases || []).filter(p => {
-        const pSupId = p.supplierId ? String(p.supplierId) : (p.supplierid ? String(p.supplierid) : null);
-        const pSupName = (p.supplier || p.supplierName || p.suppliername || '').trim().toLowerCase();
-        return (supId && pSupId && pSupId === supId) || (supName && pSupName && pSupName === supName);
-      })
-    : [purchase];
-
-  const primaryPurchase = relevantPurchases.find(p => {
-    const pReturns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(p.id)) || (r.purchaseNo && r.purchaseNo === p.purchaseNo));
-    return pReturns.length > 0;
-  }) || relevantPurchases[0] || purchase;
-
-  const isPrimary = String(primaryPurchase.id) === String(purchase.id);
-  const effectiveRefundCashback = isPrimary
-    ? Math.max(cashRefundAmount, Math.max(0, rawGrossPaid - netDueableTotal))
-    : cashRefundAmount;
+  // Rule 13: Do NOT generate a Supplier Refund/Cashback unless Actual Payments Allocated > Net Purchase after returns
+  const effectiveRefundCashback = Math.max(cashRefundAmount, Math.max(0, rawGrossPaid - netDueableTotal));
 
   return {
     total: Math.round(total),
@@ -1427,7 +1449,7 @@ export const computeWalkinUncollectedDues = (sales = [], saleReturns = [], payme
     const isWalkin = !sCustId || sPartyName === 'walk-in customer' || (s.customerType || '').toLowerCase().includes('walk-in');
     return isWalkin;
   }).reduce((acc, s) => {
-    const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
+    const fin = computeSaleFinancials(s, saleReturns, paymentLogs, sales);
     return acc + Math.max(0, fin.due);
   }, 0);
 };
@@ -1783,7 +1805,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     // Process Sales Invoices
     partySales.forEach((s, idx) => {
       const ts = parseNormalizedTimestamp(s.date, s.created_at);
-      const fin = computeSaleFinancials(s, saleReturns, paymentLogs);
+      const fin = computeSaleFinancials(s, saleReturns, paymentLogs, partySales);
       const sGross = fin.grossTotal;
       const sNet = fin.netTotal;
       const sReturn = fin.returnAmount;
@@ -1838,14 +1860,22 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         notes: historyNote
       });
 
-      // Upfront cash paid on POS counter if no matching payment log exists
-      const hasSpecificInvoiceLog = partyPayments.some(p =>
-        (p.saleId && String(p.saleId) === String(s.id)) ||
-        (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
-      );
-
       const upfrontRes = resolveTransactionPayment(s, 'Sale');
       const upfrontPaid = upfrontRes.totalLiquid;
+
+      // Upfront cash paid on POS counter if no matching payment log exists
+      const hasSpecificInvoiceLog = partyPayments.some(p => {
+        const idMatch = Boolean(
+          (p.saleId && String(p.saleId) === String(s.id)) ||
+          (p.saleid && String(p.saleid) === String(s.id)) ||
+          (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+        );
+        if (idMatch) return true;
+        const pPartyId = p.partyId ? String(p.partyId) : (p.partyid ? String(p.partyid) : null);
+        const pPartyName = (p.partyName || p.partyname || '').trim().toLowerCase();
+        const pMatch = (partyId && pPartyId && pPartyId === partyId) || (partyName && pPartyName && pPartyName === partyName);
+        return pMatch && Number(p.amount || 0) === upfrontPaid && upfrontPaid > 0;
+      });
 
       if (upfrontPaid > 0 && !hasSpecificInvoiceLog) {
         entries.push({
@@ -2028,7 +2058,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
     // Process Purchases (Debit)
     partyPurchases.forEach((p, idx) => {
       const ts = parseNormalizedTimestamp(p.date, p.created_at);
-      const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs);
+      const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, partyPurchases);
       const pGross = fin.grossTotal;
       const pNet = fin.netTotal;
       const pReturn = fin.returnAmount;
@@ -2082,14 +2112,23 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         notes: historyNote
       });
 
-      // Upfront payment on purchase if no matching payment log exists
-      const hasSpecificPurLog = partyPayments.some(pl =>
-        (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
-        (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
-      );
-
       const upfrontRes = resolveTransactionPayment(p, 'Purchase');
       const upfrontPaid = upfrontRes.totalLiquid;
+
+      // Upfront payment on purchase if no matching payment log exists
+      const hasSpecificPurLog = partyPayments.some(pl => {
+        const idMatch = Boolean(
+          (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
+          (pl.purchaseid && String(pl.purchaseid) === String(p.id)) ||
+          (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo)) ||
+          (p.invoiceNo && pl.ref && pl.ref.includes(p.invoiceNo))
+        );
+        if (idMatch) return true;
+        const plPartyId = pl.partyId ? String(pl.partyId) : (pl.partyid ? String(pl.partyid) : null);
+        const plPartyName = (pl.partyName || pl.partyname || '').trim().toLowerCase();
+        const pMatch = (partyId && plPartyId && plPartyId === partyId) || (partyName && plPartyName && plPartyName === partyName);
+        return pMatch && Number(pl.amount || 0) === upfrontPaid && upfrontPaid > 0;
+      });
 
       if (upfrontPaid > 0 && !hasSpecificPurLog) {
         entries.push({
@@ -3019,7 +3058,7 @@ export const ERPProvider = ({ children }) => {
       } else if (saleId) {
         const targetSale = (sales || []).find(s => String(s.id) === String(saleId));
         if (targetSale) {
-          const fin = computeSaleFinancials(targetSale, saleReturns, paymentLogs);
+          const fin = computeSaleFinancials(targetSale, saleReturns, paymentLogs, sales);
           maxCustomerDue = Math.max(0, fin.due || 0);
         }
       }
@@ -3035,7 +3074,7 @@ export const ERPProvider = ({ children }) => {
       if (purchaseId) {
         const targetPur = (purchases || []).find(p => String(p.id) === String(purchaseId));
         if (targetPur) {
-          const fin = computePurchaseFinancials(targetPur, purchaseReturns, paymentLogs);
+          const fin = computePurchaseFinancials(targetPur, purchaseReturns, paymentLogs, purchases);
           maxSupplierPayable = Math.max(0, fin.due || 0);
         }
       }
