@@ -247,15 +247,6 @@ export const Suppliers = () => {
   const [selectedProductFilter, setSelectedProductFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Payable' | 'Settled'
 
-  // Available liquid balance for selected payment account
-  const availableLiquidForPayMode = useMemo(() => {
-    const current = liquidBalances || computeLiquidBalances(sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns);
-    const m = String(payMode || 'Cash').toLowerCase();
-    if (m.includes('bank') || m.includes('transfer')) return { label: 'Bank Account', amount: current.bankBalance };
-    if (m.includes('card') || m.includes('pos')) return { label: 'Card Account', amount: current.cardBalance };
-    return { label: 'Cash in Hand', amount: current.cashInHand };
-  }, [liquidBalances, sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns, payMode]);
-
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
@@ -270,6 +261,15 @@ export const Suppliers = () => {
   const [payNote, setPayNote] = useState('');
   const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
   const [isProcessingPay, setIsProcessingPay] = useState(false);
+
+  // Available liquid balance for selected payment account
+  const availableLiquidForPayMode = useMemo(() => {
+    const current = liquidBalances || computeLiquidBalances(sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns);
+    const m = String(payMode || 'Cash').toLowerCase();
+    if (m.includes('bank') || m.includes('transfer')) return { label: 'Bank Account', amount: current.bankBalance };
+    if (m.includes('card') || m.includes('pos')) return { label: 'Card Account', amount: current.cardBalance };
+    return { label: 'Cash in Hand', amount: current.cashInHand };
+  }, [liquidBalances, sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns, payMode]);
 
   // Quick Add Product & Category State
   const [showAddProductModal, setShowAddProductModal] = useState(false);
