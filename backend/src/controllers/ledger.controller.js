@@ -231,6 +231,81 @@ export const recordPayment = async (req, res) => {
           throw new Error(`Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the supplier's outstanding payable of Rs. ${maxSupplierPayable.toLocaleString()}.`);
         }
 
+        // SUPPLIER PAYMENT & LIQUID CASH RULE: Calculate available liquid funds in real-time
+        const allShopSales = await Sale.find({ shop_id: req.shop_id });
+        const allShopPurchases = await Purchase.find({ shop_id: req.shop_id });
+        const allShopLogs = await Ledger.find({ shop_id: req.shop_id });
+        const allShopSaleReturns = await Purchase.find ? (await import('../models/saleReturn.model.js')).SaleReturn.find({ shop_id: req.shop_id }) : [];
+        const allShopPurchaseReturns = await Purchase.find ? (await import('../models/purchaseReturn.model.js')).PurchaseReturn.find({ shop_id: req.shop_id }) : [];
+
+        let cInflow = 0, bInflow = 0, kInflow = 0;
+        let cOutflow = 0, bOutflow = 0, kOutflow = 0;
+
+        allShopSales.forEach(s => {
+          const pd = Number(s.paidAmount || 0);
+          if (pd > 0) {
+            const m = String(s.paymentMethod || s.paymentMode || 'Cash').toLowerCase();
+            if (m.includes('bank') || m.includes('transfer')) bInflow += pd;
+            else if (m.includes('card') || m.includes('pos')) kInflow += pd;
+            else cInflow += pd;
+          }
+        });
+
+        allShopLogs.filter(l => l.partyType === 'Customer' || l.type === 'Customer Payment').forEach(l => {
+          const amt = Number(l.amount || 0);
+          const m = String(l.mode || 'Cash').toLowerCase();
+          if (m.includes('bank') || m.includes('transfer')) bInflow += amt;
+          else if (m.includes('card') || m.includes('pos')) kInflow += amt;
+          else cInflow += amt;
+        });
+
+        (allShopPurchaseReturns || []).forEach(r => {
+          const amt = Number(r.refundAmount || r.amount || 0);
+          const m = String(r.refundMode || r.mode || 'Cash').toLowerCase();
+          if (m.includes('bank') || m.includes('transfer')) bInflow += amt;
+          else if (m.includes('card') || m.includes('pos')) kInflow += amt;
+          else cInflow += amt;
+        });
+
+        allShopLogs.filter(l => l.partyType === 'Supplier' || l.type === 'Supplier Payment').forEach(l => {
+          const amt = Number(l.amount || 0);
+          const m = String(l.mode || 'Cash').toLowerCase();
+          if (m.includes('bank') || m.includes('transfer')) bOutflow += amt;
+          else if (m.includes('card') || m.includes('pos')) kOutflow += amt;
+          else cOutflow += amt;
+        });
+
+        allShopPurchases.forEach(p => {
+          const pd = Number(p.paidAmount || 0);
+          if (pd > 0) {
+            const m = String(p.paymentMode || p.paymentMethod || 'Cash').toLowerCase();
+            if (m.includes('bank') || m.includes('transfer')) bOutflow += pd;
+            else if (m.includes('card') || m.includes('pos')) kOutflow += pd;
+            else cOutflow += pd;
+          }
+        });
+
+        (allShopSaleReturns || []).forEach(r => {
+          const amt = Number(r.refundAmount || r.amount || 0);
+          const m = String(r.refundMode || r.mode || 'Cash').toLowerCase();
+          if (m.includes('bank') || m.includes('transfer')) bOutflow += amt;
+          else if (m.includes('card') || m.includes('pos')) kOutflow += amt;
+          else cOutflow += amt;
+        });
+
+        const availCash = Math.max(0, cInflow - cOutflow);
+        const availBank = Math.max(0, bInflow - bOutflow);
+        const availCard = Math.max(0, kInflow - kOutflow);
+
+        const modeLower = String(paymentMode || 'Cash').toLowerCase();
+        let targetAvail = availCash;
+        if (modeLower.includes('bank') || modeLower.includes('transfer')) targetAvail = availBank;
+        else if (modeLower.includes('card') || modeLower.includes('pos')) targetAvail = availCard;
+
+        if (amtNum > targetAvail) {
+          throw new Error(`Insufficient Balance — Available: Rs. ${targetAvail.toLocaleString()}`);
+        }
+
         if (sup) {
           const currentBal = Number(sup.balance || 0);
           const newBalance = Math.max(0, currentBal - amtNum);

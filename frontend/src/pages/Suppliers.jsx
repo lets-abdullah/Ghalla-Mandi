@@ -32,7 +32,7 @@ import {
   Printer,
   AlertCircle
 } from 'lucide-react';
-import { useERP, computeSupplierKhataBalance, computeAllSuppliersFinancials, computePurchaseFinancials } from '../context/ERPContext';
+import { useERP, computeSupplierKhataBalance, computeAllSuppliersFinancials, computePurchaseFinancials, computeLiquidBalances } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocale } from '../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
@@ -236,7 +236,7 @@ const SuppliedProductsCombobox = ({
 
 export const Suppliers = () => {
   const toast = useToast();
-  const { suppliers = [], products = [], categories = [], purchases = [], purchaseReturns = [], paymentLogs = [], addSupplier, updateSupplier, deleteSupplier, recordPayment, addProduct, addCategory } = useERP();
+  const { suppliers = [], products = [], categories = [], purchases = [], purchaseReturns = [], paymentLogs = [], sales = [], expenses = [], saleReturns = [], liquidBalances, addSupplier, updateSupplier, deleteSupplier, recordPayment, addProduct, addCategory } = useERP();
   const { theme } = useTheme();
   const { t } = useLocale();
   const navigate = useNavigate();
@@ -246,6 +246,15 @@ export const Suppliers = () => {
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('All');
   const [selectedProductFilter, setSelectedProductFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Payable' | 'Settled'
+
+  // Available liquid balance for selected payment account
+  const availableLiquidForPayMode = useMemo(() => {
+    const current = liquidBalances || computeLiquidBalances(sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns);
+    const m = String(payMode || 'Cash').toLowerCase();
+    if (m.includes('bank') || m.includes('transfer')) return { label: 'Bank Account', amount: current.bankBalance };
+    if (m.includes('card') || m.includes('pos')) return { label: 'Card Account', amount: current.cardBalance };
+    return { label: 'Cash in Hand', amount: current.cashInHand };
+  }, [liquidBalances, sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns, payMode]);
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -348,6 +357,11 @@ export const Suppliers = () => {
 
     if (amt > maxDue) {
       alert(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed the supplier's outstanding payable balance of Rs. ${maxDue.toLocaleString()}.`);
+      return;
+    }
+
+    if (amt > availableLiquidForPayMode.amount) {
+      alert(`Insufficient Balance — Available: Rs. ${availableLiquidForPayMode.amount.toLocaleString()}`);
       return;
     }
 
@@ -2050,7 +2064,16 @@ export const Suppliers = () => {
 
               {/* Payment Mode Selector (Cash vs Bank vs Card) */}
               <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">Payment Account / Mode *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-400 block">Payment Account / Mode *</label>
+                  <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border ${
+                    availableLiquidForPayMode.amount > 0 
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' 
+                      : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                  }`}>
+                    Avail: Rs. {availableLiquidForPayMode.amount.toLocaleString()}
+                  </span>
+                </div>
                 <div className="grid grid-cols-3 gap-2">
                   {['Cash', 'Bank', 'Card'].map(mode => (
                     <button
@@ -2066,6 +2089,11 @@ export const Suppliers = () => {
                     </button>
                   ))}
                 </div>
+                {Number(payAmount || 0) > availableLiquidForPayMode.amount && (
+                  <div className="mt-1.5 p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-[11px] font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                    <span>⚠️ Insufficient Balance — Available: Rs. {availableLiquidForPayMode.amount.toLocaleString()} ({availableLiquidForPayMode.label})</span>
+                  </div>
+                )}
               </div>
 
               {/* Payment Date */}

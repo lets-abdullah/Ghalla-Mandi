@@ -2980,6 +2980,24 @@ export const ERPProvider = ({ children }) => {
       if (maxSupplierPayable > 0 && amtNum > maxSupplierPayable) {
         throw new Error(`Payment amount (Rs. ${amtNum.toLocaleString()}) cannot exceed the supplier's outstanding payable of Rs. ${maxSupplierPayable.toLocaleString()}.`);
       }
+
+      // SUPPLIER PAYMENT & LIQUID CASH RULE: Check available liquid balance before processing payment
+      const currentLiquid = computeLiquidBalances(sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns);
+      const modeLower = String(paymentMode || 'Cash').trim().toLowerCase();
+      let availableLiquid = currentLiquid.cashInHand;
+      let accountLabel = 'Cash in Hand';
+
+      if (modeLower.includes('bank') || modeLower.includes('transfer') || modeLower.includes('online') || modeLower.includes('cheque')) {
+        availableLiquid = currentLiquid.bankBalance;
+        accountLabel = 'Bank Account';
+      } else if (modeLower.includes('card') || modeLower.includes('pos') || modeLower.includes('machine')) {
+        availableLiquid = currentLiquid.cardBalance;
+        accountLabel = 'Card Account';
+      }
+
+      if (amtNum > availableLiquid) {
+        throw new Error(`Insufficient Balance — Available: Rs. ${availableLiquid.toLocaleString()}`);
+      }
     }
 
     const lockKey = `pay:${partyId || partyName || ''}:${partyType}:${amtNum}:${saleId || ''}:${purchaseId || ''}`;
@@ -3106,6 +3124,23 @@ export const ERPProvider = ({ children }) => {
       notes: purchaseData.notes || '',
       items
     };
+
+    // SUPPLIER PAYMENT & LIQUID CASH RULE: Check available liquid balance before processing upfront payment
+    if (payload.paidAmount > 0) {
+      const currentLiquid = computeLiquidBalances(sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns);
+      const modeLower = String(payload.paymentMode).trim().toLowerCase();
+      let availableLiquid = currentLiquid.cashInHand;
+
+      if (modeLower.includes('bank') || modeLower.includes('transfer') || modeLower.includes('online') || modeLower.includes('cheque')) {
+        availableLiquid = currentLiquid.bankBalance;
+      } else if (modeLower.includes('card') || modeLower.includes('pos') || modeLower.includes('machine')) {
+        availableLiquid = currentLiquid.cardBalance;
+      }
+
+      if (payload.paidAmount > availableLiquid) {
+        throw new Error(`Insufficient Balance — Available: Rs. ${availableLiquid.toLocaleString()}`);
+      }
+    }
 
     const lockKey = `pur:${payload.supplierId || payload.supplierName}:${items.length}:${items[0]?.productId}:${items[0]?.qty}:${payload.paidAmount}`;
     if (inFlightLocks.current.has(lockKey)) {
