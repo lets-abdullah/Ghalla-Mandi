@@ -4575,8 +4575,8 @@ export const Reports = () => {
             </div>
           </div>
 
-          {/* 5 Financial KPI Summary Cards */}
-          <div className="no-print grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* 4 Financial KPI Summary Cards */}
+          <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* 1. CASH IN HAND */}
             <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
