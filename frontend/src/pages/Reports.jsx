@@ -1349,6 +1349,9 @@ export const Reports = () => {
 
   // Canonical Double-Entry Balance Sheet:
   // 1. ASSETS: Combined Overall Net Operating Liquid Funds (Cash + Bank + Card)
+  const liquidCashAsset = Math.max(0, cashInHand);
+  const liquidBankAsset = Math.max(0, bankBalance);
+  const liquidCardAsset = Math.max(0, cardBalance);
   const totalCombinedLiquidInflows = cashInflows + bankInflows + cardInflows;
   const totalCombinedLiquidOutflows = cashTotalOutflows + bankTotalOutflows + cardTotalOutflows;
   const netLiquidOperatingFunds = totalCombinedLiquidInflows - totalCombinedLiquidOutflows;
