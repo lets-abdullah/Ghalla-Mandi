@@ -5,8 +5,53 @@ import { Supplier } from '../models/supplier.model.js';
 import { Ledger } from '../models/ledger.model.js';
 import { AuditLog } from '../models/auditLog.model.js';
 import { convertToKg, isValidOperationalUnit } from '../services/unitConversion.service.js';
-import { withTransaction, run } from '../services/db.service.js';
+import { withTransaction, run, query } from '../services/db.service.js';
 import { computePurchaseInvoiceFromReturns, syncSupplierBalance } from '../utils/accounting.util.js';
+
+/**
+ * Recompute purchases.paidAmount from the canonical sum of linked payment_logs.
+ * If logs exist, that sum is authoritative. If no logs exist, the stored paidAmount
+ * (creation-time upfront) is used as-is. Never reads stale paidAmount when logs exist.
+ */
+const recomputePurchasePaidFromLogs = async (purchaseId, shop_id) => {
+  if (!purchaseId || !shop_id) return null;
+  const pur = await Purchase.findById(purchaseId, shop_id);
+  if (!pur) return null;
+
+  const logs = await query(
+    `SELECT amount FROM payment_logs
+     WHERE shop_id = $1 AND purchaseId = $2
+     AND LOWER(mode) NOT IN ('opening balance', 'credit note', 'debit note', 'supplier khata', 'purchase return', 'purchase', 'bill')`,
+    [shop_id, purchaseId]
+  );
+  const totalFromLogs = logs.reduce((sum, l) => sum + Number(l.amount || 0), 0);
+
+  const allLogsForPurchase = await query(
+    `SELECT id FROM payment_logs WHERE shop_id = $1 AND purchaseId = $2`,
+    [shop_id, purchaseId]
+  );
+
+  const canonicalPaid = allLogsForPurchase.length > 0
+    ? totalFromLogs
+    : Number(pur.paidAmount || 0);
+
+  const grandTotal = Number(pur.grandTotal || pur.amount || 0);
+  const returnAmount = Number(pur.returnAmount || 0);
+  const netDueable = Math.max(0, grandTotal - returnAmount);
+
+  const newStatus = canonicalPaid >= netDueable && netDueable > 0
+    ? 'Paid'
+    : canonicalPaid > 0
+      ? 'Partial'
+      : 'Pending';
+
+  await Purchase.findByIdAndUpdate(purchaseId, {
+    paidAmount: canonicalPaid,
+    paymentStatus: newStatus
+  }, { shop_id });
+
+  return { totalPaid: canonicalPaid, paymentStatus: newStatus };
+};
 
 // Anti-duplicate rapid submission cache
 const recentPurchases = new Map();
@@ -337,11 +382,12 @@ export const updatePurchase = async (req, res) => {
         }
       }
 
-      // 3. Synchronize Ledger entry for this purchase
+      // 3. Synchronize Ledger entry for this purchase's UPFRONT creation payment only.
+      // Only look for logs linked by explicit purchaseId — never by fuzzy ref match.
+      // This ensures we only update the creation-time payment, not standalone later payments.
       const allLedger = await Ledger.find({ shop_id: req.shop_id });
       const existingLog = allLedger.find(l =>
-        (l.purchaseId && String(l.purchaseId) === String(id)) ||
-        (existingPurchase.purchaseNo && l.ref && l.ref.includes(existingPurchase.purchaseNo.split('-').pop()))
+        l.purchaseId && String(l.purchaseId) === String(id)
       );
 
       if (existingLog) {
@@ -371,23 +417,27 @@ export const updatePurchase = async (req, res) => {
         });
       }
 
-      const updated = await Purchase.findByIdAndUpdate(id, {
+      // Update items, amounts, and mode on the purchase row.
+      // Do NOT write paidAmount directly here — it will be recomputed from logs below.
+      await Purchase.findByIdAndUpdate(id, {
         supplierName: activeSupplierName,
         supplierId: targetSupId,
         grandTotal: totalGrand,
         amount: totalGrand,
         netAmount: netGrand,
-        paidAmount: paid,
-        paymentStatus,
         paymentMode: paymentMode || existingPurchase.paymentMode || 'Supplier Khata',
         notes: notes !== undefined ? notes : existingPurchase.notes,
         items: processedItems
       }, { shop_id: req.shop_id });
 
+      // Recompute paidAmount from canonical log sum AFTER the upfront log update above
+      await recomputePurchasePaidFromLogs(id, req.shop_id);
+
       if (targetSupId) {
         await syncSupplierBalance(targetSupId, req.shop_id, tx.query);
       }
 
+      const updated = await Purchase.findById(id, req.shop_id);
       return updated;
     });
 

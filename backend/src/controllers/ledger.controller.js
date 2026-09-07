@@ -5,7 +5,7 @@ import { Sale } from '../models/sale.model.js';
 import { Purchase } from '../models/purchase.model.js';
 import { SaleReturn } from '../models/saleReturn.model.js';
 import { PurchaseReturn } from '../models/purchaseReturn.model.js';
-import { withTransaction } from '../services/db.service.js';
+import { withTransaction, run, query } from '../services/db.service.js';
 import { syncCustomerBalance, syncSupplierBalance } from '../utils/accounting.util.js';
 
 // Anti-duplicate rapid submission cache (3.5s window)
@@ -18,6 +18,119 @@ setInterval(() => {
     }
   }
 }, 60000);
+
+/**
+ * Recompute a purchase's paidAmount strictly from the payment_logs table.
+ *
+ * CANONICAL RULE: purchases.paidAmount = SUM of all payment_logs WHERE purchaseId = <id>
+ *
+ * This is the single source of truth for invoice-level payment.
+ * The creation-time paidAmount is ONLY used for the initial upfront payment log that
+ * was inserted during purchase creation. After that, the column tracks the sum of logs.
+ *
+ * Returns: { totalPaid, paymentStatus }
+ */
+const recomputePurchasePaidFromLogs = async (purchaseId, shop_id) => {
+  if (!purchaseId || !shop_id) return null;
+
+  const pur = await Purchase.findById(purchaseId, shop_id);
+  if (!pur) return null;
+
+  // Sum all valid payment logs explicitly linked to this purchase
+  const logs = await query(
+    `SELECT amount FROM payment_logs
+     WHERE shop_id = $1 AND purchaseId = $2
+     AND LOWER(mode) NOT IN ('opening balance', 'credit note', 'debit note', 'supplier khata', 'purchase return', 'purchase', 'bill')`,
+    [shop_id, purchaseId]
+  );
+  const totalFromLogs = logs.reduce((sum, l) => sum + Number(l.amount || 0), 0);
+
+  // The purchase may have had an upfront creation payment that was stored in paidAmount
+  // but NOT necessarily in payment_logs (older records). Check if there is already a log.
+  // If at least one log exists, we use the log sum as the authoritative paid amount.
+  // If no logs exist at all, fall back to the stored paidAmount (creation-time upfront).
+  const allLogsForPurchase = await query(
+    `SELECT id FROM payment_logs WHERE shop_id = $1 AND purchaseId = $2`,
+    [shop_id, purchaseId]
+  );
+
+  let canonicalPaid;
+  if (allLogsForPurchase.length > 0) {
+    // Logs exist — sum is authoritative. This prevents double-counting paidAmount+log.
+    canonicalPaid = totalFromLogs;
+  } else {
+    // No logs exist — use stored paidAmount (creation-time value, e.g. upfront cash without a log).
+    canonicalPaid = Number(pur.paidAmount || 0);
+  }
+
+  // Compute net dueable total from grandTotal and returnAmount
+  const grandTotal = Number(pur.grandTotal || pur.amount || 0);
+  const returnAmount = Number(pur.returnAmount || 0);
+  const netDueable = Math.max(0, grandTotal - returnAmount);
+
+  const newStatus =
+    canonicalPaid >= netDueable && netDueable > 0
+      ? 'Paid'
+      : canonicalPaid > 0
+        ? 'Partial'
+        : 'Pending';
+
+  await Purchase.findByIdAndUpdate(purchaseId, {
+    paidAmount: canonicalPaid,
+    paymentStatus: newStatus
+  }, { shop_id });
+
+  return { totalPaid: canonicalPaid, paymentStatus: newStatus };
+};
+
+/**
+ * Mirror for sales — recompute sale.paidAmount from its payment_logs.
+ */
+const recomputeSalePaidFromLogs = async (saleId, shop_id) => {
+  if (!saleId || !shop_id) return null;
+
+  const sale = await Sale.findById(saleId, shop_id);
+  if (!sale) return null;
+
+  const logs = await query(
+    `SELECT amount FROM payment_logs
+     WHERE shop_id = $1 AND saleId = $2
+     AND LOWER(mode) NOT IN ('opening balance', 'credit note', 'debit note')`,
+    [shop_id, saleId]
+  );
+  const totalFromLogs = logs.reduce((sum, l) => sum + Number(l.amount || 0), 0);
+
+  const allLogsForSale = await query(
+    `SELECT id FROM payment_logs WHERE shop_id = $1 AND saleId = $2`,
+    [shop_id, saleId]
+  );
+
+  let canonicalPaid;
+  if (allLogsForSale.length > 0) {
+    canonicalPaid = totalFromLogs;
+  } else {
+    canonicalPaid = Number(sale.paidAmount || 0);
+  }
+
+  const total = Number(sale.amount || sale.grandTotal || 0);
+  const returnAmount = Number(sale.returnAmount || 0);
+  const netDueable = Math.max(0, total - returnAmount);
+
+  const newStatus =
+    canonicalPaid >= netDueable && netDueable > 0
+      ? 'Paid'
+      : canonicalPaid > 0
+        ? 'Partial'
+        : 'Pending';
+
+  await Sale.findByIdAndUpdate(sale.id, {
+    paidAmount: canonicalPaid,
+    status: newStatus
+  }, { shop_id });
+
+  return { totalPaid: canonicalPaid, status: newStatus };
+};
+
 
 export const getLedgerEntries = async (req, res) => {
   try {
@@ -87,6 +200,11 @@ export const recordPayment = async (req, res) => {
           saleId: saleId || null
         });
 
+        // Update the linked sale's paidAmount from its logs (canonical source of truth)
+        if (saleId) {
+          await recomputeSalePaidFromLogs(saleId, req.shop_id);
+        }
+
         if (cust?.id) {
           await syncCustomerBalance(cust.id, req.shop_id, tx.query);
         }
@@ -119,6 +237,19 @@ export const recordPayment = async (req, res) => {
           purchaseId: purchaseId || null
         });
 
+        // ---------------------------------------------------------------
+        // CANONICAL SOURCE OF TRUTH UPDATE:
+        // When a payment is explicitly linked to a purchaseId, recompute
+        // that purchase's paidAmount from the sum of all its payment_logs.
+        // This ensures:
+        //   1. No double-counting of creation-time paidAmount + log amount.
+        //   2. The DB column reflects exactly what has been paid for THIS invoice.
+        //   3. Other invoices are NEVER touched.
+        // ---------------------------------------------------------------
+        if (purchaseId) {
+          await recomputePurchasePaidFromLogs(purchaseId, req.shop_id);
+        }
+
         if (sup?.id) {
           await syncSupplierBalance(sup.id, req.shop_id, tx.query);
         }
@@ -143,94 +274,43 @@ export const deleteLedgerEntry = async (req, res) => {
     }
 
     await withTransaction(async (tx) => {
-      const amt = Number(entry.amount || 0);
-
-      if (entry.partyType === 'Customer') {
-        if (entry.partyId) {
-          const cust = await Customer.findById(entry.partyId, req.shop_id);
-          if (cust) {
-            const restoredBal = Number(cust.balance || 0) + amt;
-            await Customer.findByIdAndUpdate(cust.id, { balance: restoredBal }, { shop_id: req.shop_id });
-          }
-        }
-        if (entry.saleId) {
-          const sale = await Sale.findById(entry.saleId, req.shop_id);
-          if (sale) {
-            const newPaid = Math.max(0, Number(sale.paidAmount || 0) - amt);
-            const targetTotal = Number(sale.netAmount !== undefined ? sale.netAmount : Math.max(0, Number(sale.amount || 0) - Number(sale.returnAmount || 0)));
-            const newStatus = (newPaid >= targetTotal && targetTotal > 0) ? 'Paid' : (newPaid > 0 ? 'Partial' : 'Pending');
-            await Sale.findByIdAndUpdate(sale.id, { paidAmount: newPaid, status: newStatus }, { shop_id: req.shop_id });
-          }
-        } else {
-          // Unwind general Khata payment from sales using FIFO (oldest first, matching original payment order)
-          let unwindRemaining = amt;
-          const allSales = await Sale.find({ shop_id: req.shop_id });
-          const custSales = allSales.filter(s => {
-            const matchesCust = (entry.partyId && s.customerId === entry.partyId) ||
-              (entry.partyName && s.partyName && s.partyName.trim().toLowerCase() === entry.partyName.trim().toLowerCase());
-            return matchesCust && Number(s.paidAmount || 0) > 0;
-          }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
-
-          for (const s of custSales) {
-            if (unwindRemaining <= 0) break;
-            const currentPaid = Number(s.paidAmount || 0);
-            const deduct = Math.min(currentPaid, unwindRemaining);
-            const nextPaid = currentPaid - deduct;
-            const targetTotal = Number(s.netAmount !== undefined ? s.netAmount : Math.max(0, Number(s.amount || 0) - Number(s.returnAmount || 0)));
-            const nextStatus = (nextPaid >= targetTotal && targetTotal > 0) ? 'Paid' : (nextPaid > 0 ? 'Partial' : 'Pending');
-            await Sale.findByIdAndUpdate(s.id, { paidAmount: nextPaid, status: nextStatus }, { shop_id: req.shop_id });
-            unwindRemaining -= deduct;
-          }
-        }
-      } else if (entry.partyType === 'Supplier') {
-        if (entry.partyId) {
-          const sup = await Supplier.findById(entry.partyId, req.shop_id);
-          if (sup) {
-            const restoredBal = Number(sup.balance || 0) + amt;
-            await Supplier.findByIdAndUpdate(sup.id, { balance: restoredBal }, { shop_id: req.shop_id });
-          }
-        }
-        if (entry.purchaseId) {
-          const pur = await Purchase.findById(entry.purchaseId, req.shop_id);
-          if (pur) {
-            const newPaid = Math.max(0, Number(pur.paidAmount || 0) - amt);
-            const targetTotal = Number(pur.netAmount !== undefined ? pur.netAmount : Math.max(0, Number(pur.grandTotal || pur.amount || 0) - Number(pur.returnAmount || 0)));
-            const newStatus = (newPaid >= targetTotal && targetTotal > 0) ? 'Paid' : (newPaid > 0 ? 'Partial' : 'Pending');
-            await Purchase.findByIdAndUpdate(pur.id, { paidAmount: newPaid, paymentStatus: newStatus }, { shop_id: req.shop_id });
-          }
-        } else {
-          // Unwind general Supplier settlement from purchases using FIFO (oldest first, matching original payment order)
-          let unwindRemaining = amt;
-          const allPurchases = await Purchase.find({ shop_id: req.shop_id });
-          const supPurchases = allPurchases.filter(p => {
-            const matchesSup = (entry.partyId && p.supplierId === entry.partyId) ||
-              (entry.partyName && p.supplier && p.supplier.trim().toLowerCase() === entry.partyName.trim().toLowerCase()) ||
-              (entry.partyName && p.supplierName && p.supplierName.trim().toLowerCase() === entry.partyName.trim().toLowerCase());
-            return matchesSup && Number(p.paidAmount || 0) > 0;
-          }).sort((a, b) => new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime());
-
-          for (const p of supPurchases) {
-            if (unwindRemaining <= 0) break;
-            const currentPaid = Number(p.paidAmount || 0);
-            const deduct = Math.min(currentPaid, unwindRemaining);
-            const nextPaid = currentPaid - deduct;
-            const targetTotal = Number(p.netAmount !== undefined ? p.netAmount : Math.max(0, Number(p.grandTotal || p.amount || 0) - Number(p.returnAmount || 0)));
-            const nextStatus = (nextPaid >= targetTotal && targetTotal > 0) ? 'Paid' : (nextPaid > 0 ? 'Partial' : 'Pending');
-            await Purchase.findByIdAndUpdate(p.id, { paidAmount: nextPaid, paymentStatus: nextStatus }, { shop_id: req.shop_id });
-            unwindRemaining -= deduct;
-          }
-        }
-      }
-
+      // Delete the entry FIRST so that recompute helpers see the remaining logs
       await Ledger.findByIdAndDelete(id, req.shop_id);
 
-      if (entry.partyType === 'Customer' && entry.partyId) {
-        await syncCustomerBalance(entry.partyId, req.shop_id, tx.query);
-      } else if (entry.partyType === 'Supplier' && entry.partyId) {
-        await syncSupplierBalance(entry.partyId, req.shop_id, tx.query);
+      if (entry.partyType === 'Customer') {
+        if (entry.saleId) {
+          // Recompute the specific sale's paidAmount from its REMAINING logs (post-deletion)
+          await recomputeSalePaidFromLogs(entry.saleId, req.shop_id);
+        }
+        // Sync the customer's aggregate balance
+        if (entry.partyId) {
+          await syncCustomerBalance(entry.partyId, req.shop_id, tx.query);
+        }
+
+      } else if (entry.partyType === 'Supplier') {
+        if (entry.purchaseId) {
+          // ---------------------------------------------------------------
+          // CANONICAL DELETE REVERSAL:
+          // Recompute the specific purchase's paidAmount from its REMAINING
+          // payment_logs after deletion. This is always safe because:
+          //   - It only touches the ONE purchase the payment belonged to.
+          //   - It reads actual DB state (no stale column math).
+          //   - Other purchases with paidAmount > 0 are NEVER modified.
+          //   - A settled purchase that later receives a refund stays settled.
+          // ---------------------------------------------------------------
+          await recomputePurchasePaidFromLogs(entry.purchaseId, req.shop_id);
+        }
+        // NOTE: We intentionally do NOT run a FIFO unwind on unlinked payments.
+        // Unlinked payments affect only the supplier's aggregate balance (via syncSupplierBalance).
+        // Individual invoice paidAmount columns are ONLY updated when a payment is explicitly
+        // linked to a purchaseId. This preserves historical transaction identity.
+
+        // Sync the supplier's aggregate balance
+        if (entry.partyId) {
+          await syncSupplierBalance(entry.partyId, req.shop_id, tx.query);
+        }
       }
     });
-
 
     return res.json({ success: true, message: 'Payment entry reversed and deleted successfully' });
   } catch (err) {

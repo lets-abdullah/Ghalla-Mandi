@@ -16,39 +16,142 @@ import { PrintHeader } from '../components/PrintHeader';
 import { PrintFooter } from '../components/PrintFooter';
 import { StatusBadge } from '../components/StatusBadge';
 import { EXPENSE_CATEGORIES } from './Expenses';
-// Universal date parsing helper for reports and journals
-const parseJournalDate = (dateVal, createdVal) => {
-  if (createdVal) {
-    const d = new Date(createdVal);
+// Universal local date parsing helpers for reports and journals (strictly timezone-safe & prioritizes transaction date)
+const parseUniversalDate = (dateVal, createdVal) => {
+  const val = dateVal || createdVal;
+  if (!val) return new Date();
+  if (val instanceof Date) return isNaN(val.getTime()) ? new Date() : val;
+
+  const str = String(val).trim();
+  if (!str || str.toLowerCase() === 'n/a' || str.toLowerCase() === 'opening') {
+    if (createdVal && createdVal !== dateVal) return parseUniversalDate(createdVal, null);
+    return new Date();
+  }
+
+  if (str.toLowerCase() === 'today') {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  if (str.toLowerCase() === 'yesterday') {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  // DD/MM/YYYY or DD-MM-YYYY
+  const ddmmyyyy = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  if (ddmmyyyy) {
+    const day = parseInt(ddmmyyyy[1], 10);
+    const month = parseInt(ddmmyyyy[2], 10) - 1;
+    const year = parseInt(ddmmyyyy[3], 10);
+    const d = new Date(year, month, day, 0, 0, 0, 0);
     if (!isNaN(d.getTime())) return d;
   }
-  if (!dateVal) return new Date();
-  if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? new Date() : dateVal;
-  if (typeof dateVal === 'string') {
-    if (dateVal.includes('/')) {
-      const parts = dateVal.split('/');
-      if (parts.length === 3) {
-        const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-        if (!isNaN(d.getTime())) return d;
-      }
-    }
-    if (dateVal.includes('-')) {
-      const parts = dateVal.split('-');
-      if (parts.length === 3) {
-        if (parts[0].length === 4) {
-          const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-          if (!isNaN(d.getTime())) return d;
-        } else {
-          const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-          if (!isNaN(d.getTime())) return d;
-        }
-      }
-    }
-    const parsed = new Date(dateVal);
-    if (!isNaN(parsed.getTime())) return parsed;
+
+  // YYYY-MM-DD or YYYY/MM/DD
+  const yyyymmdd = str.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+  if (yyyymmdd) {
+    const year = parseInt(yyyymmdd[1], 10);
+    const month = parseInt(yyyymmdd[2], 10) - 1;
+    const day = parseInt(yyyymmdd[3], 10);
+    const d = new Date(year, month, day, 0, 0, 0, 0);
+    if (!isNaN(d.getTime())) return d;
   }
+
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 0, 0, 0, 0);
+  }
+
+  if (createdVal && createdVal !== dateVal) return parseUniversalDate(createdVal, null);
   return new Date();
 };
+
+const parseJournalDate = (dateVal, createdVal) => parseUniversalDate(dateVal, createdVal);
+
+// Parse boundary date strings from HTML date pickers without UTC offset shifts
+const parseBoundaryDate = (dateStr, isEnd = false) => {
+  if (!dateStr) return null;
+  const str = String(dateStr).trim();
+  const yyyymmdd = str.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+  if (yyyymmdd) {
+    const year = parseInt(yyyymmdd[1], 10);
+    const month = parseInt(yyyymmdd[2], 10) - 1;
+    const day = parseInt(yyyymmdd[3], 10);
+    return isEnd ? new Date(year, month, day, 23, 59, 59, 999) : new Date(year, month, day, 0, 0, 0, 0);
+  }
+  const ddmmyyyy = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  if (ddmmyyyy) {
+    const day = parseInt(ddmmyyyy[1], 10);
+    const month = parseInt(ddmmyyyy[2], 10) - 1;
+    const year = parseInt(ddmmyyyy[3], 10);
+    return isEnd ? new Date(year, month, day, 23, 59, 59, 999) : new Date(year, month, day, 0, 0, 0, 0);
+  }
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return null;
+  if (isEnd) d.setHours(23, 59, 59, 999);
+  else d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+// Unified date filter evaluator across Sales, Expenses, P&L, and Cash Flow
+const matchesDateFilter = (txDate, filterType, startDateStr, endDateStr) => {
+  if (!filterType || filterType === 'All' || filterType === 'All Time') return true;
+  const targetDate = parseUniversalDate(txDate);
+  const targetTime = targetDate.getTime();
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+  if (filterType === 'Today') {
+    return targetTime >= todayStart.getTime() && targetTime <= todayEnd.getTime();
+  }
+  if (filterType === 'Yesterday') {
+    const yestStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+    const yestEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+    return targetTime >= yestStart.getTime() && targetTime <= yestEnd.getTime();
+  }
+  if (filterType === 'This Week') {
+    const dayOfWeek = todayStart.getDay();
+    const diffToMonday = (dayOfWeek + 6) % 7;
+    const monday = new Date(todayStart);
+    monday.setDate(todayStart.getDate() - diffToMonday);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+    return targetTime >= monday.getTime() && targetTime <= sunday.getTime();
+  }
+  if (filterType === 'This Month') {
+    return targetDate.getFullYear() === now.getFullYear() && targetDate.getMonth() === now.getMonth();
+  }
+  if (filterType === 'Last Month') {
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return targetDate.getFullYear() === lastMonthDate.getFullYear() && targetDate.getMonth() === lastMonthDate.getMonth();
+  }
+  if (filterType === 'This Quarter') {
+    const qStartMonth = Math.floor(now.getMonth() / 3) * 3;
+    const qEndMonth = qStartMonth + 2;
+    return targetDate.getFullYear() === now.getFullYear() && targetDate.getMonth() >= qStartMonth && targetDate.getMonth() <= qEndMonth;
+  }
+  if (filterType === 'This FY') {
+    const fyStartYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+    const fyStart = new Date(fyStartYear, 6, 1, 0, 0, 0, 0);
+    const fyEnd = new Date(fyStartYear + 1, 5, 30, 23, 59, 59, 999);
+    return targetTime >= fyStart.getTime() && targetTime <= fyEnd.getTime();
+  }
+  if (filterType === 'Custom') {
+    const start = parseBoundaryDate(startDateStr, false);
+    const end = parseBoundaryDate(endDateStr, true);
+    if (start && end) return targetTime >= start.getTime() && targetTime <= end.getTime();
+    if (start) return targetTime >= start.getTime();
+    if (end) return targetTime <= end.getTime();
+    return true;
+  }
+  return true;
+};
+
 
 export const Reports = () => {
   const {
@@ -148,9 +251,7 @@ export const Reports = () => {
     setPlPage(1);
   };
 
-  // Balance Sheet Date Filter States
-  const [bsDateFilter, setBsDateFilter] = useState('All Time'); // 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'All Time' | 'Custom'
-  const [bsCustomDate, setBsCustomDate] = useState(() => new Date().toISOString().split('T')[0]);
+  // Balance Sheet Financial Position States (Snapshot As of Today)
   const [bsExpandedSections, setBsExpandedSections] = useState({
     cashBank: true,
     receivables: true,
@@ -170,13 +271,10 @@ export const Reports = () => {
     setBsLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   };
 
-  const handleResetBsFilters = () => {
-    setBsDateFilter('All Time');
-  };
-
   // Cash Flow Report Filter States
   const [cfDateFilter, setCfDateFilter] = useState('All Time'); // 'All Time' | 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom'
-  const [cfCustomDate, setCfCustomDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [cfStartDate, setCfStartDate] = useState('');
+  const [cfEndDate, setCfEndDate] = useState('');
   const [cfChannelFilter, setCfChannelFilter] = useState('All'); // 'All' | 'Cash' | 'Bank' | 'Card'
   const [cfTypeFilter, setCfTypeFilter] = useState('All'); // 'All' | 'Inflow' | 'Outflow'
   const [cfCategoryFilter, setCfCategoryFilter] = useState('All');
@@ -186,6 +284,8 @@ export const Reports = () => {
 
   const handleResetCfFilters = () => {
     setCfDateFilter('All Time');
+    setCfStartDate('');
+    setCfEndDate('');
     setCfChannelFilter('All');
     setCfTypeFilter('All');
     setCfCategoryFilter('All');
@@ -397,51 +497,8 @@ export const Reports = () => {
       }
 
       // 1. Date Filter
-      let sDateObj = new Date();
-      if (s.created_at) {
-        sDateObj = new Date(s.created_at);
-      } else if (s.date && s.date.includes('/')) {
-        const parts = s.date.split('/');
-        if (parts.length === 3) sDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-      }
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const sDay = new Date(sDateObj);
-      sDay.setHours(0, 0, 0, 0);
-
-      if (salesDateFilter === 'Today' && sDay.getTime() !== today.getTime()) return false;
-      if (salesDateFilter === 'Yesterday') {
-        const yest = new Date(today);
-        yest.setDate(yest.getDate() - 1);
-        if (sDay.getTime() !== yest.getTime()) return false;
-      }
-      if (salesDateFilter === 'This Week') {
-        const startOfWeek = new Date(today);
-        // ISO week: Monday = start of week
-        startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-        startOfWeek.setHours(0, 0, 0, 0);
-        if (sDay < startOfWeek || sDay > today) return false;
-      }
-      if (salesDateFilter === 'This Month') {
-        if (sDay.getFullYear() !== today.getFullYear() || sDay.getMonth() !== today.getMonth()) return false;
-      }
-      if (salesDateFilter === 'Custom') {
-        if (salesStartDate && salesEndDate) {
-          const start = new Date(salesStartDate);
-          start.setHours(0, 0, 0, 0);
-          const end = new Date(salesEndDate);
-          end.setHours(23, 59, 59, 999);
-          if (sDay < start || sDay > end) return false;
-        } else if (salesStartDate) {
-          const start = new Date(salesStartDate);
-          start.setHours(0, 0, 0, 0);
-          if (sDay < start) return false;
-        } else if (salesEndDate) {
-          const end = new Date(salesEndDate);
-          end.setHours(23, 59, 59, 999);
-          if (sDay > end) return false;
-        }
+      if (!matchesDateFilter(s.date || s.created_at, salesDateFilter, salesStartDate, salesEndDate)) {
+        return false;
       }
 
       // 2. Customer Filter
@@ -717,14 +774,7 @@ export const Reports = () => {
   // Detailed Operating Expenses Filtering, Search & Period Breakdown
   const processedExpenses = useMemo(() => {
     return expenses.map(e => {
-      let eDateObj = new Date();
-      if (e.date && e.date.includes('/')) {
-        const parts = e.date.split('/');
-        if (parts.length === 3) eDateObj = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-      } else if (e.date) {
-        eDateObj = new Date(e.date);
-      }
-
+      const eDateObj = parseUniversalDate(e.date, e.created_at);
       return {
         ...e,
         amount: Number(e.amount || 0),
@@ -760,33 +810,7 @@ export const Reports = () => {
       const matchesPayment = expPaymentFilter === 'All' || e.mode === expPaymentFilter;
 
       // 4. Date Range
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const eDate = new Date(e.dateObj);
-      eDate.setHours(0, 0, 0, 0);
-
-      let matchesDate = true;
-      if (expDateFilter === 'Today') {
-        matchesDate = eDate.getTime() === today.getTime();
-      } else if (expDateFilter === 'This Week') {
-        const startOfWeek = new Date(today);
-        // ISO week: Monday = start of week
-        startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-        startOfWeek.setHours(0, 0, 0, 0);
-        matchesDate = eDate >= startOfWeek && eDate <= today;
-      } else if (expDateFilter === 'This Month') {
-        matchesDate = eDate.getMonth() === today.getMonth() && eDate.getFullYear() === today.getFullYear();
-      } else if (expDateFilter === 'Last Month') {
-        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        matchesDate = eDate.getMonth() === lastMonth.getMonth() && eDate.getFullYear() === lastMonth.getFullYear();
-      } else if (expDateFilter === 'This Quarter') {
-        const qStartMonth = Math.floor(today.getMonth() / 3) * 3;
-        matchesDate = eDate.getMonth() >= qStartMonth && eDate.getFullYear() === today.getFullYear();
-      } else if (expDateFilter === 'Custom' && expStartDate && expEndDate) {
-        const start = new Date(expStartDate);
-        const end = new Date(expEndDate);
-        matchesDate = eDate >= start && eDate <= end;
-      }
+      const matchesDate = matchesDateFilter(e.date || e.created_at || e.dateObj, expDateFilter, expStartDate, expEndDate);
 
       return matchesSearch && matchesCategory && matchesPayment && matchesDate;
     });
@@ -1618,41 +1642,103 @@ export const Reports = () => {
       }
 
       // Date Filter
-      if (cfDateFilter !== 'All Time') {
-        const txDate = parseJournalDate(tx.date, tx.created_at);
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
+      return matchesDateFilter(tx.date || tx.created_at, cfDateFilter, cfStartDate, cfEndDate);
+    }).sort((a, b) => b.idx - a.idx);
+  }, [chronologicalCashFlow, cfChannelFilter, cfTypeFilter, cfCategoryFilter, cfSearch, cfDateFilter, cfStartDate, cfEndDate]);
 
-        if (cfDateFilter === 'Today') {
-          const d = new Date(txDate);
-          d.setHours(0, 0, 0, 0);
-          if (d.getTime() !== now.getTime()) return false;
-        } else if (cfDateFilter === 'Yesterday') {
-          const y = new Date(now);
-          y.setDate(y.getDate() - 1);
-          const d = new Date(txDate);
-          d.setHours(0, 0, 0, 0);
-          if (d.getTime() !== y.getTime()) return false;
-        } else if (cfDateFilter === 'This Week') {
-          const wStart = new Date(now);
-          // ISO week: Monday = start of week
-          wStart.setDate(wStart.getDate() - ((wStart.getDay() + 6) % 7));
-          wStart.setHours(0, 0, 0, 0);
-          if (txDate < wStart) return false;
-        } else if (cfDateFilter === 'This Month') {
-          if (txDate.getMonth() !== now.getMonth() || txDate.getFullYear() !== now.getFullYear()) return false;
-        } else if (cfDateFilter === 'Custom' && cfCustomDate) {
-          const cDate = new Date(cfCustomDate);
-          cDate.setHours(0, 0, 0, 0);
-          const d = new Date(txDate);
-          d.setHours(0, 0, 0, 0);
-          if (d.getTime() !== cDate.getTime()) return false;
+  // Dynamic Period Aggregates for Cash Flow Statement
+  const cfPeriodMetrics = useMemo(() => {
+    let cashIn = 0, bankIn = 0, cardIn = 0;
+    let cashOut = 0, bankOut = 0, cardOut = 0;
+    let posCash = 0, posBank = 0, posCard = 0;
+    let custCash = 0, custBank = 0, custCard = 0;
+    let pretCash = 0, pretBank = 0, pretCard = 0;
+    let supCash = 0, supBank = 0, supCard = 0;
+    let expCash = 0, expBank = 0, expCard = 0;
+    let sretCash = 0, sretBank = 0, sretCard = 0;
+
+    filteredCashFlowTransactions.forEach(tx => {
+      const c = Number(tx.cashAmount || 0);
+      const b = Number(tx.bankAmount || 0);
+      const k = Number(tx.cardAmount || 0);
+
+      if (tx.type === 'Inflow') {
+        cashIn += c;
+        bankIn += b;
+        cardIn += k;
+
+        if (tx.category === 'POS Sale' || (tx.source && tx.source.includes('POS'))) {
+          posCash += c; posBank += b; posCard += k;
+        } else if (tx.category === 'Customer Payment' || (tx.source && tx.source.includes('Customer Khata'))) {
+          custCash += c; custBank += b; custCard += k;
+        } else if (tx.category === 'Purchase Return' || (tx.source && tx.source.includes('Purchase Return'))) {
+          pretCash += c; pretBank += b; pretCard += k;
+        } else {
+          custCash += c; custBank += b; custCard += k;
+        }
+      } else {
+        cashOut += c;
+        bankOut += b;
+        cardOut += k;
+
+        if (tx.category === 'Supplier Payment' || (tx.source && tx.source.includes('Supplier Khata'))) {
+          supCash += c; supBank += b; supCard += k;
+        } else if (tx.category === 'Expense' || (tx.source && tx.source.includes('Expense'))) {
+          expCash += c; expBank += b; expCard += k;
+        } else if (tx.category === 'Sale Return' || (tx.source && tx.source.includes('Sale Return'))) {
+          sretCash += c; sretBank += b; sretCard += k;
+        } else {
+          expCash += c; expBank += b; expCard += k;
         }
       }
+    });
 
-      return true;
-    }).sort((a, b) => b.idx - a.idx);
-  }, [chronologicalCashFlow, cfChannelFilter, cfTypeFilter, cfCategoryFilter, cfSearch, cfDateFilter, cfCustomDate]);
+    const totalInflow = cashIn + bankIn + cardIn;
+    const totalOutflow = cashOut + bankOut + cardOut;
+    const netFlow = totalInflow - totalOutflow;
+
+    return {
+      cashIn, bankIn, cardIn, totalInflow,
+      cashOut, bankOut, cardOut, totalOutflow,
+      netFlow,
+      netCash: cashIn - cashOut,
+      netBank: bankIn - bankOut,
+      netCard: cardIn - cardOut,
+      posCash, posBank, posCard,
+      custCash, custBank, custCard,
+      pretCash, pretBank, pretCard,
+      supCash, supBank, supCard,
+      expCash, expBank, expCard,
+      sretCash, sretBank, sretCard
+    };
+  }, [filteredCashFlowTransactions]);
+
+  const displayCf = useMemo(() => {
+    if (cfDateFilter === 'All Time') {
+      return {
+        posCash: cPosInflow, posBank: bPosInflow, posCard: kPosInflow,
+        custCash: cCustInflow, custBank: bCustInflow, custCard: kCustInflow,
+        pretCash: cPRetInflow, pretBank: bPRetInflow, pretCard: kPRetInflow,
+        inCash: cashInflows, inBank: bankInflows, inCard: cardInflows, inTotal: (cashInflows + bankInflows + cardInflows),
+        supCash: cSupPayOut, supBank: bSupPayOut, supCard: kSupPayOut,
+        expCash: cExpOut, expBank: bExpOut, expCard: kExpOut,
+        sretCash: cSRetOut, sretBank: bSRetOut, sretCard: kSRetOut,
+        outCash: cashTotalOutflows, outBank: bankTotalOutflows, outCard: cardTotalOutflows, outTotal: (cashTotalOutflows + bankTotalOutflows + cardTotalOutflows),
+        netCash: cashInHand, netBank: bankBalance, netCard: cardBalance, netTotal: totalLiquidFunds
+      };
+    }
+    return {
+      posCash: cfPeriodMetrics.posCash, posBank: cfPeriodMetrics.posBank, posCard: cfPeriodMetrics.posCard,
+      custCash: cfPeriodMetrics.custCash, custBank: cfPeriodMetrics.custBank, custCard: cfPeriodMetrics.custCard,
+      pretCash: cfPeriodMetrics.pretCash, pretBank: cfPeriodMetrics.pretBank, pretCard: cfPeriodMetrics.pretCard,
+      inCash: cfPeriodMetrics.cashIn, inBank: cfPeriodMetrics.bankIn, inCard: cfPeriodMetrics.cardIn, inTotal: cfPeriodMetrics.totalInflow,
+      supCash: cfPeriodMetrics.supCash, supBank: cfPeriodMetrics.supBank, supCard: cfPeriodMetrics.supCard,
+      expCash: cfPeriodMetrics.expCash, expBank: cfPeriodMetrics.expBank, expCard: cfPeriodMetrics.expCard,
+      sretCash: cfPeriodMetrics.sretCash, sretBank: cfPeriodMetrics.sretBank, sretCard: cfPeriodMetrics.sretCard,
+      outCash: cfPeriodMetrics.cashOut, outBank: cfPeriodMetrics.bankOut, outCard: cfPeriodMetrics.cardOut, outTotal: cfPeriodMetrics.totalOutflow,
+      netCash: cfPeriodMetrics.netCash, netBank: cfPeriodMetrics.netBank, netCard: cfPeriodMetrics.netCard, netTotal: cfPeriodMetrics.netFlow
+    };
+  }, [cfDateFilter, cPosInflow, bPosInflow, kPosInflow, cCustInflow, bCustInflow, kCustInflow, cPRetInflow, bPRetInflow, kPRetInflow, cashInflows, bankInflows, cardInflows, cSupPayOut, bSupPayOut, kSupPayOut, cExpOut, bExpOut, kExpOut, cSRetOut, bSRetOut, kSRetOut, cashTotalOutflows, bankTotalOutflows, cardTotalOutflows, cashInHand, bankBalance, cardBalance, totalLiquidFunds, cfPeriodMetrics]);
 
   const paginatedCashFlowTransactions = useMemo(() => {
     const start = (cfPage - 1) * cfPageSize;
@@ -1890,43 +1976,8 @@ export const Reports = () => {
   const filteredPlJournal = useMemo(() => {
     return plJournalTransactions.filter(item => {
       // 1. Date Filter
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const txDay = new Date(item.dateObj);
-      txDay.setHours(0, 0, 0, 0);
-
-      if (plDateFilter === 'Today' && txDay.getTime() !== today.getTime()) return false;
-      if (plDateFilter === 'Yesterday') {
-        const yest = new Date(today);
-        yest.setDate(yest.getDate() - 1);
-        if (txDay.getTime() !== yest.getTime()) return false;
-      }
-      if (plDateFilter === 'This Week') {
-        const startOfWeek = new Date(today);
-        // ISO week: Monday = start of week
-        startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-        startOfWeek.setHours(0, 0, 0, 0);
-        if (txDay < startOfWeek || txDay > today) return false;
-      }
-      if (plDateFilter === 'This Month') {
-        if (txDay.getFullYear() !== today.getFullYear() || txDay.getMonth() !== today.getMonth()) return false;
-      }
-      if (plDateFilter === 'Custom') {
-        if (plStartDate && plEndDate) {
-          const start = new Date(plStartDate);
-          start.setHours(0, 0, 0, 0);
-          const end = new Date(plEndDate);
-          end.setHours(23, 59, 59, 999);
-          if (txDay < start || txDay > end) return false;
-        } else if (plStartDate) {
-          const start = new Date(plStartDate);
-          start.setHours(0, 0, 0, 0);
-          if (txDay < start) return false;
-        } else if (plEndDate) {
-          const end = new Date(plEndDate);
-          end.setHours(23, 59, 59, 999);
-          if (txDay > end) return false;
-        }
+      if (!matchesDateFilter(item.dateObj || item.dateStr, plDateFilter, plStartDate, plEndDate)) {
+        return false;
       }
 
       // 2. Product Filter
@@ -1941,10 +1992,12 @@ export const Reports = () => {
 
       // 4. Type Filter
       if (plTypeFilter !== 'All') {
-        if (plTypeFilter === 'Sale' && item.type !== 'Sale') return false;
-        if (plTypeFilter === 'Purchase' && item.type !== 'Purchase') return false;
-        if (plTypeFilter === 'Expense' && item.type !== 'Expense') return false;
-        if (plTypeFilter === 'Return' && !item.type.includes('Return')) return false;
+        if ((plTypeFilter === 'Sale' || plTypeFilter === 'Sales') && item.type !== 'Sale') return false;
+        if ((plTypeFilter === 'Purchase' || plTypeFilter === 'Purchases') && item.type !== 'Purchase') return false;
+        if ((plTypeFilter === 'Expense' || plTypeFilter === 'Expenses') && item.type !== 'Expense') return false;
+        if ((plTypeFilter === 'Sale Return' || plTypeFilter === 'Sale Returns') && item.type !== 'Sale Return' && item.category !== 'Sale Return') return false;
+        if ((plTypeFilter === 'Purchase Return' || plTypeFilter === 'Purchase Returns') && item.type !== 'Purchase Return' && item.category !== 'Purchase Return') return false;
+        if (plTypeFilter === 'Return' && !item.type.includes('Return') && !item.category?.includes('Return')) return false;
       }
 
       // 5. Payment Mode Filter
@@ -2037,8 +2090,11 @@ export const Reports = () => {
       };
     });
 
-    filteredSalesList.forEach(s => {
-      const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : [{ name: s.productName || 'Commodity', qty: s.qty || 1, total: s.grossAmt }]);
+    const plFilteredSales = (sales || []).filter(s => matchesDateFilter(s.date || s.created_at, plDateFilter, plStartDate, plEndDate));
+    const plFilteredReturns = (saleReturns || []).filter(r => matchesDateFilter(r.date || r.created_at, plDateFilter, plStartDate, plEndDate));
+
+    plFilteredSales.forEach(s => {
+      const cart = Array.isArray(s.cart) && s.cart.length > 0 ? s.cart : (Array.isArray(s.items) ? s.items : [{ name: s.productName || 'Commodity', qty: s.qty || 1, total: Number(s.amount || s.grandTotal || s.netAmt || 0) }]);
       cart.forEach(it => {
         const key = (it.name || '').toLowerCase();
         const pObj = (products || []).find(p => String(p.id) === String(it.productId || it.id) || (p.name && p.name.toLowerCase() === key));
@@ -2063,7 +2119,7 @@ export const Reports = () => {
       });
     });
 
-    (saleReturns || []).forEach(r => {
+    plFilteredReturns.forEach(r => {
       const items = Array.isArray(r.items) && r.items.length > 0 ? r.items : (Array.isArray(r.cart) ? r.cart : []);
       items.forEach(it => {
         const key = (it.name || '').toLowerCase();
@@ -2090,7 +2146,7 @@ export const Reports = () => {
         margin
       };
     }).sort((a, b) => b.grossProfit - a.grossProfit);
-  }, [products, filteredSalesList, saleReturns]);
+  }, [products, sales, saleReturns, plDateFilter, plStartDate, plEndDate]);
 
   // Category-Wise P&L Analysis (Accurate COGS & Gross Profit per Category)
   const categoryWisePnLData = useMemo(() => {
@@ -2394,7 +2450,7 @@ export const Reports = () => {
       csvContent += makeRow([sName], COLS);
       csvContent += makeRow([sMandi + (sPhone ? ` • Contact: ${sPhone}` : '')], COLS);
       csvContent += makeRow(['BALANCE SHEET STATEMENT & FINANCIAL POSITION'], COLS);
-      csvContent += makeRow([`As of Date / Period: ${bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter} | Generated: ${nowStr}`], COLS);
+      csvContent += makeRow([`Statement: Current Financial Position | As of: ${new Date().toLocaleDateString('en-GB')} | Generated: ${nowStr}`], COLS);
       csvContent += makeRow([''], COLS);
 
       // Executive Summary
@@ -2431,19 +2487,19 @@ export const Reports = () => {
       csvContent += makeRow([sName], COLS);
       csvContent += makeRow([sMandi + (sPhone ? ` • Contact: ${sPhone}` : '')], COLS);
       csvContent += makeRow(['CASH FLOW STATEMENT & LIQUID MOVEMENTS LEDGER'], COLS);
-      csvContent += makeRow([`Statement Period: ${cfDateFilter === 'Custom' ? cfCustomDate : cfDateFilter} | Generated: ${nowStr}`], COLS);
+      csvContent += makeRow([`Statement Period: ${cfDateFilter === 'Custom' ? `${cfStartDate || 'Start'} to ${cfEndDate || 'End'}` : cfDateFilter} | Generated: ${nowStr}`], COLS);
       csvContent += makeRow([''], COLS);
 
       // KPI Summary Block
       csvContent += makeRow(['--- LIQUID BALANCES SUMMARY ---'], COLS);
       csvContent += makeRow(['Cash in Hand (Physical Drawer)', num(cashInHand), 'Bank Balance (Asset)', num(Math.max(0, bankBalance)), 'Card Payment (Asset)', num(liquidCardAsset), 'Net Liquid Position', num(totalLiquidFunds)], COLS);
-      csvContent += makeRow(['Total Cash Inflows', num(cashInflows), 'Total Cash Outflows', num(cashTotalOutflows), 'Total Bank Inflows', num(bankInflows), 'Total Bank Outflows', num(bankTotalOutflows), 'Total Card Inflows', num(cardInflows), 'Total Card Outflows', num(cardTotalOutflows)], COLS);
+      csvContent += makeRow(['Period Cash Inflows', num(cfPeriodMetrics.cashIn), 'Period Cash Outflows', num(cfPeriodMetrics.cashOut), 'Period Bank Inflows', num(cfPeriodMetrics.bankIn), 'Period Bank Outflows', num(cfPeriodMetrics.bankOut), 'Period Card Inflows', num(cfPeriodMetrics.cardIn), 'Period Card Outflows', num(cfPeriodMetrics.cardOut)], COLS);
 
       // Section 1: Actual Cash, Bank & Card Transaction Movements
       csvContent += makeSectionHeader('1. ACTUAL CASH, BANK & CARD TRANSACTION MOVEMENTS', COLS);
       csvContent += makeRow(['Date', 'Reference / Source', 'Party Name', 'Category', 'Channel', 'Type', 'Amount (Rs.)'], COLS);
 
-      (chronologicalCashFlow || []).forEach(tx => {
+      (filteredCashFlowTransactions || []).forEach(tx => {
         csvContent += makeRow([
           tx.date,
           tx.source,
@@ -2455,7 +2511,7 @@ export const Reports = () => {
         ], COLS);
       });
 
-      csvContent += makeRow(['CLOSING CASH IN HAND', num(cashInHand), 'CLOSING BANK ASSET', num(Math.max(0, bankBalance)), 'CLOSING CARD ASSET', num(liquidCardAsset), 'TOTAL MOVEMENTS LOGGED', `${(chronologicalCashFlow || []).length} Entries`], COLS);
+      csvContent += makeRow(['CLOSING CASH IN HAND', num(cashInHand), 'CLOSING BANK ASSET', num(Math.max(0, bankBalance)), 'CLOSING CARD ASSET', num(liquidCardAsset), 'TOTAL MOVEMENTS LOGGED', `${(filteredCashFlowTransactions || []).length} Entries`], COLS);
 
     } else if (reportType === 'Expenses') {
       const COLS = 7;
@@ -2468,7 +2524,7 @@ export const Reports = () => {
 
       // KPI Summary Block
       csvContent += makeRow(['--- OPERATING EXPENSES SUMMARY ---'], COLS);
-      csvContent += makeRow(['Total Operating Expenses (Rs.)', num(totalExpensesAmount), 'Total Vouchers Recorded', filteredExpenses.length, 'Active Expense Categories', activeExpCategoriesCount, 'Avg Expense Per Voucher', num(filteredExpenses.length ? totalExpensesAmount / filteredExpenses.length : 0)], COLS);
+      csvContent += makeRow(['Total Operating Expenses (Rs.)', num(filteredExpensesTotal), 'Total Vouchers Recorded', filteredExpensesList.length, 'Active Expense Categories', activeExpCategoriesCount, 'Avg Expense Per Voucher', num(filteredExpensesList.length ? filteredExpensesTotal / filteredExpensesList.length : 0)], COLS);
 
       // Section 1: Category Breakdown
       csvContent += makeSectionHeader('1. CATEGORY-WISE EXPENSE DISTRIBUTION', COLS);
@@ -2490,19 +2546,19 @@ export const Reports = () => {
       csvContent += makeSectionHeader('2. ITEMIZED EXPENSE VOUCHER REGISTER', COLS);
       csvContent += makeRow(['Date', 'Voucher Ref', 'Expense Category', 'Description / Purpose', 'Payment Mode', 'Paid To / Beneficiary', 'Amount (Rs.)'], COLS);
 
-      filteredExpenses.forEach(e => {
+      filteredExpensesList.forEach(e => {
         csvContent += makeRow([
           e.date,
           e.ref,
           e.category,
-          e.desc || e.description || '-',
-          e.mode || 'Cash',
-          e.paidTo || 'Shop Staff / Vendor',
+          e.desc,
+          e.mode,
+          e.paidTo || 'Counter Drawer Cash',
           num(e.amount)
         ], COLS);
       });
 
-      csvContent += makeRow(['TOTAL EXPENSES INCURRED', `${filteredExpenses.length} Vouchers`, 'ALL CATEGORIES', 'FINANCIAL YEAR 2026-27', 'ALL PAYMENT MODES', 'TOTAL OUTFLOW', num(totalExpensesAmount)], COLS);
+      csvContent += makeRow(['TOTAL EXPENSES INCURRED', `${filteredExpensesList.length} Vouchers`, 'ALL CATEGORIES', 'FINANCIAL YEAR 2026-27', 'ALL PAYMENT MODES', 'TOTAL OUTFLOW', num(filteredExpensesTotal)], COLS);
 
     } else {
       const COLS = 4;
@@ -3587,6 +3643,7 @@ export const Reports = () => {
                 >
                   <option value="All">All Dates</option>
                   <option value="Today">Today</option>
+                  <option value="Yesterday">Yesterday</option>
                   <option value="This Week">This Week</option>
                   <option value="This Month">This Month</option>
                   <option value="Last Month">Last Month</option>
@@ -4257,42 +4314,22 @@ export const Reports = () => {
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">STATEMENT:</span>
               <span className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400">
-                AS OF {bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter.toUpperCase()}
+                CURRENT FINANCIAL POSITION (AS OF TODAY)
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              <select
-                value={bsDateFilter}
-                onChange={(e) => setBsDateFilter(e.target.value)}
-                className={`border rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-              >
-                <option value="All Time">All Time</option>
-                <option value="Today">Today</option>
-                <option value="Yesterday">Yesterday</option>
-                <option value="This Week">This Week</option>
-                <option value="This Month">This Month</option>
-                <option value="Custom">Custom Date</option>
-              </select>
-
-              {bsDateFilter === 'Custom' && (
-                <input
-                  type="date"
-                  value={bsCustomDate}
-                  onChange={(e) => setBsCustomDate(e.target.value)}
-                  className={`border rounded-xl px-2 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
-              )}
-
+              <span className="text-xs font-mono font-semibold text-slate-400">
+                Snapshot: {bsLastUpdated}
+              </span>
               <button
                 type="button"
                 onClick={handleRefreshBalanceSheet}
-                className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition cursor-pointer"
+                className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition cursor-pointer flex items-center gap-1.5"
                 title="Refresh Statement Data"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
+                <span className="text-xs font-bold">Refresh</span>
               </button>
             </div>
           </div>
@@ -4357,7 +4394,7 @@ export const Reports = () => {
           {/* ========================================================================= */}
           <PrintHeader
             title="Balance Sheet Statement"
-            filterSummary={`As of: ${bsDateFilter === 'Custom' ? bsCustomDate : bsDateFilter}`}
+            filterSummary="As of Today (Current Snapshot)"
             stats={[
               { label: 'Total Assets', value: `Rs. ${totalAssets.toLocaleString()}` },
               { label: 'Total Liabilities', value: `Rs. ${totalLiabilities.toLocaleString()}` },
@@ -4581,7 +4618,7 @@ export const Reports = () => {
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Statement:</span>
               <span className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-400">
-                As of {cfDateFilter === 'Custom' ? cfCustomDate : cfDateFilter}
+                Period: {cfDateFilter === 'Custom' ? `${cfStartDate || 'Start'} to ${cfEndDate || 'End'}` : cfDateFilter}
               </span>
             </div>
 
@@ -4598,17 +4635,26 @@ export const Reports = () => {
                 <option value="Yesterday">Yesterday</option>
                 <option value="This Week">This Week</option>
                 <option value="This Month">This Month</option>
-                <option value="Custom">Custom Date</option>
+                <option value="Custom">Custom Date Range</option>
               </select>
 
               {cfDateFilter === 'Custom' && (
-                <input
-                  type="date"
-                  value={cfCustomDate}
-                  onChange={(e) => { setCfCustomDate(e.target.value); setCfPage(1); }}
-                  className={`border rounded-xl px-2 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-slate-400">From:</span>
+                  <input
+                    type="date"
+                    value={cfStartDate}
+                    onChange={(e) => { setCfStartDate(e.target.value); setCfPage(1); }}
+                    className={`border rounded-xl px-2 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                  />
+                  <span className="text-[11px] font-bold text-slate-400">To:</span>
+                  <input
+                    type="date"
+                    value={cfEndDate}
+                    onChange={(e) => { setCfEndDate(e.target.value); setCfPage(1); }}
+                    className={`border rounded-xl px-2 py-1 text-xs font-bold outline-none ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                  />
+                </div>
               )}
 
               {/* Search Filter */}
@@ -4624,7 +4670,7 @@ export const Reports = () => {
               </div>
 
               {/* Reset Filters */}
-              {(cfDateFilter !== 'All Time' || cfChannelFilter !== 'All' || cfTypeFilter !== 'All' || cfCategoryFilter !== 'All' || cfSearch) && (
+              {(cfDateFilter !== 'All Time' || cfStartDate || cfEndDate || cfChannelFilter !== 'All' || cfTypeFilter !== 'All' || cfCategoryFilter !== 'All' || cfSearch) && (
                 <button
                   type="button"
                   onClick={handleResetCfFilters}
@@ -4638,56 +4684,60 @@ export const Reports = () => {
 
           {/* 4 Financial KPI Summary Cards */}
           <div className="no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* 1. CASH IN HAND */}
+            {/* 1. PERIOD INFLOWS */}
             <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <span>Cash in Hand</span>
+                <span>Period Inflows</span>
                 <Wallet className="w-3.5 h-3.5 text-emerald-500" />
               </div>
-              <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${cashInHand >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                Rs. {cashInHand.toLocaleString()}
+              <div className="text-xl sm:text-2xl font-black font-mono mt-1 text-emerald-600 dark:text-emerald-400">
+                Rs. {displayCf.inTotal.toLocaleString()}
               </div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Physical Counter Drawer</div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">
+                Cash: Rs. {displayCf.inCash.toLocaleString()} • Bank: Rs. {displayCf.inBank.toLocaleString()}
+              </div>
             </div>
 
-            {/* 2. BANK ACCOUNT BALANCES (ASSET) */}
+            {/* 2. PERIOD OUTFLOWS */}
             <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <span>Bank Balance (Asset)</span>
-                <Building className="w-3.5 h-3.5 text-blue-500" />
+                <span>Period Outflows</span>
+                <Building className="w-3.5 h-3.5 text-rose-500" />
               </div>
-              <div className="text-xl sm:text-2xl font-black font-mono text-blue-600 dark:text-blue-400 mt-1">
-                Rs. {Math.max(0, bankBalance).toLocaleString()}
+              <div className="text-xl sm:text-2xl font-black font-mono mt-1 text-rose-600 dark:text-rose-400">
+                Rs. {displayCf.outTotal.toLocaleString()}
               </div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Liquid Bank Deposits</div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">
+                Cash: Rs. {displayCf.outCash.toLocaleString()} • Bank: Rs. {displayCf.outBank.toLocaleString()}
+              </div>
             </div>
 
-            {/* 3. CARD PAYMENTS (ASSET) */}
+            {/* 3. NET OPERATING CASH FLOW */}
             <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <span>Card Payments (Asset)</span>
-                <CreditCard className="w-3.5 h-3.5 text-purple-500" />
+                <span>Net Cash Flow</span>
+                <ArrowUpDown className="w-3.5 h-3.5 text-purple-500" />
               </div>
-              <div className="text-xl sm:text-2xl font-black font-mono text-purple-600 dark:text-purple-400 mt-1">
-                Rs. {liquidCardAsset.toLocaleString()}
+              <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${displayCf.netTotal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {displayCf.netTotal >= 0 ? '+ ' : ''}Rs. {displayCf.netTotal.toLocaleString()}
               </div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">POS & Merchant Receipts</div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Period Inflows − Outflows</div>
             </div>
 
-            {/* 5. NET LIQUID POSITION */}
+            {/* 4. CLOSING NET LIQUID FUNDS */}
             <div className={`p-4 rounded-2xl border card-shadow ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <span>Net Liquid Funds</span>
+                <span>Closing Liquid Funds</span>
                 <Banknote className="w-3.5 h-3.5 text-indigo-500" />
               </div>
               <div className={`text-xl sm:text-2xl font-black font-mono mt-1 ${totalLiquidFunds >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 Rs. {totalLiquidFunds.toLocaleString()}
               </div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Cash + Bank + Card Net</div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Cash: Rs. {cashInHand.toLocaleString()} • Bank: Rs. {bankBalance.toLocaleString()}</div>
             </div>
           </div>
 
@@ -4696,12 +4746,12 @@ export const Reports = () => {
           {/* ========================================================================= */}
           <PrintHeader
             title="Cash Flow Statement & Liquid Movements Ledger"
-            filterSummary={`As of: ${cfDateFilter === 'Custom' ? cfCustomDate : cfDateFilter}`}
+            filterSummary={`Period: ${cfDateFilter === 'Custom' ? `${cfStartDate || 'Start'} to ${cfEndDate || 'End'}` : cfDateFilter}`}
             stats={[
-              { label: 'Closing Cash in Hand', value: `Rs. ${cashInHand.toLocaleString()}` },
-              { label: 'Closing Bank Balance', value: `Rs. ${Math.max(0, bankBalance).toLocaleString()}` },
-              { label: 'Closing Card Asset', value: `Rs. ${liquidCardAsset.toLocaleString()}` },
-              { label: 'Net Liquid Funds', value: `Rs. ${totalLiquidFunds.toLocaleString()}` }
+              { label: 'Period Inflows', value: `Rs. ${displayCf.inTotal.toLocaleString()}` },
+              { label: 'Period Outflows', value: `Rs. ${displayCf.outTotal.toLocaleString()}` },
+              { label: 'Net Cash Flow', value: `Rs. ${displayCf.netTotal.toLocaleString()}` },
+              { label: 'Closing Liquid Funds', value: `Rs. ${totalLiquidFunds.toLocaleString()}` }
             ]}
           />
 
@@ -4745,31 +4795,31 @@ export const Reports = () => {
                   </tr>
                   <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                     <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• POS Counter Sales (Upfront Payments)</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cPosInflow.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bPosInflow.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {kPosInflow.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {(cPosInflow + bPosInflow + kPosInflow).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.posCash.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.posBank.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.posCard.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {(displayCf.posCash + displayCf.posBank + displayCf.posCard).toLocaleString()}</td>
                   </tr>
                   <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                     <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• Customer Khata Settlements (Recoveries)</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cCustInflow.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bCustInflow.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {kCustInflow.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {(cCustInflow + bCustInflow + kCustInflow).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.custCash.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.custBank.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.custCard.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {(displayCf.custCash + displayCf.custBank + displayCf.custCard).toLocaleString()}</td>
                   </tr>
                   <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                     <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• Purchase Return Refunds (From Suppliers)</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cPRetInflow.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bPRetInflow.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {kPRetInflow.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {(cPRetInflow + bPRetInflow + kPRetInflow).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.pretCash.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.pretBank.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.pretCard.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">Rs. {(displayCf.pretCash + displayCf.pretBank + displayCf.pretCard).toLocaleString()}</td>
                   </tr>
                   <tr className="bg-emerald-50/70 dark:bg-emerald-950/20 font-bold border-t border-emerald-200/50">
                     <td className="py-2 px-3 pl-6 text-emerald-800 dark:text-emerald-300">Total Liquid Inflows</td>
-                    <td className="py-2 px-3 text-right font-mono text-emerald-700 dark:text-emerald-400">Rs. {cashInflows.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-emerald-700 dark:text-emerald-400">Rs. {bankInflows.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-emerald-700 dark:text-emerald-400">Rs. {cardInflows.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono font-black text-emerald-700 dark:text-emerald-400">Rs. {(cashInflows + bankInflows + cardInflows).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-emerald-700 dark:text-emerald-400">Rs. {displayCf.inCash.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-emerald-700 dark:text-emerald-400">Rs. {displayCf.inBank.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-emerald-700 dark:text-emerald-400">Rs. {displayCf.inCard.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-black text-emerald-700 dark:text-emerald-400">Rs. {displayCf.inTotal.toLocaleString()}</td>
                   </tr>
 
                   {/* OUTFLOWS SECTION */}
@@ -4778,49 +4828,49 @@ export const Reports = () => {
                   </tr>
                   <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                     <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• Supplier Khata Settlements (Vouchers Paid)</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cSupPayOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bSupPayOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {kSupPayOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(cSupPayOut + bSupPayOut + kSupPayOut).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.supCash.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.supBank.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.supCard.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(displayCf.supCash + displayCf.supBank + displayCf.supCard).toLocaleString()}</td>
                   </tr>
                   <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                     <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">• Operating Expenses (Bills, Rent, Labor, Misc)</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cExpOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bExpOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {kExpOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(cExpOut + bExpOut + kExpOut).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.expCash.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.expBank.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.expCard.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(displayCf.expCash + displayCf.expBank + displayCf.expCard).toLocaleString()}</td>
                   </tr>
                   <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
                     <td className="py-2 px-3 pl-6 text-slate-700 dark:text-slate-300">
                       • Customer Sale Return Cash/Card Refunds <span className="text-[10px] text-slate-400 font-normal">(counted exactly once)</span>
                     </td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {cSRetOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {bSRetOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {kSRetOut.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(cSRetOut + bSRetOut + kSRetOut).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.sretCash.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.sretBank.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-900 dark:text-white">Rs. {displayCf.sretCard.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400">Rs. {(displayCf.sretCash + displayCf.sretBank + displayCf.sretCard).toLocaleString()}</td>
                   </tr>
                   <tr className="bg-rose-50/70 dark:bg-rose-950/20 font-bold border-t border-rose-200/50">
                     <td className="py-2 px-3 pl-6 text-rose-800 dark:text-rose-300">Total Liquid Outflows</td>
-                    <td className="py-2 px-3 text-right font-mono text-rose-700 dark:text-rose-400">Rs. {cashTotalOutflows.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-rose-700 dark:text-rose-400">Rs. {bankTotalOutflows.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono text-rose-700 dark:text-rose-400">Rs. {cardTotalOutflows.toLocaleString()}</td>
-                    <td className="py-2 px-3 text-right font-mono font-black text-rose-700 dark:text-rose-400">Rs. {(cashTotalOutflows + bankTotalOutflows + cardTotalOutflows).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-rose-700 dark:text-rose-400">Rs. {displayCf.outCash.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-rose-700 dark:text-rose-400">Rs. {displayCf.outBank.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono text-rose-700 dark:text-rose-400">Rs. {displayCf.outCard.toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right font-mono font-black text-rose-700 dark:text-rose-400">Rs. {displayCf.outTotal.toLocaleString()}</td>
                   </tr>
 
                   {/* NET PERIOD CASH FLOW */}
                   <tr className="border-t-2 font-black text-xs">
                     <td className="py-3 px-3 uppercase text-slate-900 dark:text-white">D. Net Operating Cash Flow (Inflows − Outflows)</td>
-                    <td className={`py-3 px-3 text-right font-mono ${cashInHand >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                      Rs. {cashInHand.toLocaleString()}
+                    <td className={`py-3 px-3 text-right font-mono ${displayCf.netCash >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      {displayCf.netCash >= 0 ? '+ ' : ''}Rs. {displayCf.netCash.toLocaleString()}
                     </td>
-                    <td className={`py-3 px-3 text-right font-mono ${bankBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                      Rs. {bankBalance.toLocaleString()}
+                    <td className={`py-3 px-3 text-right font-mono ${displayCf.netBank >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      {displayCf.netBank >= 0 ? '+ ' : ''}Rs. {displayCf.netBank.toLocaleString()}
                     </td>
-                    <td className={`py-3 px-3 text-right font-mono ${cardBalance >= 0 ? 'text-purple-600 dark:text-purple-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                      Rs. {cardBalance.toLocaleString()}
+                    <td className={`py-3 px-3 text-right font-mono ${displayCf.netCard >= 0 ? 'text-purple-600 dark:text-purple-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      {displayCf.netCard >= 0 ? '+ ' : ''}Rs. {displayCf.netCard.toLocaleString()}
                     </td>
-                    <td className={`py-3 px-3 text-right font-mono ${totalLiquidFunds >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                      Rs. {totalLiquidFunds.toLocaleString()}
+                    <td className={`py-3 px-3 text-right font-mono ${displayCf.netTotal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      {displayCf.netTotal >= 0 ? '+ ' : ''}Rs. {displayCf.netTotal.toLocaleString()}
                     </td>
                   </tr>
 
@@ -4843,6 +4893,134 @@ export const Reports = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* SECTION 2: ITEMIZED LIQUID MOVEMENTS JOURNAL (AUDIT TRAIL) */}
+          <div className={`border rounded-2xl p-4 sm:p-5 card-shadow space-y-4 ${theme === 'dark' ? 'bg-slate-800/90 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-2.5 border-slate-100 dark:border-slate-700">
+              <h3 className="font-black text-xs uppercase tracking-wider flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                <Receipt className="w-4 h-4" />
+                <span>2. Itemized Liquid Movements Journal ({filteredCashFlowTransactions.length} Entries)</span>
+              </h3>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Channel Filter */}
+                <select
+                  value={cfChannelFilter}
+                  onChange={(e) => { setCfChannelFilter(e.target.value); setCfPage(1); }}
+                  className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                >
+                  <option value="All">All Channels</option>
+                  <option value="Cash">Cash in Hand</option>
+                  <option value="Bank">Bank Accounts</option>
+                  <option value="Card">Card Payments</option>
+                </select>
+
+                {/* Flow Type Filter */}
+                <select
+                  value={cfTypeFilter}
+                  onChange={(e) => { setCfTypeFilter(e.target.value); setCfPage(1); }}
+                  className={`border rounded-xl px-2.5 py-1 text-xs font-bold outline-none cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                >
+                  <option value="All">All Flow Types</option>
+                  <option value="Inflow">Inflows (+)</option>
+                  <option value="Outflow">Outflows (−)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className={`border-b text-[10px] font-black uppercase text-slate-400 ${theme === 'dark' ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <th className="py-2.5 px-3">#</th>
+                    <th className="py-2.5 px-3">Date</th>
+                    <th className="py-2.5 px-3">Source / Particulars</th>
+                    <th className="py-2.5 px-3">Party</th>
+                    <th className="py-2.5 px-3">Category</th>
+                    <th className="py-2.5 px-3">Channel / Mode</th>
+                    <th className="py-2.5 px-3 text-center">Type</th>
+                    <th className="py-2.5 px-3 text-right">Amount (PKR)</th>
+                    <th className="py-2.5 px-3 text-right">Running Balance</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y font-semibold ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
+                  {paginatedCashFlowTransactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-8 text-center text-slate-400 font-bold">
+                        No cash flow transactions found for the selected period / filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedCashFlowTransactions.map((tx, idx) => (
+                      <tr key={tx.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                        <td className="py-2.5 px-3 font-mono text-slate-400 text-[11px]">{tx.idx || (idx + 1)}</td>
+                        <td className="py-2.5 px-3 font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">{tx.date}</td>
+                        <td className="py-2.5 px-3 text-slate-900 dark:text-white font-bold">{tx.source}</td>
+                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">{tx.party || '—'}</td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                            {tx.category}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
+                          <span className="font-medium">{tx.channel}</span>
+                          {tx.mode && tx.mode !== tx.channel && (
+                            <span className="text-[10px] text-slate-400 block font-normal">{tx.mode}</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                            tx.type === 'Inflow'
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400'
+                              : 'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400'
+                          }`}>
+                            {tx.type === 'Inflow' ? '+ INFLOW' : '− OUTFLOW'}
+                          </span>
+                        </td>
+                        <td className={`py-2.5 px-3 text-right font-mono font-bold ${
+                          tx.type === 'Inflow' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                        }`}>
+                          {tx.type === 'Inflow' ? '+ ' : '− '}Rs. {Number(tx.amount || 0).toLocaleString()}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800 dark:text-slate-200">
+                          Rs. {Number(tx.runningTotal || 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalCfPages > 1 && (
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 text-xs">
+                <span className="font-bold text-slate-400">
+                  Showing {(cfPage - 1) * cfPageSize + 1} to {Math.min(cfPage * cfPageSize, filteredCashFlowTransactions.length)} of {filteredCashFlowTransactions.length} entries
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={cfPage <= 1}
+                    onClick={() => setCfPage(prev => Math.max(1, prev - 1))}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                  >
+                    Previous
+                  </button>
+                  <span className="font-mono font-bold text-slate-500">
+                    {cfPage} / {totalCfPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={cfPage >= totalCfPages}
+                    onClick={() => setCfPage(prev => Math.min(totalCfPages, prev + 1))}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
