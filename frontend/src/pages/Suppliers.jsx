@@ -810,20 +810,6 @@ export const Suppliers = () => {
                       </td>
                       <td className="py-3 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
-                          {bal > 0 ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-500 font-mono px-2 py-1 bg-rose-500/10 rounded-lg">
-                              Rs. {bal.toLocaleString()} Due
-                            </span>
-                          ) : refDue > 0 ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 dark:text-teal-400 font-mono px-2 py-1 bg-teal-500/10 rounded-lg">
-                              <RotateCcw className="w-3.5 h-3.5" /> Refund Due
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 px-2 py-1 bg-emerald-500/10 rounded-lg">
-                              <Check className="w-3.5 h-3.5" /> Settled
-                            </span>
-                          )}
-
                           <button
                             onClick={() => setEditingSupplier({ ...s })}
                             className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition cursor-pointer"
