@@ -51,27 +51,36 @@ export const createSaleReturn = async (req, res) => {
       const priorReturnedMap = new Map();
       existingReturns.forEach(er => {
         (er.items || []).forEach(it => {
-          const pKey = String(it.productId || it.id || '');
-          priorReturnedMap.set(pKey, (priorReturnedMap.get(pKey) || 0) + Number(it.qty || it.enteredQty || 0));
+          const pKeyId = String(it.productId || it.id || '');
+          const pKeyName = String(it.name || '').trim().toLowerCase();
+          const q = Number(it.qty || it.enteredQty || 0);
+          if (pKeyId) priorReturnedMap.set(pKeyId, (priorReturnedMap.get(pKeyId) || 0) + q);
+          if (pKeyName) priorReturnedMap.set(pKeyName, (priorReturnedMap.get(pKeyName) || 0) + q);
         });
       });
 
       for (const item of items || []) {
         const pId = item.productId || item.id;
+        const pName = String(item.name || item.productName || '').trim();
         const rQty = Number(item.qty || item.enteredQty) || 0;
-        if (!pId || rQty <= 0) continue;
+        if ((!pId && !pName) || rQty <= 0) continue;
 
         // Rate validation against original line item
         let lineRate = Number(item.rate || item.unitPrice || 0);
         if (origCart.length > 0) {
-          const matchedLine = origCart.find(c => String(c.productId || c.id) === String(pId));
+          const matchedLine = origCart.find(c =>
+            (pId && String(c.productId || c.id) === String(pId)) ||
+            (pName && String(c.name || '').trim().toLowerCase() === pName.toLowerCase())
+          );
           if (matchedLine) {
             lineRate = Number(matchedLine.rate || matchedLine.unitPrice || lineRate);
             const origQty = Number(matchedLine.qty || matchedLine.enteredQty || 0);
-            const prevReturned = priorReturnedMap.get(String(pId)) || 0;
+            const prevReturnedById = pId ? (priorReturnedMap.get(String(pId)) || 0) : 0;
+            const prevReturnedByName = pName ? (priorReturnedMap.get(pName.toLowerCase()) || 0) : 0;
+            const prevReturned = Math.max(prevReturnedById, prevReturnedByName);
             const maxAllowed = Math.max(0, origQty - prevReturned);
             if (rQty > maxAllowed && origQty > 0) {
-              throw new Error(`Return quantity (${rQty}) for product "${matchedLine.name || pId}" exceeds maximum eligible returned quantity (${maxAllowed}).`);
+              throw new Error(`Return quantity (${rQty}) for product "${matchedLine.name || pName || pId}" exceeds maximum eligible returned quantity (${maxAllowed}).`);
             }
           }
         }
@@ -79,28 +88,30 @@ export const createSaleReturn = async (req, res) => {
         const itemTotal = rQty * lineRate;
         approvedTotal += itemTotal;
 
-        const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
-        const expectedUnit = prod?.unit || 'KG';
+        let prod = pId ? await Product.findOne({ id: pId, shop_id: req.shop_id }) : null;
+        if (!prod && pName) {
+          prod = await Product.findOne({ name: pName, shop_id: req.shop_id });
+        }
+        const expectedUnit = prod?.unit || item.unit || item.unitName || 'KG';
         const providedUnit = item.unit || item.unitName;
-        if (providedUnit && providedUnit.trim().toLowerCase() !== expectedUnit.trim().toLowerCase()) {
+        if (prod && providedUnit && providedUnit.trim().toLowerCase() !== expectedUnit.trim().toLowerCase()) {
           throw new Error(`Product "${prod?.name || item.name}" has fixed unit "${expectedUnit}". Return unit "${providedUnit}" does not match. Unit cannot be changed.`);
         }
 
         processedItems.push({
-          productId: pId,
-          id: pId,
+          productId: prod?.id || pId,
+          id: prod?.id || pId,
           name: item.name || item.productName || prod?.name || 'Returned Product',
           qty: rQty,
           rate: lineRate,
           unit: expectedUnit,
           unitName: expectedUnit,
+          total: itemTotal,
           totalAmount: itemTotal
         });
 
         // 1. Restock products in inventory — normalize qty to product base unit
         if (prod) {
-          // IMPORTANT: rQty is in the item's entered unit. Normalize to product base unit
-          // before adding to stockQty, which is always in base unit (e.g. KG).
           const qtyInKg = convertToKg(rQty, expectedUnit);
           const baseProductFactor = convertToKg(1, expectedUnit) || 1;
           const normalizedReturnQty = qtyInKg / baseProductFactor;
@@ -243,9 +254,16 @@ export const deleteSaleReturn = async (req, res) => {
         const pId = item.productId || item.id;
         const rQty = Number(item.qty || item.enteredQty) || 0;
         if (pId && rQty > 0) {
-          const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
+          let prod = pId ? await Product.findOne({ id: pId, shop_id: req.shop_id }) : null;
+          if (!prod && item.name) {
+            prod = await Product.findOne({ name: item.name, shop_id: req.shop_id });
+          }
           if (prod) {
-            const newStock = Math.max(0, Number(prod.stockQty || 0) - rQty);
+            const itemUnit = item.unit || item.unitName || prod.unit || 'KG';
+            const qtyInKg = convertToKg(rQty, itemUnit);
+            const baseProductFactor = convertToKg(1, prod.unit || 'KG') || 1;
+            const normalizedQty = qtyInKg / baseProductFactor;
+            const newStock = Math.max(0, Number(prod.stockQty || 0) - normalizedQty);
             await Product.findByIdAndUpdate(prod.id, { stockQty: newStock }, { shop_id: req.shop_id });
             await AuditLog.create({
               shop_id: req.shop_id,
@@ -332,27 +350,36 @@ export const createPurchaseReturn = async (req, res) => {
       const priorReturnedMap = new Map();
       existingReturns.forEach(er => {
         (er.items || []).forEach(it => {
-          const pKey = String(it.productId || it.id || '');
-          priorReturnedMap.set(pKey, (priorReturnedMap.get(pKey) || 0) + Number(it.qty || it.enteredQty || 0));
+          const pKeyId = String(it.productId || it.id || '');
+          const pKeyName = String(it.name || '').trim().toLowerCase();
+          const q = Number(it.qty || it.enteredQty || 0);
+          if (pKeyId) priorReturnedMap.set(pKeyId, (priorReturnedMap.get(pKeyId) || 0) + q);
+          if (pKeyName) priorReturnedMap.set(pKeyName, (priorReturnedMap.get(pKeyName) || 0) + q);
         });
       });
 
       for (const item of items || []) {
         const pId = item.productId || item.id;
+        const pName = String(item.name || item.productName || '').trim();
         const rQty = Number(item.qty || item.enteredQty) || 0;
-        if (!pId || rQty <= 0) continue;
+        if ((!pId && !pName) || rQty <= 0) continue;
 
         // Rate validation against original line item
         let lineRate = Number(item.rate || item.unitPrice || 0);
         if (origCart.length > 0) {
-          const matchedLine = origCart.find(c => String(c.productId || c.id) === String(pId));
+          const matchedLine = origCart.find(c =>
+            (pId && String(c.productId || c.id) === String(pId)) ||
+            (pName && String(c.name || '').trim().toLowerCase() === pName.toLowerCase())
+          );
           if (matchedLine) {
             lineRate = Number(matchedLine.rate || matchedLine.unitPrice || lineRate);
             const origQty = Number(matchedLine.qty || matchedLine.enteredQty || 0);
-            const prevReturned = priorReturnedMap.get(String(pId)) || 0;
+            const prevReturnedById = pId ? (priorReturnedMap.get(String(pId)) || 0) : 0;
+            const prevReturnedByName = pName ? (priorReturnedMap.get(pName.toLowerCase()) || 0) : 0;
+            const prevReturned = Math.max(prevReturnedById, prevReturnedByName);
             const maxAllowed = Math.max(0, origQty - prevReturned);
             if (rQty > maxAllowed && origQty > 0) {
-              throw new Error(`Return quantity (${rQty}) for product "${matchedLine.name || pId}" exceeds maximum eligible returned quantity (${maxAllowed}).`);
+              throw new Error(`Return quantity (${rQty}) for product "${matchedLine.name || pName || pId}" exceeds maximum eligible returned quantity (${maxAllowed}).`);
             }
           }
         }
@@ -360,28 +387,30 @@ export const createPurchaseReturn = async (req, res) => {
         const itemTotal = rQty * lineRate;
         approvedTotal += itemTotal;
 
-        const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
-        const expectedUnit = prod?.unit || 'KG';
+        let prod = pId ? await Product.findOne({ id: pId, shop_id: req.shop_id }) : null;
+        if (!prod && pName) {
+          prod = await Product.findOne({ name: pName, shop_id: req.shop_id });
+        }
+        const expectedUnit = prod?.unit || item.unit || item.unitName || 'KG';
         const providedUnit = item.unit || item.unitName;
-        if (providedUnit && providedUnit.trim().toLowerCase() !== expectedUnit.trim().toLowerCase()) {
+        if (prod && providedUnit && providedUnit.trim().toLowerCase() !== expectedUnit.trim().toLowerCase()) {
           throw new Error(`Product "${prod?.name || item.name}" has fixed unit "${expectedUnit}". Return unit "${providedUnit}" does not match. Unit cannot be changed.`);
         }
 
         processedItems.push({
-          productId: pId,
-          id: pId,
+          productId: prod?.id || pId,
+          id: prod?.id || pId,
           name: item.name || item.productName || prod?.name || 'Returned Product',
           qty: rQty,
           rate: lineRate,
           unit: expectedUnit,
           unitName: expectedUnit,
+          total: itemTotal,
           totalAmount: itemTotal
         });
 
         // 1. Deduct products from inventory — normalize qty to product base unit
         if (prod) {
-          // IMPORTANT: rQty is in the item's entered unit. Normalize to product base unit
-          // before subtracting from stockQty, which is always in base unit (e.g. KG).
           const qtyInKg = convertToKg(rQty, expectedUnit);
           const baseProductFactor = convertToKg(1, expectedUnit) || 1;
           const normalizedReturnQty = qtyInKg / baseProductFactor;
@@ -529,7 +558,10 @@ export const deletePurchaseReturn = async (req, res) => {
         const pId = item.productId || item.id;
         const rQty = Number(item.qty || item.enteredQty) || 0;
         if (pId && rQty > 0) {
-          const prod = await Product.findOne({ id: pId, shop_id: req.shop_id });
+          let prod = pId ? await Product.findOne({ id: pId, shop_id: req.shop_id }) : null;
+          if (!prod && item.name) {
+            prod = await Product.findOne({ name: item.name, shop_id: req.shop_id });
+          }
           if (prod) {
             const itemUnit = item.unit || item.unitName || prod.unit || 'KG';
             const qtyInKg = convertToKg(rQty, itemUnit);

@@ -62,9 +62,6 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
       }, 0);
   }, [purchase, purchaseReturns]);
 
-  // Maximum cash refund cannot exceed what shop historically paid to supplier minus prior cash refunds
-  const maxCashRefundable = Math.max(0, purPaid - priorCashRefunds);
-
   // Helper: Match line item with product to compute current available stock
   const getMatchedProduct = (productId, productName) => {
     if (!productId && !productName) return null;
@@ -113,8 +110,8 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
           .filter(r => (r.purchaseId === purchase.id || r.purchaseNo === purchase.purchaseNo))
           .reduce((sum, r) => {
             const rItem = (r.items || []).find(ri =>
-              (ri.productId && ri.productId === (it.productId || it.id)) ||
-              (ri.name && ri.name === it.name)
+              (ri.productId && (String(ri.productId) === String(it.productId || it.id))) ||
+              (ri.name && ri.name.trim().toLowerCase() === (it.name || '').trim().toLowerCase())
             );
             return sum + (rItem ? Number(rItem.qty || 0) : 0);
           }, 0);
@@ -127,7 +124,7 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
         const rate = Number(it.rate || it.price || (origQty > 0 ? (Number(it.total || 0) / origQty) : 0));
 
         return {
-          id: it.id || `pur-item-${idx}`,
+          id: String(it.id || it.productId || `pur-item-${idx}`),
           productId: it.productId || it.id || null,
           name: it.name || 'Purchased Commodity',
           unit: it.unitName || it.unit || 'KG',
@@ -180,9 +177,10 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
     return 'Cash';
   }, [purchase]);
 
-  const [selectedItemIdx, setSelectedItemIdx] = useState(0);
-  const [returnQty, setReturnQty] = useState('');
+  // Multi-item quantities state: { [itemId]: stringQuantity }
+  const [returnQtys, setReturnQtys] = useState({});
   const [refundMode, setRefundMode] = useState('Cash');
+  const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [completedReturn, setCompletedReturn] = useState(null);
@@ -197,13 +195,16 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
     return Number(balances.cashInHand || 0);
   }, [refundMode, liquidBalances]);
 
-  // Sync state whenever purchase or items change
+  // Initialize return quantities when purchase changes
   useEffect(() => {
     if (purchaseItems.length > 0) {
-      const it = purchaseItems[selectedItemIdx] || purchaseItems[0];
-      setSelectedItemIdx(0);
-      setReturnQty(it.maxReturnableQty > 0 ? it.maxReturnableQty : '');
+      const initial = {};
+      purchaseItems.forEach(it => {
+        initial[it.id] = '';
+      });
+      setReturnQtys(initial);
       setRefundMode(defaultRefundMode);
+      setReason('');
       setSubmitError(null);
       setCompletedReturn(null);
       setShowFullReceiptModal(false);
@@ -212,42 +213,32 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
 
   if (!isOpen || !purchase) return null;
 
-  const currentItem = purchaseItems[selectedItemIdx] || purchaseItems[0] || {};
-  const origQty = Number(currentItem.originalQty || 0);
-  const alreadyReturned = Number(currentItem.alreadyReturnedQty || 0);
-  const remainingBillQty = Number(currentItem.remainingQty || 0);
-  const currentAvailableStock = Number(currentItem.availableStock !== undefined ? currentItem.availableStock : 0);
-  const maxReturnableQty = Number(currentItem.maxReturnableQty !== undefined ? currentItem.maxReturnableQty : Math.min(remainingBillQty, currentAvailableStock));
-  const itemRate = Number(currentItem.rate || 0);
-  const itemUnit = currentItem.unit || 'KG';
-
-  const numReturnQty = parseFloat(returnQty) || 0;
-  const isFullyReturned = remainingBillQty <= 0;
-  const isOutOfStock = currentAvailableStock <= 0;
-
-  // Validation state: strictly capped by warehouse stock (suppressed while submitting or when completed to avoid false error flashes)
-  const isExceedingStock = numReturnQty > currentAvailableStock;
-  const isExceedingBill = numReturnQty > remainingBillQty;
-  const hasValidationError = !isSubmitting && !completedReturn && (isExceedingStock || isExceedingBill);
-
-  let validationErrorMessage = '';
-  if (isExceedingStock) {
-    validationErrorMessage = `Insufficient Warehouse Stock — Available: ${currentAvailableStock} ${itemUnit}. Maximum returnable: ${maxReturnableQty} ${itemUnit}.`;
-  } else if (isExceedingBill) {
-    validationErrorMessage = `Return quantity cannot exceed remaining purchase bill quantity (${remainingBillQty} ${itemUnit}).`;
-  }
+  // Compute selected return lines and line totals
+  const selectedReturnLines = purchaseItems.map(it => {
+    const rawVal = returnQtys[it.id];
+    const q = parseFloat(rawVal) || 0;
+    const itemTotal = Math.max(0, q * (it.rate || 0));
+    return {
+      ...it,
+      returnQty: q,
+      rawInput: rawVal ?? '',
+      itemTotal
+    };
+  }).filter(line => line.returnQty > 0);
 
   // --------------------------------------------------------------------------
-  // CANONICAL FINANCIAL RETURN RECONCILIATION FOR PURCHASES:
-  // Total Goods Value = Quantity * Rate
-  // Cash Returned to You = Strictly capped at shop's prior payments (Auto Cash/Bank back)
+  // CANONICAL FINANCIAL RETURN RECONCILIATION FOR COMBINED PURCHASE RETURN:
+  // Total Goods Value = Sum of (Quantity * Rate) for all returned lines
+  // Cash Refund Received Back = Strictly capped at shop's prior payments
   // Payable Debt Cleared = Unpaid purchase bill debt cancelled from Khata
   // --------------------------------------------------------------------------
-  const currentGoodsValue = Math.max(0, numReturnQty * itemRate);
+  const currentGoodsValue = selectedReturnLines.reduce((sum, l) => sum + l.itemTotal, 0);
+  const totalReturnUnits = selectedReturnLines.reduce((sum, l) => sum + l.returnQty, 0);
+
   const priorMerchandiseValue = Number(purchaseFin.returnAmount || 0);
   const newNetPur = Math.max(0, purTotal - (priorMerchandiseValue + currentGoodsValue));
 
-  // Exact cash refund received back from supplier
+  // Exact cash refund received back from supplier across all items
   const cashRefundAmount = Math.max(0, Math.min(currentGoodsValue, purPaid - newNetPur - priorCashRefunds));
 
   // Payable debt to supplier cancelled from khata
@@ -256,43 +247,73 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
   const isLiquidPayoutRequested = refundMode !== 'Credit' && refundMode !== 'Khata Credit' && cashRefundAmount > 0;
   const isInsufficientBalance = !isSubmitting && !completedReturn && isLiquidPayoutRequested && cashRefundAmount > selectedChannelBalance;
 
-  const handleItemSelect = (idx) => {
-    setSelectedItemIdx(idx);
-    const it = purchaseItems[idx] || {};
-    setReturnQty(it.maxReturnableQty > 0 ? it.maxReturnableQty : '');
-  };
+  // Check if every item is fully returned or out of stock
+  const isAllItemsFullyReturned = purchaseItems.every(it => it.remainingQty <= 0);
+  const isAllItemsOutOfStock = purchaseItems.every(it => it.availableStock <= 0);
 
-  const handleSetMaxQty = () => {
-    setReturnQty(maxReturnableQty);
-  };
+  // Check line validation errors
+  const lineValidationErrors = selectedReturnLines.map(line => {
+    if (line.returnQty > line.availableStock) {
+      return `Insufficient Warehouse Stock for "${line.name}" — Available: ${line.availableStock} ${line.unit}.`;
+    }
+    if (line.returnQty > line.remainingQty) {
+      return `Return quantity for "${line.name}" exceeds purchase bill remaining (${line.remainingQty} ${line.unit}).`;
+    }
+    return null;
+  }).filter(Boolean);
 
-  // Auto-clamp strictly to available stock so user cannot exceed warehouse stock
-  const handleQtyChange = (val) => {
-    const clean = String(val).replace(/[^0-9]/g, '').replace(/^0+/, '');
+  const hasValidationError = !isSubmitting && !completedReturn && lineValidationErrors.length > 0;
+
+  // Quantity change handler for a specific item
+  const handleItemQtyChange = (itemId, val, maxLimit) => {
+    const clean = String(val).replace(/[^0-9.]/g, '');
     if (clean === '') {
-      setReturnQty('');
+      setReturnQtys(prev => ({ ...prev, [itemId]: '' }));
       return;
     }
-    let parsed = parseInt(clean, 10);
+    let parsed = parseFloat(clean);
     if (isNaN(parsed)) parsed = 0;
-    if (parsed > maxReturnableQty) {
-      parsed = maxReturnableQty;
-    }
-    setReturnQty(parsed.toString());
+    if (parsed > maxLimit) parsed = maxLimit;
+    setReturnQtys(prev => ({ ...prev, [itemId]: parsed.toString() }));
+  };
+
+  const handleSetItemMax = (itemId, maxLimit) => {
+    setReturnQtys(prev => ({ ...prev, [itemId]: maxLimit > 0 ? maxLimit.toString() : '' }));
+  };
+
+  const handleReturnAllMax = () => {
+    const allMax = {};
+    purchaseItems.forEach(it => {
+      if (it.maxReturnableQty > 0) {
+        allMax[it.id] = it.maxReturnableQty.toString();
+      } else {
+        allMax[it.id] = '';
+      }
+    });
+    setReturnQtys(allMax);
+  };
+
+  const handleClearAll = () => {
+    const empty = {};
+    purchaseItems.forEach(it => {
+      empty[it.id] = '';
+    });
+    setReturnQtys(empty);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSubmitting || completedReturn || numReturnQty <= 0 || isFullyReturned || isOutOfStock) return;
+    if (isSubmitting || completedReturn || selectedReturnLines.length === 0 || hasValidationError || isInsufficientBalance) return;
 
-    if (numReturnQty > currentAvailableStock) {
-      toast.error(`Insufficient Warehouse Stock — Available: ${currentAvailableStock} ${itemUnit}. Maximum returnable: ${maxReturnableQty} ${itemUnit}.`);
-      return;
-    }
-
-    if (numReturnQty > remainingBillQty) {
-      toast.warning(`Return quantity cannot exceed remaining purchase quantity (${remainingBillQty} ${itemUnit}).`);
-      return;
+    for (const line of selectedReturnLines) {
+      if (line.returnQty > line.availableStock) {
+        toast.error(`Insufficient Warehouse Stock for "${line.name}" — Available: ${line.availableStock} ${line.unit}.`);
+        return;
+      }
+      if (line.returnQty > line.remainingQty) {
+        toast.warning(`Return quantity for "${line.name}" cannot exceed remaining purchase quantity (${line.remainingQty} ${line.unit}).`);
+        return;
+      }
     }
 
     const supId = purchase.supplierId || null;
@@ -306,24 +327,29 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
       : 'Khata Credit';
 
     try {
+      const itemsPayload = selectedReturnLines.map(line => ({
+        productId: line.productId || null,
+        id: line.productId || line.id,
+        name: line.name,
+        qty: line.returnQty,
+        unit: line.unit,
+        unitName: line.unit,
+        rate: line.rate,
+        total: line.itemTotal,
+        totalAmount: line.itemTotal
+      }));
+
       const returnRecord = await recordPurchaseReturn({
         purchaseId: purchase.id,
         purchaseNo: purchase.purchaseNo || 'Direct Purchase Return',
         supplierId: supId,
         supplierName: supName,
-        items: [{
-          productId: currentItem.productId || null,
-          name: currentItem.name,
-          qty: numReturnQty,
-          unit: itemUnit,
-          rate: itemRate,
-          total: currentGoodsValue
-        }],
+        items: itemsPayload,
         totalGoodsValue: currentGoodsValue,
-        refundAmount: cashRefundAmount, // Auto returned back!
+        refundAmount: cashRefundAmount,
         dueCleared: dueCancelled,
         refundMode: activeRefundMode,
-        reason: 'Purchase Return',
+        reason: reason.trim() || 'Purchase Return',
         date: new Date().toLocaleDateString('en-GB')
       });
 
@@ -331,19 +357,16 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
         ...returnRecord,
         supplierName: supName,
         purchaseNo: purchase.purchaseNo || 'Direct Return',
-        remainingAfter: Math.max(0, remainingBillQty - numReturnQty),
-        stockAfter: Math.max(0, currentAvailableStock - numReturnQty),
-        unit: itemUnit,
-        productName: currentItem.name,
+        items: itemsPayload,
         totalGoodsValue: currentGoodsValue,
         refundMode: activeRefundMode,
         refundAmount: cashRefundAmount,
         dueCleared: dueCancelled,
         purPaid: purPaid,
         purDue: purDue,
-        reason: 'Purchase Return'
+        reason: reason.trim() || 'Purchase Return'
       });
-      toast.success(`Purchase return of ${numReturnQty} ${itemUnit} recorded successfully.`);
+      toast.success(`Purchase return of ${selectedReturnLines.length} item line${selectedReturnLines.length > 1 ? 's' : ''} recorded successfully.`);
     } catch (err) {
       console.error('Failed to process purchase return:', err);
       const errMsg = err.message || 'Failed to process purchase return.';
@@ -365,8 +388,9 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
         onClick={(e) => { if (e.target === e.currentTarget && !completedReturn) onClose(); }}
         className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       >
-        <div className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 card-shadow border my-auto transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}>
+        <div className={`rounded-3xl max-w-2xl w-full p-5 sm:p-6 card-shadow border my-auto transition-all ${
+          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+        }`}>
           {/* Header */}
           <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
@@ -375,14 +399,16 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
               </div>
               <div>
                 <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                  Purchase Return
+                  Purchase Return (Multi-Item)
                 </h3>
                 <p className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mt-0.5">
                   <span className="font-bold text-orange-600 dark:text-orange-400">
                     {purchase.purchaseNo ? `Bill #${purchase.purchaseNo}` : 'Procurement Return'}
                   </span>
                   <span>•</span>
-                  <span className="truncate max-w-[180px] font-bold text-slate-600 dark:text-slate-300">{purchase.supplierName || purchase.supplier || 'Oil Supplier'}</span>
+                  <span className="truncate max-w-[200px] font-bold text-slate-600 dark:text-slate-300">
+                    {purchase.supplierName || purchase.supplier || 'Oil Supplier'}
+                  </span>
                 </p>
               </div>
             </div>
@@ -437,34 +463,50 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
               </div>
 
               {/* Clean Summary Card */}
-              <div className={`border rounded-2xl p-4 text-left space-y-2.5 text-xs ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
-                }`}>
+              <div className={`border rounded-2xl p-4 text-left space-y-3 text-xs ${
+                theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+              }`}>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 font-medium">Supplier Firm:</span>
                   <span className="font-extrabold text-slate-800 dark:text-slate-200">{completedReturn.supplierName}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-medium">Returned Item:</span>
-                  <span className="font-extrabold text-slate-800 dark:text-slate-200">{completedReturn.productName}</span>
+
+                {/* Returned items list */}
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">
+                    Returned Items ({completedReturn.items?.length || 0})
+                  </div>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    {(completedReturn.items || []).map((it, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs py-1 px-2 rounded-lg bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800">
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{it.name}</span>
+                        <div className="flex items-center gap-3 font-mono">
+                          <span className="text-rose-600 dark:text-rose-400 font-black">
+                            {it.qty} {it.unit}
+                          </span>
+                          <span className="text-slate-700 dark:text-slate-300 font-bold">
+                            Rs. {Number(it.total || it.totalAmount || 0).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-medium">Returned Quantity:</span>
-                  <span className="font-black text-rose-600 dark:text-rose-400 font-mono">
-                    {numReturnQty} {completedReturn.unit} (Deducted)
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-medium">Total Produce Value:</span>
-                  <span className="font-bold font-mono text-slate-800 dark:text-slate-200">
+
+                <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <span className="text-slate-400 font-medium">Total Return Produce Value:</span>
+                  <span className="font-bold font-mono text-slate-800 dark:text-slate-200 text-sm">
                     Rs. {Number(completedReturn.totalGoodsValue || currentGoodsValue).toLocaleString()}
                   </span>
                 </div>
+
                 {dueCancelled > 0 && (
                   <div className="flex justify-between items-center text-orange-600 dark:text-orange-400">
                     <span className="font-medium">Payable Due Cancelled:</span>
                     <span className="font-bold font-mono">- Rs. {dueCancelled.toLocaleString()} (Supplier Khata)</span>
                   </div>
                 )}
+
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 font-black">
                   <span className="text-slate-700 dark:text-slate-300">
                     {cashRefundAmount > 0 ? 'Refund Received Back:' : 'Supplier Khata Cleared:'}
@@ -491,10 +533,11 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                   <button
                     type="button"
                     onClick={() => setShowFullReceiptModal(true)}
-                    className={`flex-1 py-3.5 px-3 rounded-2xl border font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer ${theme === 'dark'
-                      ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
-                      : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
-                      }`}
+                    className={`flex-1 py-3.5 px-3 rounded-2xl border font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
+                      theme === 'dark'
+                        ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
+                        : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
+                    }`}
                   >
                     <Receipt className="w-4 h-4" />
                     <span>All Sizes / A4</span>
@@ -503,10 +546,11 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`w-full py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
-                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-400'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-                    }`}
+                  className={`w-full py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${
+                    theme === 'dark'
+                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                  }`}
                 >
                   Close
                 </button>
@@ -514,128 +558,186 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
             </div>
           ) : (
             /* ========================================================================= */
-            /* RETURN ENTRY FORM */
+            /* RETURN ENTRY FORM (MULTI-ITEM) */
             /* ========================================================================= */
             <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-              {/* Product Row Bar */}
-              <div className={`p-3.5 sm:p-4 rounded-2xl border flex items-center justify-between gap-3 ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50/80 border-slate-200/80'
-                }`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-orange-100 dark:bg-orange-950/40 border border-orange-200/60 text-orange-600 flex items-center justify-center shrink-0">
-                    <Package className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-black text-slate-900 dark:text-white block">
-                      {currentItem.name}
-                    </span>
-                    <span className="font-mono text-xs font-bold text-slate-400 block mt-0.5">
-                      Rs. {itemRate.toLocaleString()} / {itemUnit}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 text-center text-xs">
-                  <div>
-                    <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Purchased</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 font-mono mt-0.5 block text-xs sm:text-sm">
-                      {origQty} {itemUnit}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Stock</span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block text-xs sm:text-sm">
-                      {currentAvailableStock} {itemUnit}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black text-slate-400 block uppercase tracking-wider">Max Returnable</span>
-                    <span className="font-black text-orange-600 dark:text-orange-400 font-mono mt-0.5 block text-xs sm:text-sm">
-                      {maxReturnableQty} {itemUnit}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {isFullyReturned ? (
-                <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-xs font-bold flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+              {isAllItemsFullyReturned ? (
+                <div className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-xs font-bold flex items-center gap-2 mt-2">
+                  <CheckCircle2 className="w-5 h-5 shrink-0" />
                   <span>This purchase bill has already been 100% fully returned.</span>
                 </div>
-              ) : isOutOfStock ? (
-                <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Insufficient Warehouse Stock — Available: 0 {itemUnit}. Cannot return goods already sold out.</span>
+              ) : isAllItemsOutOfStock ? (
+                <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-2 mt-2">
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
+                  <span>Insufficient Warehouse Stock — All purchased items are currently out of stock. Cannot return goods already sold.</span>
                 </div>
               ) : (
                 <>
-                  {/* Return Quantity Input Section */}
+                  {/* Multi-Item Table Section */}
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-black text-slate-500 uppercase tracking-wider">
-                        RETURN QUANTITY ({itemUnit.toUpperCase()}) *
-                      </label>
-                      <button
-                        type="button"
-                        onClick={handleSetMaxQty}
-                        className="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:underline cursor-pointer bg-emerald-100 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full"
-                      >
-                        MAX ({maxReturnableQty})
-                      </button>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-orange-500" />
+                        <label className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                          PURCHASE ITEMS ({purchaseItems.length})
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={handleReturnAllMax}
+                          className="font-bold text-orange-600 dark:text-orange-400 hover:underline cursor-pointer bg-orange-50 dark:bg-orange-950/50 px-2.5 py-1 rounded-lg border border-orange-200/60 dark:border-orange-800/60"
+                        >
+                          Max All Available
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleClearAll}
+                          className="font-bold text-slate-400 hover:text-slate-600 cursor-pointer px-2 py-1"
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
-                    <div className="relative flex items-center">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        placeholder={`Max: ${maxReturnableQty}`}
-                        value={returnQty}
-                        onWheel={(e) => e.target.blur()}
-                        onFocus={(e) => e.target.select()}
-                        onKeyDown={(e) => {
-                          if (e.key === '.' || e.key === ',') e.preventDefault();
-                        }}
-                        onChange={(e) => handleQtyChange(e.target.value)}
-                        className={`w-full border-2 rounded-2xl pl-4 pr-14 py-3 text-base font-black font-mono outline-none transition ${hasValidationError
-                          ? 'border-rose-500 bg-rose-500/10 text-rose-600 focus:ring-2 focus:ring-rose-500/20'
-                          : theme === 'dark'
-                            ? 'bg-slate-900 border-slate-700 text-white focus:border-orange-500'
-                            : 'bg-white border-slate-200 text-slate-900 focus:border-orange-500'
-                          }`}
-                        required
-                      />
-                      <span className="absolute right-4 font-bold text-slate-400 text-xs pointer-events-none">
-                        {itemUnit}
-                      </span>
+
+                    <div className={`border rounded-2xl overflow-hidden ${
+                      theme === 'dark' ? 'border-slate-700 bg-slate-900/60' : 'border-slate-200 bg-slate-50/50'
+                    }`}>
+                      <div className="overflow-x-auto max-h-60 overflow-y-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead className={`sticky top-0 z-10 text-[10px] font-black uppercase tracking-wider ${
+                            theme === 'dark' ? 'bg-slate-800 text-slate-400 border-b border-slate-700' : 'bg-slate-100/90 text-slate-500 border-b border-slate-200'
+                          }`}>
+                            <tr>
+                              <th className="py-2.5 px-3">Product / Commodity</th>
+                              <th className="py-2.5 px-2 text-center">Purchased</th>
+                              <th className="py-2.5 px-2 text-center">Returned</th>
+                              <th className="py-2.5 px-2 text-center">Stock</th>
+                              <th className="py-2.5 px-2 text-center">Max Return</th>
+                              <th className="py-2.5 px-3 text-right w-44">Return Qty</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                            {purchaseItems.map((it) => {
+                              const isLineFullyRet = it.remainingQty <= 0;
+                              const isLineNoStock = it.availableStock <= 0;
+                              const currentVal = returnQtys[it.id] ?? '';
+                              const numVal = parseFloat(currentVal) || 0;
+                              const lineTotal = numVal * (it.rate || 0);
+
+                              return (
+                                <tr key={it.id} className={theme === 'dark' ? 'hover:bg-slate-800/40' : 'hover:bg-white'}>
+                                  <td className="py-2.5 px-3">
+                                    <div className="font-bold text-slate-900 dark:text-white">
+                                      {it.name}
+                                    </div>
+                                    <div className="font-mono text-[10px] text-slate-400 mt-0.5">
+                                      Rs. {it.rate.toLocaleString()} / {it.unit}
+                                    </div>
+                                  </td>
+                                  <td className="py-2.5 px-2 text-center font-mono text-slate-700 dark:text-slate-300">
+                                    {it.originalQty} <span className="text-[10px] text-slate-400">{it.unit}</span>
+                                  </td>
+                                  <td className="py-2.5 px-2 text-center font-mono text-purple-600 dark:text-purple-400 font-semibold">
+                                    {it.alreadyReturnedQty} <span className="text-[10px] text-slate-400">{it.unit}</span>
+                                  </td>
+                                  <td className="py-2.5 px-2 text-center font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                                    {it.availableStock} <span className="text-[10px] text-slate-400">{it.unit}</span>
+                                  </td>
+                                  <td className="py-2.5 px-2 text-center font-mono font-black text-orange-600 dark:text-orange-400">
+                                    {it.maxReturnableQty} <span className="text-[10px] text-slate-400">{it.unit}</span>
+                                  </td>
+                                  <td className="py-2 px-3 text-right">
+                                    {isLineFullyRet ? (
+                                      <span className="text-[11px] font-bold text-purple-500 bg-purple-50 dark:bg-purple-950/40 px-2 py-1 rounded-md">
+                                        Returned
+                                      </span>
+                                    ) : isLineNoStock ? (
+                                      <span className="text-[11px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-950/40 px-2 py-1 rounded-md">
+                                        No Stock
+                                      </span>
+                                    ) : (
+                                      <div className="flex items-center justify-end gap-1.5">
+                                        <div className="relative w-24">
+                                          <input
+                                            type="text"
+                                            inputMode="decimal"
+                                            placeholder={`Max: ${it.maxReturnableQty}`}
+                                            value={currentVal}
+                                            onWheel={(e) => e.target.blur()}
+                                            onFocus={(e) => e.target.select()}
+                                            onChange={(e) => handleItemQtyChange(it.id, e.target.value, it.maxReturnableQty)}
+                                            className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-mono font-black text-right outline-none transition ${
+                                              numVal > 0
+                                                ? 'border-orange-500 ring-1 ring-orange-500/20 bg-orange-50/40 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'
+                                                : theme === 'dark'
+                                                  ? 'bg-slate-900 border-slate-700 text-white'
+                                                  : 'bg-white border-slate-300 text-slate-900'
+                                            }`}
+                                          />
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSetItemMax(it.id, it.maxReturnableQty)}
+                                          className="text-[10px] font-black uppercase tracking-wider px-2 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition cursor-pointer"
+                                          title={`Set max ${it.maxReturnableQty} ${it.unit}`}
+                                        >
+                                          Max
+                                        </button>
+                                      </div>
+                                    )}
+                                    {lineTotal > 0 && (
+                                      <div className="text-[10px] font-mono font-bold text-orange-600 dark:text-orange-400 mt-0.5 pr-1">
+                                        = Rs. {lineTotal.toLocaleString()}
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Card 3: 3-Column Payout Calculation Bar */}
+                  {/* Combined Return Summary Bar (3-Column) */}
                   <div className="p-3.5 sm:p-4 rounded-2xl border bg-slate-50/80 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-700 text-center">
                     <div className="px-1.5">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Return Value</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                        Return Value ({selectedReturnLines.length} Item{selectedReturnLines.length !== 1 ? 's' : ''})
+                      </span>
                       <span className="font-mono font-black text-slate-900 dark:text-white text-sm sm:text-base mt-1 block">
                         Rs. {currentGoodsValue.toLocaleString()}
                       </span>
                     </div>
                     <div className="px-1.5">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 block">Payable After Return</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 block">
+                        Payable After Return
+                      </span>
                       <span className="font-mono font-black text-orange-600 dark:text-orange-400 text-sm sm:text-base mt-1 block">
                         Rs. {Math.max(0, purDue - currentGoodsValue).toLocaleString()}
                       </span>
                     </div>
                     <div className="px-1.5">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Refund</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                        Refund / Cashback
+                      </span>
                       <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
                         Rs. {cashRefundAmount.toLocaleString()}
                       </span>
                     </div>
                   </div>
 
-                  {/* Inline Error */}
+                  {/* Validation Error Banner */}
                   {hasValidationError && (
-                    <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span>{validationErrorMessage}</span>
+                    <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs font-bold text-rose-700 dark:text-rose-300 space-y-1">
+                      {lineValidationErrors.map((msg, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span>{msg}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
 
@@ -662,10 +764,11 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                             key={mode.id}
                             type="button"
                             onClick={() => setRefundMode(mode.id)}
-                            className={`py-3 px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${isSelected
-                              ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black shadow-2xs'
-                              : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
-                              }`}
+                            className={`py-3 px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${
+                              isSelected
+                                ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black shadow-2xs'
+                                : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                            }`}
                           >
                             <Icon className="w-4 h-4 shrink-0" />
                             <span className="truncate">{mode.label}</span>
@@ -683,6 +786,24 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                       </div>
                     )}
                   </div>
+
+                  {/* Return Reason */}
+                  <div>
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1.5">
+                      Return Reason / Notes
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Defective Produce, Quality below standard, Weight discrepancy"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      className={`w-full border rounded-2xl px-4 py-2.5 text-xs font-semibold outline-none transition ${
+                        theme === 'dark'
+                          ? 'bg-slate-900 border-slate-700 text-white focus:border-orange-500'
+                          : 'bg-white border-slate-200 text-slate-900 focus:border-orange-500'
+                      }`}
+                    />
+                  </div>
                 </>
               )}
 
@@ -691,14 +812,15 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition cursor-pointer ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
+                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition cursor-pointer ${
+                    theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || numReturnQty <= 0 || isFullyReturned || isOutOfStock || hasValidationError || isInsufficientBalance}
+                  disabled={isSubmitting || selectedReturnLines.length === 0 || isAllItemsFullyReturned || isAllItemsOutOfStock || hasValidationError || isInsufficientBalance}
                   className="w-full py-3.5 rounded-2xl font-black text-sm bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md shadow-orange-500/20 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-98"
                 >
                   {isSubmitting ? (
@@ -706,7 +828,9 @@ export const PurchaseReturnModal = ({ isOpen, onClose, initialPurchase = null, s
                   ) : (
                     <>
                       <RotateCcw className="w-4 h-4" />
-                      <span>Confirm Return ({numReturnQty} {itemUnit})</span>
+                      <span>
+                        Confirm Return ({selectedReturnLines.length} Item{selectedReturnLines.length !== 1 ? 's' : ''} • Rs. {currentGoodsValue.toLocaleString()})
+                      </span>
                     </>
                   )}
                 </button>
