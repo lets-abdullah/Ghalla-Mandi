@@ -56,18 +56,21 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
     paidAmount = 0,
     adjustment = 0,
     discount = 0,
-    note = ''
+    note = '',
+    history = [],
+    linkedPayments = [],
+    linkedReturns = []
   } = purchaseData;
 
   const cleanReceiptNo = String(purchaseNo).startsWith('PUR-') || String(purchaseNo).startsWith('GM-') || String(purchaseNo).startsWith('INV-')
     ? String(purchaseNo)
     : `PUR-${String(purchaseNo).replace(/[^0-9A-Za-z]/g, '') || '000123'}`;
 
-  const grandTotalNum = Number(totalAmount || 0);
-  const paidNum = Number(paidAmount !== undefined && paidAmount !== null ? paidAmount : 0);
+  const grandTotalNum = Number(purchaseData.grossTotal !== undefined ? purchaseData.grossTotal : (purchaseData.grandTotal !== undefined ? purchaseData.grandTotal : (purchaseData.amount !== undefined ? purchaseData.amount : totalAmount)));
+  const paidNum = Number(purchaseData.paid !== undefined ? purchaseData.paid : (paidAmount !== undefined && paidAmount !== null ? paidAmount : 0));
   const adjustmentNum = Number(adjustment || discount || 0);
   const calculatedSubtotal = grandTotalNum + adjustmentNum;
-  const dueRemaining = Math.max(0, grandTotalNum - paidNum);
+  const dueRemaining = Number(purchaseData.due !== undefined ? purchaseData.due : Math.max(0, grandTotalNum - paidNum));
   const displaySupplier = supplierName || 'Walk-in Supplier';
   const shopTitle = (shop?.name || 'GHALLA MANDI').toUpperCase();
   const shopPhone = shop?.phone || shop?.contact || '';
@@ -226,6 +229,46 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                   </table>
                 </div>
               </div>
+
+              ${history && history.length > 0 ? `
+                <div style="margin-top: 18px; border-top: 2px solid #059669; padding-top: 10px;">
+                  <div style="font-size: 11px; font-weight: 900; color: #064e3b; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">
+                    Payment & Transaction Audit History (Linked to This Bill)
+                  </div>
+                  <table style="width: 100%; border-collapse: collapse; font-size: ${isA4 ? '10px' : '9px'};">
+                    <thead>
+                      <tr style="background: #ecfdf5; border-bottom: 1.5px solid #059669; text-align: left;">
+                        <th style="padding: 5px 6px; width: 25px;">#</th>
+                        <th style="padding: 5px 6px;">Transaction</th>
+                        <th style="padding: 5px 6px;">Ref / Voucher</th>
+                        <th style="padding: 5px 6px;">Date</th>
+                        <th style="padding: 5px 6px;">Mode / Notes</th>
+                        <th style="padding: 5px 6px; text-align: right;">Debit (+Bill)</th>
+                        <th style="padding: 5px 6px; text-align: right;">Credit (-Paid)</th>
+                        <th style="padding: 5px 6px; text-align: right;">Running Paid</th>
+                        <th style="padding: 5px 6px; text-align: right;">Running Due</th>
+                        <th style="padding: 5px 6px; text-align: center;">State</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${history.map((step, idx) => `
+                        <tr style="border-bottom: 1px solid #e2e8f0; font-family: monospace;">
+                          <td style="padding: 4px 6px; color: #64748b;">${step.step || (idx + 1)}</td>
+                          <td style="padding: 4px 6px; font-family: sans-serif; font-weight: 700; color: #0f172a;">${step.type}</td>
+                          <td style="padding: 4px 6px; font-weight: 800; color: #059669;">${step.ref}</td>
+                          <td style="padding: 4px 6px; color: #475569;">${step.date}</td>
+                          <td style="padding: 4px 6px; font-family: sans-serif; color: #475569;">${step.mode || step.description || '-'}</td>
+                          <td style="padding: 4px 6px; text-align: right; font-weight: 700;">${step.debit > 0 ? `Rs. ${step.debit.toLocaleString()}` : '-'}</td>
+                          <td style="padding: 4px 6px; text-align: right; font-weight: 700; color: #059669;">${step.credit > 0 ? `-Rs. ${step.credit.toLocaleString()}` : '-'}</td>
+                          <td style="padding: 4px 6px; text-align: right; font-weight: 700;">Rs. ${step.runningPaid.toLocaleString()}</td>
+                          <td style="padding: 4px 6px; text-align: right; font-weight: 800; color: ${step.runningDue === 0 ? '#059669' : '#e11d48'};">Rs. ${step.runningDue.toLocaleString()}</td>
+                          <td style="padding: 4px 6px; text-align: center; font-weight: 800; color: ${step.runningDue === 0 ? '#059669' : '#d97706'}; font-family: sans-serif;">${step.runningDue === 0 ? 'SETTLED' : step.status}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              ` : ''}
 
               <div class="signatures">
                 <div class="sig-line">Supplier / Driver Signature</div>
@@ -640,6 +683,87 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                   </div>
                 </div>
               </div>
+
+              {/* Payment & Transaction Audit History Section */}
+              {history && history.length > 0 && (
+                <div className="mt-5 border border-slate-200/90 dark:border-slate-700/80 rounded-xl overflow-hidden">
+                  <div className="px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">
+                        Payment & Transaction Audit History
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px] font-mono font-bold">
+                      <span className="text-slate-500">Original Bill: Rs. {grandTotalNum.toLocaleString()}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">Total Paid: Rs. {paidNum.toLocaleString()}</span>
+                      <span className={dueRemaining > 0 ? "text-amber-600 dark:text-amber-400 font-extrabold" : "text-emerald-600 dark:text-emerald-400 font-extrabold"}>
+                        Current Due: Rs. {dueRemaining.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800/50 text-[10px] font-extrabold uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                          <th className="py-2.5 px-3">#</th>
+                          <th className="py-2.5 px-3">Transaction</th>
+                          <th className="py-2.5 px-3">Ref / Voucher</th>
+                          <th className="py-2.5 px-3">Date</th>
+                          <th className="py-2.5 px-3">Mode / Remarks</th>
+                          <th className="py-2.5 px-3 text-right">Debit (+Bill)</th>
+                          <th className="py-2.5 px-3 text-right">Credit (-Paid)</th>
+                          <th className="py-2.5 px-3 text-right">Running Paid</th>
+                          <th className="py-2.5 px-3 text-right">Running Due</th>
+                          <th className="py-2.5 px-3 text-center">State</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]">
+                        {history.map((step, idx) => (
+                          <tr
+                            key={idx}
+                            className={step.isPurchase ? 'bg-emerald-50/30 dark:bg-emerald-950/20' : 'hover:bg-slate-50/60 dark:hover:bg-slate-800/40'}
+                          >
+                            <td className="py-2 px-3 text-slate-400 font-bold">{step.step || (idx + 1)}</td>
+                            <td className="py-2 px-3 font-sans font-bold text-slate-900 dark:text-white">
+                              {step.type === 'Purchase' ? 'Purchase Created' : step.type === 'Return' ? 'Purchase Return' : 'Payment Slip'}
+                            </td>
+                            <td className="py-2 px-3 font-bold text-emerald-700 dark:text-emerald-400">{step.ref}</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-300">{step.date}</td>
+                            <td className="py-2 px-3 font-sans text-slate-600 dark:text-slate-400 max-w-[160px] truncate" title={step.description}>
+                              {step.mode ? `${step.mode}` : step.description}
+                            </td>
+                            <td className="py-2 px-3 text-right font-bold text-slate-900 dark:text-white">
+                              {step.debit > 0 ? `Rs. ${step.debit.toLocaleString()}` : '-'}
+                            </td>
+                            <td className="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                              {step.credit > 0 ? `-Rs. ${step.credit.toLocaleString()}` : '-'}
+                            </td>
+                            <td className="py-2 px-3 text-right font-bold text-slate-800 dark:text-slate-200">
+                              Rs. {step.runningPaid.toLocaleString()}
+                            </td>
+                            <td className="py-2 px-3 text-right font-black text-rose-600 dark:text-rose-400">
+                              Rs. {step.runningDue.toLocaleString()}
+                            </td>
+                            <td className="py-2 px-3 text-center">
+                              <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                step.status === 'Settled' || step.runningDue === 0
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                                  : step.status === 'Returned'
+                                    ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30'
+                                    : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                              }`}>
+                                {step.runningDue === 0 ? 'SETTLED' : step.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               {/* Signatures */}
               <div className="flex justify-between items-center pt-8 border-t border-dashed border-slate-300 text-center text-xs font-bold text-slate-500">

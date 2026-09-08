@@ -617,9 +617,138 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const isKhataPurchase = (purchase.paymentMode === 'Supplier Khata' || purchase.paymentmode === 'Supplier Khata') || (Number(purchase.paidAmount || purchase.paidamount || 0) === 0);
   const baseUpfront = isKhataPurchase ? 0 : Number(purchase.paidAmount !== undefined ? purchase.paidAmount : (purchase.paidamount || upfrontPaid || 0));
 
-  // If explicit payment logs exist for this purchase, they are the canonical source of truth for payments.
-  // If no logs exist at all for this purchase, fall back to baseUpfront stored on the purchase record.
-  const paid = matchingLogs.length > 0 ? totalMatchingLogs : baseUpfront;
+  const purRef = purchase.purchaseNo || (purchase.id ? `PUR-${purchase.id}` : 'PUR-INV');
+  const purchaseDate = purchase.date || (purchase.createdAt ? new Date(purchase.createdAt).toLocaleDateString('en-GB') : (purchase.created_at ? new Date(purchase.created_at).toLocaleDateString('en-GB') : 'N/A'));
+  const purchaseTime = new Date(purchase.created_at || purchase.createdAt || purchase.date || 0).getTime() || 0;
+
+  // Determine if baseUpfront is already represented by an explicit log in matchingLogs
+  const hasLoggedUpfront = matchingLogs.some(pl => {
+    const plTime = new Date(pl.created_at || pl.createdAt || pl.date || 0).getTime();
+    const isSameTime = Math.abs(plTime - purchaseTime) < 10000;
+    const isUpfrontRef = pl.ref && (pl.ref.includes('UPFRONT') || pl.ref.includes(purRef));
+    const isSameAmt = Number(pl.amount || 0) === baseUpfront;
+    return (isSameTime && isSameAmt) || (isUpfrontRef && isSameAmt);
+  });
+
+  const shouldIncludeBaseUpfront = baseUpfront > 0 && (matchingLogs.length === 0 || !hasLoggedUpfront);
+  const paid = shouldIncludeBaseUpfront ? (baseUpfront + totalMatchingLogs) : (matchingLogs.length > 0 ? totalMatchingLogs : baseUpfront);
+
+  // Construct Chronological Audit History of All Transactions against this exact purchase
+  const historyEvents = [];
+
+  // 1. Initial Purchase Creation
+  historyEvents.push({
+    timestamp: purchaseTime,
+    eventPriority: 1,
+    date: purchaseDate,
+    type: 'Purchase',
+    txType: 'Purchase',
+    ref: purRef,
+    description: `Purchase Created (${purchase.items?.length || 1} item${(purchase.items?.length || 1) > 1 ? 's' : ''})`,
+    debit: total,
+    credit: 0,
+    amount: total,
+    mode: purchase.paymentMode || 'Supplier Khata',
+    isPurchase: true
+  });
+
+  // 2. Upfront payment if recorded on purchase but unlogged
+  if (shouldIncludeBaseUpfront) {
+    historyEvents.push({
+      timestamp: purchaseTime + 1,
+      eventPriority: 2,
+      date: purchaseDate,
+      type: 'Payment',
+      txType: 'Payment',
+      ref: `PAY-UPFRONT-${purchase.purchaseNo || purchase.id || 'CASH'}`,
+      description: `Upfront Payment at Purchase Creation (${purchase.paymentMode || 'Cash'})`,
+      debit: 0,
+      credit: baseUpfront,
+      amount: baseUpfront,
+      mode: purchase.paymentMode || 'Cash',
+      isPayment: true
+    });
+  }
+
+  // 3. Linked Returns
+  returns.forEach((r, idx) => {
+    const rTime = new Date(r.created_at || r.createdAt || r.date || 0).getTime() || (purchaseTime + 10 + idx);
+    const rAmt = extractMerchandiseReturnValue(r);
+    historyEvents.push({
+      timestamp: rTime,
+      eventPriority: 3,
+      date: r.date || 'N/A',
+      type: 'Return',
+      txType: 'Return',
+      ref: r.returnNo || `PR-${r.id || idx}`,
+      description: `Purchase Return (${r.reason || 'Goods returned'})`,
+      debit: 0,
+      credit: rAmt,
+      amount: rAmt,
+      mode: r.refundMode || 'Supplier Khata',
+      isReturn: true,
+      returnObj: r
+    });
+  });
+
+  // 4. Linked Payments (every PAY-* slip linked to this exact purchase)
+  matchingLogs.forEach((pl, idx) => {
+    const plTime = new Date(pl.created_at || pl.createdAt || pl.date || 0).getTime() || (purchaseTime + 20 + idx);
+    const plAmt = Number(pl.amount || 0);
+    historyEvents.push({
+      timestamp: plTime,
+      eventPriority: 4,
+      date: pl.date || 'N/A',
+      type: 'Payment',
+      txType: 'Payment',
+      ref: pl.ref || `PAY-${pl.id || idx}`,
+      description: pl.note || `Payment Slip (${pl.mode || 'Cash'})`,
+      debit: 0,
+      credit: plAmt,
+      amount: plAmt,
+      mode: pl.mode || 'Cash',
+      isPayment: true,
+      logObj: pl
+    });
+  });
+
+  // Chronological sort
+  historyEvents.sort((a, b) => {
+    if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+    return (a.eventPriority || 0) - (b.eventPriority || 0);
+  });
+
+  // Continuous running calculations after each transaction
+  let curPaid = 0;
+  let curReturn = 0;
+  let curNet = total;
+
+  const history = historyEvents.map((evt, idx) => {
+    if (evt.isPayment) {
+      curPaid += evt.amount;
+    } else if (evt.isReturn) {
+      curReturn += evt.amount;
+      curNet = Math.max(0, total - curReturn);
+    }
+    const curDue = Math.max(0, curNet - curPaid);
+    const curStatus = (curReturn >= total && total > 0)
+      ? 'Returned'
+      : (curDue === 0 && curNet > 0
+        ? 'Settled'
+        : (curPaid > 0 ? 'Partial' : 'Payable'));
+
+    return {
+      step: idx + 1,
+      ...evt,
+      runningBilled: Math.round(total),
+      runningReturns: Math.round(curReturn),
+      runningNet: Math.round(curNet),
+      runningPaid: Math.round(curPaid),
+      runningDue: Math.round(curDue),
+      currentDue: Math.round(curDue),
+      status: curStatus
+    };
+  });
 
   const isFullyReturned = (purchase.status === 'Returned') || (purchase.paymentStatus === 'Returned') || purchase.isReturned || (purchase.returnStatus === 'Fully Returned') || (returnAmount >= (total - 0.5) && total > 0);
   const isPartiallyReturned = !isFullyReturned && returnAmount > 0;
@@ -641,7 +770,10 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
     status,
     isReturned,
     isFullyReturned,
-    isPartiallyReturned
+    isPartiallyReturned,
+    linkedPayments: matchingLogs,
+    linkedReturns: returns,
+    history
   };
 };
 
@@ -2172,6 +2304,19 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         methodLabel = rawPMode || 'Cash';
       }
 
+      // Check linked purchase
+      const linkedPur = partyPurchases.find(pur =>
+        (p.purchaseId && String(pur.id) === String(p.purchaseId)) ||
+        (p.purchaseid && String(pur.id) === String(p.purchaseid)) ||
+        (pur.purchaseNo && ((p.ref && p.ref.includes(pur.purchaseNo)) || (p.note && p.note.includes(pur.purchaseNo)))) ||
+        (pur.invoiceNo && ((p.ref && p.ref.includes(pur.invoiceNo)) || (p.note && p.note.includes(pur.invoiceNo))))
+      );
+
+      const purLabel = linkedPur ? (linkedPur.purchaseNo || `PUR-${linkedPur.id}`) : null;
+      const descText = linkedPur
+        ? (p.note ? `${p.note} [Bill #${purLabel}]` : `Bill Payment against #${purLabel} (${methodLabel})`)
+        : (p.note || (p.purchaseId ? `Bill Payment (${methodLabel})` : `Supplier Payment Made (${methodLabel})`));
+
       entries.push({
         id: `pay-sup-${p.id || idx}`,
         timestamp: ts,
@@ -2183,7 +2328,9 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         partyName: party.name,
         ref: p.ref || `PAY-${p.id || idx}`,
         txType: 'Payments',
-        desc: p.note || (p.purchaseId ? `Bill Payment (${methodLabel})` : `Supplier Payment Made (${methodLabel})`),
+        purchaseId: linkedPur ? linkedPur.id : (p.purchaseId || p.purchaseid || null),
+        purchaseNo: purLabel,
+        desc: descText,
         sales: 0,
         payment: pAmt,
         debit: 0,
@@ -2191,7 +2338,7 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
         paymentMethod: methodLabel,
         paymentAccount: methodLabel,
         status: 'Settled',
-        notes: p.note || 'Payment Out'
+        notes: p.note || (linkedPur ? `Payment linked to Bill #${purLabel}` : 'Payment Out')
       });
     });
   }

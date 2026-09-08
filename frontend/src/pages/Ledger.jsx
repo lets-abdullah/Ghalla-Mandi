@@ -773,6 +773,9 @@ export const Ledger = () => {
           netPurchase,
           refundCashback,
           status,
+          history: fin.history,
+          linkedPayments: fin.linkedPayments,
+          linkedReturns: fin.linkedReturns,
           rawTx: p
         });
       });
@@ -1647,6 +1650,37 @@ export const Ledger = () => {
                   </div>
                 )}
               </div>
+
+              {/* Linked Transaction Audit Trail (Purchase + Payments + Returns) */}
+              {viewingEntry.history && viewingEntry.history.length > 0 && (
+                <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center justify-between">
+                    <span>Linked Transaction Audit Trail</span>
+                    <span>{viewingEntry.history.length} Event{viewingEntry.history.length > 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800 text-[11px] font-mono">
+                    {viewingEntry.history.map((h, i) => (
+                      <div key={i} className="p-2 flex items-center justify-between bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <div>
+                          <div className="font-bold font-sans text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                            <span className="text-brand-600 dark:text-brand-400">{h.ref}</span>
+                            <span className="text-[10px] text-slate-400">({h.type})</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-sans">{h.date} • {h.mode || h.description}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className={h.debit > 0 ? "font-bold text-slate-900 dark:text-white" : "font-bold text-emerald-600 dark:text-emerald-400"}>
+                            {h.debit > 0 ? `+Rs. ${h.debit.toLocaleString()}` : `-Rs. ${h.credit.toLocaleString()}`}
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-semibold">
+                            Due: <span className={h.runningDue > 0 ? "text-rose-500 font-bold" : "text-emerald-600 font-bold"}>Rs. {h.runningDue.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end pt-2">

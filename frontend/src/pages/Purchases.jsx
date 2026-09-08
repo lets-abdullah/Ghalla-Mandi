@@ -1048,11 +1048,23 @@ export const Purchases = () => {
                             type="button"
                             onClick={() => setSelectedReceipt(p)}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer text-xs font-bold active:scale-98"
-                            title="View / Print Purchase Bill"
+                            title="View / Print Purchase Bill & Financial History"
                           >
                             <Eye className="w-3.5 h-3.5 text-slate-500" />
                             <span>View</span>
                           </button>
+
+                          {due > 0 && !isFullyReturned && (
+                            <button
+                              type="button"
+                              onClick={() => openPayModal(p)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
+                              title="Record Payment against this Purchase"
+                            >
+                              <Wallet className="w-3.5 h-3.5" />
+                              <span>Pay</span>
+                            </button>
+                          )}
 
                           {!isFullyReturned && (
                             <button
@@ -2000,7 +2012,10 @@ export const Purchases = () => {
       <PurchaseReceiptModal
         isOpen={!!selectedReceipt}
         onClose={() => setSelectedReceipt(null)}
-        purchaseData={selectedReceipt}
+        purchaseData={selectedReceipt ? {
+          ...selectedReceipt,
+          ...computePurchaseFinancials(selectedReceipt, purchaseReturns, paymentLogs, purchases)
+        } : null}
       />
 
       {/* Edit Purchase Modal */}
