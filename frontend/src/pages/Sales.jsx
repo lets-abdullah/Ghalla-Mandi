@@ -516,7 +516,7 @@ export const Sales = () => {
         >
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-600" />
-            <span>{t('amountToReceive') || 'Customer Receivables'}</span>
+            <span>{t('amountToReceive') || 'Receivables'}</span>
           </div>
           <div className="text-xl sm:text-2xl font-black mt-2 tracking-tight text-amber-600 dark:text-amber-400">
             Rs. {totalFilteredOutstandingDue.toLocaleString()}
@@ -966,8 +966,8 @@ export const Sales = () => {
                       }}
                       placeholder={`Max Rs. ${maxDue.toLocaleString()}`}
                       className={`w-full border-2 rounded-2xl px-4 py-3 text-base font-black font-mono outline-none transition ${theme === 'dark'
-                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
-                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                        ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
                         }`}
                     />
                   </div>
@@ -997,8 +997,8 @@ export const Sales = () => {
                           type="button"
                           onClick={() => setPaymentMode(mode.id)}
                           className={`relative py-3 px-2 sm:px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${isSelected
-                              ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-black shadow-2xs'
-                              : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                            ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-black shadow-2xs'
+                            : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
                             }`}
                         >
                           <Icon className="w-4 h-4 shrink-0" />
@@ -1031,8 +1031,8 @@ export const Sales = () => {
                       value={paymentDate}
                       onChange={(e) => setPaymentDate(e.target.value)}
                       className={`w-full border-2 rounded-2xl px-3.5 py-2 text-xs font-bold outline-none transition ${theme === 'dark'
-                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
-                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                        ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
                         }`}
                     />
                   </div>
@@ -1046,8 +1046,8 @@ export const Sales = () => {
                       onChange={(e) => setPaymentNote(e.target.value)}
                       placeholder={`Settlement payment from ${partyName}`}
                       className={`w-full border-2 rounded-2xl px-3.5 py-2 text-xs font-semibold outline-none transition ${theme === 'dark'
-                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
-                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                        ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
                         }`}
                     />
                   </div>
@@ -1059,8 +1059,8 @@ export const Sales = () => {
                     type="button"
                     onClick={() => setPaymentModalSale(null)}
                     className={`w-1/2 py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
-                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                       }`}
                   >
                     Cancel

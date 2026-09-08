@@ -22,7 +22,7 @@ export const computeInvoiceFinancials = ({
   const isFull = (totalReturnAmt >= origAmt || netAmt === 0) && origAmt > 0;
   const status = isFull
     ? 'Returned'
-    : (due === 0 && netAmt > 0 ? 'Paid' : (effectivePaid > 0 ? 'Partial' : 'Pending'));
+    : (due === 0 && netAmt > 0 ? 'Paid' : (effectivePaid > 0 ? 'Partial' : (due > 0 ? 'Payable' : 'Pending')));
 
   return {
     grossAmount: origAmt,
@@ -69,11 +69,19 @@ export const computeSaleInvoiceFromReturns = (sale, relatedReturns = []) => {
 };
 
 export const computePurchaseInvoiceFromReturns = (purchase, relatedReturns = []) => {
+  const items = Array.isArray(purchase.items) ? purchase.items : (Array.isArray(purchase.cart) ? purchase.cart : []);
+  const itemsSum = items.reduce((sum, it) => {
+    const qty = Number(it.qty ?? it.enteredQty ?? it.quantity ?? 1);
+    const rate = Number(it.rate ?? it.price ?? it.ratePerEnteredUnit ?? 0);
+    return sum + (Number(it.total ?? it.totalAmount) || (qty * rate));
+  }, 0);
+  const rawTotal = Number(purchase.grandTotal || purchase.amount || purchase.totalAmount || 0);
+  const grossAmount = rawTotal > 0 ? rawTotal : itemsSum;
   const totalReturnAmt = relatedReturns.reduce((acc, r) => acc + extractReturnMerchandiseValue(r), 0);
   return computeInvoiceFinancials({
-    grossAmount: purchase.grandTotal || purchase.amount || 0,
+    grossAmount,
     returnAmount: totalReturnAmt,
-    grossPaid: purchase.paidAmount || 0,
+    grossPaid: purchase.paidAmount || purchase.paid || 0,
     cashRefundAmount: null
   });
 };

@@ -330,32 +330,46 @@ export const Invoices = () => {
         saleNote: inv.note || 'Official Sales Invoice'
       });
     } else {
+      const itemsList = inv.cart && Array.isArray(inv.cart) && inv.cart.length > 0 ? inv.cart.map(item => ({
+        name: item.name || item.productName || 'Produce',
+        qty: Number(item.qty || item.enteredQty || 1),
+        unit: item.unit || item.unitName || 'KG',
+        price: Number(item.rate || item.price || 0),
+        total: Number(item.total || (Number(item.rate || 0) * Number(item.qty || 1)) || 0)
+      })) : [{
+        name: typeof inv.cart === 'string' ? inv.cart : 'Inward Produce',
+        qty: 1,
+        unit: 'KG',
+        price: Number(inv.amount || 0),
+        total: Number(inv.amount || 0)
+      }];
+      const itemsTotal = itemsList.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
+      const grossAmt = Number(inv.grossAmount || inv.amount || inv.grandTotal) || itemsTotal;
+      const retAmt = Number(inv.returnAmount || 0);
+      const netAmt = Number(inv.netAmount !== undefined ? inv.netAmount : Math.max(0, grossAmt - retAmt));
+      const paidAmt = Number(inv.paidAmount || inv.paid || 0);
+      const dueAmt = Number(inv.dueAmount !== undefined ? inv.dueAmount : Math.max(0, netAmt - paidAmt));
+
       setSelectedPurchaseReceipt({
         purchaseNo: inv.invoiceNo,
         date: inv.date,
         supplierName: inv.partyName,
         supplierPhone: inv.supplierPhone,
         supplierCity: inv.supplierCity,
-        items: inv.cart && Array.isArray(inv.cart) && inv.cart.length > 0 ? inv.cart.map(item => ({
-          name: item.name || item.productName || 'Produce',
-          qty: Number(item.qty || item.enteredQty || 1),
-          unit: item.unit || item.unitName || 'KG',
-          price: Number(item.rate || item.price || 0),
-          total: Number(item.total || (Number(item.rate || 0) * Number(item.qty || 1)) || inv.amount || 0)
-        })) : [{
-          name: typeof inv.cart === 'string' ? inv.cart : 'Inward Produce',
-          qty: 1,
-          unit: 'KG',
-          price: Number(inv.amount || 0),
-          total: Number(inv.amount || 0)
-        }],
-        subtotal: Number(inv.grossAmount || inv.amount || 0),
-        returnAmount: Number(inv.returnAmount || 0),
-        netAmount: Number(inv.netAmount !== undefined ? inv.netAmount : inv.amount),
-        totalAmount: Number(inv.netAmount !== undefined ? inv.netAmount : inv.amount),
-        grandTotal: Number(inv.netAmount !== undefined ? inv.netAmount : inv.amount),
-        paidAmount: Number(inv.paidAmount || 0),
-        dueAmount: Number(inv.dueAmount || 0),
+        items: itemsList,
+        subtotal: grossAmt,
+        returnAmount: retAmt,
+        netAmount: netAmt,
+        totalAmount: netAmt,
+        grandTotal: grossAmt,
+        grossTotal: grossAmt,
+        amount: grossAmt,
+        paidAmount: paidAmt,
+        paid: paidAmt,
+        due: dueAmt,
+        dueAmount: dueAmt,
+        status: dueAmt > 0 && paidAmt === 0 ? 'Payable' : (paidAmt >= netAmt && netAmt > 0 ? 'Paid' : 'Payable'),
+        paymentStatus: dueAmt > 0 && paidAmt === 0 ? 'Payable' : (paidAmt >= netAmt && netAmt > 0 ? 'Paid' : 'Payable'),
         paymentMode: inv.paymentMode || 'Supplier Khata',
         note: inv.note || 'Official Purchase Voucher'
       });

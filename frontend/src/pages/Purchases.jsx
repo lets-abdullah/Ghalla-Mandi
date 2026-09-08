@@ -412,6 +412,7 @@ export const Purchases = () => {
 
       // Automatically generate & display Purchase Receipt Voucher
       setSelectedReceipt({
+        ...created,
         purchaseNo: created?.purchaseNo || `PUR-2026-${Math.floor(1000 + Math.random() * 9000)}`,
         date: created?.date || new Date().toLocaleString('en-PK', { dateStyle: 'short', timeStyle: 'medium' }),
         supplierName: supplierObj.name,
@@ -424,9 +425,16 @@ export const Purchases = () => {
           price: rateVal,
           total: calculatedTotal
         }],
+        amount: calculatedTotal,
+        grandTotal: calculatedTotal,
+        grossTotal: calculatedTotal,
         totalAmount: calculatedTotal,
         paidAmount: 0,
+        paid: 0,
+        due: calculatedTotal,
         paymentMode: 'Supplier Khata',
+        status: 'Payable',
+        paymentStatus: 'Payable',
         supplierBalance: (Number(supplierObj.balance) || 0) + calculatedTotal,
         note: 'Added to Supplier Khata (Credit Payable)'
       });
@@ -448,8 +456,13 @@ export const Purchases = () => {
       price: Number(it.rate || it.price || 0),
       total: Number(it.total || (Number(it.rate || 0) * Number(it.qty || 1)) || 0)
     }));
+    const itemsTotal = formattedItems.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
+    const purchaseAmt = Number(p.amount || p.grandTotal || p.grandtotal || p.totalAmount || p.grossTotal) || itemsTotal;
+    const paidAmt = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paid !== undefined ? p.paid : 0));
+    const dueAmt = Number(p.due !== undefined ? p.due : Math.max(0, purchaseAmt - paidAmt));
 
     setSelectedReceipt({
+      ...p,
       purchaseNo: p.purchaseNo || `PUR-${p.id}`,
       date: p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : 'N/A'),
       supplierName: p.supplierName || p.supplier || 'Supplier Vendor',
@@ -459,11 +472,18 @@ export const Purchases = () => {
         name: typeof p.items === 'string' ? p.items : 'Commodity Purchase',
         qty: Number(p.qtyKg || 1),
         unit: 'KG',
-        price: Number(p.rate || p.amount || 0),
-        total: Number(p.amount || 0)
+        price: Number(p.rate || purchaseAmt || 0),
+        total: purchaseAmt
       }],
-      totalAmount: Number(p.amount || 0),
-      paidAmount: Number(p.paidAmount || 0),
+      amount: purchaseAmt,
+      grandTotal: purchaseAmt,
+      grossTotal: purchaseAmt,
+      totalAmount: purchaseAmt,
+      paidAmount: paidAmt,
+      paid: paidAmt,
+      due: dueAmt,
+      status: dueAmt > 0 && paidAmt === 0 ? 'Payable' : (p.status || (paidAmt >= purchaseAmt && purchaseAmt > 0 ? 'Paid' : 'Payable')),
+      paymentStatus: dueAmt > 0 && paidAmt === 0 ? 'Payable' : (p.paymentStatus || (paidAmt >= purchaseAmt && purchaseAmt > 0 ? 'Paid' : 'Payable')),
       paymentMode: p.paymentMode || p.paymentMethod || 'Supplier Khata',
       note: p.note || 'Inward commodity arrival record.'
     });
@@ -959,7 +979,7 @@ export const Purchases = () => {
             <thead>
               <tr className={`border-b text-[11px] font-extrabold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                <th className="py-3 px-4">Bill #</th>
+                <th className="py-3 px-4">Invoice #</th>
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4">Supplier</th>
                 <th className="py-3 px-4 text-right">Total</th>
@@ -967,6 +987,7 @@ export const Purchases = () => {
                 <th className="py-3 px-4 text-right">Returned</th>
                 <th className="py-3 px-4 text-right">Payable</th>
                 <th className="py-3 px-4 text-center">Status</th>
+                <th className="py-3 px-4 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'
@@ -1056,7 +1077,7 @@ export const Purchases = () => {
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => setSelectedReceipt(p)}
+                            onClick={() => openReceiptForPurchase(p)}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer text-xs font-bold active:scale-98"
                             title="View / Print Purchase Bill & Financial History"
                           >
@@ -1996,8 +2017,8 @@ export const Purchases = () => {
                       }}
                       placeholder={`Max Rs. ${maxDue.toLocaleString()}`}
                       className={`w-full border-2 rounded-2xl px-4 py-3 text-base font-black font-mono outline-none transition ${theme === 'dark'
-                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
-                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                        ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
                         }`}
                     />
                   </div>
@@ -2027,8 +2048,8 @@ export const Purchases = () => {
                           type="button"
                           onClick={() => setPayForm({ ...payForm, paymentMode: mode.id })}
                           className={`relative py-3 px-2 sm:px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${isSelected
-                              ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-black shadow-2xs'
-                              : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                            ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-black shadow-2xs'
+                            : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
                             }`}
                         >
                           <Icon className="w-4 h-4 shrink-0" />
@@ -2069,8 +2090,8 @@ export const Purchases = () => {
                       value={payForm.paymentDate || new Date().toISOString().split('T')[0]}
                       onChange={(e) => setPayForm({ ...payForm, paymentDate: e.target.value })}
                       className={`w-full border-2 rounded-2xl px-3.5 py-2 text-xs font-bold outline-none transition ${theme === 'dark'
-                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
-                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                        ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
                         }`}
                     />
                   </div>
@@ -2084,8 +2105,8 @@ export const Purchases = () => {
                       onChange={(e) => setPayForm({ ...payForm, note: e.target.value })}
                       placeholder={`Settlement payment to ${supplierName}`}
                       className={`w-full border-2 rounded-2xl px-3.5 py-2 text-xs font-semibold outline-none transition ${theme === 'dark'
-                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
-                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                        ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
                         }`}
                     />
                   </div>
@@ -2097,8 +2118,8 @@ export const Purchases = () => {
                     type="button"
                     onClick={() => setPayModalPurchase(null)}
                     className={`w-1/2 py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
-                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                       }`}
                   >
                     Cancel

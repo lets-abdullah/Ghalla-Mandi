@@ -557,7 +557,15 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
 
 export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymentLogs = [], allPurchases = []) => {
   if (!purchase) return { total: 0, grossTotal: 0, netTotal: 0, paid: 0, returnAmount: 0, due: 0, status: 'Pending', isReturned: false, isFullyReturned: false, isPartiallyReturned: false };
-  const total = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : (purchase.grandtotal !== undefined ? purchase.grandtotal : 0)));
+  const rawItems = Array.isArray(purchase.items) ? purchase.items : (Array.isArray(purchase.cart) ? purchase.cart : []);
+  const itemsSum = rawItems.reduce((acc, it) => {
+    const itPrice = Number(it.rate ?? it.price ?? it.ratePerEnteredUnit ?? it.purchasePrice ?? it.purchaseprice ?? 0);
+    const itQty = Number(it.qty ?? it.enteredQty ?? it.quantity ?? 1);
+    const itTotal = Number(it.total ?? it.totalAmount) || (itPrice * itQty);
+    return acc + (Number(itTotal) || 0);
+  }, 0);
+  const rawTotal = Number(purchase.amount !== undefined ? purchase.amount : (purchase.grandTotal !== undefined ? purchase.grandTotal : (purchase.grandtotal !== undefined ? purchase.grandtotal : (purchase.totalAmount !== undefined ? purchase.totalAmount : (purchase.grossTotal !== undefined ? purchase.grossTotal : 0)))));
+  const total = rawTotal > 0 ? rawTotal : itemsSum;
 
   const returns = (purchaseReturns || []).filter(r => (r.purchaseId && String(r.purchaseId) === String(purchase.id)) || (r.purchaseNo && r.purchaseNo === purchase.purchaseNo));
   const returnAmount = returns.length > 0 ? returns.reduce((acc, r) => acc + extractMerchandiseReturnValue(r), 0) : Number(purchase.returnAmount || 0);
@@ -754,7 +762,11 @@ export const computePurchaseFinancials = (purchase, purchaseReturns = [], paymen
   const isPartiallyReturned = !isFullyReturned && returnAmount > 0;
   const isReturned = isFullyReturned;
   const due = Math.max(0, netDueableTotal - paid);
-  const status = isFullyReturned ? 'Returned' : ((due === 0 && netDueableTotal > 0) ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'));
+  const status = isFullyReturned
+    ? 'Returned'
+    : ((due === 0 && netDueableTotal > 0)
+      ? 'Paid'
+      : (paid > 0 ? 'Partial' : (due > 0 ? 'Payable' : 'Pending')));
 
   // Independent Supplier Refund/Cashback: Only generated when payments linked to THIS purchase > net purchase after returns
   const effectiveRefundCashback = Math.max(cashRefundAmount, Math.max(0, paid - netDueableTotal));
@@ -2433,25 +2445,37 @@ export const resolveProductMasterUnit = (itemOrProd, fallback = 'KG') => {
 
 const normalizePurchase = (p) => {
   if (!p) return null;
-  const grandTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : 0)));
-  const returnAmount = Number(p.returnAmount !== undefined ? p.returnAmount : (p.returnamount !== undefined ? p.returnamount : 0));
-  const netAmount = Number(p.netAmount !== undefined ? p.netAmount : (p.netamount !== undefined ? p.netamount : Math.max(0, grandTotal - returnAmount)));
-  const paidAmount = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : 0));
-  const supplierName = p.supplier || p.supplierName || p.suppliername || 'Supplier';
-  const purchaseNo = p.purchaseNo || p.purchaseno || '';
-  const isReturned = (p.status === 'Returned' || p.paymentStatus === 'Returned') || (returnAmount >= grandTotal && grandTotal > 0);
-  const status = isReturned ? 'Returned' : (p.paymentStatus || p.status || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending'));
-  const date = p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
   const rawItems = Array.isArray(p.items) ? p.items : (Array.isArray(p.cart) ? p.cart : []);
   const items = rawItems.map(it => {
     const u = resolveProductMasterUnit(it, it.unit || it.unitName || 'KG');
+    const itQty = Number(it.qty ?? it.enteredQty ?? 1);
+    const itPrice = Number(it.rate ?? it.price ?? it.ratePerEnteredUnit ?? 0);
+    const itTotal = Number(it.total ?? it.totalAmount) || (itQty * itPrice);
     return {
       ...it,
       unit: u,
       unitName: u,
-      enteredUnit: u
+      enteredUnit: u,
+      qty: itQty,
+      rate: itPrice,
+      price: itPrice,
+      total: itTotal,
+      totalAmount: itTotal
     };
   });
+  const itemsSum = items.reduce((sum, it) => sum + (Number(it.total) || 0), 0);
+  const rawGrandTotal = Number(p.amount !== undefined ? p.amount : (p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : (p.totalAmount !== undefined ? p.totalAmount : (p.grossTotal !== undefined ? p.grossTotal : 0)))));
+  const grandTotal = rawGrandTotal > 0 ? rawGrandTotal : itemsSum;
+  const returnAmount = Number(p.returnAmount !== undefined ? p.returnAmount : (p.returnamount !== undefined ? p.returnamount : 0));
+  const rawNetAmount = Number(p.netAmount !== undefined ? p.netAmount : (p.netamount !== undefined ? p.netamount : 0));
+  const netAmount = rawNetAmount > 0 ? rawNetAmount : Math.max(0, grandTotal - returnAmount);
+  const paidAmount = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount !== undefined ? p.paidamount : (p.paid !== undefined ? p.paid : 0)));
+  const due = Math.max(0, netAmount - paidAmount);
+  const supplierName = p.supplier || p.supplierName || p.suppliername || 'Supplier';
+  const purchaseNo = p.purchaseNo || p.purchaseno || '';
+  const isReturned = (p.status === 'Returned' || p.paymentStatus === 'Returned') || (returnAmount >= grandTotal && grandTotal > 0);
+  const status = isReturned ? 'Returned' : (p.paymentStatus || p.status || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : (due > 0 ? 'Payable' : 'Pending'))));
+  const date = p.date || (p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
   const paymentMode = p.paymentMode || p.paymentmode || p.paymentMethod || p.paymentmethod || (paidAmount > 0 ? 'Cash' : 'Supplier Khata');
 
   return {
@@ -2465,12 +2489,16 @@ const normalizePurchase = (p) => {
     amount: grandTotal,
     grandTotal,
     grandtotal: grandTotal,
+    total: grandTotal,
+    grossTotal: grandTotal,
     returnAmount,
     returnamount: returnAmount,
     netAmount,
     netamount: netAmount,
     paidAmount,
     paidamount: paidAmount,
+    paid: paidAmount,
+    due,
     paymentMode,
     paymentmode: paymentMode,
     paymentMethod: paymentMode,
@@ -3293,12 +3321,18 @@ export const ERPProvider = ({ children }) => {
       };
     });
 
+    const computedTotal = items.reduce((acc, it) => acc + (Number(it.total || it.totalAmount) || 0), 0);
+    const grandTotal = Number(purchaseData.amount || purchaseData.grandTotal || purchaseData.totalAmount) || computedTotal;
+
     const payload = {
       supplierName: purchaseData.supplierName || purchaseData.supplier || '',
       supplierId: purchaseData.supplierId || null,
       paidAmount: Number(purchaseData.paidAmount) || 0,
       paymentMode: purchaseData.paymentMode || purchaseData.paymentMethod || 'Supplier Khata',
       paymentStatus: purchaseData.paymentStatus,
+      grandTotal,
+      amount: grandTotal,
+      totalAmount: grandTotal,
       notes: purchaseData.notes || '',
       items
     };

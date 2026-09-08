@@ -35,7 +35,13 @@ const recomputePurchasePaidFromLogs = async (purchaseId, shop_id) => {
     ? totalFromLogs
     : Number(pur.paidAmount || 0);
 
-  const grandTotal = Number(pur.grandTotal || pur.amount || 0);
+  const itemsSum = Array.isArray(pur.items) ? pur.items.reduce((sum, it) => {
+    const qty = Number(it.qty ?? it.enteredQty ?? it.quantity ?? 1);
+    const rate = Number(it.rate ?? it.price ?? it.ratePerEnteredUnit ?? 0);
+    return sum + (Number(it.total ?? it.totalAmount) || (qty * rate));
+  }, 0) : 0;
+  const rawTotal = Number(pur.grandTotal || pur.amount || 0);
+  const grandTotal = rawTotal > 0 ? rawTotal : itemsSum;
   const returnAmount = Number(pur.returnAmount || 0);
   const netDueable = Math.max(0, grandTotal - returnAmount);
 
@@ -47,9 +53,12 @@ const recomputePurchasePaidFromLogs = async (purchaseId, shop_id) => {
       ? 'Paid'
       : canonicalPaid > 0
         ? 'Partial'
-        : 'Pending');
+        : (netDueable > 0 ? 'Payable' : 'Pending'));
 
   await Purchase.findByIdAndUpdate(purchaseId, {
+    grandTotal,
+    amount: grandTotal,
+    netAmount: netDueable,
     paidAmount: canonicalPaid,
     paymentStatus: newStatus
   }, { shop_id });
@@ -105,8 +114,8 @@ export const createPurchase = async (req, res) => {
         }
 
         const qty = Number(item.enteredQty || item.qty) || 1;
-        const rate = Number(item.ratePerEnteredUnit || item.rate) || 0;
-        const itemTotal = qty * rate;
+        const rate = Number(item.ratePerEnteredUnit ?? item.rate ?? item.price ?? item.purchasePrice ?? 0);
+        const itemTotal = Number(item.total ?? item.totalAmount) || (qty * rate);
         totalGrand += itemTotal;
 
         const expectedUnit = product.unit || 'KG';
@@ -162,10 +171,14 @@ export const createPurchase = async (req, res) => {
       }
 
       const paid = Math.max(0, Number(paidAmount) || 0);
+      if (totalGrand <= 0 && Number(req.body.grandTotal || req.body.amount || req.body.totalAmount) > 0) {
+        totalGrand = Number(req.body.grandTotal || req.body.amount || req.body.totalAmount);
+      }
       const rawMode = String(req.body.paymentMode || req.body.paymentMethod || '').trim();
       const isKhataMode = rawMode.toLowerCase().includes('khata') || (!rawMode && paid === 0);
       const effectivePaymentMode = isKhataMode ? 'Supplier Khata' : (rawMode || (paid >= totalGrand ? 'Cash' : 'Supplier Khata'));
-      const paymentStatus = req.body.paymentStatus || (isKhataMode && paid === 0 ? 'Pending' : (paid >= totalGrand && totalGrand > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending'));
+      const due = Math.max(0, totalGrand - paid);
+      const paymentStatus = req.body.paymentStatus || (paid >= totalGrand && totalGrand > 0 ? 'Paid' : (paid > 0 ? 'Partial' : (due > 0 ? 'Payable' : 'Pending')));
 
       const count = await Purchase.countDocuments({ shop_id: req.shop_id });
       const purchaseNo = `PUR-2026-${String(count + 1).padStart(4, '0')}`;

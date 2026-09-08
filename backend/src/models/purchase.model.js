@@ -3,15 +3,24 @@ import { query, get, run } from '../services/db.service.js';
 const mapPurchaseRow = (r) => {
   if (!r) return null;
   const items = r.itemsjson ? (typeof r.itemsjson === 'string' ? JSON.parse(r.itemsjson) : r.itemsjson) : (r.itemsJson ? (typeof r.itemsJson === 'string' ? JSON.parse(r.itemsJson) : r.itemsJson) : []);
-  const grandTotal = Number(r.grandtotal !== undefined ? r.grandtotal : (r.grandTotal !== undefined ? r.grandTotal : (r.amount !== undefined ? r.amount : 0)));
+  const itemsSum = Array.isArray(items) ? items.reduce((sum, it) => {
+    const qty = Number(it.qty ?? it.enteredQty ?? it.quantity ?? 1);
+    const rate = Number(it.rate ?? it.price ?? it.ratePerEnteredUnit ?? 0);
+    const itemTotal = Number(it.total ?? it.totalAmount) || (qty * rate);
+    return sum + (Number(itemTotal) || 0);
+  }, 0) : 0;
+  const rawGrandTotal = Number(r.grandtotal !== undefined ? r.grandtotal : (r.grandTotal !== undefined ? r.grandTotal : (r.amount !== undefined ? r.amount : (r.totalAmount !== undefined ? r.totalAmount : 0))));
+  const grandTotal = rawGrandTotal > 0 ? rawGrandTotal : itemsSum;
   const paidAmount = Number(r.paidamount !== undefined ? r.paidamount : (r.paidAmount !== undefined ? r.paidAmount : 0));
   const returnAmount = Number(r.returnamount !== undefined ? r.returnamount : (r.returnAmount !== undefined ? r.returnAmount : 0));
-  const netAmount = Number(r.netamount !== undefined ? r.netamount : (r.netAmount !== undefined ? r.netAmount : Math.max(0, grandTotal - returnAmount)));
+  const rawNetAmount = Number(r.netamount !== undefined ? r.netamount : (r.netAmount !== undefined ? r.netAmount : 0));
+  const netAmount = rawNetAmount > 0 ? rawNetAmount : Math.max(0, grandTotal - returnAmount);
+  const due = Math.max(0, netAmount - paidAmount);
   const supplierName = r.suppliername || r.supplierName || r.supplier || 'Supplier';
   const purchaseNo = r.purchaseno || r.purchaseNo || '';
   const paymentMode = r.paymentmode || r.paymentMode || r.paymentmethod || r.paymentMethod || r.mode || 'Supplier Khata';
   const isReturned = (r.paymentstatus === 'Returned') || (r.status === 'Returned') || (r.returnStatus && r.returnStatus !== 'None') || (returnAmount >= grandTotal && grandTotal > 0);
-  const paymentStatus = isReturned ? 'Returned' : (r.paymentstatus || r.paymentStatus || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : 'Pending')));
+  const paymentStatus = isReturned ? 'Returned' : (r.paymentstatus || r.paymentStatus || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : (due > 0 ? 'Payable' : 'Pending'))));
   const date = r.date || (r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'));
 
   return {
@@ -27,12 +36,16 @@ const mapPurchaseRow = (r) => {
     grandTotal,
     grandtotal: grandTotal,
     amount: grandTotal,
+    total: grandTotal,
+    grossTotal: grandTotal,
     paidAmount,
     paidamount: paidAmount,
+    paid: paidAmount,
     returnAmount,
     returnamount: returnAmount,
     netAmount,
     netamount: netAmount,
+    due,
     paymentStatus,
     paymentstatus: paymentStatus,
     paymentMode,
@@ -90,15 +103,22 @@ export const Purchase = {
     const purchaseNo = purData.purchaseNo;
     const supplierName = purData.supplierName || purData.supplier || 'Supplier';
     const supplierId = purData.supplierId || null;
-    const grandTotal = Number(purData.grandTotal || purData.amount) || 0;
+    const items = purData.items || [];
+    const itemsJson = JSON.stringify(items);
+    const itemsSum = Array.isArray(items) ? items.reduce((sum, it) => {
+      const qty = Number(it.qty ?? it.enteredQty ?? it.quantity ?? 1);
+      const rate = Number(it.rate ?? it.price ?? it.ratePerEnteredUnit ?? 0);
+      const itemTotal = Number(it.total ?? it.totalAmount) || (qty * rate);
+      return sum + (Number(itemTotal) || 0);
+    }, 0) : 0;
+    const grandTotal = Number(purData.grandTotal || purData.amount || purData.totalAmount) || itemsSum || 0;
     const paidAmount = Number(purData.paidAmount) || 0;
     const returnAmount = Number(purData.returnAmount) || 0;
     const netAmount = Number(purData.netAmount !== undefined ? purData.netAmount : Math.max(0, grandTotal - returnAmount));
+    const due = Math.max(0, netAmount - paidAmount);
     const paymentMode = purData.paymentMode || purData.paymentMethod || 'Supplier Khata';
-    const paymentStatus = purData.paymentStatus || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
+    const paymentStatus = purData.paymentStatus || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : (paidAmount > 0 ? 'Partial' : (due > 0 ? 'Payable' : 'Pending')));
     const notes = purData.notes || '';
-    const items = purData.items || [];
-    const itemsJson = JSON.stringify(items);
 
     await run(
       'INSERT INTO purchases (id, shop_id, purchaseNo, supplierName, supplierId, grandTotal, paidAmount, returnAmount, netAmount, paymentStatus, paymentMode, notes, itemsJson) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
@@ -119,18 +139,38 @@ export const Purchase = {
 
     if (updateData.supplierName !== undefined) { fields.push(`supplierName = $${paramIndex++}`); params.push(updateData.supplierName); }
     if (updateData.supplierId !== undefined) { fields.push(`supplierId = $${paramIndex++}`); params.push(updateData.supplierId); }
-    if (updateData.grandTotal !== undefined || updateData.amount !== undefined) { fields.push(`grandTotal = $${paramIndex++}`); params.push(Number(updateData.grandTotal !== undefined ? updateData.grandTotal : updateData.amount)); }
+    let computedItemsSum = null;
+    if (updateData.itemsJson !== undefined || updateData.items !== undefined) {
+      const itemsPayload = updateData.itemsJson !== undefined ? (typeof updateData.itemsJson === 'string' ? updateData.itemsJson : JSON.stringify(updateData.itemsJson)) : JSON.stringify(updateData.items);
+      fields.push(`itemsJson = $${paramIndex++}`);
+      params.push(itemsPayload);
+      try {
+        const parsed = typeof itemsPayload === 'string' ? JSON.parse(itemsPayload) : itemsPayload;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          computedItemsSum = parsed.reduce((sum, it) => {
+            const qty = Number(it.qty ?? it.enteredQty ?? it.quantity ?? 1);
+            const rate = Number(it.rate ?? it.price ?? it.ratePerEnteredUnit ?? 0);
+            return sum + (Number(it.total ?? it.totalAmount) || (qty * rate));
+          }, 0);
+        }
+      } catch (e) {}
+    }
+
+    if (updateData.grandTotal !== undefined || updateData.amount !== undefined) {
+      const val = Number(updateData.grandTotal !== undefined ? updateData.grandTotal : updateData.amount);
+      fields.push(`grandTotal = $${paramIndex++}`);
+      params.push(val > 0 ? val : (computedItemsSum !== null && computedItemsSum > 0 ? computedItemsSum : val));
+    } else if (computedItemsSum !== null && computedItemsSum > 0) {
+      fields.push(`grandTotal = $${paramIndex++}`);
+      params.push(computedItemsSum);
+    }
+
     if (updateData.paidAmount !== undefined) { fields.push(`paidAmount = $${paramIndex++}`); params.push(Number(updateData.paidAmount)); }
     if (updateData.returnAmount !== undefined) { fields.push(`returnAmount = $${paramIndex++}`); params.push(Number(updateData.returnAmount)); }
     if (updateData.netAmount !== undefined) { fields.push(`netAmount = $${paramIndex++}`); params.push(Number(updateData.netAmount)); }
     if (updateData.paymentStatus !== undefined || updateData.status !== undefined) { fields.push(`paymentStatus = $${paramIndex++}`); params.push(updateData.paymentStatus || updateData.status); }
     if (updateData.paymentMode !== undefined || updateData.paymentMethod !== undefined) { fields.push(`paymentMode = $${paramIndex++}`); params.push(updateData.paymentMode || updateData.paymentMethod); }
     if (updateData.notes !== undefined) { fields.push(`notes = $${paramIndex++}`); params.push(updateData.notes); }
-    if (updateData.itemsJson !== undefined || updateData.items !== undefined) {
-      const itemsPayload = updateData.itemsJson !== undefined ? (typeof updateData.itemsJson === 'string' ? updateData.itemsJson : JSON.stringify(updateData.itemsJson)) : JSON.stringify(updateData.items);
-      fields.push(`itemsJson = $${paramIndex++}`);
-      params.push(itemsPayload);
-    }
 
     if (fields.length > 0) {
       if (shop_id) {

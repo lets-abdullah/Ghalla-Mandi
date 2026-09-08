@@ -66,11 +66,21 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
     ? String(purchaseNo)
     : `PUR-${String(purchaseNo).replace(/[^0-9A-Za-z]/g, '') || '000123'}`;
 
-  const grandTotalNum = Number(purchaseData.grossTotal !== undefined ? purchaseData.grossTotal : (purchaseData.grandTotal !== undefined ? purchaseData.grandTotal : (purchaseData.amount !== undefined ? purchaseData.amount : totalAmount)));
+  const rawItems = Array.isArray(items) && items.length > 0 ? items : (Array.isArray(purchaseData.cart) ? purchaseData.cart : []);
+  const itemsSum = rawItems.reduce((acc, it) => {
+    const itPrice = Number(it.price ?? it.rate ?? it.purchasePrice ?? it.purchaseprice ?? 0);
+    const itQty = Number(it.qty ?? it.enteredQty ?? it.quantity ?? 1);
+    const itTotal = Number(it.total ?? it.totalAmount) || (itPrice * itQty);
+    return acc + (Number(itTotal) || 0);
+  }, 0);
+
+  const rawGross = Number(purchaseData.grossTotal !== undefined ? purchaseData.grossTotal : (purchaseData.grandTotal !== undefined ? purchaseData.grandTotal : (purchaseData.amount !== undefined ? purchaseData.amount : (purchaseData.totalAmount !== undefined ? purchaseData.totalAmount : totalAmount))));
+  const grandTotalNum = rawGross > 0 ? rawGross : itemsSum;
   const paidNum = Number(purchaseData.paid !== undefined ? purchaseData.paid : (paidAmount !== undefined && paidAmount !== null ? paidAmount : 0));
   const adjustmentNum = Number(adjustment || discount || 0);
   const calculatedSubtotal = grandTotalNum + adjustmentNum;
   const dueRemaining = Number(purchaseData.due !== undefined ? purchaseData.due : Math.max(0, grandTotalNum - paidNum));
+  const isSettled = dueRemaining === 0 && grandTotalNum > 0 && paidNum >= grandTotalNum;
   const displaySupplier = supplierName || 'Walk-in Supplier';
   const shopTitle = (shop?.name || 'GHALLA MANDI').toUpperCase();
   const shopPhone = shop?.phone || shop?.contact || '';
@@ -169,8 +179,8 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                 <div style="text-align: right;">
                   <div style="font-size: 10px; font-weight: 800; color: #059669; text-transform: uppercase;">Settlement Status:</div>
                   <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-top: 2px;">Mode: <b>${paymentMode}</b></div>
-                  <div style="font-size: 12px; font-weight: 800; color: ${dueRemaining === 0 ? '#059669' : '#b45309'}; margin-top: 2px;">
-                    ${dueRemaining === 0 ? 'Status: SETTLED (Paid)' : `Status: PAYABLE (Rs. ${dueRemaining.toLocaleString()})`}
+                  <div style="font-size: 12px; font-weight: 800; color: ${isSettled ? '#059669' : '#b45309'}; margin-top: 2px;">
+                    ${isSettled ? 'Status: SETTLED (Paid)' : `Status: PAYABLE (Due: Rs. ${dueRemaining.toLocaleString()})`}
                   </div>
                 </div>
               </div>
@@ -899,15 +909,21 @@ export const PurchaseReceiptModal = ({ isOpen, onClose, purchaseData }) => {
                   <span className="font-mono text-emerald-700 font-black">Rs. {paidNum.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10.5px] font-bold text-slate-600 px-0.5">
-                  <span>Supplier dues deducted:</span>
+                  <span>Payable (Balance Due):</span>
                   <span className={`font-mono font-black ${dueRemaining > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
                     Rs. {dueRemaining.toLocaleString()}
                   </span>
                 </div>
-                <div className="bg-[#f0fdf4] border border-emerald-200 text-emerald-800 rounded-md py-1 px-2 flex items-center justify-center gap-1 text-center font-black text-[10px] tracking-wide mt-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                  <span>{dueRemaining === 0 ? '✓ SETTLED (PAID)' : `Supplier dues deducted: Rs. ${dueRemaining.toLocaleString()}`}</span>
-                </div>
+                {isSettled ? (
+                  <div className="bg-[#f0fdf4] border border-emerald-200 text-emerald-800 rounded-md py-1 px-2 flex items-center justify-center gap-1 text-center font-black text-[10px] tracking-wide mt-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                    <span>✓ SETTLED (PAID)</span>
+                  </div>
+                ) : (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-md py-1 px-2 flex items-center justify-center gap-1 text-center font-black text-[10px] tracking-wide mt-1">
+                    <span>⚠️ PAYABLE: Rs. {dueRemaining.toLocaleString()} DUE</span>
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-dashed border-slate-300 my-1" />
