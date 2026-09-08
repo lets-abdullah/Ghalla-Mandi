@@ -39,11 +39,15 @@ const recomputePurchasePaidFromLogs = async (purchaseId, shop_id) => {
   const returnAmount = Number(pur.returnAmount || 0);
   const netDueable = Math.max(0, grandTotal - returnAmount);
 
-  const newStatus = canonicalPaid >= netDueable && netDueable > 0
-    ? 'Paid'
-    : canonicalPaid > 0
-      ? 'Partial'
-      : 'Pending';
+  const isReturned = (pur.paymentStatus === 'Returned') || (pur.status === 'Returned') || (returnAmount >= (grandTotal - 0.5) && grandTotal > 0);
+
+  const newStatus = isReturned
+    ? 'Returned'
+    : (canonicalPaid >= netDueable && netDueable > 0
+      ? 'Paid'
+      : canonicalPaid > 0
+        ? 'Partial'
+        : 'Pending');
 
   await Purchase.findByIdAndUpdate(purchaseId, {
     paidAmount: canonicalPaid,

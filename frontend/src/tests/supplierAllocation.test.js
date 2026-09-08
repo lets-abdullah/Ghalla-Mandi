@@ -209,6 +209,7 @@ describe('Supplier & Customer Payment Allocation and Isolation Tests', () => {
       },
       {
         id: 'PAY-2',
+        purchaseId: 'PUR-2',
         partyId: 'SUP-01',
         type: 'Supplier',
         amount: 4000,
@@ -553,6 +554,7 @@ describe('Supplier & Customer Payment Allocation and Isolation Tests', () => {
       {
         id: 'PAY-6775',
         ref: 'PAY-6775',
+        purchaseId: 'PUR-1',
         partyId: 'SUP-01',
         partyName: 'Al-Madina Traders',
         type: 'Supplier',

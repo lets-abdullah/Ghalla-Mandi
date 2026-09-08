@@ -238,9 +238,9 @@ describe('User Exact Scenario: Purchase 1 Return+Refund → Purchase 2 with Late
   });
 
   // =========================================================
-  // PHASE 5: Unlinked payment must respect FIFO and settled invoice exclusion
+  // PHASE 5: Unlinked payment must NEVER be allocated or shifted to P1 or P2
   // =========================================================
-  it('Phase 5 — Unlinked payment after P1 is settled must NOT allocate to P1, must go to P2', () => {
+  it('Phase 5 — Unlinked payment must NEVER be allocated or shifted to P1 or P2: each purchase remains strictly independent', () => {
     const { computePurchaseFinancials } = ERP;
 
     // Simulate: P1 settled (net=3000, paid=4000), P2 outstanding (5000)
@@ -261,15 +261,15 @@ describe('User Exact Scenario: Purchase 1 Return+Refund → Purchase 2 with Late
 
     const logs = [upfrontLog_P1, unlinkedLog];
 
-    // P1 is already overpaid → must not receive any allocation from unlinked payment
+    // P1 is settled and must not receive unlinked payment
     const fin1 = computePurchaseFinancials(purchase1, allReturns, logs, allPurchases);
-    assert.strictEqual(fin1.paid, 4000, 'P1 paid must not increase — already settled before payment');
+    assert.strictEqual(fin1.paid, 4000, 'P1 paid must not increase — strictly independent');
     assert.strictEqual(fin1.due, 0, 'P1 due must remain 0');
 
-    // P2 should receive the 2000 unlinked payment
+    // P2 must NOT receive unlinked payment — payments must be linked to exact purchase
     const fin2 = computePurchaseFinancials(purchase2, allReturns, logs, allPurchases);
-    assert.strictEqual(fin2.paid, 2000, 'P2 should receive the 2000 unlinked payment');
-    assert.strictEqual(fin2.due, 3000,  'P2 due must be 3000 after 2000 allocation');
+    assert.strictEqual(fin2.paid, 0, 'P2 paid must remain 0 since payment was not linked to P2');
+    assert.strictEqual(fin2.due, 5000, 'P2 due must remain 5000');
   });
 
   // =========================================================

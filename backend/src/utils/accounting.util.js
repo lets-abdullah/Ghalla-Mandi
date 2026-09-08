@@ -141,53 +141,71 @@ export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
   const openingBalance = Number(sup.openingbalance !== undefined ? sup.openingbalance : (sup.openingBalance !== undefined ? sup.openingBalance : 0));
 
   const purchaseRows = await dbRun('SELECT * FROM purchases WHERE shop_id = $1 AND supplierId = $2', [shop_id, supplierId]);
-  const grossPurchases = purchaseRows.reduce((acc, p) => acc + Number(p.grandTotal || p.amount || 0), 0);
-
   const returnsRows = await dbRun('SELECT * FROM purchase_returns WHERE shop_id = $1 AND supplierId = $2', [shop_id, supplierId]);
-  const totalReturns = returnsRows.reduce((acc, r) => acc + extractReturnMerchandiseValue(r), 0);
-  const netPurchases = Math.max(0, grossPurchases - totalReturns);
 
   const paymentRows = await dbRun(
     "SELECT * FROM payment_logs WHERE shop_id = $1 AND partyId = $2 AND LOWER(partyType) = 'supplier' AND LOWER(mode) NOT IN ('opening balance', 'credit note', 'debit note', 'purchase return', 'supplier khata')",
     [shop_id, supplierId]
   );
-  const directPaidLogs = paymentRows.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-  // Liquid cash/bank refunds actually received back from supplier
-  const liquidRefunds = returnsRows.filter(r => {
-    const m = String(r.refundMode || r.refundmode || '').trim().toLowerCase();
-    return m === 'cash' || m === 'bank' || m === 'card';
-  }).reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+  let totalPurchasesPayableDue = 0;
+  let totalPurchasesRefundDue = 0;
 
-  let unloggedUpfrontCash = 0;
+  // Compute each purchase completely independently
   purchaseRows.forEach(p => {
-    const hasMatchingLog = paymentRows.some(pl =>
-      (pl.purchaseId && String(pl.purchaseId) === String(p.id)) ||
-      (p.purchaseNo && pl.ref && pl.ref.includes(p.purchaseNo))
+    const pId = String(p.id);
+    const pNo = p.purchaseNo || p.purchaseno || '';
+    const pTotal = Number(p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : (p.amount !== undefined ? p.amount : 0)));
+
+    // Returns linked specifically to this purchase
+    const pReturns = returnsRows.filter(r =>
+      (r.purchaseId && String(r.purchaseId) === pId) ||
+      (r.purchaseid && String(r.purchaseid) === pId) ||
+      (pNo && r.purchaseNo && r.purchaseNo === pNo) ||
+      (pNo && r.purchaseno && r.purchaseno === pNo)
     );
-    if (!hasMatchingLog) {
-      const pTotal = Number(p.grandTotal || p.amount || 0);
-      const pPaid = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount || 0));
-      if (pPaid > 0) {
-        unloggedUpfrontCash += Math.min(pTotal, pPaid);
-      }
-    }
+    const pReturnAmt = pReturns.reduce((acc, r) => acc + extractReturnMerchandiseValue(r), 0);
+    const pNet = Math.max(0, pTotal - pReturnAmt);
+
+    // Payments linked specifically to this purchase
+    const pLogs = paymentRows.filter(pl =>
+      (pl.purchaseId && String(pl.purchaseId) === pId) ||
+      (pl.purchaseid && String(pl.purchaseid) === pId) ||
+      (pNo && pl.ref && pl.ref.includes(pNo)) ||
+      (pNo && pl.note && pl.note.includes(pNo))
+    );
+    const pPaidLogs = pLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
+    const pStoredPaid = Number(p.paidAmount !== undefined ? p.paidAmount : (p.paidamount || 0));
+    const pPaid = pLogs.length > 0 ? pPaidLogs : pStoredPaid;
+
+    const pDue = Math.max(0, pNet - pPaid);
+    const pRefund = Math.max(0, pPaid - pNet);
+
+    totalPurchasesPayableDue += pDue;
+    totalPurchasesRefundDue += pRefund;
   });
 
-  const grossPaymentsMade = directPaidLogs + unloggedUpfrontCash;
-  const netPaid = Math.max(0, grossPaymentsMade - liquidRefunds);
-  const netBilled = openingBalance + netPurchases;
+  // Check for any unlinked payments to supplier (e.g. general advance / opening balance payment)
+  const unlinkedLogs = paymentRows.filter(pl => {
+    const hasPurchaseLink = Boolean(
+      pl.purchaseId ||
+      pl.purchaseid ||
+      purchaseRows.some(p => {
+        const pNo = p.purchaseNo || p.purchaseno;
+        return (pNo && ((pl.ref && pl.ref.includes(pNo)) || (pl.note && pl.note.includes(pNo))));
+      })
+    );
+    return !hasPurchaseLink;
+  });
+  const unlinkedPaid = unlinkedLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
 
-  let canonicalPayable = 0;
+  // Unlinked payments can offset opening balance, but individual purchase dues remain strictly independent
+  const netOpeningDue = Math.max(0, openingBalance - unlinkedPaid);
+  const canonicalPayable = Math.round(totalPurchasesPayableDue + netOpeningDue);
+  const canonicalRefund = Math.round(totalPurchasesRefundDue);
 
-  if (netBilled >= netPaid) {
-    canonicalPayable = Math.round(netBilled - netPaid);
-  } else {
-    canonicalPayable = 0;
-  }
-
-  await dbRun('UPDATE suppliers SET balance = $1, refundDue = 0 WHERE id = $2 AND shop_id = $3', [canonicalPayable, supplierId, shop_id]);
-  return { payable: canonicalPayable, refundDue: 0, balance: canonicalPayable };
+  await dbRun('UPDATE suppliers SET balance = $1, refundDue = $2 WHERE id = $3 AND shop_id = $4', [canonicalPayable, canonicalRefund, supplierId, shop_id]);
+  return { payable: canonicalPayable, refundDue: canonicalRefund, balance: canonicalPayable };
 };
 
 

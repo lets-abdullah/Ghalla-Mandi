@@ -93,6 +93,7 @@ export const Khata = () => {
   const [paymentModalParty, setPaymentModalParty] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState('Cash');
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentNote, setPaymentNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -253,12 +254,27 @@ export const Khata = () => {
     e.preventDefault();
     if (!paymentModalParty || isSubmitting) return;
 
-    const maxDue = isCustomer
-      ? Math.max(0, Number(paymentModalParty.receivableDue !== undefined ? paymentModalParty.receivableDue : (paymentModalParty.balance || 0)))
-      : Math.max(0, Number(paymentModalParty.payableDue !== undefined ? paymentModalParty.payableDue : (paymentModalParty.balance || 0)));
+    const isCustomer = khataPartyType === 'Customer';
+    let maxDue = 0;
+    let selectedPurObj = null;
+
+    if (isCustomer) {
+      maxDue = Math.max(0, Number(paymentModalParty.receivableDue !== undefined ? paymentModalParty.receivableDue : (paymentModalParty.balance || 0)));
+    } else {
+      if (selectedInvoiceId) {
+        selectedPurObj = (purchases || []).find(p => String(p.id) === String(selectedInvoiceId));
+        if (selectedPurObj) {
+          const fin = computePurchaseFinancials(selectedPurObj, purchaseReturns, paymentLogs, purchases);
+          maxDue = fin.due;
+        }
+      }
+      if (maxDue <= 0 && !selectedInvoiceId) {
+        maxDue = Math.max(0, Number(paymentModalParty.payableDue !== undefined ? paymentModalParty.payableDue : (paymentModalParty.balance || 0)));
+      }
+    }
 
     if (maxDue <= 0) {
-      toast.warning('This account is already settled (Rs. 0 balance).');
+      toast.warning('This account/invoice is already settled (Rs. 0 balance).');
       return;
     }
 
@@ -287,11 +303,13 @@ export const Khata = () => {
         amount: amt,
         paymentMode: paymentMode,
         date: paymentDate,
-        note: paymentNote || (isCustomer ? 'Customer Khata Settlement' : 'Supplier Settlement Payment')
+        note: paymentNote || (isCustomer ? 'Customer Khata Settlement' : (selectedPurObj ? `Payment for Purchase (${selectedPurObj.purchaseNo || selectedPurObj.id})` : 'Supplier Settlement Payment')),
+        purchaseId: !isCustomer ? (selectedInvoiceId || null) : null
       });
       toast.success(`Payment of Rs. ${amt.toLocaleString()} recorded for ${paymentModalParty.name}!`);
 
       setPaymentModalParty(null);
+      setSelectedInvoiceId('');
       setPaymentAmount('');
       setPaymentNote('');
     } catch (err) {
@@ -557,9 +575,25 @@ export const Khata = () => {
 
       {/* Settlement Payment Modal with Live Dynamic Preview & Quick Chips */}
       {paymentModalParty && (() => {
-        const maxDue = Math.max(0, isCustomer
-          ? Number(paymentModalParty.receivableDue !== undefined ? paymentModalParty.receivableDue : (paymentModalParty.balance || 0))
-          : Number(paymentModalParty.payableDue !== undefined ? paymentModalParty.payableDue : (paymentModalParty.balance || 0)));
+        const isCustomer = khataPartyType === 'Customer';
+        const supPurchasesWithDue = !isCustomer ? (purchases || []).filter(p => {
+          const pSupId = p.supplierId ? String(p.supplierId) : (p.supplierid ? String(p.supplierid) : null);
+          const pSupName = (p.supplier || p.supplierName || p.suppliername || '').trim().toLowerCase();
+          const sId = paymentModalParty.id ? String(paymentModalParty.id) : null;
+          const sName = (paymentModalParty.name || '').trim().toLowerCase();
+          return (sId && pSupId && pSupId === sId) || (sName && pSupName && pSupName === sName);
+        }).map(p => {
+          const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+          return { ...p, fin };
+        }).filter(p => p.fin.due > 0) : [];
+
+        const selectedPurchaseObj = selectedInvoiceId
+          ? supPurchasesWithDue.find(p => String(p.id) === String(selectedInvoiceId))
+          : null;
+
+        const maxDue = isCustomer
+          ? Math.max(0, Number(paymentModalParty.receivableDue !== undefined ? paymentModalParty.receivableDue : (paymentModalParty.balance || 0)))
+          : (selectedPurchaseObj ? selectedPurchaseObj.fin.due : Math.max(0, Number(paymentModalParty.payableDue !== undefined ? paymentModalParty.payableDue : (paymentModalParty.balance || 0))));
 
         const currentInputAmount = Number(paymentAmount) || 0;
         const remainingAfterPayment = Math.max(0, maxDue - currentInputAmount);
@@ -567,7 +601,12 @@ export const Khata = () => {
 
         return (
           <div
-            onClick={(e) => { if (e.target === e.currentTarget) setPaymentModalParty(null); }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setPaymentModalParty(null);
+                setSelectedInvoiceId('');
+              }
+            }}
             className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
           >
             <div className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 card-shadow border my-auto transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
@@ -591,7 +630,10 @@ export const Khata = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setPaymentModalParty(null)}
+                  onClick={() => {
+                    setPaymentModalParty(null);
+                    setSelectedInvoiceId('');
+                  }}
                   className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
@@ -625,6 +667,36 @@ export const Khata = () => {
               </div>
 
               <form onSubmit={handleRecordSettlement} className="space-y-4 mt-4">
+                {/* Purchase / Invoice Selector for Supplier */}
+                {!isCustomer && supPurchasesWithDue.length > 0 && (
+                  <div>
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1.5">
+                      LINK PAYMENT TO PURCHASE INVOICE *
+                    </label>
+                    <select
+                      value={selectedInvoiceId}
+                      onChange={(e) => {
+                        const newId = e.target.value;
+                        setSelectedInvoiceId(newId);
+                        const match = supPurchasesWithDue.find(p => String(p.id) === String(newId));
+                        if (match) {
+                          setPaymentAmount(match.fin.due.toString());
+                        }
+                      }}
+                      className={`w-full border-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold outline-none transition ${theme === 'dark'
+                        ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                      }`}
+                    >
+                      <option value="">-- General Supplier Khata / Multiple Invoices --</option>
+                      {supPurchasesWithDue.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.purchaseNo || `PUR-${p.id}`} • Due: Rs. {p.fin.due.toLocaleString()} (Date: {p.date || 'N/A'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {/* Payment Amount Input */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">

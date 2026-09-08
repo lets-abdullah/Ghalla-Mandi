@@ -261,6 +261,7 @@ export const Suppliers = () => {
   const [payAmount, setPayAmount] = useState('');
   const [payMode, setPayMode] = useState('Cash');
   const [payNote, setPayNote] = useState('');
+  const [selectedPayPurchaseId, setSelectedPayPurchaseId] = useState('');
   const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
   const [isProcessingPay, setIsProcessingPay] = useState(false);
 
@@ -344,7 +345,11 @@ export const Suppliers = () => {
     if (!payingSupplier || isProcessingPay) return;
 
     const amt = parseInt(payAmount, 10) || 0;
-    const rawDue = Number(payingSupplier.balance || 0);
+    const selectedPur = selectedPayPurchaseId
+      ? (purchases || []).find(p => String(p.id) === String(selectedPayPurchaseId))
+      : null;
+    const purFin = selectedPur ? computePurchaseFinancials(selectedPur, purchaseReturns, paymentLogs, purchases) : null;
+    const rawDue = purFin ? purFin.due : Number(payingSupplier.balance || 0);
     const maxDue = rawDue < 1 ? 0 : Math.round(rawDue);
 
     if (amt <= 0) {
@@ -353,12 +358,12 @@ export const Suppliers = () => {
     }
 
     if (maxDue <= 0) {
-      toast.warning('This supplier account is already fully settled (Rs. 0 balance). No payment is required.');
+      toast.warning('This account/invoice is already fully settled (Rs. 0 balance). No payment is required.');
       return;
     }
 
     if (amt > maxDue) {
-      toast.warning(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed the supplier's outstanding payable balance of Rs. ${maxDue.toLocaleString()}.`);
+      toast.warning(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed the outstanding balance of Rs. ${maxDue.toLocaleString()}.`);
       return;
     }
 
@@ -375,11 +380,13 @@ export const Suppliers = () => {
         partyType: 'Supplier',
         amount: amt,
         paymentMode: payMode,
-        note: payNote
+        note: payNote || (selectedPur ? `Payment for Purchase (${selectedPur.purchaseNo || selectedPur.id})` : 'Supplier settlement payment'),
+        purchaseId: selectedPayPurchaseId || null
       });
 
       toast.success(`Payment of Rs. ${amt.toLocaleString()} recorded for ${payingSupplier.name}!`);
       setPayingSupplier(null);
+      setSelectedPayPurchaseId('');
       setPayAmount('');
       setPayNote('');
     } catch (err) {
@@ -1909,7 +1916,22 @@ export const Suppliers = () => {
       {/* 4. PAY SUPPLIER MODAL (Cash / Bank Settlement Drawer) */}
       {/* ========================================================================= */}
       {payingSupplier && (() => {
-        const rawBal = Number(payingSupplier.balance || 0);
+        const supPurchasesWithDue = (purchases || []).filter(p => {
+          const pSupId = p.supplierId ? String(p.supplierId) : (p.supplierid ? String(p.supplierid) : null);
+          const pSupName = (p.supplier || p.supplierName || p.suppliername || '').trim().toLowerCase();
+          const sId = payingSupplier.id ? String(payingSupplier.id) : null;
+          const sName = (payingSupplier.name || '').trim().toLowerCase();
+          return (sId && pSupId && pSupId === sId) || (sName && pSupName && pSupName === sName);
+        }).map(p => {
+          const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+          return { ...p, fin };
+        }).filter(p => p.fin.due > 0);
+
+        const selectedPurchaseObj = selectedPayPurchaseId
+          ? supPurchasesWithDue.find(p => String(p.id) === String(selectedPayPurchaseId))
+          : null;
+
+        const rawBal = selectedPurchaseObj ? selectedPurchaseObj.fin.due : Number(payingSupplier.balance || 0);
         const currentPayable = rawBal < 1 ? 0 : Math.round(rawBal);
         const numAmt = parseInt(payAmount, 10) || 0;
         const remainingAfter = Math.max(0, currentPayable - numAmt);
@@ -1917,7 +1939,12 @@ export const Suppliers = () => {
 
         return (
           <div
-            onClick={(e) => { if (e.target === e.currentTarget) setPayingSupplier(null); }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setPayingSupplier(null);
+                setSelectedPayPurchaseId('');
+              }
+            }}
             className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
           >
             <div className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 card-shadow border my-auto transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
@@ -1941,7 +1968,10 @@ export const Suppliers = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setPayingSupplier(null)}
+                  onClick={() => {
+                    setPayingSupplier(null);
+                    setSelectedPayPurchaseId('');
+                  }}
                   className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
@@ -1971,6 +2001,36 @@ export const Suppliers = () => {
               </div>
 
               <form onSubmit={handleExecuteSupplierPayment} className="space-y-4 mt-4">
+                {/* Purchase / Invoice Selector */}
+                {supPurchasesWithDue.length > 0 && (
+                  <div>
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1.5">
+                      LINK PAYMENT TO PURCHASE INVOICE *
+                    </label>
+                    <select
+                      value={selectedPayPurchaseId}
+                      onChange={(e) => {
+                        const newId = e.target.value;
+                        setSelectedPayPurchaseId(newId);
+                        const match = supPurchasesWithDue.find(p => String(p.id) === String(newId));
+                        if (match) {
+                          setPayAmount(match.fin.due.toString());
+                        }
+                      }}
+                      className={`w-full border-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold outline-none transition ${theme === 'dark'
+                        ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                      }`}
+                    >
+                      <option value="">-- General Supplier Khata / Multiple Invoices --</option>
+                      {supPurchasesWithDue.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.purchaseNo || `PUR-${p.id}`} • Due: Rs. {p.fin.due.toLocaleString()} (Date: {p.date || 'N/A'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {/* Payment Amount Input */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
