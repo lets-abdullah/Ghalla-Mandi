@@ -254,26 +254,6 @@ export const Suppliers = () => {
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [viewingSupplier, setViewingSupplier] = useState(null);
   const [viewingTab, setViewingTab] = useState('all'); // 'all' | 'purchases' | 'payments' | 'info'
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Pay Supplier Modal State
-  const [payingSupplier, setPayingSupplier] = useState(null);
-  const [payAmount, setPayAmount] = useState('');
-  const [payMode, setPayMode] = useState('Cash');
-  const [payNote, setPayNote] = useState('');
-  const [selectedPayPurchaseId, setSelectedPayPurchaseId] = useState('');
-  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
-  const [isProcessingPay, setIsProcessingPay] = useState(false);
-
-  // Available liquid balance for selected payment account
-  const availableLiquidForPayMode = useMemo(() => {
-    const current = liquidBalances || computeLiquidBalances(sales, purchases, saleReturns, purchaseReturns, paymentLogs, expenses);
-    const m = String(payMode || 'Cash').toLowerCase();
-    if (m.includes('bank') || m.includes('transfer')) return { label: 'Bank Account', amount: current.bankBalance };
-    if (m.includes('card') || m.includes('pos')) return { label: 'Card Account', amount: current.cardBalance };
-    return { label: 'Cash in Hand', amount: current.cashInHand };
-  }, [liquidBalances, sales, purchases, paymentLogs, expenses, saleReturns, purchaseReturns, payMode]);
-
   // Quick Add Product & Category State
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
@@ -319,82 +299,14 @@ export const Suppliers = () => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (payingSupplier) setPayingSupplier(null);
-        else if (showAddModal) setShowAddModal(false);
+        if (showAddModal) setShowAddModal(false);
         else if (editingSupplier) setEditingSupplier(null);
         else if (viewingSupplier) setViewingSupplier(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAddModal, editingSupplier, viewingSupplier, payingSupplier]);
-
-  const handleOpenPayModal = (supplier) => {
-    const fullSup = processedSuppliers.find(s => s.id === supplier.id) || supplier;
-    const rawBal = Number(fullSup.balance || 0);
-    const bal = rawBal < 1 ? 0 : Math.round(rawBal);
-    setPayingSupplier(fullSup);
-    setPayAmount(bal > 0 ? bal.toString() : '');
-    setPayMode('Cash');
-    setPayDate(new Date().toISOString().split('T')[0]);
-    setPayNote(`Settlement payment to ${fullSup.name}`);
-  };
-
-  const handleExecuteSupplierPayment = async (e) => {
-    e.preventDefault();
-    if (!payingSupplier || isProcessingPay) return;
-
-    const amt = parseInt(payAmount, 10) || 0;
-    const selectedPur = selectedPayPurchaseId
-      ? (purchases || []).find(p => String(p.id) === String(selectedPayPurchaseId))
-      : null;
-    const purFin = selectedPur ? computePurchaseFinancials(selectedPur, purchaseReturns, paymentLogs, purchases) : null;
-    const rawDue = purFin ? purFin.due : Number(payingSupplier.balance || 0);
-    const maxDue = rawDue < 1 ? 0 : Math.round(rawDue);
-
-    if (amt <= 0) {
-      toast.warning('Please enter a valid whole payment amount.');
-      return;
-    }
-
-    if (maxDue <= 0) {
-      toast.warning('This account/invoice is already fully settled (Rs. 0 balance). No payment is required.');
-      return;
-    }
-
-    if (amt > maxDue) {
-      toast.warning(`Payment amount (Rs. ${amt.toLocaleString()}) cannot exceed the outstanding balance of Rs. ${maxDue.toLocaleString()}.`);
-      return;
-    }
-
-    if (amt > availableLiquidForPayMode.amount) {
-      toast.error(`Insufficient Balance in ${availableLiquidForPayMode.label} — Available: Rs. ${availableLiquidForPayMode.amount.toLocaleString()}`);
-      return;
-    }
-
-    setIsProcessingPay(true);
-    try {
-      await recordPayment({
-        partyId: payingSupplier.id,
-        partyName: payingSupplier.name,
-        partyType: 'Supplier',
-        amount: amt,
-        paymentMode: payMode,
-        note: payNote || (selectedPur ? `Payment for Purchase (${selectedPur.purchaseNo || selectedPur.id})` : 'Supplier settlement payment'),
-        purchaseId: selectedPayPurchaseId || null
-      });
-
-      toast.success(`Payment of Rs. ${amt.toLocaleString()} recorded for ${payingSupplier.name}!`);
-      setPayingSupplier(null);
-      setSelectedPayPurchaseId('');
-      setPayAmount('');
-      setPayNote('');
-    } catch (err) {
-      toast.error(err.message || 'Failed to record payment to supplier');
-    } finally {
-      setIsProcessingPay(false);
-    }
-  };
+  }, [showAddModal, editingSupplier, viewingSupplier]);
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
@@ -898,22 +810,16 @@ export const Suppliers = () => {
                       </td>
                       <td className="py-3 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Pay Supplier Action */}
                           {bal > 0 ? (
-                            <button
-                              onClick={() => handleOpenPayModal(s)}
-                              className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-98"
-                              title="Pay Supplier / Settle Liability"
-                            >
-                              <CreditCard className="w-3.5 h-3.5" />
-                              <span>Pay Supplier</span>
-                            </button>
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-500 font-mono px-2 py-1 bg-rose-500/10 rounded-lg">
+                              Rs. {bal.toLocaleString()} Due
+                            </span>
                           ) : refDue > 0 ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 dark:text-teal-400 font-mono">
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 dark:text-teal-400 font-mono px-2 py-1 bg-teal-500/10 rounded-lg">
                               <RotateCcw className="w-3.5 h-3.5" /> Refund Due
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 px-2 py-1 bg-emerald-500/10 rounded-lg">
                               <Check className="w-3.5 h-3.5" /> Settled
                             </span>
                           )}
@@ -1567,20 +1473,6 @@ export const Suppliers = () => {
 
                 {/* Header Action Buttons */}
                 <div className="flex items-center gap-2 self-end sm:self-center">
-                  {balanceDueVal > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const supToPay = fullSup;
-                        setViewingSupplier(null);
-                        handleOpenPayModal(supToPay);
-                      }}
-                      className="inline-flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs px-4 py-2.5 rounded-2xl transition shadow-lg shadow-emerald-500/25 cursor-pointer active:scale-95"
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      <span>Pay Supplier</span>
-                    </button>
-                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -1912,292 +1804,6 @@ export const Suppliers = () => {
         );
       })()}
 
-      {/* ========================================================================= */}
-      {/* 4. PAY SUPPLIER MODAL (Cash / Bank Settlement Drawer) */}
-      {/* ========================================================================= */}
-      {payingSupplier && (() => {
-        const supPurchasesWithDue = (purchases || []).filter(p => {
-          const pSupId = p.supplierId ? String(p.supplierId) : (p.supplierid ? String(p.supplierid) : null);
-          const pSupName = (p.supplier || p.supplierName || p.suppliername || '').trim().toLowerCase();
-          const sId = payingSupplier.id ? String(payingSupplier.id) : null;
-          const sName = (payingSupplier.name || '').trim().toLowerCase();
-          return (sId && pSupId && pSupId === sId) || (sName && pSupName && pSupName === sName);
-        }).map(p => {
-          const fin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
-          return { ...p, fin };
-        }).filter(p => p.fin.due > 0);
-
-        const selectedPurchaseObj = selectedPayPurchaseId
-          ? supPurchasesWithDue.find(p => String(p.id) === String(selectedPayPurchaseId))
-          : null;
-
-        const rawBal = selectedPurchaseObj ? selectedPurchaseObj.fin.due : Number(payingSupplier.balance || 0);
-        const currentPayable = rawBal < 1 ? 0 : Math.round(rawBal);
-        const numAmt = parseInt(payAmount, 10) || 0;
-        const remainingAfter = Math.max(0, currentPayable - numAmt);
-        const isInsufficientBalance = numAmt > availableLiquidForPayMode.amount;
-
-        return (
-          <div
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setPayingSupplier(null);
-                setSelectedPayPurchaseId('');
-              }
-            }}
-            className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          >
-            <div className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 card-shadow border my-auto transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black border border-emerald-200/60 dark:border-emerald-800/40 shrink-0">
-                    <CreditCard className="w-5.5 h-5.5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                      Pay Supplier
-                    </h3>
-                    <p className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mt-0.5">
-                      <span className="font-bold text-slate-700 dark:text-slate-200">{payingSupplier.name}</span>
-                      <span>•</span>
-                      <span className="text-slate-400 font-semibold">{payingSupplier.businessName || payingSupplier.city || 'Supplier Account'}</span>
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPayingSupplier(null);
-                    setSelectedPayPurchaseId('');
-                  }}
-                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* 3-Column Financial Summary Card */}
-              <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-700 text-center">
-                <div className="px-2">
-                  <span className="text-[10px] uppercase font-black tracking-wider text-rose-600 dark:text-rose-400 block">Outstanding Payable</span>
-                  <span className="font-mono font-black text-rose-600 dark:text-rose-400 text-sm sm:text-base mt-1 block">
-                    Rs. {currentPayable.toLocaleString()}
-                  </span>
-                </div>
-                <div className="px-2">
-                  <span className="text-[10px] uppercase font-black tracking-wider text-emerald-600 dark:text-emerald-400 block">Payment Amount</span>
-                  <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
-                    Rs. {numAmt.toLocaleString()}
-                  </span>
-                </div>
-                <div className="px-2">
-                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">Remaining Payable</span>
-                  <span className={`font-mono font-black text-sm sm:text-base mt-1 block ${remainingAfter === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
-                    Rs. {remainingAfter.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-
-              <form onSubmit={handleExecuteSupplierPayment} className="space-y-4 mt-4">
-                {/* Purchase / Invoice Selector */}
-                {supPurchasesWithDue.length > 0 && (
-                  <div>
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1.5">
-                      LINK PAYMENT TO PURCHASE INVOICE *
-                    </label>
-                    <select
-                      value={selectedPayPurchaseId}
-                      onChange={(e) => {
-                        const newId = e.target.value;
-                        setSelectedPayPurchaseId(newId);
-                        const match = supPurchasesWithDue.find(p => String(p.id) === String(newId));
-                        if (match) {
-                          setPayAmount(match.fin.due.toString());
-                        }
-                      }}
-                      className={`w-full border-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold outline-none transition ${theme === 'dark'
-                        ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
-                        : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
-                      }`}
-                    >
-                      <option value="">-- General Supplier Khata / Multiple Invoices --</option>
-                      {supPurchasesWithDue.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.purchaseNo || `PUR-${p.id}`} • Due: Rs. {p.fin.due.toLocaleString()} (Date: {p.date || 'N/A'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                {/* Payment Amount Input */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
-                      PAYMENT AMOUNT (RS.) *
-                    </label>
-                    {currentPayable > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setPayAmount(currentPayable.toString())}
-                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                      >
-                        Full Amount (Rs. {currentPayable.toLocaleString()})
-                      </button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      required
-                      autoFocus
-                      value={payAmount}
-                      onWheel={(e) => e.target.blur()}
-                      onFocus={(e) => e.target.select()}
-                      onKeyDown={(e) => {
-                        if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
-                          e.preventDefault();
-                        }
-                      }}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/[^0-9]/g, '');
-                        if (raw === '') {
-                          setPayAmount('');
-                          return;
-                        }
-                        const num = parseInt(raw, 10) || 0;
-                        if (currentPayable > 0 && num > currentPayable) {
-                          setPayAmount(currentPayable.toString());
-                        } else {
-                          setPayAmount(num.toString());
-                        }
-                      }}
-                      placeholder={`Max Rs. ${currentPayable.toLocaleString()}`}
-                      className={`w-full border-2 rounded-2xl px-4 py-3 text-base font-black font-mono outline-none transition ${theme === 'dark'
-                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
-                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Payment Method Selector Cards */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
-                      PAYMENT METHOD *
-                    </label>
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                      Avail: Rs. {availableLiquidForPayMode.amount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2.5">
-                    {[
-                      { id: 'Cash', label: 'Cash in Hand', icon: Banknote },
-                      { id: 'Bank', label: 'Bank Transfer', icon: Landmark },
-                      { id: 'Card', label: 'Card', icon: CreditCard }
-                    ].map((mode) => {
-                      const Icon = mode.icon;
-                      const isSelected = payMode === mode.id || (mode.id === 'Bank' && (payMode === 'Bank Transfer' || payMode === 'Bank Account'));
-                      return (
-                        <button
-                          key={mode.id}
-                          type="button"
-                          onClick={() => setPayMode(mode.id)}
-                          className={`relative py-3 px-2 sm:px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${isSelected
-                              ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-black shadow-2xs'
-                              : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
-                            }`}
-                        >
-                          <Icon className="w-4 h-4 shrink-0" />
-                          <span className="truncate">{mode.label}</span>
-                          {isSelected && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 absolute top-1.5 right-1.5 shrink-0" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Insufficient Balance Alert Banner */}
-                {isInsufficientBalance && (
-                  <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2.5 shadow-2xs">
-                    <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-                    <span>⚠️ Insufficient Balance — Available: Rs. {availableLiquidForPayMode.amount.toLocaleString()} ({availableLiquidForPayMode.label})</span>
-                  </div>
-                )}
-
-                {/* Settlement Banner */}
-                {remainingAfter === 0 && numAmt > 0 && !isInsufficientBalance && (
-                  <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-2.5 shadow-2xs">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span>✓ Balance after payment: Rs. 0 (Fully Settled)</span>
-                  </div>
-                )}
-
-                {/* Date & Note Fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1">
-                      PAYMENT DATE
-                    </label>
-                    <input
-                      type="date"
-                      value={payDate}
-                      onChange={(e) => setPayDate(e.target.value)}
-                      className={`w-full border-2 rounded-2xl px-3.5 py-2 text-xs font-bold outline-none transition ${theme === 'dark'
-                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
-                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
-                        }`}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1">
-                      NOTE / REFERENCE (OPTIONAL)
-                    </label>
-                    <input
-                      type="text"
-                      value={payNote}
-                      onChange={(e) => setPayNote(e.target.value)}
-                      placeholder="e.g. Paid via cheque #, cash voucher..."
-                      className={`w-full border-2 rounded-2xl px-3.5 py-2 text-xs font-semibold outline-none transition ${theme === 'dark'
-                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
-                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
-                        }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setPayingSupplier(null)}
-                    className={`w-1/2 py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
-                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                      }`}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isProcessingPay || isInsufficientBalance || numAmt <= 0}
-                    className="w-1/2 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition cursor-pointer active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>{isProcessingPay ? 'Processing...' : 'Confirm Payment'}</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* ========================================================================= */}
       {/* 4. QUICK ADD NEW PRODUCT MODAL (Layered on top of Supplier dialog at z-[100]) */}

@@ -285,12 +285,12 @@ export const Sales = () => {
   };
 
   const openPaymentModal = (sale) => {
-    const paid = Number(sale.paidAmount || 0);
-    const total = Number(sale.amount || 0);
-    const due = Math.max(0, total - paid);
+    const fin = computeSaleFinancials(sale, saleReturns, paymentLogs, sales);
+    const rawDue = fin ? fin.due : Math.max(0, Number(sale.amount || 0) - Number(sale.paidAmount || 0));
+    const due = rawDue < 1 ? 0 : Math.round(rawDue);
 
     setPaymentModalSale(sale);
-    setPaymentAmount(due > 0 ? due : '');
+    setPaymentAmount(due > 0 ? due.toString() : '');
     setPaymentMode('Cash');
     setPaymentNote(`Payment for ${sale.invoiceNo}`);
   };
@@ -300,10 +300,8 @@ export const Sales = () => {
     if (!paymentModalSale || isSubmitting) return;
 
     const val = Math.max(1, parseInt(paymentAmount, 10) || 0);
-    const paid = Math.round(Number(paymentModalSale.paidAmount || 0));
-    const total = Math.round(Number(paymentModalSale.amount || 0));
-    const retAmt = Math.round(Number(paymentModalSale.returnAmount || 0));
-    const rawDue = total - paid - retAmt;
+    const fin = computeSaleFinancials(paymentModalSale, saleReturns, paymentLogs, sales);
+    const rawDue = fin ? fin.due : Math.max(0, Number(paymentModalSale.amount || 0) - Number(paymentModalSale.paidAmount || 0));
     const due = rawDue < 1 ? 0 : Math.round(rawDue);
 
     if (val > due) {
@@ -761,6 +759,18 @@ export const Sales = () => {
                             <span>View</span>
                           </button>
 
+                          {due > 0 && !isFullyReturned && (
+                            <button
+                              type="button"
+                              onClick={() => openPaymentModal(s)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition cursor-pointer text-xs font-bold active:scale-98"
+                              title="Receive Payment for this Sale"
+                            >
+                              <DollarSign className="w-3.5 h-3.5" />
+                              <span>Receive</span>
+                            </button>
+                          )}
+
                           {!isFullyReturned && (
                             <button
                               type="button"
@@ -795,109 +805,132 @@ export const Sales = () => {
       {/* ========================================================================= */}
 
       {/* 1. Payment Received Modal */}
-      {paymentModalSale && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setPaymentModalSale(null); }}
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-        >
-          <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                  <DollarSign className="w-5 h-5 stroke-[2.5]" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold">{t('Received') || 'Receive Payment'}</h3>
-                  <p className="text-[11px] text-slate-400 font-mono font-bold">{paymentModalSale.invoiceNo}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPaymentModalSale(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-                title={t('close')}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {paymentModalSale && (() => {
+        const fin = computeSaleFinancials(paymentModalSale, saleReturns, paymentLogs, sales);
+        const gross = fin ? fin.grossTotal : Number(paymentModalSale.amount || 0);
+        const paid = fin ? fin.paid : Number(paymentModalSale.paidAmount || 0);
+        const retAmt = fin ? fin.returnAmount : Number(paymentModalSale.returnAmount || 0);
+        const maxDue = fin ? fin.due : Math.max(0, gross - paid - retAmt);
+        const numAmt = parseInt(paymentAmount, 10) || 0;
+        const remainingAfter = Math.max(0, maxDue - numAmt);
 
-            {/* Invoice Breakdown Summary */}
-            <div className={`rounded-2xl p-3.5 space-y-2 border text-xs font-semibold ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+        return (
+          <div
+            onClick={(e) => { if (e.target === e.currentTarget) setPaymentModalSale(null); }}
+            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          >
+            <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
-              <div className="flex justify-between items-center text-slate-400">
-                <span>{t('customerParty')}:</span>
-                <span className="font-extrabold text-slate-900 dark:text-white">{paymentModalSale.partyName}</span>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <DollarSign className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold">{t('Received') || 'Receive Payment'}</h3>
+                    <p className="text-[11px] text-slate-400 font-mono font-bold">{paymentModalSale.invoiceNo}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPaymentModalSale(null)}
+                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
+                  title={t('close')}
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">{t('totalInvoiceAmount')}:</span>
-                <span className="font-bold text-slate-900 dark:text-white">Rs. {Number(paymentModalSale.amount || 0).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
-                <span>{t('alreadyPaid')}:</span>
-                <span className="font-bold">Rs. {Number(paymentModalSale.paidAmount || 0).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center pt-1.5 border-t border-slate-200 dark:border-slate-700 text-rose-500 font-extrabold text-xs">
-                <span>{t('remainingDue')}:</span>
-                <span className="text-sm font-black">
-                  Rs. {Math.max(0, Number(paymentModalSale.amount || 0) - Number(paymentModalSale.paidAmount || 0)).toLocaleString()}
-                </span>
-              </div>
-            </div>
 
-            <form onSubmit={handlePaymentSubmit} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-bold text-slate-400 block mb-1">
-                  {t('paymentAmountReceived')} *
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  max={Math.max(1, Math.round(Number(paymentModalSale?.amount || 0) - Number(paymentModalSale?.paidAmount || 0)))}
-                  step="1"
-                  autoFocus
-                  onWheel={(e) => e.target.blur()}
-                  onFocus={(e) => e.target.select()}
-                  value={paymentAmount}
-                  onKeyDown={(e) => {
-                    if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
-                      e.preventDefault();
-                    }
-                  }}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^0-9]/g, '');
-                    const maxDue = Math.max(0, Math.round(Number(paymentModalSale?.amount || 0) - Number(paymentModalSale?.paidAmount || 0)));
-                    if (raw === '') {
-                      setPaymentAmount('');
-                      return;
-                    }
-                    const num = parseInt(raw, 10) || 0;
-                    if (maxDue > 0 && num > maxDue) {
-                      setPaymentAmount(maxDue.toString());
-                    } else {
-                      setPaymentAmount(num.toString());
-                    }
-                  }}
-                  placeholder={t('enterPaymentAmount')}
-                  className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                />
+              {/* Invoice Breakdown Summary */}
+              <div className={`rounded-2xl p-3.5 space-y-2 border text-xs font-semibold ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+                }`}>
+                <div className="flex justify-between items-center text-slate-400">
+                  <span>{t('customerParty')}:</span>
+                  <span className="font-extrabold text-slate-900 dark:text-white">{paymentModalSale.partyName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">{t('totalInvoiceAmount')}:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">Rs. {gross.toLocaleString()}</span>
+                </div>
+                {retAmt > 0 && (
+                  <div className="flex justify-between items-center text-amber-600 dark:text-amber-400">
+                    <span>Returned Items:</span>
+                    <span className="font-bold">- Rs. {retAmt.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
+                  <span>{t('alreadyPaid')}:</span>
+                  <span className="font-bold">Rs. {paid.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center pt-1.5 border-t border-slate-200 dark:border-slate-700 text-rose-500 font-extrabold text-xs">
+                  <span>{t('remainingDue')}:</span>
+                  <span className="text-sm font-black">
+                    Rs. {maxDue.toLocaleString()}
+                  </span>
+                </div>
+              </div>
 
-                {/* Live Remaining Balance Calculation Preview */}
-                {paymentModalSale && (
+              <form onSubmit={handlePaymentSubmit} className="space-y-3.5">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-400 block">
+                      {t('paymentAmountReceived')} *
+                    </label>
+                    {maxDue > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentAmount(maxDue.toString())}
+                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                      >
+                        Full Due (Rs. {maxDue.toLocaleString()})
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    max={Math.max(1, maxDue)}
+                    step="1"
+                    autoFocus
+                    onWheel={(e) => e.target.blur()}
+                    onFocus={(e) => e.target.select()}
+                    value={paymentAmount}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^0-9]/g, '');
+                      if (raw === '') {
+                        setPaymentAmount('');
+                        return;
+                      }
+                      const num = parseInt(raw, 10) || 0;
+                      if (maxDue > 0 && num > maxDue) {
+                        setPaymentAmount(maxDue.toString());
+                      } else {
+                        setPaymentAmount(num.toString());
+                      }
+                    }}
+                    placeholder={t('enterPaymentAmount')}
+                    className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                  />
+
+                  {/* Live Remaining Balance Calculation Preview */}
                   <div className="mt-1.5 flex items-center justify-between text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/50">
                     <span className="text-slate-500 dark:text-slate-400">Balance after payment:</span>
-                    <span className={`font-mono ${Math.max(0, (Number(paymentModalSale.amount || 0) - Number(paymentModalSale.paidAmount || 0)) - (Number(paymentAmount) || 0)) === 0
+                    <span className={`font-mono ${remainingAfter === 0
                       ? 'text-emerald-600 dark:text-emerald-400 font-black'
                       : 'text-amber-600 dark:text-amber-400 font-black'
                       }`}>
-                      Rs. {Math.max(0, (Number(paymentModalSale.amount || 0) - Number(paymentModalSale.paidAmount || 0)) - (Number(paymentAmount) || 0)).toLocaleString()}
-                      {Math.max(0, (Number(paymentModalSale.amount || 0) - Number(paymentModalSale.paidAmount || 0)) - (Number(paymentAmount) || 0)) === 0 && ' (Fully Settled)'}
+                      Rs. {remainingAfter.toLocaleString()}
+                      {remainingAfter === 0 && numAmt > 0 && ' (Fully Settled)'}
                     </span>
                   </div>
-                )}
-              </div>
+                </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -948,7 +981,8 @@ export const Sales = () => {
             </form>
           </div>
         </div>
-      )}
+      );
+    })()}
 
       {/* 3. Receipt / View Modal */}
       {activeReceiptModal && (
