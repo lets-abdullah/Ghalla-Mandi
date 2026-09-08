@@ -254,6 +254,7 @@ export const Suppliers = () => {
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [viewingSupplier, setViewingSupplier] = useState(null);
   const [viewingTab, setViewingTab] = useState('all'); // 'all' | 'purchases' | 'payments' | 'info'
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // Quick Add Product & Category State
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
