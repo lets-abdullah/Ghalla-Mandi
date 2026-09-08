@@ -136,6 +136,7 @@ export const createSale = async (req, res) => {
         discount: discountVal,
         tax: taxVal,
         paidAmount: paid,
+        initialPaidAmount: paid,
         returnAmount: 0,
         netAmount: grandTotal,
         profit: Math.round(totalProfit),
@@ -146,12 +147,12 @@ export const createSale = async (req, res) => {
         cart: processedCart
       });
 
-      if (targetCustId && cust && paid > 0) {
+      if (paid > 0) {
         await Ledger.create({
           shop_id: req.shop_id,
-          partyId: cust.id,
+          partyId: cust?.id || (targetCustId && !String(targetCustId).startsWith('walkin-') ? targetCustId : null),
           partyType: 'Customer',
-          partyName: cust.name,
+          partyName: activePartyName,
           amount: paid,
           mode: `${paymentMethod || 'Cash'} (POS)`,
           date: dateStr,

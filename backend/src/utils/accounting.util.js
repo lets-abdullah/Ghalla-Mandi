@@ -13,12 +13,12 @@ export const computeInvoiceFinancials = ({
 }) => {
   const origAmt = Number(grossAmount) || 0;
   const totalReturnAmt = Number(returnAmount) || 0;
-  const historicalPaid = Number(grossPaid) || 0;
+  const totalReceived = Number(grossPaid) || 0;
   const netAmt = Math.max(0, origAmt - totalReturnAmt);
 
-  const effectivePaid = Math.min(netAmt, historicalPaid);
-  const due = Math.max(0, netAmt - effectivePaid);
-  const actualCashRefund = Math.max(0, historicalPaid - netAmt);
+  const effectivePaid = Math.min(netAmt, totalReceived);
+  const due = Math.max(0, netAmt - totalReceived);
+  const actualCashRefund = Math.max(0, totalReceived - netAmt);
   const isFull = (totalReturnAmt >= origAmt || netAmt === 0) && origAmt > 0;
   const status = isFull
     ? 'Returned'
@@ -28,7 +28,8 @@ export const computeInvoiceFinancials = ({
     grossAmount: origAmt,
     totalReturnAmt,
     netAmt,
-    historicalPaid,
+    historicalPaid: totalReceived,
+    totalReceived,
     cashRefundAmt: actualCashRefund,
     effectivePaid,
     due,
@@ -107,18 +108,34 @@ export const syncCustomerBalance = async (customerId, shop_id, dbRun) => {
   );
   const directPaidLogs = paymentRows.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-  // Upfront POS payments on sales that do not have a separate payment log
+  // Upfront POS payments on sales that do not have an explicit POS payment log in paymentRows
   let unloggedUpfrontCash = 0;
   salesRows.forEach(s => {
-    const hasMatchingLog = paymentRows.some(p =>
-      (p.saleId && String(p.saleId) === String(s.id)) ||
-      (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+    const hasMatchingPosLog = paymentRows.some(p =>
+      ((p.saleId && String(p.saleId) === String(s.id)) || (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))) &&
+      (String(p.ref || '').includes('POS-PAY') || String(p.mode || '').toLowerCase().includes('pos'))
     );
-    if (!hasMatchingLog) {
+    if (!hasMatchingPosLog) {
       const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandtotal !== undefined ? s.grandtotal : 0));
+      const sInitial = Number(s.initialpaidamount !== undefined ? s.initialpaidamount : (s.initialPaidAmount !== undefined ? s.initialPaidAmount : 0));
       const sPaid = Number(s.paidAmount !== undefined ? s.paidAmount : (s.paidamount || 0));
-      if (sPaid > 0) {
-        unloggedUpfrontCash += Math.min(sTotal, sPaid);
+
+      const sNonPosLogs = paymentRows.filter(p =>
+        ((p.saleId && String(p.saleId) === String(s.id)) || (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))) &&
+        !String(p.ref || '').includes('POS-PAY') && !String(p.mode || '').toLowerCase().includes('pos')
+      ).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+      let initialPos = 0;
+      if (sInitial > 0) {
+        initialPos = sInitial;
+      } else if (sNonPosLogs === 0) {
+        initialPos = sPaid;
+      } else {
+        initialPos = sPaid > sNonPosLogs ? (sPaid - sNonPosLogs) : 0;
+      }
+
+      if (initialPos > 0) {
+        unloggedUpfrontCash += Math.min(sTotal, initialPos);
       }
     }
   });

@@ -11,6 +11,7 @@ const mapSaleRow = (r) => {
   const discount = Number(r.discount !== undefined ? r.discount : 0);
   const tax = Number(r.tax !== undefined ? r.tax : 0);
   const paidAmount = Number(r.paidamount !== undefined ? r.paidamount : (r.paidAmount !== undefined ? r.paidAmount : 0));
+  const initialPaidAmount = Number(r.initialpaidamount !== undefined ? r.initialpaidamount : (r.initialPaidAmount !== undefined ? r.initialPaidAmount : paidAmount));
   const returnAmount = Number(r.returnamount !== undefined ? r.returnamount : (r.returnAmount !== undefined ? r.returnAmount : 0));
   const netAmount = Number(r.netamount !== undefined ? r.netamount : (r.netAmount !== undefined ? r.netAmount : Math.max(0, amount - returnAmount)));
   const profit = Number(r.profit !== undefined ? r.profit : (r.profitmargin !== undefined ? r.profitmargin : (r.profitMargin !== undefined ? r.profitMargin : 0)));
@@ -44,6 +45,8 @@ const mapSaleRow = (r) => {
     netamount: netAmount,
     paidAmount,
     paidamount: paidAmount,
+    initialPaidAmount,
+    initialpaidamount: initialPaidAmount,
     paymentMode,
     paymentmode: paymentMode,
     paymentMethod: paymentMode,
@@ -110,6 +113,7 @@ export const Sale = {
     const returnAmount = Number(saleData.returnAmount) || 0;
     const netAmount = Number(saleData.netAmount !== undefined ? saleData.netAmount : Math.max(0, amount - returnAmount));
     const paidAmount = Number(saleData.paidAmount !== undefined ? saleData.paidAmount : (saleData.paidamount !== undefined ? saleData.paidamount : 0));
+    const initialPaidAmount = Number(saleData.initialPaidAmount !== undefined ? saleData.initialPaidAmount : paidAmount);
     const paymentMode = saleData.paymentMode || saleData.paymentMethod || 'Cash';
     const profit = Number(saleData.profit || saleData.profitMargin) || 0;
     const status = saleData.status || saleData.paymentStatus || ((paidAmount >= netAmount && netAmount > 0) ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending');
@@ -118,8 +122,8 @@ export const Sale = {
     const cartJson = JSON.stringify(cart);
 
     await run(
-      'INSERT INTO sales (id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, discount, tax, paidAmount, returnAmount, netAmount, paymentMode, profit, status, itemsCount, cartJson) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)',
-      [id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, discount, tax, paidAmount, returnAmount, netAmount, paymentMode, profit, status, itemsCount, cartJson]
+      'INSERT INTO sales (id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, discount, tax, paidAmount, initialPaidAmount, returnAmount, netAmount, paymentMode, profit, status, itemsCount, cartJson) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)',
+      [id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, discount, tax, paidAmount, initialPaidAmount, returnAmount, netAmount, paymentMode, profit, status, itemsCount, cartJson]
     );
 
     return await this.findById(id, shop_id);
@@ -141,6 +145,7 @@ export const Sale = {
     if (updateData.discount !== undefined) { fields.push(`discount = $${paramIndex++}`); params.push(Number(updateData.discount)); }
     if (updateData.tax !== undefined) { fields.push(`tax = $${paramIndex++}`); params.push(Number(updateData.tax)); }
     if (updateData.paidAmount !== undefined) { fields.push(`paidAmount = $${paramIndex++}`); params.push(Number(updateData.paidAmount)); }
+    if (updateData.initialPaidAmount !== undefined) { fields.push(`initialPaidAmount = $${paramIndex++}`); params.push(Number(updateData.initialPaidAmount)); }
     if (updateData.returnAmount !== undefined) { fields.push(`returnAmount = $${paramIndex++}`); params.push(Number(updateData.returnAmount)); }
     if (updateData.netAmount !== undefined) { fields.push(`netAmount = $${paramIndex++}`); params.push(Number(updateData.netAmount)); }
     if (updateData.paymentMode !== undefined || updateData.paymentMethod !== undefined) {

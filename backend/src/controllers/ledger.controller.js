@@ -88,7 +88,13 @@ const recomputePurchasePaidFromLogs = async (purchaseId, shop_id) => {
 };
 
 /**
- * Mirror for sales — recompute sale.paidAmount from its payment_logs.
+ * Mirror for sales — recompute sale.paidAmount from its canonical transactions.
+ * Strict Source-of-Truth Hierarchy for Initial POS Payment:
+ * 1. Existing POS-PAY log for this sale in payment_logs.
+ * 2. Immutable sale.initialPaidAmount stored on the sale record.
+ * 3. Legacy sale.paidAmount ONLY if there are no non-POS payment logs for this sale at all.
+ * 4. Never treat a later non-POS payment as the initial payment.
+ * 5. If backfilling a missing POS log, only backfill the true initial payment.
  */
 const recomputeSalePaidFromLogs = async (saleId, shop_id) => {
   if (!saleId || !shop_id) return null;
@@ -97,38 +103,76 @@ const recomputeSalePaidFromLogs = async (saleId, shop_id) => {
   if (!sale) return null;
 
   const logs = await query(
-    `SELECT amount FROM payment_logs
+    `SELECT amount, ref, mode FROM payment_logs
      WHERE shop_id = $1 AND saleId = $2
      AND LOWER(mode) NOT IN ('opening balance', 'credit note', 'debit note')`,
     [shop_id, saleId]
   );
-  const totalFromLogs = logs.reduce((sum, l) => sum + Number(l.amount || 0), 0);
 
-  const allLogsForSale = await query(
-    `SELECT id FROM payment_logs WHERE shop_id = $1 AND saleId = $2`,
-    [shop_id, saleId]
+  const posLogs = logs.filter(l =>
+    String(l.ref || '').includes('POS-PAY') ||
+    String(l.mode || '').toLowerCase().includes('pos')
+  );
+  const nonPosLogs = logs.filter(l =>
+    !String(l.ref || '').includes('POS-PAY') &&
+    !String(l.mode || '').toLowerCase().includes('pos')
   );
 
-  let canonicalPaid;
-  if (allLogsForSale.length > 0) {
-    canonicalPaid = totalFromLogs;
+  const totalPosFromLogs = posLogs.reduce((sum, l) => sum + Number(l.amount || 0), 0);
+  const totalNonPosLogs = nonPosLogs.reduce((sum, l) => sum + Number(l.amount || 0), 0);
+
+  let initialPosPayment = 0;
+  if (posLogs.length > 0) {
+    // 1. Existing POS-PAY log for this sale
+    initialPosPayment = totalPosFromLogs;
+  } else if (sale.initialPaidAmount !== undefined && Number(sale.initialPaidAmount) >= 0) {
+    // 2. Immutable initialPaidAmount stored on sale
+    initialPosPayment = Number(sale.initialPaidAmount);
+  } else if (nonPosLogs.length === 0) {
+    // 3. Legacy paidAmount ONLY if there is no payment history at all
+    initialPosPayment = Number(sale.paidAmount || 0);
   } else {
-    canonicalPaid = Number(sale.paidAmount || 0);
+    // Non-POS logs already exist, but no POS-PAY log or initialPaidAmount exists.
+    // Ensure we do not treat later non-POS payment as initial payment.
+    const legacyPaid = Number(sale.paidAmount || 0);
+    initialPosPayment = legacyPaid > totalNonPosLogs ? (legacyPaid - totalNonPosLogs) : 0;
   }
+
+  // If initialPosPayment > 0 and no POS-PAY log exists yet in payment_logs, persist it permanently
+  if (initialPosPayment > 0 && posLogs.length === 0) {
+    const invSuffix = String(sale.invoiceNo || sale.id).split('-').pop();
+    await Ledger.create({
+      shop_id,
+      partyId: sale.customerId || null,
+      partyType: 'Customer',
+      partyName: sale.partyName || 'Customer',
+      amount: initialPosPayment,
+      mode: `${sale.paymentMode || 'Cash'} (POS)`,
+      date: sale.date || new Date().toLocaleDateString('en-GB'),
+      ref: `POS-PAY-${invSuffix}`,
+      note: `Initial POS Payment on Invoice (${sale.invoiceNo})`,
+      saleId: sale.id
+    });
+  }
+
+  const canonicalPaid = initialPosPayment + totalNonPosLogs;
 
   const total = Number(sale.amount || sale.grandTotal || 0);
   const returnAmount = Number(sale.returnAmount || 0);
   const netDueable = Math.max(0, total - returnAmount);
 
-  const newStatus =
-    canonicalPaid >= netDueable && netDueable > 0
+  const isFull = (returnAmount >= total && total > 0) || (netDueable === 0 && total > 0);
+  const newStatus = isFull
+    ? 'Returned'
+    : (canonicalPaid >= netDueable && netDueable > 0
       ? 'Paid'
-      : canonicalPaid > 0
+      : (canonicalPaid > 0
         ? 'Partial'
-        : 'Pending';
+        : 'Pending'));
 
   await Sale.findByIdAndUpdate(sale.id, {
     paidAmount: canonicalPaid,
+    initialPaidAmount: initialPosPayment,
     status: newStatus
   }, { shop_id });
 

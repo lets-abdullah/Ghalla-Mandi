@@ -312,9 +312,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
         onClick={(e) => { if (e.target === e.currentTarget && !completedReturn) onClose(); }}
         className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       >
-        <div className={`rounded-3xl max-w-2xl w-full p-5 sm:p-6 card-shadow border my-auto transition-all ${
-          theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-        }`}>
+        <div className={`rounded-3xl max-w-2xl w-full p-5 sm:p-6 card-shadow border my-auto transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
           {/* Header */}
           <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
@@ -387,9 +386,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
               </div>
 
               {/* Clean Summary Card */}
-              <div className={`border rounded-2xl p-4 text-left space-y-3 text-xs ${
-                theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
-              }`}>
+              <div className={`border rounded-2xl p-4 text-left space-y-3 text-xs ${theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-50 border-slate-200'
+                }`}>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 font-medium">Customer Party:</span>
                   <span className="font-extrabold text-slate-800 dark:text-slate-200">{completedReturn.customerName}</span>
@@ -457,11 +455,10 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                   <button
                     type="button"
                     onClick={() => setShowFullReceiptModal(true)}
-                    className={`flex-1 py-3.5 px-3 rounded-2xl border font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
-                      theme === 'dark'
-                        ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
-                        : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
-                    }`}
+                    className={`flex-1 py-3.5 px-3 rounded-2xl border font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer ${theme === 'dark'
+                      ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200'
+                      : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700'
+                      }`}
                   >
                     <Receipt className="w-4 h-4" />
                     <span>All Sizes / A4 / A5</span>
@@ -470,11 +467,10 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`w-full py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${
-                    theme === 'dark'
-                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-400'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-                  }`}
+                  className={`w-full py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    }`}
                 >
                   Close
                 </button>
@@ -519,14 +515,12 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                       </div>
                     </div>
 
-                    <div className={`border rounded-2xl overflow-hidden ${
-                      theme === 'dark' ? 'border-slate-700 bg-slate-900/60' : 'border-slate-200 bg-slate-50/50'
-                    }`}>
+                    <div className={`border rounded-2xl overflow-hidden ${theme === 'dark' ? 'border-slate-700 bg-slate-900/60' : 'border-slate-200 bg-slate-50/50'
+                      }`}>
                       <div className="overflow-x-auto max-h-60 overflow-y-auto">
                         <table className="w-full text-left text-xs border-collapse">
-                          <thead className={`sticky top-0 z-10 text-[10px] font-black uppercase tracking-wider ${
-                            theme === 'dark' ? 'bg-slate-800 text-slate-400 border-b border-slate-700' : 'bg-slate-100/90 text-slate-500 border-b border-slate-200'
-                          }`}>
+                          <thead className={`sticky top-0 z-10 text-[10px] font-black uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-800 text-slate-400 border-b border-slate-700' : 'bg-slate-100/90 text-slate-500 border-b border-slate-200'
+                            }`}>
                             <tr>
                               <th className="py-2.5 px-3">Product / Commodity</th>
                               <th className="py-2.5 px-2 text-center">Sold</th>
@@ -577,13 +571,12 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                                             onWheel={(e) => e.target.blur()}
                                             onFocus={(e) => e.target.select()}
                                             onChange={(e) => handleItemQtyChange(it.id, e.target.value, it.remainingQty)}
-                                            className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-mono font-black text-right outline-none transition ${
-                                              numVal > 0
-                                                ? 'border-orange-500 ring-1 ring-orange-500/20 bg-orange-50/40 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'
-                                                : theme === 'dark'
-                                                  ? 'bg-slate-900 border-slate-700 text-white'
-                                                  : 'bg-white border-slate-300 text-slate-900'
-                                            }`}
+                                            className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-mono font-black text-right outline-none transition ${numVal > 0
+                                              ? 'border-orange-500 ring-1 ring-orange-500/20 bg-orange-50/40 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'
+                                              : theme === 'dark'
+                                                ? 'bg-slate-900 border-slate-700 text-white'
+                                                : 'bg-white border-slate-300 text-slate-900'
+                                              }`}
                                           />
                                         </div>
                                         <button
@@ -662,11 +655,10 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                             key={mode.id}
                             type="button"
                             onClick={() => setRefundMode(mode.id)}
-                            className={`py-3 px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${
-                              isSelected
-                                ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black shadow-2xs'
-                                : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
-                            }`}
+                            className={`py-3 px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${isSelected
+                              ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black shadow-2xs'
+                              : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                              }`}
                           >
                             <Icon className="w-4 h-4 shrink-0" />
                             <span className="truncate">{mode.label}</span>
@@ -684,36 +676,6 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                       </div>
                     )}
                   </div>
-
-                  {/* Return Reason */}
-                  <div>
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1.5">
-                      Return Reason / Notes
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Quality Issue, Weight Shortage, Customer request"
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      className={`w-full border rounded-2xl px-4 py-2.5 text-xs font-semibold outline-none transition ${
-                        theme === 'dark'
-                          ? 'bg-slate-900 border-slate-700 text-white focus:border-orange-500'
-                          : 'bg-white border-slate-200 text-slate-900 focus:border-orange-500'
-                      }`}
-                    />
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {quickReasons.map(r => (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => setReason(r)}
-                          className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-500 hover:border-orange-500 hover:text-orange-600 transition cursor-pointer"
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </>
               )}
 
@@ -722,9 +684,8 @@ export const SaleReturnModal = ({ isOpen, onClose, selectedSale = null }) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition cursor-pointer ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
                 >
                   Cancel
                 </button>

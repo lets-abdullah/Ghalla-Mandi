@@ -186,6 +186,7 @@ const createTables = async () => {
     ALTER TABLE sales ADD COLUMN IF NOT EXISTS tax NUMERIC DEFAULT 0;
     ALTER TABLE sales ADD COLUMN IF NOT EXISTS returnAmount NUMERIC DEFAULT 0;
     ALTER TABLE sales ADD COLUMN IF NOT EXISTS netAmount NUMERIC DEFAULT 0;
+    ALTER TABLE sales ADD COLUMN IF NOT EXISTS initialPaidAmount NUMERIC DEFAULT 0;
 
     -- Purchases Table
     CREATE TABLE IF NOT EXISTS purchases (

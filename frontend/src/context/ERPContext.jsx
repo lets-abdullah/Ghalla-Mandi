@@ -358,35 +358,60 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
   const netDueableTotal = Math.max(0, total - returnAmount);
 
   // Categorize specific payment logs for this sale invoice (excluding POS checkout logs, Opening Balance, Credit Notes)
-  const specificNonPosLogs = (paymentLogs || []).filter(pl =>
-    (pl.type === 'Customer' || pl.partyType === 'Customer') &&
-    (
+  const isExcludedCustomerLog = (pl) => {
+    const isCust = pl.type === 'Customer' || pl.partyType === 'Customer';
+    if (!isCust) return true;
+    const pMode = String(pl.mode || '').trim().toLowerCase();
+    return pMode === 'opening balance' || pMode === 'credit note' || pMode === 'debit note';
+  };
+
+  const specificNonPosLogs = (paymentLogs || []).filter(pl => {
+    if (isExcludedCustomerLog(pl)) return false;
+    const isLinked = Boolean(
       (pl.saleId && String(pl.saleId) === String(sale.id)) ||
+      (pl.saleid && String(pl.saleid) === String(sale.id)) ||
       (sale.invoiceNo && pl.ref && pl.ref.includes(sale.invoiceNo))
-    ) &&
-    pl.mode !== 'Opening Balance' &&
-    pl.mode !== 'Credit Note' &&
-    !String(pl.ref || '').includes('POS-PAY')
-  );
+    );
+    if (!isLinked) return false;
+    const isPos = String(pl.ref || '').includes('POS-PAY') || String(pl.mode || '').toLowerCase().includes('pos');
+    return !isPos;
+  });
 
-  // Check if a POS payment log was explicitly recorded in paymentLogs for this sale
-  const hasPosLog = (paymentLogs || []).some(pl =>
-    (pl.type === 'Customer' || pl.partyType === 'Customer') &&
-    (
+  const posLogs = (paymentLogs || []).filter(pl => {
+    if (isExcludedCustomerLog(pl)) return false;
+    const isLinked = Boolean(
       (pl.saleId && String(pl.saleId) === String(sale.id)) ||
+      (pl.saleid && String(pl.saleid) === String(sale.id)) ||
       (sale.invoiceNo && pl.ref && pl.ref.includes(sale.invoiceNo))
-    ) &&
-    String(pl.ref || '').includes('POS-PAY')
-  );
+    );
+    if (!isLinked) return false;
+    const isPos = String(pl.ref || '').includes('POS-PAY') || String(pl.mode || '').toLowerCase().includes('pos');
+    return isPos;
+  });
 
-  const res = resolveTransactionPayment(sale, 'Sale');
-  const upfrontPaid = hasPosLog
-    ? (paymentLogs || []).filter(pl => (pl.saleId && String(pl.saleId) === String(sale.id)) || (sale.invoiceNo && pl.ref && pl.ref.includes(sale.invoiceNo)))
-        .reduce((sum, pl) => sum + (String(pl.ref || '').includes('POS-PAY') ? Number(pl.amount || 0) : 0), 0)
-    : res.totalLiquid;
-
+  const totalPosFromLogs = posLogs.reduce((sum, pl) => sum + Number(pl.amount || 0), 0);
   const totalSpecificNonPos = specificNonPosLogs.reduce((acc, pl) => acc + Number(pl.amount || 0), 0);
-  let specificPaid = upfrontPaid + totalSpecificNonPos;
+
+  // Strict Source-of-Truth Hierarchy for Initial POS Payment:
+  // 1. Existing POS-PAY log for this sale
+  // 2. Immutable initialPaidAmount stored on the sale record
+  // 3. Legacy paidAmount ONLY if there is no payment history at all
+  // 4. Never treat a later non-POS payment as the initial payment
+  let initialPosPayment = 0;
+  if (posLogs.length > 0) {
+    initialPosPayment = totalPosFromLogs;
+  } else if (sale.initialPaidAmount !== undefined && Number(sale.initialPaidAmount) >= 0) {
+    initialPosPayment = Number(sale.initialPaidAmount);
+  } else if (specificNonPosLogs.length === 0) {
+    const res = resolveTransactionPayment(sale, 'Sale');
+    initialPosPayment = Number(sale.paidAmount !== undefined ? sale.paidAmount : (sale.paidamount !== undefined ? sale.paidamount : (res.totalLiquid || 0)));
+  } else {
+    const res = resolveTransactionPayment(sale, 'Sale');
+    const legacyPaid = Number(sale.paidAmount !== undefined ? sale.paidAmount : (sale.paidamount !== undefined ? sale.paidamount : (res.totalLiquid || 0)));
+    initialPosPayment = legacyPaid > totalSpecificNonPos ? (legacyPaid - totalSpecificNonPos) : 0;
+  }
+
+  let specificPaid = initialPosPayment + totalSpecificNonPos;
 
   // Unlinked general customer payments (e.g. Khata payments) allocation
   const custId = sale.customerId ? String(sale.customerId) : null;
@@ -519,7 +544,7 @@ export const computeSaleFinancials = (sale, saleReturns = [], paymentLogs = [], 
           continue;
         }
 
-        const maxCapacity = Math.max(0, sTotal - currentTotalPaid);
+        const maxCapacity = Math.max(0, sNetTotal - currentTotalPaid);
         const alloc = Math.min(maxCapacity, plCash);
         generalAllocMap[sIdKey] = alreadyAllocated + alloc;
         plCash -= alloc;
@@ -882,28 +907,48 @@ export const computeCustomerKhataBalance = (customer, sales = [], paymentLogs = 
 
   const directPaidLogs = custPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-  // Upfront POS payments on sales that do not have a separate payment log in paymentLogs
+  // Upfront POS payments on sales that do not have an explicit POS payment log in paymentLogs
   let unloggedUpfrontCash = 0;
   custSales.forEach(s => {
     const sTotal = Number(s.amount !== undefined ? s.amount : (s.grandTotal !== undefined ? s.grandTotal : 0));
     const upfrontRes = resolveTransactionPayment(s, 'Sale');
     const sUpfront = upfrontRes.totalLiquid || Number(s.paidAmount !== undefined ? s.paidAmount : (s.cashPaid || 0));
 
-    // Check if this sale already has an explicit matching log in custPayments
-    const hasMatchingLog = custPayments.some(p =>
-      (p.saleId && String(p.saleId) === String(s.id)) ||
-      (p.saleid && String(p.saleid) === String(s.id)) ||
-      (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo)) ||
-      (
-        (
-          (custId && p.partyId && String(p.partyId) === custId) ||
-          (custName && p.partyName && p.partyName.trim().toLowerCase() === custName)
-        ) && Number(p.amount || 0) === sUpfront && sUpfront > 0
-      )
-    );
+    // Check if this sale already has an explicit matching POS payment log in custPayments
+    const hasMatchingPosLog = custPayments.some(p => {
+      const idMatch = Boolean(
+        (p.saleId && String(p.saleId) === String(s.id)) ||
+        (p.saleid && String(p.saleid) === String(s.id)) ||
+        (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+      );
+      const isPos = String(p.ref || '').includes('POS-PAY') || String(p.mode || '').toLowerCase().includes('pos');
+      return idMatch && isPos;
+    });
 
-    if (!hasMatchingLog && sUpfront > 0) {
-      unloggedUpfrontCash += Math.min(sTotal, sUpfront);
+    if (!hasMatchingPosLog) {
+      const sNonPosLogs = custPayments.filter(p => {
+        const idMatch = Boolean(
+          (p.saleId && String(p.saleId) === String(s.id)) ||
+          (p.saleid && String(p.saleid) === String(s.id)) ||
+          (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+        );
+        const isPos = String(p.ref || '').includes('POS-PAY') || String(p.mode || '').toLowerCase().includes('pos');
+        return idMatch && !isPos;
+      }).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+      const sInitial = Number(s.initialPaidAmount !== undefined ? s.initialPaidAmount : 0);
+      let initialPos = 0;
+      if (sInitial > 0) {
+        initialPos = sInitial;
+      } else if (sNonPosLogs === 0) {
+        initialPos = sUpfront;
+      } else {
+        initialPos = sUpfront > sNonPosLogs ? (sUpfront - sNonPosLogs) : 0;
+      }
+
+      if (initialPos > 0) {
+        unloggedUpfrontCash += Math.min(sTotal, initialPos);
+      }
     }
   });
 
@@ -1927,21 +1972,38 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
       const upfrontRes = resolveTransactionPayment(s, 'Sale');
       const upfrontPaid = upfrontRes.totalLiquid;
 
-      // Upfront cash paid on POS counter if no matching payment log exists
-      const hasSpecificInvoiceLog = partyPayments.some(p => {
+      // Check if this sale's upfront payment is already logged as an explicit POS payment log in partyPayments
+      const hasSpecificPosLog = partyPayments.some(p => {
         const idMatch = Boolean(
           (p.saleId && String(p.saleId) === String(s.id)) ||
           (p.saleid && String(p.saleid) === String(s.id)) ||
           (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
         );
-        if (idMatch) return true;
-        const pPartyId = p.partyId ? String(p.partyId) : (p.partyid ? String(p.partyid) : null);
-        const pPartyName = (p.partyName || p.partyname || '').trim().toLowerCase();
-        const pMatch = (partyId && pPartyId && pPartyId === partyId) || (partyName && pPartyName && pPartyName === partyName);
-        return pMatch && Number(p.amount || 0) === upfrontPaid && upfrontPaid > 0;
+        const isPos = String(p.ref || '').includes('POS-PAY') || String(p.mode || '').toLowerCase().includes('pos');
+        return idMatch && isPos;
       });
 
-      if (upfrontPaid > 0 && !hasSpecificInvoiceLog) {
+      const sNonPosLogs = partyPayments.filter(p => {
+        const idMatch = Boolean(
+          (p.saleId && String(p.saleId) === String(s.id)) ||
+          (p.saleid && String(p.saleid) === String(s.id)) ||
+          (s.invoiceNo && p.ref && p.ref.includes(s.invoiceNo))
+        );
+        const isPos = String(p.ref || '').includes('POS-PAY') || String(p.mode || '').toLowerCase().includes('pos');
+        return idMatch && !isPos;
+      }).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+      const sInitial = Number(s.initialPaidAmount !== undefined ? s.initialPaidAmount : 0);
+      let initialPos = 0;
+      if (sInitial > 0) {
+        initialPos = sInitial;
+      } else if (sNonPosLogs === 0) {
+        initialPos = upfrontPaid;
+      } else {
+        initialPos = upfrontPaid > sNonPosLogs ? (upfrontPaid - sNonPosLogs) : 0;
+      }
+
+      if (initialPos > 0 && !hasSpecificPosLog) {
         entries.push({
           id: `pay-direct-${s.id || idx}`,
           timestamp: ts + 1,
@@ -1955,9 +2017,9 @@ export const computeLedgerStatement = (party, { sales = [], purchases = [], paym
           txType: 'Payments',
           desc: `POS Payment Received against Invoice #${s.invoiceNo || s.id}`,
           sales: 0,
-          payment: upfrontPaid,
+          payment: initialPos,
           debit: 0,
-          credit: upfrontPaid,
+          credit: initialPos,
           paymentMethod: methodLabel,
           paymentAccount: methodLabel,
           status: sDue === 0 ? 'Settled' : 'Partial',
