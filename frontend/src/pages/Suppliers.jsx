@@ -556,11 +556,9 @@ export const Suppliers = () => {
     }
 
     // 4. Status filter
-    const bal = Number(s.balance) || 0;
-    const refDue = Number(s.refundDue || s.advanceCredit || 0);
+    const bal = Number(s.payableDue !== undefined ? s.payableDue : s.balance) || 0;
     if (statusFilter === 'Payable' && bal <= 0) return false;
-    if (statusFilter === 'RefundDue' && refDue <= 0) return false;
-    if (statusFilter === 'Settled' && (bal > 0 || refDue > 0)) return false;
+    if (statusFilter === 'Settled' && bal > 0) return false;
 
     return true;
   }).sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
@@ -711,7 +709,7 @@ export const Suppliers = () => {
         stats={[
           { label: 'Total Suppliers', value: totalSuppliersCount },
           { label: 'Suppliers with Dues', value: (suppliers || []).filter(s => (Number(s.balance) || 0) > 0).length },
-          { label: 'Supplier dues deducted', value: `Rs. ${totalPayablesAmount.toLocaleString()}` }
+          { label: 'Total Outstanding Payables', value: `Rs. ${totalPayablesAmount.toLocaleString()}` }
         ]}
       />
 
@@ -753,8 +751,7 @@ export const Suppliers = () => {
                 </tr>
               ) : (
                 filteredSuppliers.map(s => {
-                  const bal = Number(s.balance) || 0;
-                  const refDue = Number(s.refundDue || s.advanceCredit || 0);
+                  const bal = Number(s.payableDue !== undefined ? s.payableDue : s.balance) || 0;
                   const suppliedProds = s.suppliedProducts || [];
                   const isAct = (s.status || 'Active') === 'Active';
 
@@ -785,16 +782,16 @@ export const Suppliers = () => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right font-black font-mono">
-                        {refDue > 0 ? (
+                        {bal > 0 ? (
                           <div>
-                            <span className="text-teal-600 dark:text-teal-400">
-                              Rs. {refDue.toLocaleString()}
+                            <span className="text-rose-500 font-black">
+                              Rs. {bal.toLocaleString()}
                             </span>
-                            <div className="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase">Refund Due</div>
+                            <div className="text-[10px] text-rose-500 font-bold uppercase tracking-wider">DUE</div>
                           </div>
                         ) : (
-                          <span className={bal > 0 ? 'text-rose-500' : 'text-emerald-500'}>
-                            Rs. {bal.toLocaleString()}
+                          <span className="text-emerald-500 font-black">
+                            Rs. 0
                           </span>
                         )}
                       </td>

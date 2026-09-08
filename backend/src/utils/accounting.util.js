@@ -163,7 +163,17 @@ export const syncSupplierBalance = async (supplierId, shop_id, dbRun) => {
   purchaseRows.forEach(p => {
     const pId = String(p.id);
     const pNo = p.purchaseNo || p.purchaseno || '';
-    const pTotal = Number(p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : (p.amount !== undefined ? p.amount : 0)));
+    let pItemsSum = 0;
+    if (p.itemsjson) {
+      try {
+        const itms = typeof p.itemsjson === 'string' ? JSON.parse(p.itemsjson) : p.itemsjson;
+        if (Array.isArray(itms)) {
+          pItemsSum = itms.reduce((sum, it) => sum + (Number(it.total || it.totalAmount) || (Number(it.qty || 1) * Number(it.rate || it.price || 0))), 0);
+        }
+      } catch (e) {}
+    }
+    const rawTotal = Number(p.grandTotal !== undefined ? p.grandTotal : (p.grandtotal !== undefined ? p.grandtotal : (p.amount !== undefined ? p.amount : 0)));
+    const pTotal = rawTotal > 0 ? rawTotal : pItemsSum;
 
     // Returns linked specifically to this purchase
     const pReturns = returnsRows.filter(r =>

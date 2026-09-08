@@ -169,4 +169,63 @@ describe('Root Cause Fix: Purchase Total & Payable Status Calculations', () => {
     assert.strictEqual(fin.due, 0);
     assert.strictEqual(fin.status, 'Paid');
   });
+
+  it('7. Supplier Balance: computeSupplierKhataBalance shows strictly outstanding payable/due (5,100)', () => {
+    const { computeSupplierKhataBalance } = ERP;
+    const supplier = { id: 'sup-101', name: 'one', openingBalance: 0 };
+    const fin = computeSupplierKhataBalance(supplier, [purchaseDaldaWithZeroStoredAmount], [], []);
+
+    assert.strictEqual(fin.balance, 5100, 'Supplier balance must be strictly the payable due amount');
+    assert.strictEqual(fin.payableDue, 5100);
+    assert.strictEqual(fin.status, 'Payable');
+  });
+
+  it('8. Supplier Balance: returns and refunds do NOT replace or inflate balance', () => {
+    const { computeSupplierKhataBalance } = ERP;
+    const supplier = { id: 'sup-101', name: 'one', openingBalance: 0 };
+    const purchaseReturn = {
+      id: 'pr-1',
+      purchaseId: 2,
+      supplierId: 'sup-101',
+      totalGoodsValue: 1100,
+      refundAmount: 0,
+      refundMode: 'Supplier Khata'
+    };
+
+    // 5,100 - 1,100 return = 4,000 remaining due
+    const fin = computeSupplierKhataBalance(supplier, [purchaseDaldaWithZeroStoredAmount], [], [purchaseReturn]);
+    assert.strictEqual(fin.balance, 4000, 'Balance must be net payable due (4000)');
+    assert.strictEqual(fin.payableDue, 4000);
+    assert.strictEqual(fin.returnAmount, 1100, 'Return amount remains separate in returnAmount');
+  });
+
+  it('9. Supplier Balance: settled purchase with paid = 5100 has balance = 0', () => {
+    const { computeSupplierKhataBalance } = ERP;
+    const supplier = { id: 'sup-101', name: 'one', openingBalance: 0 };
+    const paymentLog = {
+      id: 'log-full',
+      purchaseId: 2,
+      amount: 5100,
+      mode: 'Cash',
+      type: 'Supplier',
+      partyId: 'sup-101',
+      date: '2026-09-08'
+    };
+
+    const fin = computeSupplierKhataBalance(supplier, [purchaseDaldaWithZeroStoredAmount], [paymentLog], []);
+    assert.strictEqual(fin.balance, 0, 'Balance must be 0 when fully paid');
+    assert.strictEqual(fin.payableDue, 0);
+    assert.strictEqual(fin.status, 'Settled');
+  });
+
+  it('10. computeAllSuppliersFinancials maps balance strictly to payableDue', () => {
+    const { computeAllSuppliersFinancials } = ERP;
+    const suppliers = [{ id: 'sup-101', name: 'one', openingBalance: 0 }];
+    const res = computeAllSuppliersFinancials(suppliers, [purchaseDaldaWithZeroStoredAmount], [], []);
+
+    assert.strictEqual(res.allSuppliers.length, 1);
+    const s = res.allSuppliers[0];
+    assert.strictEqual(s.balance, 5100);
+    assert.strictEqual(s.payableDue, 5100);
+  });
 });
