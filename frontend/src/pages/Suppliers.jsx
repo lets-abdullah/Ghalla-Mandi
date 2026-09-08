@@ -724,17 +724,16 @@ export const Suppliers = () => {
               <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
                 <th className="py-3 px-4">Supplier</th>
-                <th className="py-3 px-4">Contact</th>
+                <th className="py-3 px-4">Phone</th>
                 <th className="py-3 px-4">Supplied Products</th>
-                <th className="py-3 px-4 text-right">Balance Due</th>
-                <th className="py-3 px-4 text-center">Status</th>
+                <th className="py-3 px-4 text-right">Balance</th>
                 <th className="py-3 px-4 text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
               {filteredSuppliers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center">
+                  <td colSpan={5} className="py-8 text-center">
                     <EmptyState
                       icon={UserCheck}
                       title="No suppliers found"
@@ -797,16 +796,6 @@ export const Suppliers = () => {
                           <span className={bal > 0 ? 'text-rose-500' : 'text-emerald-500'}>
                             Rs. {bal.toLocaleString()}
                           </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        {refDue > 0 ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/30">
-                            <RotateCcw className="w-3 h-3" />
-                            <span>Refund Due</span>
-                          </span>
-                        ) : (
-                          <StatusBadge status={bal > 0 ? 'Due' : 'Settled'} />
                         )}
                       </td>
                       <td className="py-3 px-4 text-center no-print">
