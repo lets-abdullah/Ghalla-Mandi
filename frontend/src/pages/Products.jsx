@@ -8,6 +8,7 @@ import { PrintFooter } from '../components/PrintFooter';
 import { useToast } from '../components/Toast';
 import { EmptyState } from '../components/EmptyState';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ProductHistory } from './ProductHistory';
 
 export const Products = () => {
   const toast = useToast();

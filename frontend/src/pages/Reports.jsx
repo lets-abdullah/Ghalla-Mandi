@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
-  TrendingUp, Warehouse, DollarSign, PieChart, Building,
+  TrendingUp, TrendingDown, Warehouse, DollarSign, PieChart, Building,
   FileSpreadsheet, Printer, Plus, Wheat, X, Trash2, Search, Filter,
   CheckCircle2, AlertTriangle, ArrowUpDown, Package, Eye,
   Calendar, Users, ShoppingCart, ChevronDown, ChevronUp, BarChart3, Percent, Layers,

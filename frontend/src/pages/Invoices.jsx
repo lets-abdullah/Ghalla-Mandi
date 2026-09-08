@@ -20,7 +20,8 @@ import {
   CheckCircle2,
   AlertCircle,
   TrendingUp,
-  Receipt
+  Receipt,
+  X
 } from 'lucide-react';
 import { useERP, computeSaleFinancials, computePurchaseFinancials, computeCustomerKhataBalance, computeSupplierKhataBalance } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
