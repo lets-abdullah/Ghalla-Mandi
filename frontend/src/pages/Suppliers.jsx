@@ -717,15 +717,15 @@ export const Suppliers = () => {
       <div className={`border rounded-2xl card-shadow overflow-hidden transition-colors ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
         }`}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
+          <table className="w-full text-left border-collapse table-fixed whitespace-nowrap text-xs">
             <thead>
               <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'bg-slate-900/60 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}>
-                <th className="py-3 px-4">Supplier</th>
-                <th className="py-3 px-4">Phone</th>
-                <th className="py-3 px-4">Supplied Products</th>
-                <th className="py-3 px-4 text-right">Balance</th>
-                <th className="py-3 px-4 text-center no-print">Actions</th>
+                <th className="w-1/5 py-3.5 px-4 text-left">Supplier</th>
+                <th className="w-1/5 py-3.5 px-4 text-left">Phone</th>
+                <th className="w-1/5 py-3.5 px-4 text-left">Supplied Products</th>
+                <th className="w-1/5 py-3.5 px-4 text-left">Balance</th>
+                <th className="w-1/5 py-3.5 px-4 text-center no-print">Actions</th>
               </tr>
             </thead>
             <tbody className={`divide-y text-xs font-medium ${theme === 'dark' ? 'divide-slate-700/60' : 'divide-slate-100'}`}>
@@ -757,16 +757,16 @@ export const Suppliers = () => {
 
                   return (
                     <tr key={s.id} className={`transition ${theme === 'dark' ? 'hover:bg-slate-700/40' : 'hover:bg-slate-50/80'}`}>
-                      <td className="py-3 px-4">
-                        <div className="font-extrabold text-slate-900 dark:text-white">{s.name}</div>
-                        {s.businessName && <div className="text-[11px] text-slate-400">{s.businessName}</div>}
+                      <td className="w-1/5 py-3.5 px-4 text-left">
+                        <div className="font-extrabold text-slate-900 dark:text-white truncate" title={s.name}>{s.name}</div>
+                        {s.businessName && <div className="text-[11px] text-slate-400 truncate" title={s.businessName}>{s.businessName}</div>}
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="font-mono font-bold">{s.phone}</div>
-                        <div className="text-[11px] text-slate-400">{s.city || 'Mandi'}</div>
+                      <td className="w-1/5 py-3.5 px-4 text-left">
+                        <div className="font-mono font-bold truncate">{s.phone}</div>
+                        <div className="text-[11px] text-slate-400 truncate">{s.city || 'Mandi'}</div>
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-xs leading-relaxed">
+                      <td className="w-1/5 py-3.5 px-4 text-left">
+                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate leading-relaxed" title={suppliedProds.join(', ') || 'General'}>
                           {suppliedProds.length === 0 ? (
                             <span className="text-slate-400 italic">General</span>
                           ) : (
@@ -781,7 +781,7 @@ export const Suppliers = () => {
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-right font-black font-mono">
+                      <td className="w-1/5 py-3.5 px-4 text-left font-black font-mono">
                         {bal > 0 ? (
                           <div>
                             <span className="text-rose-500 font-black">
@@ -795,7 +795,7 @@ export const Suppliers = () => {
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-center no-print">
+                      <td className="w-1/5 py-3.5 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => setEditingSupplier({ ...s })}
