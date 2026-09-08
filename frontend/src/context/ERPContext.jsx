@@ -3110,7 +3110,7 @@ export const ERPProvider = ({ children }) => {
   const inFlightLocks = useRef(new Map());
 
   // 9. Record Payment with real-time balance validation and anti-duplicate lock
-  const recordPayment = async ({ partyId, partyName, partyType, amount, paymentMode = 'Cash', note = '', saleId = null, purchaseId = null }) => {
+  const recordPayment = async ({ partyId, partyName, partyType, amount, paymentMode = 'Cash', note = '', date = null, saleId = null, purchaseId = null }) => {
     const amtNum = Math.round(Number(amount));
     if (!amtNum || amtNum <= 0) {
       throw new Error('Valid payment amount greater than zero is required');
@@ -3187,7 +3187,7 @@ export const ERPProvider = ({ children }) => {
       try {
         const res = await authFetch('/api/ledger/payment', {
           method: 'POST',
-          body: { partyId, partyName, partyType, amount: amtNum, paymentMode, note, saleId, purchaseId }
+          body: { partyId, partyName, partyType, amount: amtNum, paymentMode, note, date, saleId, purchaseId }
         });
 
         if (res.success && res.entry) {

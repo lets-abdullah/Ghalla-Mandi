@@ -448,17 +448,6 @@ export const Customers = () => {
                       {/* 5. Actions (Screen Only) */}
                       <td className="py-3 px-4 text-center no-print">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Customer Balance Status Badge */}
-                          {bal > 0 ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400 font-mono px-2 py-1 bg-amber-500/10 rounded-lg">
-                              Rs. {bal.toLocaleString()} Due
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 px-2 py-1 bg-emerald-500/10 rounded-lg">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Settled
-                            </span>
-                          )}
-
                           {/* Edit Customer */}
                           <button
                             type="button"

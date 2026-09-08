@@ -151,7 +151,7 @@ export const getLedgerEntries = async (req, res) => {
 
 export const recordPayment = async (req, res) => {
   try {
-    const { partyId, partyName, partyType, amount, paymentMode = 'Cash', note = '', saleId = null, purchaseId = null } = req.body;
+    const { partyId, partyName, partyType, amount, paymentMode = 'Cash', note = '', date = null, saleId = null, purchaseId = null } = req.body;
     const amtNum = Math.round(Number(amount));
 
     if (!amtNum || amtNum <= 0) {
@@ -166,7 +166,17 @@ export const recordPayment = async (req, res) => {
     }
 
     const savedEntry = await withTransaction(async (tx) => {
-      const dateStr = new Date().toLocaleDateString('en-GB');
+      let dateStr = new Date().toLocaleDateString('en-GB');
+      if (date && typeof date === 'string') {
+        if (date.includes('-')) {
+          const parts = date.split('T')[0].split('-');
+          if (parts.length === 3) {
+            dateStr = `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+          }
+        } else if (date.includes('/')) {
+          dateStr = date;
+        }
+      }
       const ref = `PAY-${Math.floor(1000 + Math.random() * 9000)}`;
       let targetPartyName = partyName || 'Party';
 

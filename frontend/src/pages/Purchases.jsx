@@ -23,7 +23,11 @@ import {
   Edit3,
   Receipt,
   Eye,
-  DollarSign
+  DollarSign,
+  Banknote,
+  CreditCard,
+  AlertTriangle,
+  ChevronDown
 } from 'lucide-react';
 import { useERP, computePurchaseFinancials, computeSupplierKhataBalance, computeAllSuppliersFinancials, computeLiquidBalances } from '../context/ERPContext';
 import { useTheme } from '../context/ThemeContext';
@@ -129,8 +133,9 @@ export const Purchases = () => {
 
   // Form for Pay Balance
   const [payForm, setPayForm] = useState({
-    amount: 0,
+    amount: '',
     paymentMode: 'Cash',
+    paymentDate: new Date().toISOString().split('T')[0],
     note: ''
   });
 
@@ -466,11 +471,13 @@ export const Purchases = () => {
 
   const openPayModal = (purchase) => {
     const fin = computePurchaseFinancials(purchase, purchaseReturns, paymentLogs, purchases);
+    const supName = purchase.supplier || purchase.supplierName || 'supplier';
     setPayModalPurchase(purchase);
     setPayForm({
-      amount: fin.due,
+      amount: fin.due > 0 ? fin.due.toString() : '',
       paymentMode: 'Cash',
-      note: `Payment for ${purchase.purchaseNo || 'bill'}`
+      paymentDate: new Date().toISOString().split('T')[0],
+      note: `Settlement payment to ${supName}`
     });
   };
 
@@ -506,10 +513,12 @@ export const Purchases = () => {
     try {
       await recordPayment({
         partyId: supplierObj ? supplierObj.id : payModalPurchase.supplierId,
+        partyName: supplierObj ? supplierObj.name : (payModalPurchase.supplier || payModalPurchase.supplierName),
         partyType: 'Supplier',
         amount: payVal,
         paymentMode: payForm.paymentMode,
-        note: payForm.note || `Payment for purchase ${payModalPurchase.purchaseNo}`,
+        date: payForm.paymentDate,
+        note: payForm.note || `Settlement payment to ${payModalPurchase.supplier || payModalPurchase.supplierName || 'supplier'}`,
         purchaseId: payModalPurchase.id
       });
       toast.success(`Payment of Rs. ${payVal.toLocaleString()} recorded for ${payModalPurchase.purchaseNo}`);
@@ -1825,172 +1834,282 @@ export const Purchases = () => {
         </div>
       )}
 
-      {/* Pay Balance Modal (Symmetrical with Sales Received Modal) */}
+      {/* Pay Balance Modal (Exact Design matching Khata/Supplier Pay Modal) */}
       {payModalPurchase && (() => {
         const fin = computePurchaseFinancials(payModalPurchase, purchaseReturns, paymentLogs, purchases);
         const maxDue = Math.max(0, Number(fin.due || 0));
-        const currentPayAmt = Number(payForm.amount) || 0;
-        const remainingAfterPayment = Math.max(0, maxDue - currentPayAmt);
-        const isFullSettlement = currentPayAmt >= maxDue && maxDue > 0;
+        const numAmt = parseInt(payForm.amount, 10) || 0;
+        const remainingAfterPayment = Math.max(0, maxDue - numAmt);
+        const isInsufficientBalance = numAmt > availableLiquidForPayMode.amount;
+        const supplierName = payModalPurchase.supplier || payModalPurchase.supplierName || 'Supplier';
+        const supplierObj = suppliers.find(s => s.id === payModalPurchase.supplierId || s.name === supplierName);
+        const locationText = (supplierObj && (supplierObj.city || supplierObj.businessName)) ? (supplierObj.city || supplierObj.businessName) : 'Local Mandi';
+        const supplierPurchasesWithDue = purchases.filter(p => {
+          const isSameSup = (p.supplierId && String(p.supplierId) === String(payModalPurchase.supplierId)) ||
+            (p.supplier && p.supplier === supplierName) ||
+            (p.supplierName && p.supplierName === supplierName);
+          if (!isSameSup) return false;
+          const f = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+          return f.due > 0 || String(p.id) === String(payModalPurchase.id);
+        });
 
         return (
           <div
             onClick={(e) => { if (e.target === e.currentTarget) setPayModalPurchase(null); }}
-            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
           >
-            <div className={`rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 card-shadow border my-auto max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            <div className={`rounded-3xl max-w-lg w-full p-5 sm:p-6 card-shadow border my-auto transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
               }`}>
               {/* Header */}
-              <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                    <DollarSign className="w-5 h-5 stroke-[2.5]" />
+              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black border border-emerald-200/60 dark:border-emerald-800/40 shrink-0">
+                    <CreditCard className="w-5.5 h-5.5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-extrabold">{t('payBalance') || 'Pay Balance'}</h3>
-                    <p className="text-[11px] text-slate-400 font-mono font-bold">{payModalPurchase.purchaseNo}</p>
+                    <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                      Pay Supplier
+                    </h3>
+                    <p className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mt-0.5">
+                      <span className="font-bold text-slate-700 dark:text-slate-200">{supplierName}</span>
+                      <span>•</span>
+                      <span className="text-slate-400 font-semibold">{locationText}</span>
+                    </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setPayModalPurchase(null)}
-                  className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition cursor-pointer"
-                  title={t('close')}
+                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Bill Breakdown Summary Card */}
-              <div className={`rounded-2xl p-3.5 space-y-2 border text-xs font-semibold ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'
-                }`}>
-                <div className="flex justify-between items-center text-slate-400">
-                  <span>{t('partyName') || 'Party Name'}:</span>
-                  <span className="font-extrabold text-slate-900 dark:text-white">{payModalPurchase.supplier || payModalPurchase.supplierName}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">{t('totalInvoiceAmount') || 'Total Bill Amount'}:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">Rs. {Number(fin.grossTotal || payModalPurchase.amount || 0).toLocaleString()}</span>
-                </div>
-                {fin.returns > 0 && (
-                  <div className="flex justify-between items-center text-purple-600 dark:text-purple-400">
-                    <span>Returns Deducted:</span>
-                    <span className="font-bold">-Rs. {Number(fin.returns).toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
-                  <span>{t('alreadyPaid') || 'Already Paid'}:</span>
-                  <span className="font-bold">Rs. {Number(fin.paid || payModalPurchase.paidAmount || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center pt-1.5 border-t border-slate-200 dark:border-slate-700 text-rose-500 font-extrabold text-xs">
-                  <span>{t('remainingDue') || 'Remaining Due'}:</span>
-                  <span className="text-sm font-black text-rose-600 dark:text-rose-400 font-mono">
+              {/* 3-Column Financial Summary Card */}
+              <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-700 text-center">
+                <div className="px-2">
+                  <span className="text-[10px] uppercase font-black tracking-wider text-rose-600 dark:text-rose-400 block">
+                    OUTSTANDING PAYABLE
+                  </span>
+                  <span className="font-mono font-black text-rose-600 dark:text-rose-400 text-sm sm:text-base mt-1 block">
                     Rs. {maxDue.toLocaleString()}
+                  </span>
+                </div>
+                <div className="px-2">
+                  <span className="text-[10px] uppercase font-black tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                    PAYMENT AMOUNT
+                  </span>
+                  <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm sm:text-base mt-1 block">
+                    Rs. {numAmt.toLocaleString()}
+                  </span>
+                </div>
+                <div className="px-2">
+                  <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">
+                    REMAINING PAYABLE
+                  </span>
+                  <span className={`font-mono font-black text-sm sm:text-base mt-1 block ${remainingAfterPayment === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                    Rs. {remainingAfterPayment.toLocaleString()}
                   </span>
                 </div>
               </div>
 
-              <form onSubmit={handlePaySubmit} className="space-y-3.5">
+              {/* Linked Purchase Invoice Selector */}
+              <div className="mt-4">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1.5">
+                  LINK PAYMENT TO PURCHASE INVOICE *
+                </label>
+                <div className="relative">
+                  <select
+                    value={payModalPurchase.id}
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      const targetP = purchases.find(p => String(p.id) === String(selectedId));
+                      if (targetP) {
+                        setPayModalPurchase(targetP);
+                        const f = computePurchaseFinancials(targetP, purchaseReturns, paymentLogs, purchases);
+                        setPayForm(prev => ({
+                          ...prev,
+                          amount: f.due > 0 ? f.due.toString() : ''
+                        }));
+                      }
+                    }}
+                    className={`w-full border-2 rounded-2xl px-4 py-3 text-xs font-black font-mono outline-none transition appearance-none cursor-pointer border-emerald-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs pr-10`}
+                  >
+                    {supplierPurchasesWithDue.map(p => {
+                      const pFin = computePurchaseFinancials(p, purchaseReturns, paymentLogs, purchases);
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {p.purchaseNo || `PUR-${p.id}`} • Due: Rs. {pFin.due.toLocaleString()} (Date: {p.date || 'N/A'})
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-emerald-600 dark:text-emerald-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              <form onSubmit={handlePaySubmit} className="space-y-4 mt-4">
+                {/* Payment Amount Input */}
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-slate-400">
-                      Payment Amount to Pay (Rs.) *
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
+                      PAYMENT AMOUNT (RS.) *
                     </label>
-                    {isFullSettlement && (
-                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Settling</span>
+                    {maxDue > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setPayForm({ ...payForm, amount: maxDue.toString() })}
+                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                      >
+                        Full Amount (Rs. {maxDue.toLocaleString()})
+                      </button>
                     )}
                   </div>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    max={maxDue > 0 ? maxDue : 1}
-                    step="1"
-                    autoFocus
-                    onWheel={(e) => e.target.blur()}
-                    onFocus={(e) => e.target.select()}
-                    value={payForm.amount}
-                    onKeyDown={(e) => {
-                      if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
-                        e.preventDefault();
-                      }
-                    }}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/[^0-9]/g, '');
-                      if (raw === '') {
-                        setPayForm({ ...payForm, amount: '' });
-                        return;
-                      }
-                      const num = parseInt(raw, 10) || 0;
-                      if (maxDue > 0 && num > maxDue) {
-                        setPayForm({ ...payForm, amount: maxDue });
-                      } else {
-                        setPayForm({ ...payForm, amount: num });
-                      }
-                    }}
-                    placeholder={`Max Rs. ${maxDue.toLocaleString()}`}
-                    className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-extrabold outline-none focus:border-brand-500 font-mono ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
-                  />
-
-                  {/* Live Remaining Balance Calculation Preview */}
-                  <div className="mt-1.5 flex items-center justify-between text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/50">
-                    <span className="text-slate-500 dark:text-slate-400">Balance after payment:</span>
-                    <span className={`font-mono ${remainingAfterPayment === 0
-                      ? 'text-emerald-600 dark:text-emerald-400 font-black'
-                      : 'text-amber-600 dark:text-amber-400 font-black'
-                      }`}>
-                      Rs. {remainingAfterPayment.toLocaleString()}
-                      {remainingAfterPayment === 0 && ' (Fully Settled)'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-400 block mb-1">{t('paymentMode') || 'Payment Method'}</label>
-                    <select
-                      value={payForm.paymentMode}
-                      onChange={(e) => setPayForm({ ...payForm, paymentMode: e.target.value })}
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-brand-500 cursor-pointer ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`}
-                    >
-                      <option value="Cash">Cash</option>
-                      <option value="Bank Transfer">Bank Transfer</option>
-                      <option value="Card">Card</option>
-                      <option value="Cheque">Cheque</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-400 block mb-1">Note / Remarks</label>
+                  <div className="relative">
                     <input
                       type="text"
-                      value={payForm.note || ''}
-                      onChange={(e) => setPayForm({ ...payForm, note: e.target.value })}
-                      placeholder="e.g. Counter cash"
-                      className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-brand-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      required
+                      autoFocus
+                      value={payForm.amount}
+                      onWheel={(e) => e.target.blur()}
+                      onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => {
+                        if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '-' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        if (raw === '') {
+                          setPayForm({ ...payForm, amount: '' });
+                          return;
+                        }
+                        const num = parseInt(raw, 10) || 0;
+                        if (maxDue > 0 && num > maxDue) {
+                          setPayForm({ ...payForm, amount: maxDue.toString() });
+                        } else {
+                          setPayForm({ ...payForm, amount: num.toString() });
+                        }
+                      }}
+                      placeholder={`Max Rs. ${maxDue.toLocaleString()}`}
+                      className={`w-full border-2 rounded-2xl px-4 py-3 text-base font-black font-mono outline-none transition ${theme === 'dark'
+                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
                         }`}
                     />
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                {/* Payment Method Selector Cards */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block">
+                      PAYMENT METHOD *
+                    </label>
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                      Avail: Rs. {availableLiquidForPayMode.amount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {[
+                      { id: 'Cash', label: 'Cash in Hand', icon: Banknote },
+                      { id: 'Bank', label: 'Bank Transfer', icon: Landmark },
+                      { id: 'Card', label: 'Card', icon: CreditCard }
+                    ].map((mode) => {
+                      const Icon = mode.icon;
+                      const isSelected = payForm.paymentMode === mode.id || (mode.id === 'Bank' && (payForm.paymentMode === 'Bank Transfer' || payForm.paymentMode === 'Bank Account'));
+                      return (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => setPayForm({ ...payForm, paymentMode: mode.id })}
+                          className={`relative py-3 px-2 sm:px-3 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border-2 ${isSelected
+                              ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-black shadow-2xs'
+                              : 'bg-slate-50/50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                            }`}
+                        >
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{mode.label}</span>
+                          {isSelected && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 absolute top-1.5 right-1.5 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Insufficient Balance Alert Banner */}
+                {isInsufficientBalance && (
+                  <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2.5 shadow-2xs">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                    <span>⚠️ Insufficient Balance — Available: Rs. {availableLiquidForPayMode.amount.toLocaleString()} ({availableLiquidForPayMode.label})</span>
+                  </div>
+                )}
+
+                {/* Settlement Banner */}
+                {remainingAfterPayment === 0 && numAmt > 0 && !isInsufficientBalance && (
+                  <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-2.5 shadow-2xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>✓ Balance after payment: Rs. 0 (Fully Settled)</span>
+                  </div>
+                )}
+
+                {/* Date & Note Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1">
+                      PAYMENT DATE
+                    </label>
+                    <input
+                      type="date"
+                      value={payForm.paymentDate || new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setPayForm({ ...payForm, paymentDate: e.target.value })}
+                      className={`w-full border-2 rounded-2xl px-3.5 py-2 text-xs font-bold outline-none transition ${theme === 'dark'
+                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                        }`}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-1">
+                      NOTE / REFERENCE (OPTIONAL)
+                    </label>
+                    <input
+                      type="text"
+                      value={payForm.note || ''}
+                      onChange={(e) => setPayForm({ ...payForm, note: e.target.value })}
+                      placeholder={`Settlement payment to ${supplierName}`}
+                      className={`w-full border-2 rounded-2xl px-3.5 py-2 text-xs font-semibold outline-none transition ${theme === 'dark'
+                          ? 'bg-slate-900 border-slate-700 text-white focus:border-emerald-500'
+                          : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-500'
+                        }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setPayModalPurchase(null)}
-                    className={`w-1/2 py-2.5 font-bold text-xs rounded-xl transition cursor-pointer ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    className={`w-1/2 py-3 rounded-2xl font-bold text-xs transition cursor-pointer ${theme === 'dark'
+                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                       }`}
                   >
-                    {t('cancel')}
+                    Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting || Number(payForm.amount) <= 0 || Number(payForm.amount) > maxDue}
-                    className="w-1/2 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs rounded-xl transition shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                    disabled={isSubmitting || numAmt <= 0 || isInsufficientBalance}
+                    className="w-1/2 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition cursor-pointer active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Check className="w-4 h-4" />
-                    <span>{isSubmitting ? t('processing') : 'Save Payment'}</span>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{isSubmitting ? 'Recording...' : 'Confirm Payment'}</span>
                   </button>
                 </div>
               </form>
