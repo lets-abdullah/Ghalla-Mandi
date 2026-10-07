@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Wheat, AlertCircle, UserPlus } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useERP } from '../context/ERPContext';
 import { useLocale } from '../context/LocaleContext';
 
 export const Login = () => {
   const navigate = useNavigate();
   const { authenticate } = useAuth();
+  const { refreshData } = useERP();
   const { t } = useLocale();
 
   const [email, setEmail] = useState('admin@ghallamandi.com');
@@ -39,15 +41,23 @@ export const Login = () => {
     // 3. Secure Authentication Logic (Exact Match Check)
     setTimeout(async () => {
       const res = await authenticate(trimmedEmail, password);
-      setIsLoading(false);
 
       if (res.success) {
+        if (refreshData) {
+          try {
+            await refreshData(res.token, res.user);
+          } catch (err) {
+            console.warn('Pre-fetch ERP dataset warning on login:', err);
+          }
+        }
+        setIsLoading(false);
         navigate('/dashboard');
       } else {
+        setIsLoading(false);
         // Display exact required error message
         setErrorMsg(t('loginErrorInvalidCreds'));
       }
-    }, 500);
+    }, 300);
   };
 
   return (

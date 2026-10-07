@@ -1,7 +1,27 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+let memoryToken = null;
+
+export const setAuthToken = (tok) => {
+  memoryToken = tok || null;
+  if (tok) {
+    try { localStorage.setItem('gm_token', tok); } catch {}
+  } else {
+    try { localStorage.removeItem('gm_token'); } catch {}
+  }
+};
+
+export const getAuthToken = () => {
+  if (memoryToken) return memoryToken;
+  try {
+    return localStorage.getItem('gm_token') || null;
+  } catch {
+    return null;
+  }
+};
+
 export const authFetch = async (endpoint, options = {}) => {
-  const token = localStorage.getItem('gm_token');
+  const token = options.token || getAuthToken();
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),

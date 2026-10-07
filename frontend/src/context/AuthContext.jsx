@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authFetch } from '../services/api';
+import { authFetch, setAuthToken } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -100,10 +100,18 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (res.success && res.token) {
+        setAuthToken(res.token);
+        try {
+          localStorage.setItem('gm_token', res.token);
+          localStorage.setItem('gm_user', JSON.stringify(res.user));
+          if (res.shop) localStorage.setItem('gm_shop', JSON.stringify(res.shop));
+        } catch (e) {
+          console.warn('Storage sync warning:', e);
+        }
         setToken(res.token);
         setUser(res.user);
         setShop(res.shop || null);
-        return { success: true, user: res.user, shop: res.shop };
+        return { success: true, user: res.user, shop: res.shop, token: res.token };
       }
 
       if (isDemoAccount) {
@@ -126,10 +134,18 @@ export const AuthProvider = ({ children }) => {
         };
         const demoToken = 'demo-jwt-token-admin123-2026';
 
+        setAuthToken(demoToken);
+        try {
+          localStorage.setItem('gm_token', demoToken);
+          localStorage.setItem('gm_user', JSON.stringify(demoUser));
+          localStorage.setItem('gm_shop', JSON.stringify(demoShop));
+        } catch (e) {
+          console.warn('Storage sync warning:', e);
+        }
         setToken(demoToken);
         setUser(demoUser);
         setShop(demoShop);
-        return { success: true, user: demoUser, shop: demoShop };
+        return { success: true, user: demoUser, shop: demoShop, token: demoToken };
       }
 
       return {
@@ -157,10 +173,18 @@ export const AuthProvider = ({ children }) => {
         };
         const demoToken = 'demo-jwt-token-admin123-2026';
 
+        setAuthToken(demoToken);
+        try {
+          localStorage.setItem('gm_token', demoToken);
+          localStorage.setItem('gm_user', JSON.stringify(demoUser));
+          localStorage.setItem('gm_shop', JSON.stringify(demoShop));
+        } catch (e) {
+          console.warn('Storage sync warning:', e);
+        }
         setToken(demoToken);
         setUser(demoUser);
         setShop(demoShop);
-        return { success: true, user: demoUser, shop: demoShop };
+        return { success: true, user: demoUser, shop: demoShop, token: demoToken };
       }
 
       return {
@@ -187,10 +211,18 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (res.success && res.token) {
+        setAuthToken(res.token);
+        try {
+          localStorage.setItem('gm_token', res.token);
+          localStorage.setItem('gm_user', JSON.stringify(res.user));
+          if (res.shop) localStorage.setItem('gm_shop', JSON.stringify(res.shop));
+        } catch (e) {
+          console.warn('Storage sync warning:', e);
+        }
         setToken(res.token);
         setUser(res.user);
         setShop(res.shop || null);
-        return { success: true, user: res.user, shop: res.shop };
+        return { success: true, user: res.user, shop: res.shop, token: res.token };
       }
 
       return {
@@ -275,6 +307,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    setAuthToken(null);
     setUser(null);
     setShop(null);
     setToken(null);

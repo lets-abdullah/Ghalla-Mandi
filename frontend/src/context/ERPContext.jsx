@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
-import { authFetch } from '../services/api';
+import { authFetch, getAuthToken } from '../services/api';
 
 const ERPContext = createContext();
 
@@ -2821,8 +2821,18 @@ export const ERPProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   // Fetch all ERP data from backend API for authenticated shop
-  const fetchAllData = useCallback(async () => {
-    if (!token || !user) {
+  const fetchAllData = useCallback(async (customToken, customUser) => {
+    const activeToken = customToken || token || getAuthToken();
+    const activeUser = customUser || user || (() => {
+      try {
+        const u = localStorage.getItem('gm_user');
+        return u ? JSON.parse(u) : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    if (!activeToken || !activeUser) {
       setCategories([]);
       setProducts([]);
       setCustomers([]);
@@ -2841,6 +2851,7 @@ export const ERPProvider = ({ children }) => {
     setError(null);
 
     try {
+      const fetchOpts = { token: activeToken };
       const [
         catRes,
         prodRes,
@@ -2854,17 +2865,17 @@ export const ERPProvider = ({ children }) => {
         sRetRes,
         pRetRes
       ] = await Promise.all([
-        authFetch('/api/products/categories'),
-        authFetch('/api/products'),
-        authFetch('/api/customers'),
-        authFetch('/api/suppliers'),
-        authFetch('/api/sales'),
-        authFetch('/api/purchases'),
-        authFetch('/api/ledger'),
-        authFetch('/api/inventory/movements'),
-        authFetch('/api/expenses'),
-        authFetch('/api/returns/sales'),
-        authFetch('/api/returns/purchases')
+        authFetch('/api/products/categories', fetchOpts),
+        authFetch('/api/products', fetchOpts),
+        authFetch('/api/customers', fetchOpts),
+        authFetch('/api/suppliers', fetchOpts),
+        authFetch('/api/sales', fetchOpts),
+        authFetch('/api/purchases', fetchOpts),
+        authFetch('/api/ledger', fetchOpts),
+        authFetch('/api/inventory/movements', fetchOpts),
+        authFetch('/api/expenses', fetchOpts),
+        authFetch('/api/returns/sales', fetchOpts),
+        authFetch('/api/returns/purchases', fetchOpts)
       ]);
 
       const sortDesc = (arr) => [...arr].sort((a, b) => {
@@ -2902,8 +2913,11 @@ export const ERPProvider = ({ children }) => {
   }, [token, user]);
 
   useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
+    const activeToken = token || getAuthToken();
+    if (activeToken) {
+      fetchAllData(activeToken);
+    }
+  }, [token, user, fetchAllData]);
 
   // 1. Add Category
   const addCategory = async (categoryData) => {

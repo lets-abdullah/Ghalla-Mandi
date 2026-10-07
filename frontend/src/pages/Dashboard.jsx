@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ShoppingBag, ShoppingCart, DollarSign,
   TrendingUp, Users, CreditCard, Wallet, Receipt, Package
@@ -19,9 +19,16 @@ export const Dashboard = () => {
   const { t } = useLocale();
   const { user } = useAuth();
   const { theme } = useTheme();
-  const { sales = [], purchases = [], customers = [], suppliers = [], products = [], saleReturns = [], purchaseReturns = [], paymentLogs = [], stockMovements = [] } = useERP();
+  const { sales = [], purchases = [], customers = [], suppliers = [], products = [], saleReturns = [], purchaseReturns = [], paymentLogs = [], stockMovements = [], refreshData, loading } = useERP();
   const navigate = useNavigate();
   const [activeInvoice, setActiveInvoice] = useState(null);
+
+  // Self-healing: if dashboard loads with zero records and not currently loading, trigger refresh
+  useEffect(() => {
+    if (refreshData && (!sales || sales.length === 0) && (!products || products.length === 0) && !loading) {
+      refreshData();
+    }
+  }, [refreshData]);
 
   const isDark = theme === 'dark';
 
