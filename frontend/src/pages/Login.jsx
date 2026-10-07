@@ -155,7 +155,7 @@ export const Login = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 bg-linear-to-r from-indigo-600 via-purple-600 to-brand-600 hover:from-indigo-500 hover:to-brand-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition-all duration-200 flex items-center justify-center gap-2 mt-2 active:scale-98 disabled:opacity-50 cursor-pointer"
+              className="w-full py-3.5 bg-linear-to-r from-amber-400 via-amber-500 to-orange-400 hover:from-amber-300 hover:via-amber-400 hover:to-orange-300 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/30 transition-all duration-200 flex items-center justify-center gap-2 mt-2 active:scale-98 disabled:opacity-50 cursor-pointer"
             >
               <span>{isLoading ? t('authenticating') : t('signIn')}</span>
               <ArrowRight className="w-4 h-4" />
