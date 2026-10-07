@@ -59,8 +59,8 @@ export const Login = () => {
           alt="Mandi Grain Sacks Background"
           className="w-full h-full object-cover scale-105 filter blur-md brightness-60 opacity-90"
         />
-        <div className="absolute inset-0 bg-linear-to-b from-[#090a16]/70 via-[#0d0f26]/50 to-[#090a16]/75"></div>
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#6366f1_1px,transparent_1px)] bg-size-[24px_24px]"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#090a16]/70 via-[#0d0f26]/50 to-[#090a16]/75"></div>
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:24px_24px]"></div>
       </div>
 
       {/* Main Content Container */}
@@ -71,7 +71,7 @@ export const Login = () => {
           <div className="flex flex-col items-center text-center space-y-2">
             {/* Glowing Rounded Square Logo Badge */}
             <div className="relative group">
-              <div className="absolute -inset-1 bg-linear-to-r from-amber-400 via-indigo-500 to-purple-600 rounded-3xl blur-md opacity-90 group-hover:opacity-100 transition duration-500"></div>
+              <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-indigo-500 to-purple-600 rounded-3xl blur-md opacity-90 group-hover:opacity-100 transition duration-500"></div>
               <div className="relative w-20 h-20 bg-[#0d0f23] border border-white/20 rounded-2xl flex items-center justify-center shadow-2xl">
                 <div className="w-12 h-12 rounded-xl bg-amber-400/10 border border-amber-400/40 flex items-center justify-center text-amber-400">
                   <Wheat className="w-8 h-8 stroke-[2.5]" />
@@ -90,7 +90,7 @@ export const Login = () => {
           </div>
 
           {/* Divider Line */}
-          <div className="w-full h-px bg-linear-to-r from-transparent via-white/20 to-transparent"></div>
+          <div className="w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
 
           {/* Error Message Alert Box */}
           {errorMsg && (
@@ -155,7 +155,7 @@ export const Login = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 bg-linear-to-r from-amber-400 via-amber-500 to-orange-400 hover:from-amber-300 hover:via-amber-400 hover:to-orange-300 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/30 transition-all duration-200 flex items-center justify-center gap-2 mt-2 active:scale-98 disabled:opacity-50 cursor-pointer"
+              className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg shadow-amber-500/30 transition-all duration-200 flex items-center justify-center gap-2 mt-2 active:scale-98 disabled:opacity-50 cursor-pointer"
             >
               <span>{isLoading ? t('authenticating') : t('signIn')}</span>
               <ArrowRight className="w-4 h-4" />
