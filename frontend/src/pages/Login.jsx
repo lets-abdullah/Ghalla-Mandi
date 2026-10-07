@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Wheat, AlertCircle, UserPlus, Sparkles, Zap } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Wheat, AlertCircle, UserPlus } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleContext';
@@ -9,28 +9,11 @@ export const Login = () => {
   const { authenticate } = useAuth();
   const { t } = useLocale();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@ghallamandi.com');
+  const [password, setPassword] = useState('admin123');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  const handleQuickDemoLogin = async () => {
-    setEmail('admin@ghallamandi.com');
-    setPassword('admin123');
-    setErrorMsg('');
-    setIsLoading(true);
-
-    setTimeout(async () => {
-      const res = await authenticate('admin@ghallamandi.com', 'admin123');
-      setIsLoading(false);
-      if (res.success) {
-        navigate('/dashboard');
-      } else {
-        setErrorMsg(t('loginErrorInvalidCreds'));
-      }
-    }, 400);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -108,39 +91,6 @@ export const Login = () => {
 
           {/* Divider Line */}
           <div className="w-full h-px bg-linear-to-r from-transparent via-white/20 to-transparent"></div>
-
-          {/* Client Demo Access Credentials Banner */}
-          <div className="bg-linear-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-amber-500/30 rounded-2xl p-3.5 space-y-2.5 text-xs relative overflow-hidden backdrop-blur-md shadow-inner">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-amber-400 font-extrabold text-[11px] uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse shrink-0" />
-                <span>Demo Client Credentials</span>
-              </div>
-              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 tracking-wider uppercase">
-                DEMO MODE
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-              <div className="bg-[#090a16]/70 p-2 rounded-xl border border-white/10 flex flex-col">
-                <span className="text-[9px] font-sans text-slate-400 font-bold uppercase tracking-wider">Email</span>
-                <span className="text-amber-200 font-bold select-all truncate">admin@ghallamandi.com</span>
-              </div>
-              <div className="bg-[#090a16]/70 p-2 rounded-xl border border-white/10 flex flex-col">
-                <span className="text-[9px] font-sans text-slate-400 font-bold uppercase tracking-wider">Password</span>
-                <span className="text-indigo-200 font-bold select-all">admin123</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleQuickDemoLogin}
-              className="w-full py-2 px-3 bg-linear-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-[11px] uppercase tracking-wider rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-            >
-              <Zap className="w-3.5 h-3.5 fill-slate-950 shrink-0" />
-              <span>1-Click Demo Login</span>
-            </button>
-          </div>
 
           {/* Error Message Alert Box */}
           {errorMsg && (
