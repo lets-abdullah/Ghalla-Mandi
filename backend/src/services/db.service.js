@@ -537,40 +537,129 @@ export const seedDemoAccount = async (pClient) => {
         ('cat-demo-03', '${demoShopId}', 'Oilseeds & Cash Crops', 'Cotton, Mustard, Sunflower')
         ON CONFLICT (id) DO NOTHING`);
 
+      /*
+       * PRODUCT STOCK CALCULATIONS (corrected):
+       * Wheat:  initialStock=300, purchased +50, sold -30  → currentStock = 300 + 50 - 30 = 320
+       * Rice:   initialStock=200, sold -10               → currentStock = 200 - 10       = 190
+       * Corn:   initialStock=500, no transactions        → currentStock = 500
+       * Chana:  initialStock=150, no transactions        → currentStock = 150
+       * Cotton: initialStock=100, no transactions        → currentStock = 100
+       */
       await p.query(`INSERT INTO products (id, shop_id, code, name, category, purchasePrice, sellingPrice, stockQty, initialStock, initialCost, minStock, unit, image) VALUES
-        ('prd-demo-101', '${demoShopId}', 'PRD-101', 'Wheat (Gandum) - Super Grade', 'Grains & Cereals', 4200, 4500, 250, 300, 4200, 20, 'Mann (40 KG)', ''),
-        ('prd-demo-102', '${demoShopId}', 'PRD-102', 'Basmati Rice 1121 Kainat', 'Grains & Cereals', 9500, 10200, 180, 200, 9500, 15, 'Mann (40 KG)', ''),
-        ('prd-demo-103', '${demoShopId}', 'PRD-103', 'Corn (Makai) - Premium Feed', 'Grains & Cereals', 2400, 2700, 400, 500, 2400, 50, 'Mann (40 KG)', ''),
-        ('prd-demo-104', '${demoShopId}', 'PRD-104', 'Desi Chana (Chickpeas)', 'Pulses & Lentils', 6800, 7400, 120, 150, 6800, 15, 'Mann (40 KG)', ''),
-        ('prd-demo-105', '${demoShopId}', 'PRD-105', 'Cotton (Phutti) Grade-A', 'Oilseeds & Cash Crops', 8200, 8800, 90, 100, 8200, 10, 'Mann (40 KG)', '')
+        ('prd-demo-101', '${demoShopId}', 'PRD-101', 'Wheat (Gandum) - Super Grade',  'Grains & Cereals',      4200,  4500,  320, 300, 4200, 20, 'Mann (40 KG)', ''),
+        ('prd-demo-102', '${demoShopId}', 'PRD-102', 'Basmati Rice 1121 Kainat',       'Grains & Cereals',      9500, 10200,  190, 200, 9500, 15, 'Mann (40 KG)', ''),
+        ('prd-demo-103', '${demoShopId}', 'PRD-103', 'Corn (Makai) - Premium Feed',    'Grains & Cereals',      2400,  2700,  500, 500, 2400, 50, 'Mann (40 KG)', ''),
+        ('prd-demo-104', '${demoShopId}', 'PRD-104', 'Desi Chana (Chickpeas)',         'Pulses & Lentils',      6800,  7400,  150, 150, 6800, 15, 'Mann (40 KG)', ''),
+        ('prd-demo-105', '${demoShopId}', 'PRD-105', 'Cotton (Phutti) Grade-A',        'Oilseeds & Cash Crops', 8200,  8800,  100, 100, 8200, 10, 'Mann (40 KG)', '')
         ON CONFLICT (id) DO NOTHING`);
 
+      /*
+       * CUSTOMER BALANCE CALCULATIONS (corrected):
+       *
+       * Malik Flour Mills:
+       *   openingBalance = 50,000
+       *   Sale INV-2026-001: amount=135,000  paidAmount=60,000  → due from this sale = 75,000
+       *   Total balance = openingBalance + sale_due = 50,000 + 75,000 = 125,000  ← this is correct as stored balance
+       *   NOTE: The app shows openingBalance separately, so balance field should only store
+       *         the CURRENT outstanding (sale dues), not the running total.
+       *         balance = sale due = 75,000 (app adds openingBalance on top automatically)
+       *
+       * Chaudhry Rice Traders:
+       *   openingBalance = 0
+       *   Sale INV-2026-002: amount=102,000  paidAmount=102,000 → fully paid, due = 0
+       *   balance = 0
+       *
+       * Tariq Feed Industries:
+       *   openingBalance = 15,000  (only opening, no transactions yet)
+       *   balance = 0  (no sale dues; opening balance tracked separately)
+       */
       await p.query(`INSERT INTO customers (id, shop_id, name, shopName, phone, city, customerType, openingBalance, balance, creditLimit) VALUES
-        ('cst-demo-201', '${demoShopId}', 'Malik Flour Mills', 'Malik Flour Mills Ltd', '0300-9876543', 'Faisalabad', 'Regular Party', 50000, 125000, 500000),
-        ('cst-demo-202', '${demoShopId}', 'Chaudhry Rice Traders', 'Chaudhry Rice Mills', '0301-8889900', 'Lahore', 'Regular Party', 0, 84000, 400000),
-        ('cst-demo-203', '${demoShopId}', 'Tariq Feed Industries', 'Tariq Feeds Ltd', '0321-7776655', 'Sahiwal', 'Regular Party', 15000, 32000, 300000)
+        ('cst-demo-201', '${demoShopId}', 'Malik Flour Mills',    'Malik Flour Mills Ltd',  '0300-9876543', 'Faisalabad', 'Regular Party', 50000,  75000, 500000),
+        ('cst-demo-202', '${demoShopId}', 'Chaudhry Rice Traders','Chaudhry Rice Mills',    '0301-8889900', 'Lahore',     'Regular Party',     0,      0, 400000),
+        ('cst-demo-203', '${demoShopId}', 'Tariq Feed Industries','Tariq Feeds Ltd',        '0321-7776655', 'Sahiwal',    'Regular Party', 15000,      0, 300000)
         ON CONFLICT (id) DO NOTHING`);
 
+      /*
+       * SUPPLIER BALANCE CALCULATIONS (corrected):
+       *
+       * Punjab Grain Farms & Co.:
+       *   Purchase PUR-2026-001: grandTotal=210,000  paidAmount=145,000 → due=65,000
+       *   balance = 65,000 ✅
+       *
+       * Pak Arhat Commission Shop #12:
+       *   openingBalance=20,000  no purchases yet
+       *   balance = 20,000 (opening only, no additional dues)
+       */
       await p.query(`INSERT INTO suppliers (id, shop_id, name, phone, city, openingBalance, balance) VALUES
-        ('sup-demo-301', '${demoShopId}', 'Punjab Grain Farms & Co.', '0302-1112233', 'Multan', 0, 65000),
-        ('sup-demo-302', '${demoShopId}', 'Pak Arhat Commission Shop #12', '0303-4445566', 'Faisalabad Mandi', 20000, 45000)
+        ('sup-demo-301', '${demoShopId}', 'Punjab Grain Farms & Co.',       '0302-1112233', 'Multan',          0, 65000),
+        ('sup-demo-302', '${demoShopId}', 'Pak Arhat Commission Shop #12',  '0303-4445566', 'Faisalabad Mandi', 20000, 20000)
         ON CONFLICT (id) DO NOTHING`);
 
-      await p.query(`INSERT INTO sales (id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, discount, tax, paidAmount, netAmount, profit, status, paymentMode, cartJson) VALUES
-        ('sal-demo-401', '${demoShopId}', 'INV-2026-001', 'Malik Flour Mills', 'cst-demo-201', 'Regular Party', '2026-10-01', 135000, 0, 0, 60000, 135000, 9000, 'Partial', 'Split Payment', '[{"id":"prd-demo-101","name":"Wheat (Gandum) - Super Grade","qty":30,"rate":4500,"unit":"Mann (40 KG)","total":135000}]'),
-        ('sal-demo-402', '${demoShopId}', 'INV-2026-002', 'Chaudhry Rice Traders', 'cst-demo-202', 'Regular Party', '2026-10-05', 102000, 0, 0, 102000, 102000, 7000, 'Paid', 'Cash', '[{"id":"prd-demo-102","name":"Basmati Rice 1121 Kainat","qty":10,"rate":10200,"unit":"Mann (40 KG)","total":102000}]')
+      /*
+       * SALES CALCULATIONS (corrected):
+       *
+       * INV-2026-001  Wheat × 30 Mann @ Rs.4,500  = Rs.135,000
+       *   paidAmount       = 60,000  (partial — split payment)
+       *   netAmount        = 135,000 (no discount / tax)
+       *   initialPaidAmount= 60,000  (needed by ERP financial engine)
+       *   profit           = 30 × (4,500 − 4,200) = Rs. 9,000  ✅
+       *   status           = Partial
+       *
+       * INV-2026-002  Basmati Rice × 10 Mann @ Rs.10,200 = Rs.102,000
+       *   paidAmount       = 102,000  (fully paid, cash)
+       *   netAmount        = 102,000
+       *   initialPaidAmount= 102,000
+       *   profit           = 10 × (10,200 − 9,500) = Rs. 7,000  ✅
+       *   status           = Paid
+       */
+      await p.query(`INSERT INTO sales (id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, discount, tax, paidAmount, initialPaidAmount, netAmount, profit, status, paymentMode, cartJson) VALUES
+        ('sal-demo-401', '${demoShopId}', 'INV-2026-001', 'Malik Flour Mills',    'cst-demo-201', 'Regular Party', '2026-10-01', 135000, 0, 0,  60000,  60000, 135000,  9000, 'Partial', 'Split Payment', '[{"id":"prd-demo-101","name":"Wheat (Gandum) - Super Grade","qty":30,"rate":4500,"unit":"Mann (40 KG)","total":135000}]'),
+        ('sal-demo-402', '${demoShopId}', 'INV-2026-002', 'Chaudhry Rice Traders','cst-demo-202', 'Regular Party', '2026-10-05', 102000, 0, 0, 102000, 102000, 102000,  7000, 'Paid',    'Cash',          '[{"id":"prd-demo-102","name":"Basmati Rice 1121 Kainat","qty":10,"rate":10200,"unit":"Mann (40 KG)","total":102000}]')
         ON CONFLICT (id) DO NOTHING`);
 
-      await p.query(`INSERT INTO purchases (id, shop_id, purchaseNo, supplierName, supplierId, grandTotal, paidAmount, paymentStatus, paymentMode, itemsJson) VALUES
-        ('pur-demo-501', '${demoShopId}', 'PUR-2026-001', 'Punjab Grain Farms & Co.', 'sup-demo-301', 210000, 145000, 'Partial', 'Cash', '[{"id":"prd-demo-101","name":"Wheat (Gandum) - Super Grade","qty":50,"rate":4200,"unit":"Mann (40 KG)","total":210000}]')
+      /*
+       * PURCHASE CALCULATIONS (corrected):
+       *
+       * PUR-2026-001  Wheat × 50 Mann @ Rs.4,200 = Rs.210,000
+       *   grandTotal   = 210,000  ✅
+       *   paidAmount   = 145,000
+       *   netAmount    = 210,000
+       *   due          = 210,000 − 145,000 = 65,000  ✅ (matches supplier balance)
+       *   paymentStatus= Partial
+       */
+      await p.query(`INSERT INTO purchases (id, shop_id, purchaseNo, supplierName, supplierId, grandTotal, paidAmount, netAmount, paymentStatus, paymentMode, itemsJson) VALUES
+        ('pur-demo-501', '${demoShopId}', 'PUR-2026-001', 'Punjab Grain Farms & Co.', 'sup-demo-301', 210000, 145000, 210000, 'Partial', 'Cash', '[{"id":"prd-demo-101","name":"Wheat (Gandum) - Super Grade","qty":50,"rate":4200,"unit":"Mann (40 KG)","total":210000}]')
         ON CONFLICT (id) DO NOTHING`);
 
+      /*
+       * EXPENSES:
+       *   Labour Charges   = Rs. 8,500  (Cash)
+       *   Electricity Bill = Rs. 14,200 (Bank Transfer)
+       *   Total Expenses   = Rs. 22,700
+       */
       await p.query(`INSERT INTO expenses (id, shop_id, category, amount, mode, date, desc_text) VALUES
-        ('exp-demo-601', '${demoShopId}', 'Labour Charges', 8500, 'Cash', '2026-10-02', 'Grain sack loading labour charges'),
+        ('exp-demo-601', '${demoShopId}', 'Labour Charges', 8500, 'Cash',          '2026-10-02', 'Grain sack loading labour charges'),
         ('exp-demo-602', '${demoShopId}', 'Electricity Bill', 14200, 'Bank Transfer', '2026-10-04', 'Mandi shop monthly power bill')
         ON CONFLICT (id) DO NOTHING`);
 
-      console.log('[DB Seed]: Populated demo dataset for shp-demo-admin-001');
+      /*
+       * STOCK MOVEMENTS — log all transactions so inventory history is correct
+       *
+       * Wheat:  +300 (initial), +50 (purchase), -30 (sale) = 320
+       * Rice:   +200 (initial), -10 (sale)                 = 190
+       */
+      await p.query(`INSERT INTO stock_movements (id, shop_id, product, type, qty, ref, date) VALUES
+        ('stk-demo-701', '${demoShopId}', 'Wheat (Gandum) - Super Grade', 'Stock In',  '300', 'INITIAL-STOCK',   '2026-09-01'),
+        ('stk-demo-702', '${demoShopId}', 'Wheat (Gandum) - Super Grade', 'Stock In',  '50',  'PUR-2026-001',    '2026-10-01'),
+        ('stk-demo-703', '${demoShopId}', 'Wheat (Gandum) - Super Grade', 'Stock Out', '30',  'INV-2026-001',    '2026-10-01'),
+        ('stk-demo-704', '${demoShopId}', 'Basmati Rice 1121 Kainat',     'Stock In',  '200', 'INITIAL-STOCK',   '2026-09-01'),
+        ('stk-demo-705', '${demoShopId}', 'Basmati Rice 1121 Kainat',     'Stock Out', '10',  'INV-2026-002',    '2026-10-05'),
+        ('stk-demo-706', '${demoShopId}', 'Corn (Makai) - Premium Feed',  'Stock In',  '500', 'INITIAL-STOCK',   '2026-09-01'),
+        ('stk-demo-707', '${demoShopId}', 'Desi Chana (Chickpeas)',       'Stock In',  '150', 'INITIAL-STOCK',   '2026-09-01'),
+        ('stk-demo-708', '${demoShopId}', 'Cotton (Phutti) Grade-A',      'Stock In',  '100', 'INITIAL-STOCK',   '2026-09-01')
+        ON CONFLICT (id) DO NOTHING`);
+
+      console.log('[DB Seed]: Populated corrected demo dataset for shp-demo-admin-001');
     }
   } catch (err) {
     console.warn('[DB Seed Warning]:', err.message);
