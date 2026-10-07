@@ -1,5 +1,6 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 dotenv.config();
@@ -43,8 +44,9 @@ export const initDatabase = async () => {
       const p = getPool();
       try {
         await createTables();
+        await seedDemoAccount(p);
         isInitialized = true;
-        console.log('[Postgres Connected & Initialized]: All ERP tables verified.');
+        console.log('[Postgres Connected & Initialized]: All ERP tables verified & demo account ready.');
         return p;
       } catch (err) {
         initPromise = null;
@@ -490,6 +492,91 @@ export const createBackup = async () => {
   };
 };
 
+export const seedDemoAccount = async (pClient) => {
+  try {
+    const p = pClient || getPool();
+    const demoEmail = 'admin@ghallamandi.com';
+    const demoShopId = 'shp-demo-admin-001';
+    const demoUserId = 'usr-demo-admin-001';
+
+    // Hash password admin123 using bcrypt
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('admin123', salt);
+
+    // 1. Ensure Demo Shop exists
+    await p.query(
+      `INSERT INTO shops (shop_id, name, ownerName, city, phone, email, address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (shop_id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email`,
+      [demoShopId, 'Al-Rehman Ghalla Mandi Traders', 'Ghalla Mandi Admin', 'Faisalabad Mandi', '0300-1234567', demoEmail, 'Shop # 42, Main Grain Market, Faisalabad']
+    );
+
+    // 2. Ensure Demo User exists with admin123 password
+    const userRes = await p.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [demoEmail]);
+    if (!userRes.rows || userRes.rows.length === 0) {
+      await p.query(
+        `INSERT INTO users (id, shop_id, fullName, email, password, phone, role)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (id) DO NOTHING`,
+        [demoUserId, demoShopId, 'Ghalla Mandi Admin', demoEmail, hashedPassword, '0300-1234567', 'Admin']
+      );
+      console.log('[DB Seed]: Created demo user admin@ghallamandi.com with password admin123');
+    } else {
+      await p.query(
+        `UPDATE users SET password = $1, shop_id = $2 WHERE LOWER(email) = LOWER($3)`,
+        [hashedPassword, demoShopId, demoEmail]
+      );
+    }
+
+    // 3. Seed sample categories & products if none exist for demo shop
+    const prodCount = await p.query('SELECT COUNT(*) FROM products WHERE shop_id = $1', [demoShopId]);
+    if (prodCount.rows && parseInt(prodCount.rows[0].count, 10) === 0) {
+      await p.query(`INSERT INTO categories (id, shop_id, name, description) VALUES
+        ('cat-demo-01', '${demoShopId}', 'Grains & Cereals', 'Wheat, Rice, Corn and Cereals'),
+        ('cat-demo-02', '${demoShopId}', 'Pulses & Lentils', 'Chana, Moong, Mash and Lentils'),
+        ('cat-demo-03', '${demoShopId}', 'Oilseeds & Cash Crops', 'Cotton, Mustard, Sunflower')
+        ON CONFLICT (id) DO NOTHING`);
+
+      await p.query(`INSERT INTO products (id, shop_id, code, name, category, purchasePrice, sellingPrice, stockQty, initialStock, initialCost, minStock, unit, image) VALUES
+        ('prd-demo-101', '${demoShopId}', 'PRD-101', 'Wheat (Gandum) - Super Grade', 'Grains & Cereals', 4200, 4500, 250, 300, 4200, 20, 'Mann (40 KG)', ''),
+        ('prd-demo-102', '${demoShopId}', 'PRD-102', 'Basmati Rice 1121 Kainat', 'Grains & Cereals', 9500, 10200, 180, 200, 9500, 15, 'Mann (40 KG)', ''),
+        ('prd-demo-103', '${demoShopId}', 'PRD-103', 'Corn (Makai) - Premium Feed', 'Grains & Cereals', 2400, 2700, 400, 500, 2400, 50, 'Mann (40 KG)', ''),
+        ('prd-demo-104', '${demoShopId}', 'PRD-104', 'Desi Chana (Chickpeas)', 'Pulses & Lentils', 6800, 7400, 120, 150, 6800, 15, 'Mann (40 KG)', ''),
+        ('prd-demo-105', '${demoShopId}', 'PRD-105', 'Cotton (Phutti) Grade-A', 'Oilseeds & Cash Crops', 8200, 8800, 90, 100, 8200, 10, 'Mann (40 KG)', '')
+        ON CONFLICT (id) DO NOTHING`);
+
+      await p.query(`INSERT INTO customers (id, shop_id, name, shopName, phone, city, customerType, openingBalance, balance, creditLimit) VALUES
+        ('cst-demo-201', '${demoShopId}', 'Malik Flour Mills', 'Malik Flour Mills Ltd', '0300-9876543', 'Faisalabad', 'Regular Party', 50000, 125000, 500000),
+        ('cst-demo-202', '${demoShopId}', 'Chaudhry Rice Traders', 'Chaudhry Rice Mills', '0301-8889900', 'Lahore', 'Regular Party', 0, 84000, 400000),
+        ('cst-demo-203', '${demoShopId}', 'Tariq Feed Industries', 'Tariq Feeds Ltd', '0321-7776655', 'Sahiwal', 'Regular Party', 15000, 32000, 300000)
+        ON CONFLICT (id) DO NOTHING`);
+
+      await p.query(`INSERT INTO suppliers (id, shop_id, name, phone, city, openingBalance, balance) VALUES
+        ('sup-demo-301', '${demoShopId}', 'Punjab Grain Farms & Co.', '0302-1112233', 'Multan', 0, 65000),
+        ('sup-demo-302', '${demoShopId}', 'Pak Arhat Commission Shop #12', '0303-4445566', 'Faisalabad Mandi', 20000, 45000)
+        ON CONFLICT (id) DO NOTHING`);
+
+      await p.query(`INSERT INTO sales (id, shop_id, invoiceNo, partyName, customerId, customerType, date, amount, discount, tax, paidAmount, netAmount, profit, status, paymentMode, cartJson) VALUES
+        ('sal-demo-401', '${demoShopId}', 'INV-2026-001', 'Malik Flour Mills', 'cst-demo-201', 'Regular Party', '2026-10-01', 135000, 0, 0, 60000, 135000, 9000, 'Partial', 'Split Payment', '[{"id":"prd-demo-101","name":"Wheat (Gandum) - Super Grade","qty":30,"rate":4500,"unit":"Mann (40 KG)","total":135000}]'),
+        ('sal-demo-402', '${demoShopId}', 'INV-2026-002', 'Chaudhry Rice Traders', 'cst-demo-202', 'Regular Party', '2026-10-05', 102000, 0, 0, 102000, 102000, 7000, 'Paid', 'Cash', '[{"id":"prd-demo-102","name":"Basmati Rice 1121 Kainat","qty":10,"rate":10200,"unit":"Mann (40 KG)","total":102000}]')
+        ON CONFLICT (id) DO NOTHING`);
+
+      await p.query(`INSERT INTO purchases (id, shop_id, purchaseNo, supplierName, supplierId, grandTotal, paidAmount, paymentStatus, paymentMode, itemsJson) VALUES
+        ('pur-demo-501', '${demoShopId}', 'PUR-2026-001', 'Punjab Grain Farms & Co.', 'sup-demo-301', 210000, 145000, 'Partial', 'Cash', '[{"id":"prd-demo-101","name":"Wheat (Gandum) - Super Grade","qty":50,"rate":4200,"unit":"Mann (40 KG)","total":210000}]')
+        ON CONFLICT (id) DO NOTHING`);
+
+      await p.query(`INSERT INTO expenses (id, shop_id, category, amount, mode, date, desc_text) VALUES
+        ('exp-demo-601', '${demoShopId}', 'Labour Charges', 8500, 'Cash', '2026-10-02', 'Grain sack loading labour charges'),
+        ('exp-demo-602', '${demoShopId}', 'Electricity Bill', 14200, 'Bank Transfer', '2026-10-04', 'Mandi shop monthly power bill')
+        ON CONFLICT (id) DO NOTHING`);
+
+      console.log('[DB Seed]: Populated demo dataset for shp-demo-admin-001');
+    }
+  } catch (err) {
+    console.warn('[DB Seed Warning]:', err.message);
+  }
+};
+
 export default {
   initDatabase,
   query,
@@ -497,5 +584,6 @@ export default {
   run,
   withTransaction,
   createBackup,
+  seedDemoAccount,
   getPool
 };
